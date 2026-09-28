@@ -1,7 +1,6 @@
 /** Cesium viewer configured for Mars: Mars ellipsoid, NASA Trek imagery, no Earth services. */
 import {
   Cartesian3,
-  Ellipsoid,
   GeographicTilingScheme,
   ImageryLayer,
   Math as CesiumMath,
@@ -10,9 +9,7 @@ import {
   WebMapTileServiceImageryProvider,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
-
-// Must be set before any Cesium object is created so globe, camera and tiling all use Mars.
-Ellipsoid.default = Ellipsoid.MARS
+import { MARS_SPHERE } from './mars'
 
 const TREK_WMTS = 'https://trek.nasa.gov/tiles/Mars/EQ'
 
@@ -24,7 +21,7 @@ function trekLayer(id: string, format: 'jpg' | 'png', maximumLevel: number, rect
     style: 'default',
     format: format === 'jpg' ? 'image/jpeg' : 'image/png',
     tileMatrixSetID: 'default028mm',
-    tilingScheme: new GeographicTilingScheme({ ellipsoid: Ellipsoid.MARS }),
+    tilingScheme: new GeographicTilingScheme({ ellipsoid: MARS_SPHERE }),
     maximumLevel,
     rectangle: rect,
     credit: 'NASA/JPL-Caltech Mars Trek',
@@ -35,14 +32,14 @@ function trekLayer(id: string, format: 'jpg' | 'png', maximumLevel: number, rect
 const GLOBAL_BASE = trekLayer('Mars_Viking_MDIM21_ClrMosaic_global_232m', 'jpg', 7)
 
 // MRO HiRISE controlled orthomosaic of Jezero, 25 cm/px -> ~level 17.
-export const JEZERO_HIRISE = trekLayer(
+const JEZERO_HIRISE = trekLayer(
   'JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first_dd',
   'png',
   17,
   Rectangle.fromDegrees(77.2229331, 18.3067994, 77.583964, 18.669315),
 )
 
-export function createMarsViewer(container: HTMLElement): Viewer {
+export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hirise: ImageryLayer } {
   const viewer = new Viewer(container, {
     baseLayer: new ImageryLayer(GLOBAL_BASE),
     baseLayerPicker: false,
@@ -57,10 +54,10 @@ export function createMarsViewer(container: HTMLElement): Viewer {
     fullscreenButton: false,
     scene3DOnly: true,
   })
-  viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE)
+  const hirise = viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE)
   viewer.scene.verticalExaggeration = VERTICAL_EXAGGERATION
   viewer.scene.globe.showGroundAtmosphere = false // Earth-tuned; causes artifacts on Mars
-  return viewer
+  return { viewer, hirise }
 }
 
 /** Relief is subtle at 20 m/px over a ~12 km AOI; 2x makes the delta scarp readable. */
@@ -82,3 +79,13 @@ export function viewAoi(viewer: Viewer, b: Bounds): void {
 }
 
 const OBLIQUE_VIEW_HEIGHT_M = 7_000 // above the Mars datum; Jezero floor is ~-2,600 m
+
+const GLOBE_VIEW_HEIGHT_M = 9_000_000
+
+/** Whole-planet view centred on a longitude/latitude. */
+export function viewGlobe(viewer: Viewer, lon: number, lat: number): void {
+  viewer.camera.flyTo({
+    destination: Cartesian3.fromDegrees(lon, lat, GLOBE_VIEW_HEIGHT_M),
+    duration: 1.2,
+  })
+}

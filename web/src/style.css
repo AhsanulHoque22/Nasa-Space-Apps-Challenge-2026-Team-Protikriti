@@ -1,18 +1,310 @@
+/* Martian Map: mission-control chrome over a full-bleed globe. Tokens first. */
+:root {
+  --nasa-blue: #0b3d91;
+  --nasa-blue-lift: #5b8def; /* blue lifted for text/focus contrast on dark panels */
+  --nasa-red: #fc3d21;
+  --surface: rgb(8 12 22 / 0.86);
+  --surface-raised: rgb(18 26 44 / 0.94);
+  --rule: rgb(148 170 210 / 0.18);
+  --text: #eef2f8;
+  --text-muted: #a9b6cc; /* 7.9:1 on --surface */
+  --radius: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  color-scheme: dark;
+  accent-color: var(--nasa-blue-lift);
+}
+
 html,
-body,
-#app {
+body {
   margin: 0;
   height: 100%;
   background: #000;
+  color: var(--text);
+  font: 14px/1.4 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--nasa-blue);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--nasa-blue-lift);
+  outline-offset: 2px;
+}
+
+#globe {
+  position: fixed;
+  inset: 0;
+}
+
+/* Overlay grid: chrome never blocks the globe except where a panel sits. */
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: minmax(0, 320px) 1fr minmax(0, 300px);
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas:
+    'masthead . .'
+    'layers . .'
+    '. . .'
+    '. . readout';
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.panel {
+  pointer-events: auto;
+  background: var(--surface);
+  backdrop-filter: blur(10px) saturate(1.2); /* legibility over high-texture imagery */
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Masthead */
+.masthead {
+  grid-area: masthead;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.brand p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.view-switch {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.view-switch button {
+  font: 600 12px var(--font);
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 32px;
+  cursor: pointer;
+  transition:
+    background-color 180ms var(--ease-out),
+    color 180ms var(--ease-out);
+}
+
+.view-switch button:hover {
+  color: var(--text);
+}
+
+.view-switch button[aria-pressed='true'] {
+  background: var(--nasa-blue);
+  color: #fff;
+}
+
+/* Layers */
+.layers {
+  grid-area: layers;
+  align-self: start;
+  padding: var(--space-1) 0;
+}
+
+.layers summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.layers summary::-webkit-details-marker {
+  display: none;
+}
+
+.layers summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform 180ms var(--ease-out);
+}
+
+.layers[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.layer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--space-1);
+  border-top: 1px solid var(--rule);
+}
+
+.layer {
+  display: grid;
+  grid-template-columns: auto 20px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background-color 150ms var(--ease-out);
+}
+
+.layer:hover {
+  background: rgb(255 255 255 / 0.05);
+}
+
+.layer input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.layer:has(input:not(:checked)) .swatch,
+.layer:has(input:not(:checked)) .layer-text {
+  opacity: 0.5;
+}
+
+.layer-name {
+  display: block;
+  font-weight: 600;
+}
+
+.layer-detail {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Readout */
+.readout {
+  grid-area: readout;
+  padding: var(--space-3);
+  justify-self: end;
+  width: min(100%, 300px);
+  box-sizing: border-box;
+}
+
+.readout-source {
+  margin: 0 0 var(--space-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.readout-values {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.readout-values div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.readout-values dt {
+  color: var(--text-muted);
+}
+
+.readout-values dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.readout-frame {
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .fatal {
   position: fixed;
-  inset: 1rem auto auto 1rem;
+  inset: var(--space-4) var(--space-4) auto;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: #6e1407;
+  border-radius: var(--radius);
   color: #fff;
-  background: #8b1d1d;
-  padding: 0.75rem 1rem;
-  font:
-    16px system-ui,
-    sans-serif;
+}
+
+/* Cesium chrome, themed to match */
+.cesium-viewer-bottom {
+  left: var(--space-4);
+  bottom: var(--space-2);
+}
+
+@media (max-width: 719px) {
+  #ui {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas: 'masthead' 'layers' '.' 'readout';
+    padding: var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .brand p {
+    display: none;
+  }
+
+  .readout {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .readout-values {
+    grid-template-columns: repeat(3, auto);
+    justify-content: space-between;
+  }
+
+  .readout-values div {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }

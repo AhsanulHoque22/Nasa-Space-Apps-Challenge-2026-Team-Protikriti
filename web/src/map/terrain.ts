@@ -1,6 +1,7 @@
 /** Cesium terrain built from the pipeline elevation grid. */
-import { CustomHeightmapTerrainProvider, Ellipsoid, GeographicTilingScheme } from 'cesium'
+import { CustomHeightmapTerrainProvider, GeographicTilingScheme } from 'cesium'
 import type { Grid } from '../core/grid'
+import { MARS_SPHERE } from './mars'
 
 const HEIGHTMAP_SIZE = 32 // samples per tile edge
 
@@ -72,7 +73,7 @@ export function sampleHeights(g: Grid, rect: DegreeRect, size: number): Float32A
 }
 
 export function createGridTerrain(g: Grid): CustomHeightmapTerrainProvider {
-  const tilingScheme = new GeographicTilingScheme({ ellipsoid: Ellipsoid.MARS })
+  const tilingScheme = new GeographicTilingScheme({ ellipsoid: MARS_SPHERE })
   const toDeg = 180 / Math.PI
   return new CustomHeightmapTerrainProvider({
     width: HEIGHTMAP_SIZE,
