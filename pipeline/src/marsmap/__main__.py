@@ -8,6 +8,7 @@ import argparse
 import json
 import zipfile
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ from marsmap.layers import (
     traverse_feature,
 )
 from marsmap.slope import slope_deg
+from marsmap.weather import snapshot_weather
 
 # Octavia E. Butler landing site + western delta front, Jezero crater (Mars 2000 degrees E/N).
 JEZERO_AOI = (77.33, 18.36, 77.53, 18.56)
@@ -84,6 +86,12 @@ def _layers(args: argparse.Namespace) -> None:
     print(f"wrote {out}: {len(names)} names, {len(zones)} zones, {len(traverses)} traverses")
 
 
+def _weather(args: argparse.Namespace) -> None:
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    snapshot_weather(args.out, now_iso=now)
+    print(f"wrote weather snapshots to {args.out} at {now}")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="marsmap")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -96,9 +104,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     layers.add_argument("--raw", type=Path, required=True)
     layers.add_argument("--curated", type=Path, required=True)
     layers.add_argument("--out", type=Path, required=True)
+    weather = sub.add_parser("weather", help="snapshot NASA REMS + MEDA weather feeds")
+    weather.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
-    {"build": _build, "layers": _layers}[args.command](args)
+    {"build": _build, "layers": _layers, "weather": _weather}[args.command](args)
     return 0
 
 
