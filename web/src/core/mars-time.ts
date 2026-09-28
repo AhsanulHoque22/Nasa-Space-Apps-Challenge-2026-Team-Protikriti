@@ -141,3 +141,25 @@ export function season(lsDeg: number, latDeg: number): string {
   const index = latDeg >= 0 ? northern : (northern + 2) % 4
   return `${latDeg >= 0 ? 'Northern' : 'Southern'} ${SEASONS[index]}`
 }
+
+/** Rover mission clocks run on local mean solar time at the landing site; sol 0 = landing sol. */
+const MISSIONS = {
+  // MSL landed 2012-08-06 05:17:57 UTC at 137.4417°E (NASA/JPL).
+  curiosity: { landingUtcMs: Date.UTC(2012, 7, 6, 5, 17, 57), eastLonDeg: 137.4417 },
+  // Mars 2020 landed 2021-02-18 20:55 UTC at 77.4509°E (NASA/JPL).
+  perseverance: { landingUtcMs: Date.UTC(2021, 1, 18, 20, 55), eastLonDeg: 77.4509 },
+} as const
+
+export type Mission = keyof typeof MISSIONS
+
+/** Local Mars sol date at a longitude: whole number changes at local mean midnight. */
+function localSolDate(utcMs: number, eastLonDeg: number): number {
+  return marsSolDate(utcMs) + mod(eastLonDeg, 360) / 360
+}
+
+export function missionClock(mission: Mission, utcMs: number): { sol: number; lmstHours: number } {
+  const { landingUtcMs, eastLonDeg } = MISSIONS[mission]
+  const sol =
+    Math.floor(localSolDate(utcMs, eastLonDeg)) - Math.floor(localSolDate(landingUtcMs, eastLonDeg))
+  return { sol, lmstHours: localMeanSolarTimeHours(utcMs, eastLonDeg) }
+}

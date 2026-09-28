@@ -1,5 +1,6 @@
 /** Cesium viewer configured for Mars: Mars ellipsoid, NASA Trek imagery, no Earth services. */
 import {
+  Cartesian2,
   Cartesian3,
   GeographicTilingScheme,
   ImageryLayer,
@@ -63,6 +64,9 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
   const hirise = viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE)
   viewer.scene.verticalExaggeration = VERTICAL_EXAGGERATION
   viewer.scene.globe.showGroundAtmosphere = false // Earth-tuned; causes artifacts on Mars
+  // Cesium's Sun and Moon follow Earth ephemerides: hide them; lighting comes from map/sun.ts.
+  if (viewer.scene.sun) viewer.scene.sun.show = false
+  if (viewer.scene.moon) viewer.scene.moon.show = false
   return { viewer, hirise }
 }
 
@@ -133,4 +137,16 @@ export function applyView(viewer: Viewer, v: ViewState): void {
       roll: 0,
     },
   })
+}
+
+/** Surface point at the centre of the view (lon/lat degrees), or null if looking at sky. */
+export function viewCentre(viewer: Viewer): { lon: number; lat: number } | null {
+  const canvas = viewer.scene.canvas
+  const ray = viewer.camera.getPickRay(
+    new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2),
+  )
+  const hit = ray && viewer.scene.globe.pick(ray, viewer.scene)
+  if (!hit) return null
+  const c = MARS_SPHERE.cartesianToCartographic(hit)
+  return { lon: CesiumMath.toDegrees(c.longitude), lat: CesiumMath.toDegrees(c.latitude) }
 }

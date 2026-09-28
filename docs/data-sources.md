@@ -21,3 +21,11 @@ Mars has no GPS. All positions use the IAU/IAG **Mars 2000** frame: planetocentr
 | Elevation (colour hillshade) | MGS MOLA + Mars Express HRSC blend | `Mars_MGS_MOLA_ClrShade_merge_global_463m` | 463 m/px |
 | Dust cover index | MGS TES | `TES_Dust` | ~ 3 px/deg |
 | Surface roughness | MGS MOLA | `mola_roughness` | ~ 3 px/deg |
+
+## Time and sun
+
+| What | Source |
+|---|---|
+| Mars Sol Date, Coordinated Mars Time, LMST/LTST, Ls, sun position | NASA GISS **Mars24** algorithm (Allison & McEwen 2000), https://www.giss.nasa.gov/tools/mars24/help/algorithm.html. Verified against both published worked examples. |
+| Mission sols | Landing epochs: MSL 2012-08-06 05:17:57 UTC at 137.4417°E; Mars 2020 2021-02-18 20:55 UTC at 77.4509°E. Verified against NASA raw-image records (Curiosity sol 5028 and Perseverance sol 1993 on 2026-09-28). |
+| Leap seconds | IERS table (TAI−UTC = 37 s since 2017-01-01). |

@@ -4,6 +4,7 @@ import {
   localTrueSolarTimeHours,
   marsSolDate,
   marsTime,
+  missionClock,
   season,
   solarLongitudeDeg,
   sunPosition,
@@ -71,5 +72,19 @@ describe('season', () => {
     expect(season(0, -10)).toBe('Southern autumn')
     expect(season(277, 18)).toBe('Northern winter')
     expect(season(277, -5)).toBe('Southern summer')
+  })
+})
+
+describe('mission clocks (fixtures from NASA raw-image records, 2026-09-28)', () => {
+  const hms = (h: number, m: number, s: number) => h + m / 60 + s / 3600
+  it('Curiosity: sol 5028 at 11:14:10 LMST', () => {
+    const c = missionClock('curiosity', Date.parse('2026-09-28T06:48:09.000Z'))
+    expect(c.sol).toBe(5028)
+    expect(Math.abs(c.lmstHours - hms(11, 14, 10.8)) * 60).toBeLessThan(1) // within a minute
+  })
+  it('Perseverance: sol 1993 at 14:02:23 LMST', () => {
+    const c = missionClock('perseverance', Date.parse('2026-09-28T13:47:29.727Z'))
+    expect(c.sol).toBe(1993)
+    expect(Math.abs(c.lmstHours - hms(14, 2, 23.1)) * 60).toBeLessThan(1)
   })
 })

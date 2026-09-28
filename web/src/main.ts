@@ -13,6 +13,7 @@ import {
   viewAoi,
   viewGlobe,
 } from './map/viewer'
+import { renderClock } from './ui/clock'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
@@ -59,6 +60,7 @@ async function main() {
   // Planner and readout need only the grid: paint them before the heavier layers stream in.
   renderRoutePanel(ui, viewer, grid, createRouteClient(grid), createRouteLayer(viewer, grid))
   renderReadout(ui, viewer, grid)
+  renderClock(ui, viewer)
   renderLayerPanel(ui, await addLayers(viewer, grid, hirise))
 }
 
