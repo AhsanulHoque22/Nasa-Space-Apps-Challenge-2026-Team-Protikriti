@@ -12,7 +12,6 @@ from rasterio.windows import Window, from_bounds
 
 MARS_RADIUS_M = 3_396_190.0  # Mars 2000 sphere (IAU), used by USGS Mars products
 MARS_LONLAT = f"+proj=longlat +R={MARS_RADIUS_M:.0f} +no_defs"
-COG_MAX_Z_ERROR_M = 0.1  # lossy LERC tolerance; well below CTX DEM vertical precision
 
 
 @dataclass(frozen=True)
@@ -42,26 +41,6 @@ def load_dem(path: Path, bounds_lonlat: tuple[float, float, float, float]) -> De
             transform=src.window_transform(window),
             crs=src.crs.to_proj4(),
         )
-
-
-def write_cog(dem: Dem, path: Path) -> None:
-    """Write a Cloud-Optimized GeoTIFF with LERC+ZSTD compression."""
-    height, width = dem.elevation_m.shape
-    with rasterio.open(
-        path,
-        "w",
-        driver="COG",
-        width=width,
-        height=height,
-        count=1,
-        dtype="float32",
-        crs=dem.crs,
-        transform=dem.transform,
-        nodata=np.nan,
-        compress="LERC_ZSTD",
-        max_z_error=COG_MAX_Z_ERROR_M,
-    ) as dst:
-        dst.write(dem.elevation_m, 1)
 
 
 def _windows_overlap(a: Window, b: Window) -> bool:

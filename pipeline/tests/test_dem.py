@@ -6,7 +6,7 @@ import rasterio
 from rasterio.transform import from_origin
 from rasterio.warp import transform_bounds
 
-from marsmap.dem import MARS_LONLAT, load_dem, write_cog
+from marsmap.dem import MARS_LONLAT, load_dem
 
 # Same projection as the USGS Jezero CTX DEM mosaic.
 JEZERO_EQC = (
@@ -71,13 +71,3 @@ def test_pixel_size_and_crs(dem_path: Path) -> None:
 def test_aoi_outside_extent_raises(dem_path: Path) -> None:
     with pytest.raises(ValueError, match="outside"):
         load_dem(dem_path, (0.0, 0.0, 1.0, 1.0))
-
-
-def test_write_cog_round_trips_within_tolerance(dem_path: Path, tmp_path: Path) -> None:
-    dem = load_dem(dem_path, lonlat_box(0, 0, 10, 10))
-    out = tmp_path / "out.tif"
-    write_cog(dem, out)
-    with rasterio.open(out) as src:
-        back = src.read(1, masked=True).filled(np.nan)
-        assert src.driver == "GTiff" and src.profile.get("compress", "").lower().startswith("lerc")
-    assert np.allclose(back, dem.elevation_m, atol=0.1, equal_nan=True)
