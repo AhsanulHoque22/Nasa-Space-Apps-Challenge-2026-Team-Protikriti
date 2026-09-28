@@ -15,6 +15,7 @@ import {
   currentView,
   flyToPlace,
   viewAoi,
+  viewCentre,
   viewGlobe,
 } from './map/viewer'
 import { loadWeather, type WeatherStation } from './map/weather-client'
@@ -25,6 +26,11 @@ import { openExplore } from './ui/explore-hud'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
+import { renderSiteReport } from './ui/site-report'
+import type { SwimGrid } from './core/site-report'
+import { ScreenSpaceEventHandler, ScreenSpaceEventType } from 'cesium'
+import { MARS_SPHERE } from './map/mars'
+import type { Place } from './core/search'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
 import { renderTimelineBar } from './ui/timeline-bar'
@@ -51,6 +57,14 @@ async function loadSites(): Promise<Site[]> {
       return { ...info, grid: parseGrid(meta, bin) }
     }),
   )
+}
+
+async function loadSwim(): Promise<SwimGrid> {
+  const [meta, bin] = await Promise.all([
+    fetchOk('data/swim.json').then((r) => r.json()),
+    fetchOk('data/swim.bin').then((r) => r.arrayBuffer()),
+  ])
+  return { ...(meta as Omit<SwimGrid, 'values'>), values: new Int8Array(bin) }
 }
 
 async function loadMola(): Promise<Grid> {
@@ -86,7 +100,8 @@ async function main() {
   else viewAoi(viewer, home.grid)
   keepUrlInSync(viewer)
   const openRef: { current?: (ref: string) => void } = {}
-  void loadPlaces().then((places) =>
+  const placesReady = loadPlaces()
+  void placesReady.then((places) =>
     renderSearchBox(ui, places, (p) => {
       flyToPlace(viewer, p.lon, p.lat, p.sizeKm)
       if (p.ref) openRef.current?.(p.ref)
@@ -138,6 +153,33 @@ async function main() {
   launcher.after(explore)
   const exploreHooks: Array<(on: boolean) => void> = []
   renderReadout(ui, viewer, sites, mola)
+  // Settlement guide: right-click anywhere, or the readout's button for the view centre.
+  let swim: Promise<SwimGrid | null> | undefined
+  const openReport = async (lon: number, lat: number) => {
+    swim ??= loadSwim().catch(() => null)
+    const places: Place[] = await placesReady.catch(() => [])
+    renderSiteReport(side, lon, lat, { sites, mola, places, swim: await swim })
+  }
+  new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
+    (click: ScreenSpaceEventHandler.PositionedEvent) => {
+      const ray = viewer.camera.getPickRay(click.position)
+      const hit = ray && viewer.scene.globe.pick(ray, viewer.scene)
+      if (!hit) return
+      const c = MARS_SPHERE.cartesianToCartographic(hit)
+      void openReport((c.longitude * 180) / Math.PI, (c.latitude * 180) / Math.PI)
+    },
+    ScreenSpaceEventType.RIGHT_CLICK,
+  )
+  document
+    .querySelector('.readout')
+    ?.insertAdjacentHTML(
+      'beforeend',
+      '<button type="button" class="report-button">Site report for the view centre</button>',
+    )
+  document.querySelector('.report-button')?.addEventListener('click', () => {
+    const c = viewCentre(viewer)
+    if (c) void openReport(c.lon, c.lat)
+  })
   renderClock(ui, viewer)
   const layerToggles = await addLayers(viewer, sites, hirise)
   const streetView = await addStreetViewStops(viewer, (rover, index) =>

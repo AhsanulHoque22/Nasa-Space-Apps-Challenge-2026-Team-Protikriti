@@ -858,6 +858,46 @@ body.exploring #ui {
   color: var(--text-muted);
 }
 
+/* Site report */
+.site-report {
+  padding: var(--space-3);
+}
+
+.report-rows {
+  margin: var(--space-3) 0 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.report-rows dt {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.report-rows dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.report-source {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.report-button {
+  margin-top: var(--space-2);
+  width: 100%;
+  font: 600 12px var(--font);
+  color: #fff;
+  background: var(--nasa-blue);
+  border: 0;
+  border-radius: 6px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
 /* Clock */
 .clock {
   grid-area: clock;
