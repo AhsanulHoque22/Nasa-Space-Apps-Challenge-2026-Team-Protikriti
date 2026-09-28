@@ -55,8 +55,8 @@ body {
   grid-template-columns: minmax(0, 320px) 1fr minmax(0, 300px);
   grid-template-rows: auto auto 1fr auto;
   grid-template-areas:
-    'masthead . .'
-    'layers . .'
+    'masthead . route'
+    'layers . route'
     '. . .'
     '. . readout';
   gap: var(--space-3);
@@ -210,6 +210,95 @@ body {
   color: var(--text-muted);
 }
 
+/* Route */
+.route {
+  grid-area: route;
+  align-self: start;
+  padding: var(--space-3);
+}
+
+.route h2 {
+  margin: 0 0 var(--space-1);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.route-status {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+.route-summary {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.route-summary[hidden] {
+  display: none;
+}
+
+.route-summary dt {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.route-summary .qualifier {
+  opacity: 0.8;
+}
+
+.route-summary .qualifier::before {
+  content: '· ';
+}
+
+.route-summary dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.route-summary div:first-child dd {
+  color: #ff8a73; /* route red lifted for text contrast (6.6:1 on --surface) */
+}
+
+.route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.route-actions button {
+  font: 600 12px var(--font);
+  color: #fff;
+  background: var(--nasa-blue);
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 36px;
+  cursor: pointer;
+  transition: background-color 150ms var(--ease-out);
+}
+
+.route-actions button:hover {
+  background: #1450b8;
+}
+
+.route-actions button.quiet {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--text);
+}
+
+.route-actions button.quiet:hover {
+  background: rgb(255 255 255 / 0.14);
+}
+
 /* Readout */
 .readout {
   grid-area: readout;
@@ -277,14 +366,26 @@ body {
 @media (max-width: 719px) {
   #ui {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto;
-    grid-template-areas: 'masthead' 'layers' '.' 'readout';
+    grid-template-areas: 'masthead' 'layers' '.' 'route' 'readout';
+    grid-template-rows: auto auto 1fr auto auto;
     padding: var(--space-2);
     gap: var(--space-2);
   }
 
   .brand p {
     display: none;
+  }
+
+  .route {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .route h2 {
+    display: none;
+  }
+
+  .route-actions button[data-act] {
+    flex: 1 1 auto;
   }
 
   .readout {

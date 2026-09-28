@@ -1,11 +1,14 @@
 import './style.css'
 import { parseGrid } from './core/grid'
 import { addLayers } from './map/layers'
+import { createRouteClient } from './map/route-client'
+import { createRouteLayer } from './map/route-layer'
 import { createGridTerrain } from './map/terrain'
 import { createMarsViewer, viewAoi, viewGlobe } from './map/viewer'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
+import { renderRoutePanel } from './ui/route-panel'
 
 async function fetchOk(url: string): Promise<Response> {
   const response = await fetch(url)
@@ -36,6 +39,7 @@ async function main() {
       : viewAoi(viewer, grid),
   )
   renderLayerPanel(ui, await addLayers(viewer, grid, hirise))
+  renderRoutePanel(ui, viewer, grid, createRouteClient(grid), createRouteLayer(viewer, grid))
   renderReadout(ui, viewer, grid)
 }
 
