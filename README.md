@@ -1,6 +1,9 @@
-# Martian Map — Jezero Marswalk Planner
+# Martian Map: Jezero Marswalk Planner
 
-NASA Space Apps 2026 · *Interplanetary Survival Guide: Martian Map*
+**NASA Space Apps Challenge 2026 · Team Protikriti**
+Challenge: [*Interplanetary Survival Guide: Martian Map*](https://www.spaceappschallenge.org/) (Intermediate · Human Exploration, Mars, Planets & Moons, Software)
+
+> The challenge: build a layered, integrated view of a location or route on the Martian surface that pulls together data from multiple NASA science missions, to help a human explorer plan a successful Marswalk while doing new science along the way.
 
 A 3D map of Mars that layers data from six NASA/USGS sources and plans the **safest, timed Marswalk** between science stops at Jezero Crater, where Perseverance landed.
 
@@ -22,6 +25,12 @@ make dev       # http://localhost:5173
 make test lint # pytest + vitest, ruff + mypy --strict + eslint + tsc
 ```
 
+## Quality
+
+- **81 automated tests:** 25 Python (pytest) and 56 TypeScript (Vitest), covering slope, DEM I/O, layer building, A* routing, the Web Worker protocol and the planner state.
+- **Strict checks:** `ruff`, `mypy --strict`, ESLint (strict), `tsc --noEmit` and Prettier. CI runs `make lint test` on every push.
+- **Measured on the production build:** Largest Contentful Paint 1.76 s, Cumulative Layout Shift 0. A 10.9 km route computes in about 0.34 s, off the main thread.
+
 ## Architecture
 
 ```
@@ -37,6 +46,19 @@ curated JSON  ─┘                                                  map/   Ces
 - No backend. Everything is static files, deployable to GitHub Pages (`.github/workflows/deploy.yml`).
 
 Engineering standards: [CLAUDE.md](CLAUDE.md) · Product/design brief: [PRODUCT.md](PRODUCT.md) · Data provenance: [docs/data-sources.md](docs/data-sources.md) · Plan: [docs/superpowers/plans](docs/superpowers/plans).
+
+## Team Protikriti
+
+| Name | Role |
+|---|---|
+| _add team member_ | _role_ |
+
+## Contributing (team workflow)
+
+1. Branch from `main`: `git switch -c feat/<short-name>`.
+2. Follow [CLAUDE.md](CLAUDE.md) (our engineering standards): write the failing test first, keep functions small, and put units in names.
+3. Run `make lint test` before pushing, then open a pull request into `main`.
+4. Never commit downloaded data (`data/raw/`) or secrets (`.env`).
 
 ## Limitations (known, deliberate)
 
