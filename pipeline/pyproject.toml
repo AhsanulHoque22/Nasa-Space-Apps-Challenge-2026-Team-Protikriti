@@ -39,3 +39,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# rasterio internals still use Affine `*`; not our code.
+filterwarnings = ["ignore:Use `@` matmul:PendingDeprecationWarning:rasterio"]
