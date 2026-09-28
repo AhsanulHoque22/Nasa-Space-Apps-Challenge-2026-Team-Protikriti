@@ -26,3 +26,11 @@ export function summarizeRoute(g: Grid, path: Cell[], speedFactor = 1): RouteSum
   }
   return summary
 }
+
+/** Time at each science stop (imaging, sampling). A planning assumption, not mission data. */
+export const SCIENCE_STOP_MIN = 20
+
+/** Total EVA time: walking plus science time at every stop after the start. */
+export function evaDurationMin(walkingMin: number, stopCount: number): number {
+  return walkingMin + Math.max(0, stopCount - 1) * SCIENCE_STOP_MIN
+}

@@ -2,7 +2,7 @@
 import type { Cell, Grid } from '../core/grid'
 import type { RouteReply } from '../core/route-service'
 
-export type RouteClient = { route(start: Cell, goal: Cell): Promise<RouteReply> }
+export type RouteClient = { route(stops: Cell[]): Promise<RouteReply> }
 
 export function createRouteClient(grid: Grid): RouteClient {
   const worker = new Worker(new URL('../core/route.worker.ts', import.meta.url), {
@@ -16,11 +16,11 @@ export function createRouteClient(grid: Grid): RouteClient {
   }
   let nextId = 0
   return {
-    route(start, goal) {
+    route(stops) {
       const id = ++nextId
       return new Promise((resolve) => {
         pending.set(id, resolve)
-        worker.postMessage({ type: 'route', id, start, goal })
+        worker.postMessage({ type: 'route', id, stops })
       })
     },
   }

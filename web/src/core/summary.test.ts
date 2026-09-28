@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { summarizeRoute } from './summary'
+import { SCIENCE_STOP_MIN, evaDurationMin, summarizeRoute } from './summary'
 import { makeGrid } from './test-grids'
 
 const row = (cols: number[]) => cols.map((col) => ({ row: 0, col }))
@@ -49,5 +49,12 @@ describe('summarizeRoute', () => {
     const g = makeGrid([[0, 0, 0]])
     const base = summarizeRoute(g, row([0, 1, 2]), 1).durationMin
     expect(summarizeRoute(g, row([0, 1, 2]), 2).durationMin).toBeCloseTo(base / 2)
+  })
+})
+
+describe('evaDurationMin', () => {
+  it('adds science time at every stop after the start', () => {
+    expect(evaDurationMin(60, 1)).toBe(60)
+    expect(evaDurationMin(60, 3)).toBe(60 + 2 * SCIENCE_STOP_MIN)
   })
 })

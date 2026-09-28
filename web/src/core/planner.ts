@@ -1,15 +1,14 @@
-/** Click-to-plan state: start, then goal; a third pick starts over. */
+/** Click-to-plan state: the first pick is the start, every later pick appends a science stop. */
 import type { Cell } from './grid'
 
-export type Plan = { start?: Cell; goal?: Cell }
-export type PickEvent = 'start-set' | 'goal-set' | 'outside'
+export type Plan = { stops: Cell[] }
+export type PickEvent = 'start-set' | 'stop-added' | 'outside'
 
-export const EMPTY_PLAN: Plan = {}
+export const EMPTY_PLAN: Plan = { stops: [] }
 
 /** `cell` is null when the pick is outside the terrain grid or on nodata. */
 export function pick(plan: Plan, cell: Cell | null): { plan: Plan; event: PickEvent } {
   if (!cell) return { plan, event: 'outside' }
-  if (plan.start && !plan.goal)
-    return { plan: { start: plan.start, goal: cell }, event: 'goal-set' }
-  return { plan: { start: cell }, event: 'start-set' }
+  const stops = [...plan.stops, cell]
+  return { plan: { stops }, event: stops.length === 1 ? 'start-set' : 'stop-added' }
 }
