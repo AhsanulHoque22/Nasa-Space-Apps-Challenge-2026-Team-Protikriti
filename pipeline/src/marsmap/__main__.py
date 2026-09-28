@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from marsmap.activities import resolve_positions
 from marsmap.dem import load_dem
 from marsmap.export import export_grid, export_slope_overlay
 from marsmap.layers import (
@@ -104,6 +105,23 @@ def _stops(args: argparse.Namespace) -> None:
         print(f"wrote {rover}: {len(stops)} stops")
 
 
+def _activities(args: argparse.Namespace) -> None:
+    doc = json.loads(args.samples.read_text())
+    waypoints = [
+        {
+            "sol": f["properties"]["sol"],
+            "lon": f["properties"]["lon"],
+            "lat": f["properties"]["lat"],
+        }
+        for f in json.loads(args.waypoints.read_text())["features"]
+    ]
+    samples = [{**s, "kind": "sample", "rover": "m20"} for s in doc["samples"]]
+    out = {"source": doc["source"], "activities": resolve_positions(samples, waypoints)}
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    print(f"wrote {args.out}: {len(out['activities'])} activities")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="marsmap")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -121,9 +139,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     stops = sub.add_parser("stops", help="rover waypoints -> Street View stops")
     stops.add_argument("--raw", type=Path, required=True)
     stops.add_argument("--out", type=Path, required=True)
+    act = sub.add_parser("activities", help="official samples placed at rover waypoints")
+    act.add_argument("--samples", type=Path, required=True)
+    act.add_argument("--waypoints", type=Path, required=True)
+    act.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
-    commands = {"build": _build, "layers": _layers, "weather": _weather, "stops": _stops}
+    commands = {
+        "activities": _activities,
+        "build": _build,
+        "layers": _layers,
+        "weather": _weather,
+        "stops": _stops,
+    }
     commands[args.command](args)
     return 0
 

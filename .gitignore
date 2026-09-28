@@ -15,3 +15,4 @@ web/public/data/layers/
 .claude/settings.local.json
 web/public/data/weather/
 web/public/data/stops/
+web/public/data/activities.json
