@@ -1,0 +1,28 @@
+/** Mission numbers for a planned route. */
+import { type Cell, type Grid, elevationAt } from './grid'
+import { stepTimeS } from './route'
+
+export interface RouteSummary {
+  distanceM: number
+  ascentM: number
+  descentM: number
+  maxSlopeDeg: number
+  durationMin: number
+}
+
+export function summarizeRoute(g: Grid, path: Cell[], speedFactor = 1): RouteSummary {
+  const summary = { distanceM: 0, ascentM: 0, descentM: 0, maxSlopeDeg: 0, durationMin: 0 }
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1]
+    const b = path[i]
+    const lengthM = g.pixelSizeM * (a.row !== b.row && a.col !== b.col ? Math.SQRT2 : 1)
+    const rise = elevationAt(g, b) - elevationAt(g, a)
+    summary.distanceM += lengthM
+    if (rise > 0) summary.ascentM += rise
+    else summary.descentM -= rise
+    const slopeDeg = (Math.atan(Math.abs(rise) / lengthM) * 180) / Math.PI
+    summary.maxSlopeDeg = Math.max(summary.maxSlopeDeg, slopeDeg)
+    summary.durationMin += stepTimeS(g, a, b, speedFactor) / 60
+  }
+  return summary
+}
