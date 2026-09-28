@@ -24,8 +24,8 @@ describe('route service (worker protocol)', () => {
 
   it('reports which leg has no safe route', () => {
     const handle = createRouteService()
-    handle({ type: 'grid', grid: makeGrid([[0, 0, WALL, 0]]) })
-    const reply = handle({ type: 'route', id: 2, stops: stops(0, 1, 3) })
+    handle({ type: 'grid', grid: makeGrid([[0, 0, 0, WALL, 0]]) })
+    const reply = handle({ type: 'route', id: 2, stops: stops(0, 1, 4) })
     expect(reply).toMatchObject({ type: 'route', id: 2, path: null, total: null, failedLeg: 1 })
   })
 })

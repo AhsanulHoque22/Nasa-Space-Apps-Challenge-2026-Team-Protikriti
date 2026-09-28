@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Cell, Grid } from './grid'
-import { findRoute, stepTimeS } from './route'
+import { findRoute, passableCells, stepTimeS } from './route'
 import { WALL, makeGrid } from './test-grids'
 
 const W = WALL
@@ -47,15 +47,13 @@ describe('findRoute', () => {
   })
 
   it('detours through the only gap in a steep wall', () => {
-    const wallWithGap = makeGrid([
-      [0, 0, W, 0, 0],
-      [0, 0, W, 0, 0],
-      [0, 0, W, 0, 0],
-      [0, 0, W, 0, 0],
-      [0, 0, 0, 0, 0],
-    ])
-    const path = mustRoute(wallWithGap, { row: 0, col: 0 }, { row: 0, col: 4 })
-    expect(path.some((c) => c.row === 4 && c.col === 2)).toBe(true)
+    // Wall in column 4, rows 0-3. Cells beside a 100 m wall are themselves steep, so the
+    // walkable gap starts two rows below the wall's end (rows 5-8).
+    const rows = Array.from({ length: 9 }, (_, row) =>
+      Array.from({ length: 9 }, (_, col) => (col === 4 && row <= 3 ? W : 0)),
+    )
+    const path = mustRoute(makeGrid(rows), { row: 0, col: 0 }, { row: 0, col: 8 })
+    expect(path.some((c) => c.col === 4 && c.row >= 5)).toBe(true)
   })
 
   it('returns null when the goal is walled off', () => {
@@ -86,6 +84,21 @@ describe('findRoute', () => {
     expect(findRoute(nanColumn, { row: 0, col: 0 }, { row: 0, col: 4 })).toBeNull()
   })
 
+  it('never walks along the contour of a face steeper than the limit', () => {
+    // Every row is level, but the ground rises 20 m per 20 m cell north-south: a 45° face.
+    // Walking east along a row has zero rise per step, yet every cell is hazard terrain.
+    const face = makeGrid(Array.from({ length: 5 }, (_, row) => Array(5).fill(row * 20)))
+    expect(findRoute(face, { row: 2, col: 0 }, { row: 2, col: 4 })).toBeNull()
+  })
+
+  it('uses the same cell slope as the hazard overlay (numpy.gradient, one-sided edges)', () => {
+    const ramp = makeGrid([[0, 5, 10]]) // 14° per cell: allowed
+    expect(passableCells(ramp)).toEqual(new Uint8Array([1, 1, 1]))
+    const steep = makeGrid([[0, 0, 6]]) // edge cell one-sided 6/20 -> 16.7°, centre 6/40 -> 8.5°
+    expect(passableCells(steep)).toEqual(new Uint8Array([1, 1, 0]))
+    expect(passableCells(makeGrid([[0, NaN, 0]]))).toEqual(new Uint8Array([0, 0, 0]))
+  })
+
   it('prefers a longer flat path over a slower steep climb', () => {
     // Going straight over the 5 m bump (14°, allowed but slow) vs around it on flat ground.
     const bump = makeGrid([
@@ -105,6 +118,7 @@ describe('findRoute', () => {
     let seed = 42
     const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 // 0..2 m noise
     const big = makeGrid(Array.from({ length: 600 }, () => Array.from({ length: 600 }, rand)))
+    passableCells(big) // one-off per grid, cached (the app pays it once at load)
     const t0 = performance.now()
     const path = findRoute(big, { row: 0, col: 0 }, { row: 599, col: 599 })
     const ms = performance.now() - t0

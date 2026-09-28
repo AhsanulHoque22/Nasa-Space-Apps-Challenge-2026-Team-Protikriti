@@ -40,11 +40,11 @@ describe('routeViaWaypoints', () => {
   })
 
   it('returns null with the failing leg index if any leg is blocked', () => {
-    const walled = makeGrid([[0, 0, WALL, 0]])
+    const walled = makeGrid([[0, 0, 0, WALL, 0]]) // cells 2-4 are steep beside the wall
     const stops = [
       { row: 0, col: 0 },
       { row: 0, col: 1 },
-      { row: 0, col: 3 },
+      { row: 0, col: 4 },
     ]
     expect(routeViaWaypoints(walled, stops)).toEqual({ path: null, legs: [], failedLeg: 1 })
   })

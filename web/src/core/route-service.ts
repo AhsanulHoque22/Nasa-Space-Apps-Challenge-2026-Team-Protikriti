@@ -1,5 +1,6 @@
 /** Message protocol for the routing Web Worker, kept pure so it can be unit-tested. */
 import type { Cell, Grid } from './grid'
+import { passableCells } from './route'
 import { type RouteSummary, summarizeRoute } from './summary'
 import { routeViaWaypoints } from './waypoints'
 
@@ -23,6 +24,7 @@ export function createRouteService(): (msg: RouteRequest) => RouteReply | undefi
   return (msg) => {
     if (msg.type === 'grid') {
       grid = msg.grid
+      passableCells(grid) // precompute once so the first route request is not slower
       return undefined
     }
     if (!grid) return { type: 'error', id: msg.id, message: 'Terrain grid not loaded yet' }

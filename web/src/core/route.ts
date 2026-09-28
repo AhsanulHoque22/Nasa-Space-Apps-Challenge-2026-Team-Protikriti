@@ -42,9 +42,42 @@ function stepTimeByIndex(
   return lengthM / (speedMs * speedFactor)
 }
 
+const passableCache = new WeakMap<Grid, Uint8Array>()
+
+/**
+ * 1 where a cell's terrain slope is within the limit, 0 where it is steeper or nodata.
+ * Same rule as the pipeline's hazard overlay (numpy.gradient: central differences inside,
+ * one-sided at edges), so the route never enters ground the map hatches as hazardous.
+ */
+export function passableCells(g: Grid): Uint8Array {
+  const cached = passableCache.get(g)
+  if (cached) return cached
+  const { width, height, elevationM: z, pixelSizeM: px } = g
+  const limit = maxGrade(g)
+  const at = (row: number, col: number) => z[row * width + col]
+  const derivative = (lo: number, hi: number, span: number) => (hi - lo) / (span * px)
+  const passable = new Uint8Array(width * height)
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const c0 = Math.max(col - 1, 0)
+      const c1 = Math.min(col + 1, width - 1)
+      const r0 = Math.max(row - 1, 0)
+      const r1 = Math.min(row + 1, height - 1)
+      const dx = c1 > c0 ? derivative(at(row, c0), at(row, c1), c1 - c0) : 0
+      const dy = r1 > r0 ? derivative(at(r0, col), at(r1, col), r1 - r0) : 0
+      const grade = Math.hypot(dx, dy)
+      // NaN (here or in a neighbour) fails the comparison -> impassable.
+      passable[row * width + col] = grade <= limit && !Number.isNaN(at(row, col)) ? 1 : 0
+    }
+  }
+  passableCache.set(g, passable)
+  return passable
+}
+
 /**
  * Fastest route from start to goal, both ends included; null if no safe route exists.
- * 8-connected; a diagonal step needs both orthogonal neighbours passable (no corner cutting).
+ * 8-connected; every cell on the path has terrain slope within the limit, every step's grade
+ * is within the limit, and a diagonal needs both orthogonal neighbours open (no corner cutting).
  */
 export function findRoute(g: Grid, start: Cell, goal: Cell, speedFactor = 1): Cell[] | null {
   const { width, height } = g
@@ -58,6 +91,8 @@ export function findRoute(g: Grid, start: Cell, goal: Cell, speedFactor = 1): Ce
   const heuristic = (row: number, col: number) =>
     Math.hypot(row - goal.row, col - goal.col) * secondsPerCell
 
+  const terrainOk = passableCells(g)
+  if (!terrainOk[startIndex] || !terrainOk[goalIndex]) return null
   const costS = new Float64Array(width * height).fill(Infinity)
   const cameFrom = new Int32Array(width * height).fill(-1)
   const closed = new Uint8Array(width * height)
@@ -77,7 +112,7 @@ export function findRoute(g: Grid, start: Cell, goal: Cell, speedFactor = 1): Ce
       const nextCol = col + COL_STEPS[k]
       if (nextRow < 0 || nextRow >= height || nextCol < 0 || nextCol >= width) continue
       const next = nextRow * width + nextCol
-      if (closed[next]) continue
+      if (closed[next] || !terrainOk[next]) continue
       if (k >= 4) {
         const vertical = nextRow * width + col
         const horizontal = row * width + nextCol
