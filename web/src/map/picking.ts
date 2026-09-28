@@ -5,6 +5,7 @@ export const INTERACTIVE_PREFIXES = ['station:', 'stop:', 'activity:'] as const
 
 /** String id of the picked entity or primitive, if any. */
 export function pickedId(viewer: Viewer, position: Cartesian2): string | undefined {
+  if (isExploring()) return undefined // explore mode owns the canvas
   const picked = viewer.scene.pick(position) as { id?: unknown } | undefined
   const id = picked?.id
   if (typeof id === 'string') return id // primitives (PointPrimitive.id)
@@ -16,4 +17,9 @@ export function pickedId(viewer: Viewer, position: Cartesian2): string | undefin
 export function isInteractiveClick(viewer: Viewer, position: Cartesian2): boolean {
   const id = pickedId(viewer, position)
   return id !== undefined && INTERACTIVE_PREFIXES.some((p) => id.startsWith(p))
+}
+
+/** Explore mode owns input: map click tools must ignore the canvas while it runs. */
+export function isExploring(): boolean {
+  return document.body.classList.contains('exploring')
 }

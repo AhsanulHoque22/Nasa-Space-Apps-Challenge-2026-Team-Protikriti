@@ -158,6 +158,7 @@ export function openStreetView(
     request++
     root.remove()
     document.removeEventListener('keydown', onKey)
+    window.removeEventListener('resize', layout)
     returnFocus?.focus()
   }
   const onKey = (e: KeyboardEvent) => {

@@ -30,6 +30,7 @@ import { renderSiteReport } from './ui/site-report'
 import type { SwimGrid } from './core/site-report'
 import { ScreenSpaceEventHandler, ScreenSpaceEventType } from 'cesium'
 import { MARS_SPHERE } from './map/mars'
+import { isExploring } from './map/picking'
 import type { Place } from './core/search'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
@@ -162,6 +163,7 @@ async function main() {
   }
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
+      if (isExploring()) return // explore mode owns input
       const ray = viewer.camera.getPickRay(click.position)
       const hit = ray && viewer.scene.globe.pick(ray, viewer.scene)
       if (!hit) return
@@ -207,7 +209,10 @@ async function main() {
     streetview: streetView.setVisible,
     samples: samples.setVisible,
   })
-  renderTimelineBar(ui, streetView.stops, createReplay(viewer, streetView.stops))
+  const timeline = renderTimelineBar(ui, streetView.stops, createReplay(viewer, streetView.stops))
+  exploreHooks.push((on) => {
+    if (on) timeline.pauseForExplore()
+  })
   if (import.meta.env.DEV) Object.assign(window, { streetView, openStreetView }) // console debugging
 }
 

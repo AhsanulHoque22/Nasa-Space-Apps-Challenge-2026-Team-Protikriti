@@ -2,6 +2,7 @@
 import type { Stop } from '../core/streetview'
 import type { Rover } from '../map/raw-images'
 import type { Replay } from '../map/replay'
+import { advancePlayhead } from '../core/playback'
 
 const SOLS_PER_SECOND = 40
 const ROVERS: Record<Rover, { name: string; landing: number }> = {
@@ -14,7 +15,7 @@ export function renderTimelineBar(
   parent: HTMLElement,
   stops: Record<Rover, Stop[]>,
   replay: Replay,
-): void {
+): { pauseForExplore: () => void } {
   const bar = document.createElement('section')
   bar.className = 'panel timeline'
   bar.setAttribute('aria-label', 'Mission replay')
@@ -38,6 +39,7 @@ export function renderTimelineBar(
   const follow = bar.querySelector('.tl-follow input') as HTMLInputElement
   let rover: Rover = 'm20'
   let playing = 0
+  let playhead = 0 // fractional sol: per-frame steps are < 1 sol at 60 fps
 
   const range = () => {
     const list = stops[rover]
@@ -58,13 +60,10 @@ export function renderTimelineBar(
     play.setAttribute('aria-pressed', 'false')
   }
   const tick = (last: number) => (now: number) => {
-    const next = Math.min(
-      Number(slider.max),
-      Number(slider.value) + ((now - last) / 1000) * SOLS_PER_SECOND,
-    )
-    slider.value = String(Math.floor(next))
+    playhead = advancePlayhead(playhead, now - last, SOLS_PER_SECOND, Number(slider.max))
+    slider.value = String(Math.floor(playhead))
     render()
-    if (next >= Number(slider.max)) stop()
+    if (playhead >= Number(slider.max)) stop()
     else playing = requestAnimationFrame(tick(now))
   }
 
@@ -82,6 +81,7 @@ export function renderTimelineBar(
   play.addEventListener('click', () => {
     if (playing) return stop()
     if (Number(slider.value) >= Number(slider.max)) slider.value = slider.min
+    playhead = Number(slider.value)
     play.textContent = 'Pause'
     play.setAttribute('aria-pressed', 'true')
     playing = requestAnimationFrame(tick(performance.now()))
@@ -91,12 +91,24 @@ export function renderTimelineBar(
     render()
   })
   follow.addEventListener('change', () => replay.follow(follow.checked))
+  const unfollow = () => {
+    follow.checked = false
+    replay.follow(false)
+  }
   bar.querySelector('.tl-close')?.addEventListener('click', () => {
     stop()
+    unfollow()
     replay.hide()
     bar.classList.toggle('collapsed')
   })
   range()
   slider.value = slider.max
   label.textContent = 'Mission replay: pick a rover and press Play, or drag the slider.'
+  // Explore mode owns the camera: stop playback and release the follow camera.
+  return {
+    pauseForExplore: () => {
+      stop()
+      unfollow()
+    },
+  }
 }

@@ -9,7 +9,7 @@ import { SCIENCE_STOP_MIN, evaDurationMin } from '../core/summary'
 import { MARS_SPHERE } from '../map/mars'
 import type { RouteClient } from '../map/route-client'
 import type { RouteLayer } from '../map/route-layer'
-import { isInteractiveClick } from '../map/picking'
+import { isExploring, isInteractiveClick } from '../map/picking'
 
 const MESSAGES = {
   start: 'Start set. Click to add science stops along your Marswalk.',
@@ -166,7 +166,7 @@ export function renderRoutePanel(
 
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
-      if (isInteractiveClick(viewer, click.position)) return // pins and stops open panels
+      if (isExploring() || isInteractiveClick(viewer, click.position)) return // explore owns input
       apply(cellAt(click.position))
     },
     ScreenSpaceEventType.LEFT_CLICK,
