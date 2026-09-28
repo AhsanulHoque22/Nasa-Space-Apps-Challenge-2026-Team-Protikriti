@@ -46,7 +46,8 @@ export function parseGrid(meta: unknown, bin: ArrayBuffer): Grid {
 }
 
 export function elevationAt(g: Grid, c: Cell): number {
-  return g.elevationM[c.row * g.width + c.col] ?? NaN
+  if (c.row < 0 || c.row >= g.height || c.col < 0 || c.col >= g.width) return NaN
+  return g.elevationM[c.row * g.width + c.col]
 }
 
 /** Cell containing (lon, lat), or null if outside the AOI or on nodata. */
