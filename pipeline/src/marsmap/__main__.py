@@ -25,6 +25,7 @@ from marsmap.layers import (
 from marsmap.mola import MEGDR_URL, megdr_to_web, write_mola
 from marsmap.slope import slope_deg
 from marsmap.stops import waypoint_stops
+from marsmap.swim import SWIM_URL, swim_to_web, write_swim
 from marsmap.weather import snapshot_weather
 
 # Octavia E. Butler landing site + western delta front, Jezero crater (Mars 2000 degrees E/N).
@@ -170,6 +171,27 @@ def _mola(args: argparse.Namespace) -> None:
     print(f"wrote {args.out}/mola.bin (1440x720, 4 px/deg)")
 
 
+SWIM_CELLS_PER_DEG = 4
+
+
+def _swim(args: argparse.Namespace) -> None:
+    import rasterio
+    from rasterio.enums import Resampling
+
+    raw_path = args.raw / "SWIM2_c0_1.tif"
+    if not raw_path.exists():
+        raw_path.write_bytes(_download_bytes(SWIM_URL))
+    with rasterio.open(raw_path) as src:
+        metres_per_deg = src.crs.to_dict().get("R", 3396190) * 3.141592653589793 / 180
+        north = round(src.bounds.top / metres_per_deg, 3)
+        south = round(src.bounds.bottom / metres_per_deg, 3)
+        shape = (round((north - south) * SWIM_CELLS_PER_DEG), 360 * SWIM_CELLS_PER_DEG)
+        values = src.read(1, out_shape=shape, masked=True, resampling=Resampling.average)
+        grid = swim_to_web(values.filled(src.nodata).astype("float32"), float(src.nodata))
+    write_swim(grid, args.out, north=north, south=south)
+    print(f"wrote {args.out}/swim.bin ({shape[1]}x{shape[0]}, lat {south}..{north})")
+
+
 def _download_bytes(url: str) -> bytes:
     from urllib.request import urlopen
 
@@ -206,9 +228,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     mola = sub.add_parser("mola", help="global MOLA topography (4 px/deg) for the globe")
     mola.add_argument("--raw", type=Path, required=True)
     mola.add_argument("--out", type=Path, required=True)
+    swim = sub.add_parser("swim", help="SWIM 2.0 shallow-ice consistency for site reports")
+    swim.add_argument("--raw", type=Path, required=True)
+    swim.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
     commands = {
+        "swim": _swim,
         "activities": _activities,
         "build": _build,
         "layers": _layers,
