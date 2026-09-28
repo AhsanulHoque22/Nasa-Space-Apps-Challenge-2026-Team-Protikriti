@@ -5,6 +5,15 @@ const svg = (body: string) =>
   `<svg class="swatch" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false">${body}</svg>`
 
 export const SWATCHES: Record<LayerId, string> = {
+  molaShade: svg(
+    '<defs><linearGradient id="mola" x1="0" x2="1"><stop offset="0" stop-color="#2b3fbf"/><stop offset=".5" stop-color="#3fbf5a"/><stop offset="1" stop-color="#f4f1ee"/></linearGradient></defs><rect x="2" y="2" width="16" height="16" rx="2" fill="url(#mola)"/>',
+  ),
+  tesDust: svg(
+    '<rect x="2" y="2" width="16" height="16" rx="2" fill="#6b4a2f"/><circle cx="7" cy="8" r="2" fill="#e8c9a0"/><circle cx="13" cy="12" r="2.5" fill="#e8c9a0" opacity=".7"/>',
+  ),
+  roughness: svg(
+    '<rect x="2" y="2" width="16" height="16" rx="2" fill="#20263a"/><path d="M3 13l3-4 2 3 3-6 2 5 2-2 2 4" fill="none" stroke="#c9d2e6" stroke-width="1.4"/>',
+  ),
   imagery: svg(
     '<rect x="2" y="2" width="16" height="16" rx="2" fill="#8C7A6B"/><path d="M2 13l5-4 4 3 3-2 4 3v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#5E5146"/>',
   ),

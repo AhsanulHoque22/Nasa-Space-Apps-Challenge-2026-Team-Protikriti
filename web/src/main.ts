@@ -4,11 +4,20 @@ import { addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
 import { createRouteLayer } from './map/route-layer'
 import { createGridTerrain } from './map/terrain'
-import { createMarsViewer, viewAoi, viewGlobe } from './map/viewer'
+import { decodeView, encodeView } from './core/deeplink'
+import {
+  applyView,
+  createMarsViewer,
+  currentView,
+  flyToPlace,
+  viewAoi,
+  viewGlobe,
+} from './map/viewer'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
 import { renderRoutePanel } from './ui/route-panel'
+import { loadPlaces, renderSearchBox } from './ui/search-box'
 
 async function fetchOk(url: string): Promise<Response> {
   const response = await fetch(url)
@@ -40,11 +49,30 @@ async function main() {
   })
   const grid = await gridReady
   viewer.terrainProvider = createGridTerrain(grid)
-  viewAoi(viewer, grid)
+  const shared = decodeView(window.location.search)
+  if (shared) applyView(viewer, shared)
+  else viewAoi(viewer, grid)
+  keepUrlInSync(viewer)
+  void loadPlaces().then((places) =>
+    renderSearchBox(ui, places, (p) => flyToPlace(viewer, p.lon, p.lat, p.sizeKm)),
+  )
   // Planner and readout need only the grid: paint them before the heavier layers stream in.
   renderRoutePanel(ui, viewer, grid, createRouteClient(grid), createRouteLayer(viewer, grid))
   renderReadout(ui, viewer, grid)
   renderLayerPanel(ui, await addLayers(viewer, grid, hirise))
+}
+
+const URL_SYNC_DELAY_MS = 400
+
+/** Keep the address bar pointing at the current view so any view can be shared. */
+function keepUrlInSync(viewer: Parameters<typeof currentView>[0]): void {
+  let timer = 0
+  viewer.camera.moveEnd.addEventListener(() => {
+    window.clearTimeout(timer)
+    timer = window.setTimeout(() => {
+      history.replaceState(null, '', `?${encodeView(currentView(viewer))}`)
+    }, URL_SYNC_DELAY_MS)
+  })
 }
 
 main().catch((error: unknown) => {

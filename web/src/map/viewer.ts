@@ -9,12 +9,18 @@ import {
   WebMapTileServiceImageryProvider,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
+import type { ViewState } from '../core/deeplink'
 import { MARS_SPHERE } from './mars'
 
 const TREK_WMTS = 'https://trek.nasa.gov/tiles/Mars/EQ'
 
 /** NASA Trek WMTS layer (EQ = geographic, 2x1 tiles at level 0, matrix set default028mm). */
-function trekLayer(id: string, format: 'jpg' | 'png', maximumLevel: number, rect?: Rectangle) {
+export function trekLayer(
+  id: string,
+  format: 'jpg' | 'png',
+  maximumLevel: number,
+  rect?: Rectangle,
+) {
   return new WebMapTileServiceImageryProvider({
     url: `${TREK_WMTS}/${id}/1.0.0//{Style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.${format}`,
     layer: id,
@@ -87,5 +93,44 @@ export function viewGlobe(viewer: Viewer, lon: number, lat: number): void {
   viewer.camera.flyTo({
     destination: Cartesian3.fromDegrees(lon, lat, GLOBE_VIEW_HEIGHT_M),
     duration: 1.2,
+  })
+}
+
+const MIN_FLY_ALTITUDE_M = 25_000
+const ALTITUDE_PER_KM = 2_500 // frame a feature at ~2.5x its diameter
+
+/** Fly to a place, framing it by its size. */
+export function flyToPlace(viewer: Viewer, lon: number, lat: number, sizeKm = 0): void {
+  viewer.camera.flyTo({
+    destination: Cartesian3.fromDegrees(
+      lon,
+      lat,
+      Math.max(MIN_FLY_ALTITUDE_M, sizeKm * ALTITUDE_PER_KM),
+      MARS_SPHERE,
+    ),
+    duration: 1.6,
+  })
+}
+
+/** The camera as a shareable view (degrees, metres above the Mars sphere). */
+export function currentView(viewer: Viewer): ViewState {
+  const c = viewer.camera.positionCartographic
+  return {
+    lon: CesiumMath.toDegrees(c.longitude),
+    lat: CesiumMath.toDegrees(c.latitude),
+    altM: c.height,
+    headingDeg: (CesiumMath.toDegrees(viewer.camera.heading) + 360) % 360 || 0, // 360 -> 0
+    pitchDeg: CesiumMath.toDegrees(viewer.camera.pitch),
+  }
+}
+
+export function applyView(viewer: Viewer, v: ViewState): void {
+  viewer.camera.setView({
+    destination: Cartesian3.fromDegrees(v.lon, v.lat, v.altM, MARS_SPHERE),
+    orientation: {
+      heading: CesiumMath.toRadians(v.headingDeg),
+      pitch: CesiumMath.toRadians(v.pitchDeg),
+      roll: 0,
+    },
   })
 }

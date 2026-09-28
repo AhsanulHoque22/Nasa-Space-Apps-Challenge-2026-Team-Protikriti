@@ -22,9 +22,33 @@ import {
 import { graticuleLines, labelMaxDistanceM } from '../core/coords'
 import type { Grid } from '../core/grid'
 import { MARS_SPHERE } from './mars'
+import { trekLayer } from './viewer'
+
+/** NASA Trek global science layers (geographic tiles; max levels from WMTS capabilities). */
+function addTrekOverlays(viewer: Viewer) {
+  const add = (id: string, format: 'jpg' | 'png', maxLevel: number, alpha: number) => {
+    const layer = viewer.imageryLayers.addImageryProvider(trekLayer(id, format, maxLevel), 1)
+    layer.alpha = alpha
+    return layer
+  }
+  return {
+    molaShade: add('Mars_MGS_MOLA_ClrShade_merge_global_463m', 'jpg', 9, 0.85),
+    tesDust: add('TES_Dust', 'png', 3, 0.7),
+    roughness: add('mola_roughness', 'png', 3, 0.7),
+  }
+}
 
 export type LayerId =
-  'imagery' | 'slopeHazard' | 'traverses' | 'landingSites' | 'names' | 'zones' | 'graticule'
+  | 'molaShade'
+  | 'tesDust'
+  | 'roughness'
+  | 'imagery'
+  | 'slopeHazard'
+  | 'traverses'
+  | 'landingSites'
+  | 'names'
+  | 'zones'
+  | 'graticule'
 
 export type LayerToggles = Record<LayerId, (visible: boolean) => void>
 
@@ -214,6 +238,7 @@ export async function addLayers(
     addLandingSites(viewer),
     addZones(viewer),
   ])
+  const trek = addTrekOverlays(viewer)
   const nameLabels = addNames(viewer, names)
   const graticule = addGraticule(viewer)
   graticule.show = false
@@ -225,6 +250,9 @@ export async function addLayers(
       redraw()
     }
   return {
+    molaShade: toggle(trek.molaShade),
+    tesDust: toggle(trek.tesDust),
+    roughness: toggle(trek.roughness),
     imagery: toggle(hirise),
     slopeHazard: toggle(slope),
     traverses: toggle(traverses),

@@ -13,3 +13,11 @@
 ## Coordinate system
 
 Mars has no GPS. All positions use the IAU/IAG **Mars 2000** frame: planetocentric latitude, **east-positive** longitude (stored −180…180, displayed 0…360 °E), heights relative to the Mars datum (sphere R = 3,396,190 m for USGS products; the Cesium globe uses the same sphere, so geodetic = planetocentric latitude and displayed coordinates match the data exactly). Rover positions in this frame come from orbital image matching and radio tracking, not satellite navigation.
+
+## Global science layers (NASA Mars Trek WMTS)
+
+| Layer | Mission / instrument | Trek layer ID | Resolution |
+|---|---|---|---|
+| Elevation (colour hillshade) | MGS MOLA + Mars Express HRSC blend | `Mars_MGS_MOLA_ClrShade_merge_global_463m` | 463 m/px |
+| Dust cover index | MGS TES | `TES_Dust` | ~ 3 px/deg |
+| Surface roughness | MGS MOLA | `mola_roughness` | ~ 3 px/deg |
