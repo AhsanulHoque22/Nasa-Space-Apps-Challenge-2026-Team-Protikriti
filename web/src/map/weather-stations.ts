@@ -12,6 +12,7 @@ import {
   type Viewer,
 } from 'cesium'
 import { MARS_SPHERE } from './mars'
+import { pickedId } from './picking'
 import type { WeatherStation } from './weather-client'
 
 const ROVER_STATION: Record<string, WeatherStation> = { Curiosity: 'rems', Perseverance: 'meda' }
@@ -76,17 +77,10 @@ export function addStationPins(
   void viewer.dataSources.add(source)
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
-      const id = (viewer.scene.pick(click.position) as { id?: { id?: unknown } } | undefined)?.id
-        ?.id
-      if (typeof id === 'string' && id.startsWith(STATION_ID_PREFIX))
+      const id = pickedId(viewer, click.position)
+      if (id?.startsWith(STATION_ID_PREFIX))
         onOpen(id.slice(STATION_ID_PREFIX.length) as WeatherStation)
     },
     ScreenSpaceEventType.LEFT_CLICK,
   )
-}
-
-/** True when a screen click landed on a station pin (other click handlers should ignore it). */
-export function isStationClick(viewer: Viewer, position: Cartesian2): boolean {
-  const id = (viewer.scene.pick(position) as { id?: { id?: unknown } } | undefined)?.id?.id
-  return typeof id === 'string' && id.startsWith(STATION_ID_PREFIX)
 }

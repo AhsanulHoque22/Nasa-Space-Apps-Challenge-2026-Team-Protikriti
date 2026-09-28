@@ -23,6 +23,9 @@ export const SWATCHES: Record<LayerId, string> = {
   traverses: svg(
     `<path d="M2 15c4-1 4-9 8-9s3 7 8 5" fill="none" stroke="${LAYER_STYLE.perseverance}" stroke-width="2.5" stroke-linecap="round"/>`,
   ),
+  streetview: svg(
+    `<circle cx="6" cy="13" r="3" fill="${LAYER_STYLE.perseverance}" stroke="#05070C"/><circle cx="14" cy="7" r="3" fill="${LAYER_STYLE.curiosity}" stroke="#05070C"/><path d="M6 13L14 7" stroke="rgba(255,255,255,.5)" stroke-dasharray="2 2"/>`,
+  ),
   landingSites: svg(
     `<circle cx="7" cy="10" r="3.5" fill="${LAYER_STYLE.landed}"/><circle cx="15" cy="10" r="2.6" fill="none" stroke="${LAYER_STYLE.crashed}" stroke-width="1.6"/>`,
   ),

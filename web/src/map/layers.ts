@@ -45,6 +45,7 @@ export type LayerId =
   | 'imagery'
   | 'slopeHazard'
   | 'traverses'
+  | 'streetview'
   | 'landingSites'
   | 'names'
   | 'zones'
@@ -230,7 +231,7 @@ export async function addLayers(
   viewer: Viewer,
   grid: Grid,
   hirise: ImageryLayer,
-): Promise<LayerToggles> {
+): Promise<Omit<LayerToggles, 'streetview'>> {
   const names = await loadJson('data/layers/names.geojson')
   const [slope, traverses, landing, zones] = await Promise.all([
     addSlopeHazard(viewer, grid),

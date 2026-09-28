@@ -2,6 +2,7 @@ import './style.css'
 import { parseGrid } from './core/grid'
 import { addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
+import { addStreetViewStops } from './map/streetview-layer'
 import { createRouteLayer } from './map/route-layer'
 import { createGridTerrain } from './map/terrain'
 import { decodeView, encodeView } from './core/deeplink'
@@ -20,6 +21,7 @@ import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
 import { renderRoutePanel } from './ui/route-panel'
+import { openStreetView } from './ui/streetview-viewer'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
 
@@ -78,7 +80,12 @@ async function main() {
   void stationPositions().then((positions) => addStationPins(viewer, positions, openWeather))
   renderReadout(ui, viewer, grid)
   renderClock(ui, viewer)
-  renderLayerPanel(ui, await addLayers(viewer, grid, hirise))
+  const layerToggles = await addLayers(viewer, grid, hirise)
+  const streetView = await addStreetViewStops(viewer, (rover, index) =>
+    openStreetView(rover, streetView.stops[rover], index, document.activeElement as HTMLElement),
+  )
+  renderLayerPanel(ui, { ...layerToggles, streetview: streetView.setVisible })
+  if (import.meta.env.DEV) Object.assign(window, { streetView, openStreetView }) // console debugging
 }
 
 /** One weather panel at a time; reopening a station replaces it. */
