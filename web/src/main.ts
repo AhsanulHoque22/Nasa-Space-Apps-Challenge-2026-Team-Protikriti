@@ -1,6 +1,6 @@
 import './style.css'
 import { type Site, elevationAt, parseMola } from './core/elevation'
-import { type Grid, parseGrid } from './core/grid'
+import { type Grid, lonLatToCell, parseGrid } from './core/grid'
 import { addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
 import { type Activity, addActivities } from './map/activities-layer'
@@ -21,6 +21,7 @@ import { loadWeather, type WeatherStation } from './map/weather-client'
 import { addStationPins, stationPositions } from './map/weather-stations'
 import { renderActivityCard } from './ui/activity-card'
 import { renderClock } from './ui/clock'
+import { openExplore } from './ui/explore-hud'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
@@ -106,7 +107,36 @@ async function main() {
   for (const b of launcher.querySelectorAll<HTMLButtonElement>('button'))
     b.addEventListener('click', () => openWeather(b.dataset.station as WeatherStation))
   side.prepend(launcher)
-  void stationPositions().then((positions) => addStationPins(viewer, positions, openWeather))
+  const roverPositions = stationPositions()
+  void roverPositions.then((positions) => addStationPins(viewer, positions, openWeather))
+  const explore = document.createElement('nav')
+  explore.className = 'panel wx-launch'
+  explore.setAttribute('aria-label', 'Explore a site on foot')
+  explore.innerHTML = `<span>Explore on foot</span>${sites
+    .map((s) => `<button type="button" data-site="${s.id}">${s.name.split(' ')[0]}</button>`)
+    .join('')}`
+  for (const b of explore.querySelectorAll<HTMLButtonElement>('button')) {
+    b.addEventListener('click', async () => {
+      const site = sites.find((s) => s.id === b.dataset.site)
+      if (!site) return
+      // Start where the rover is now if it is inside the site's terrain, else the site centre.
+      const positions = await roverPositions.catch(() => null)
+      const rover = site.rover === 'Curiosity' ? positions?.rems : positions?.meda
+      const g = site.grid
+      const from =
+        rover && lonLatToCell(g, rover[0], rover[1])
+          ? { lon: rover[0], lat: rover[1] }
+          : { lon: (g.west + g.east) / 2, lat: (g.south + g.north) / 2 }
+      for (const hide of exploreHooks) hide(true)
+      openExplore(viewer, site, from, () => {
+        for (const hide of exploreHooks) hide(false)
+        viewAoi(viewer, g)
+        b.focus()
+      })
+    })
+  }
+  launcher.after(explore)
+  const exploreHooks: Array<(on: boolean) => void> = []
   renderReadout(ui, viewer, sites, mola)
   renderClock(ui, viewer)
   const layerToggles = await addLayers(viewer, sites, hirise)
@@ -129,6 +159,7 @@ async function main() {
     const activity = match ? samples.activities[Number(match[1])] : undefined
     if (activity) openActivity(activity)
   }
+  exploreHooks.push(layerToggles.hideForExplore, streetView.hideForExplore)
   renderLayerPanel(ui, {
     ...layerToggles,
     streetview: streetView.setVisible,

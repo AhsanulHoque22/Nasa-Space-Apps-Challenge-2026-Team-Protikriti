@@ -37,7 +37,11 @@ export type StopsByRover = Record<Rover, Stop[]>
 export async function addStreetViewStops(
   viewer: Viewer,
   onOpen: (rover: Rover, index: number) => void,
-): Promise<{ stops: StopsByRover; setVisible: (v: boolean) => void }> {
+): Promise<{
+  stops: StopsByRover
+  setVisible: (v: boolean) => void
+  hideForExplore: (on: boolean) => void
+}> {
   const load = async (rover: Rover): Promise<Stop[]> => {
     const response = await fetch(`data/stops/${rover}.json`)
     if (!response.ok) throw new Error(`stops/${rover}.json: HTTP ${response.status}`)
@@ -66,11 +70,16 @@ export async function addStreetViewStops(
     },
     ScreenSpaceEventType.LEFT_CLICK,
   )
+  let wasShowing = true
   return {
     stops,
     setVisible: (v) => {
       billboards.show = v
       viewer.scene.requestRender()
+    },
+    hideForExplore: (on) => {
+      if (on) wasShowing = billboards.show
+      billboards.show = on ? false : wasShowing
     },
   }
 }

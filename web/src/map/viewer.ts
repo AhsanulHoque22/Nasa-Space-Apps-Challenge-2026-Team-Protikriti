@@ -46,7 +46,18 @@ const JEZERO_HIRISE = trekLayer(
   Rectangle.fromDegrees(77.2229331, 18.3067994, 77.583964, 18.669315),
 )
 
-export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hirise: ImageryLayer } {
+// MRO CTX block-adjusted mosaic of Gale crater, 6 m/px (15 levels) -> ~level 14.
+const GALE_CTX = trekLayer(
+  'Gale_CTX_BlockAdj_dd',
+  'png',
+  14,
+  Rectangle.fromDegrees(135.1842593, -6.5732988, 139.2413012, -2.8077809),
+)
+
+/** Site imagery (HiRISE Jezero + CTX Gale) toggled together. */
+export type SiteImagery = { show: boolean }
+
+export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hirise: SiteImagery } {
   const viewer = new Viewer(container, {
     baseLayer: new ImageryLayer(GLOBAL_BASE),
     baseLayerPicker: false,
@@ -61,7 +72,18 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
     fullscreenButton: false,
     scene3DOnly: true,
   })
-  const hirise = viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE)
+  const layers = [
+    viewer.imageryLayers.addImageryProvider(GALE_CTX),
+    viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE),
+  ]
+  const hirise: SiteImagery = {
+    get show() {
+      return layers.every((l) => l.show)
+    },
+    set show(v: boolean) {
+      for (const l of layers) l.show = v
+    },
+  }
   viewer.scene.verticalExaggeration = VERTICAL_EXAGGERATION
   viewer.scene.globe.showGroundAtmosphere = false // Earth-tuned; causes artifacts on Mars
   // Occlude labels and markers behind the planet or terrain (e.g. Phoenix's label seen from Jezero).

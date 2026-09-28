@@ -10,7 +10,6 @@ import {
   DistanceDisplayCondition,
   GeoJsonDataSource,
   HeightReference,
-  ImageryLayer,
   LabelCollection,
   LabelStyle,
   NearFarScalar,
@@ -247,8 +246,10 @@ function addGraticule(viewer: Viewer): CustomDataSource {
 export async function addLayers(
   viewer: Viewer,
   sites: readonly Site[],
-  hirise: ImageryLayer,
-): Promise<Omit<LayerToggles, 'streetview' | 'samples'>> {
+  hirise: { show: boolean },
+): Promise<
+  Omit<LayerToggles, 'streetview' | 'samples'> & { hideForExplore: (on: boolean) => void }
+> {
   const names = await loadJson('data/layers/names.geojson')
   const [slope, traverses, landing, zones] = await Promise.all([
     addSlopeHazards(viewer, sites),
@@ -267,7 +268,18 @@ export async function addLayers(
       target.show = visible
       redraw()
     }
+  // Explore mode: hide floating labels, restore exactly what was showing before.
+  let saved: boolean[] = []
+  const clutter = [nameLabels, zones, graticule]
+  const hideForExplore = (on: boolean) => {
+    if (on) {
+      saved = clutter.map((c) => c.show)
+      for (const c of clutter) c.show = false
+    } else clutter.forEach((c, i) => (c.show = saved[i] ?? c.show))
+    redraw()
+  }
   return {
+    hideForExplore,
     molaShade: toggle(trek.molaShade),
     tesDust: toggle(trek.tesDust),
     roughness: toggle(trek.roughness),
