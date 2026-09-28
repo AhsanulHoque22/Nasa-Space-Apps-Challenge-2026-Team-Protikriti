@@ -30,17 +30,21 @@ async function main() {
   if (!globe || !ui) throw new Error('#globe / #ui elements missing')
   const { viewer, hirise } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
-  const grid = await loadGrid()
+  const gridReady = loadGrid()
+  renderHeader(ui, (view) => {
+    void gridReady.then((g) =>
+      view === 'mars'
+        ? viewGlobe(viewer, (g.west + g.east) / 2, (g.south + g.north) / 2)
+        : viewAoi(viewer, g),
+    )
+  })
+  const grid = await gridReady
   viewer.terrainProvider = createGridTerrain(grid)
   viewAoi(viewer, grid)
-  renderHeader(ui, (view) =>
-    view === 'mars'
-      ? viewGlobe(viewer, (grid.west + grid.east) / 2, (grid.south + grid.north) / 2)
-      : viewAoi(viewer, grid),
-  )
-  renderLayerPanel(ui, await addLayers(viewer, grid, hirise))
+  // Planner and readout need only the grid: paint them before the heavier layers stream in.
   renderRoutePanel(ui, viewer, grid, createRouteClient(grid), createRouteLayer(viewer, grid))
   renderReadout(ui, viewer, grid)
+  renderLayerPanel(ui, await addLayers(viewer, grid, hirise))
 }
 
 main().catch((error: unknown) => {
