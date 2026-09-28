@@ -1,11 +1,18 @@
 import './style.css'
 import { parseGrid } from './core/grid'
-import { createMarsViewer, flyToBounds } from './map/viewer'
+import { createGridTerrain } from './map/terrain'
+import { createMarsViewer, viewAoi } from './map/viewer'
+
+async function fetchOk(url: string): Promise<Response> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${url}: HTTP ${response.status} (did you run make data?)`)
+  return response
+}
 
 async function loadGrid() {
   const [meta, bin] = await Promise.all([
-    fetch('data/grid.json').then((r) => r.json()),
-    fetch('data/grid.bin').then((r) => r.arrayBuffer()),
+    fetchOk('data/grid.json').then((r) => r.json()),
+    fetchOk('data/grid.bin').then((r) => r.arrayBuffer()),
   ])
   return parseGrid(meta, bin)
 }
@@ -16,7 +23,8 @@ async function main() {
   const viewer = createMarsViewer(container)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
   const grid = await loadGrid()
-  flyToBounds(viewer, grid.west, grid.south, grid.east, grid.north)
+  viewer.terrainProvider = createGridTerrain(grid)
+  viewAoi(viewer, grid)
 }
 
 main().catch((error: unknown) => {

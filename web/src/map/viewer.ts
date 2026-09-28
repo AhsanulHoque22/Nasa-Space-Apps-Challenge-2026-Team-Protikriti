@@ -1,8 +1,10 @@
 /** Cesium viewer configured for Mars: Mars ellipsoid, NASA Trek imagery, no Earth services. */
 import {
+  Cartesian3,
   Ellipsoid,
   GeographicTilingScheme,
   ImageryLayer,
+  Math as CesiumMath,
   Rectangle,
   Viewer,
   WebMapTileServiceImageryProvider,
@@ -56,15 +58,27 @@ export function createMarsViewer(container: HTMLElement): Viewer {
     scene3DOnly: true,
   })
   viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE)
+  viewer.scene.verticalExaggeration = VERTICAL_EXAGGERATION
+  viewer.scene.globe.showGroundAtmosphere = false // Earth-tuned; causes artifacts on Mars
   return viewer
 }
 
-export function flyToBounds(
-  viewer: Viewer,
-  west: number,
-  south: number,
-  east: number,
-  north: number,
-): void {
-  viewer.camera.flyTo({ destination: Rectangle.fromDegrees(west, south, east, north), duration: 0 })
+/** Relief is subtle at 20 m/px over a ~12 km AOI; 2x makes the delta scarp readable. */
+export const VERTICAL_EXAGGERATION = 2
+
+export type Bounds = { west: number; south: number; east: number; north: number }
+
+/** Oblique view from the south so terrain relief reads, framing the whole AOI. */
+export function viewAoi(viewer: Viewer, b: Bounds): void {
+  const spanLat = b.north - b.south
+  viewer.camera.setView({
+    destination: Cartesian3.fromDegrees(
+      (b.west + b.east) / 2,
+      b.south - spanLat * 0.55,
+      OBLIQUE_VIEW_HEIGHT_M,
+    ),
+    orientation: { heading: 0, pitch: CesiumMath.toRadians(-35), roll: 0 },
+  })
 }
+
+const OBLIQUE_VIEW_HEIGHT_M = 7_000 // above the Mars datum; Jezero floor is ~-2,600 m
