@@ -54,3 +54,13 @@ The app fetches live data with a 6 s timeout and falls back to `marsmap weather`
 | Rover positions over time | MMGIS waypoints, linearly interpolated between localizations (clamped before landing and after the latest waypoint) |
 | Perseverance 3D model | NASA 3D Resources, `Mars 2020 Perseverance Rover.glb` (https://github.com/nasa/NASA-3D-Resources), scaled to the rover's ~2 m half-diagonal. Curiosity has no official glTF, so it is shown as a marker rather than a substitute model. |
 | Not yet mapped | Curiosity drill sites (no machine-readable official list found); Ingenuity flights (the official log has no coordinates) |
+
+## Terrain (multi-site + global)
+
+| Layer | Source |
+|---|---|
+| Jezero site terrain | USGS Mars 2020 Science Investigation CTX DEM Mosaic, 20 m/px |
+| Gale site terrain | USGS **MSL Gale Merged DEM Mosaic v3** (1 m/px, Parker & Calef 2016), read remotely at 32 m/px through its internal overviews (~15 s, a few MB of a 3.9 GB file). https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m |
+| Global relief | **MGS MOLA MEGDR** `megt90n000cb` (4 px/deg, metres above the MOLA areoid), NASA PDS Geosciences Node. https://pds-geosciences.wustl.edu/missions/mgs/megdr.html. Verified: Olympus Mons 20,009 m (at 15 km cells), Valles Marineris floor −4,850 m, Hellas −6,028 m. |
+
+Site DEMs take precedence inside their bounds; MOLA covers the rest of the planet (terrain, and the readout's elevation, which always names its source).

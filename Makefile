@@ -15,7 +15,8 @@ lint:
 data:
 	cd pipeline && ./scripts/fetch_jezero.sh && ./scripts/fetch_layers.sh
 	mkdir -p web/public/models && cp data/raw/perseverance.glb web/public/models/
-	cd pipeline && uv run python -m marsmap build --dem ../data/raw/jezero_ctx_dem.tif --out ../web/public/data
+	cd pipeline && uv run python -m marsmap sites --config data/sites.json --out ../web/public/data
+	cd pipeline && uv run python -m marsmap mola --raw ../data/raw --out ../web/public/data
 	cd pipeline && uv run python -m marsmap layers --raw ../data/raw --curated data --out ../web/public/data/layers
 	cd pipeline && uv run python -m marsmap weather --out ../web/public/data/weather
 	cd pipeline && uv run python -m marsmap stops --raw ../data/raw --out ../web/public/data/stops

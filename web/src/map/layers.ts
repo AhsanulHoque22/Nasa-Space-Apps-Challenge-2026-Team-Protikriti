@@ -20,7 +20,7 @@ import {
   type Viewer,
 } from 'cesium'
 import { graticuleLines, labelMaxDistanceM } from '../core/coords'
-import type { Grid } from '../core/grid'
+import type { Site } from '../core/elevation'
 import { MARS_SPHERE } from './mars'
 import { trekLayer } from './viewer'
 
@@ -99,11 +99,26 @@ function label(text: string, color = Color.WHITE) {
   }
 }
 
-async function addSlopeHazard(viewer: Viewer, grid: Grid): Promise<ImageryLayer> {
-  const provider = await SingleTileImageryProvider.fromUrl('data/slope_hazard.png', {
-    rectangle: Rectangle.fromDegrees(grid.west, grid.south, grid.east, grid.north),
-  })
-  return viewer.imageryLayers.addImageryProvider(provider)
+async function addSlopeHazards(viewer: Viewer, sites: readonly Site[]) {
+  const layers = await Promise.all(
+    sites.map(async (site) => {
+      const g = site.grid
+      const provider = await SingleTileImageryProvider.fromUrl(
+        `data/sites/${site.id}/slope_hazard.png`,
+        { rectangle: Rectangle.fromDegrees(g.west, g.south, g.east, g.north) },
+      )
+      return viewer.imageryLayers.addImageryProvider(provider)
+    }),
+  )
+  // One toggle for all sites.
+  return {
+    get show() {
+      return layers.every((l) => l.show)
+    },
+    set show(v: boolean) {
+      for (const l of layers) l.show = v
+    },
+  }
 }
 
 async function addTraverses(viewer: Viewer): Promise<GeoJsonDataSource> {
@@ -231,12 +246,12 @@ function addGraticule(viewer: Viewer): CustomDataSource {
 
 export async function addLayers(
   viewer: Viewer,
-  grid: Grid,
+  sites: readonly Site[],
   hirise: ImageryLayer,
 ): Promise<Omit<LayerToggles, 'streetview' | 'samples'>> {
   const names = await loadJson('data/layers/names.geojson')
   const [slope, traverses, landing, zones] = await Promise.all([
-    addSlopeHazard(viewer, grid),
+    addSlopeHazards(viewer, sites),
     addTraverses(viewer),
     addLandingSites(viewer),
     addZones(viewer),

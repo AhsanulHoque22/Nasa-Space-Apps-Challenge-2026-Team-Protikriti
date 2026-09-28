@@ -1,10 +1,16 @@
 /** Live position readout: pointer position, or the view centre when nothing is hovered. */
 import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer } from 'cesium'
 import { COORDINATE_FRAME, formatMarsPosition } from '../core/coords'
-import { type Grid, elevationAt, lonLatToCell } from '../core/grid'
+import { type Site, elevationAt } from '../core/elevation'
+import type { Grid } from '../core/grid'
 import { MARS_SPHERE } from '../map/mars'
 
-export function renderReadout(parent: HTMLElement, viewer: Viewer, grid: Grid): void {
+export function renderReadout(
+  parent: HTMLElement,
+  viewer: Viewer,
+  sites: readonly Site[],
+  mola: Grid,
+): void {
   const el = document.createElement('section')
   el.className = 'panel readout'
   el.setAttribute('aria-label', 'Surface position')
@@ -15,10 +21,12 @@ export function renderReadout(parent: HTMLElement, viewer: Viewer, grid: Grid): 
       <div><dt>Lon</dt><dd data-k="lon">—</dd></div>
       <div><dt>Elev</dt><dd data-k="elevation">—</dd></div>
     </dl>
-    <p class="readout-frame">${COORDINATE_FRAME} · Mars has no GPS</p>`
+    <p class="readout-frame">${COORDINATE_FRAME} · Mars has no GPS</p>
+    <p class="readout-frame" data-k2="elevSource"></p>`
   parent.append(el)
   const source = el.querySelector('.readout-source') as HTMLElement
   const fields = el.querySelectorAll<HTMLElement>('dd[data-k]')
+  const elevSource = el.querySelector('[data-k2="elevSource"]') as HTMLElement
 
   const show = (screen: Cartesian2, label: string) => {
     const ray = viewer.camera.getPickRay(screen)
@@ -27,10 +35,9 @@ export function renderReadout(parent: HTMLElement, viewer: Viewer, grid: Grid): 
     const carto = MARS_SPHERE.cartesianToCartographic(hit)
     const lon = (carto.longitude * 180) / Math.PI
     const lat = (carto.latitude * 180) / Math.PI
-    // Elevation only where we have the DEM: terrain outside the grid is a placeholder.
-    const cell = lonLatToCell(grid, lon, lat)
-    const elevation = cell ? elevationAt(grid, cell) : undefined
-    const text = formatMarsPosition(lon, lat, elevation)
+    const elevation = elevationAt(sites, mola, lon, lat)
+    const text = formatMarsPosition(lon, lat, Number.isNaN(elevation.m) ? undefined : elevation.m)
+    elevSource.textContent = `Elevation: ${elevation.source}`
     for (const f of fields) f.textContent = text[f.dataset.k as keyof typeof text]
     source.textContent = label
   }

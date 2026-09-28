@@ -22,6 +22,7 @@ from marsmap.layers import (
     resolve_zones,
     traverse_feature,
 )
+from marsmap.mola import MEGDR_URL, megdr_to_web, write_mola
 from marsmap.slope import slope_deg
 from marsmap.stops import waypoint_stops
 from marsmap.weather import snapshot_weather
@@ -122,6 +123,61 @@ def _activities(args: argparse.Namespace) -> None:
     print(f"wrote {args.out}: {len(out['activities'])} activities")
 
 
+def _build_site(
+    dem_path: str,
+    bounds: tuple[float, float, float, float],
+    pixel_m: float,
+    max_slope: float,
+    out: Path,
+) -> tuple[int, int]:
+    dem = load_dem(dem_path, bounds, target_pixel_m=pixel_m)
+    export_grid(dem, out, max_slope)
+    export_slope_overlay(
+        slope_deg(dem.elevation_m, dem.pixel_size_m), out / "slope_hazard.png", max_slope
+    )
+    height, width = dem.elevation_m.shape
+    return width, height
+
+
+def _sites(args: argparse.Namespace) -> None:
+    config = json.loads(args.config.read_text())
+    index = []
+    for site in config["sites"]:
+        out = args.out / "sites" / site["id"]
+        width, height = _build_site(
+            site["dem"], tuple(site["bounds"]), site["pixel_m"], args.max_slope, out
+        )
+        meta = json.loads((out / "grid.json").read_text())
+        index.append(
+            {k: site[k] for k in ("id", "name", "rover", "source")}
+            | {
+                "west": meta["west"],
+                "south": meta["south"],
+                "east": meta["east"],
+                "north": meta["north"],
+                "pixel_size_m": meta["pixel_size_m"],
+            }
+        )
+        print(f"wrote site {site['id']}: {width}x{height} cells at {meta['pixel_size_m']} m")
+    (args.out / "sites.json").write_text(json.dumps({"sites": index}, indent=1))
+
+
+def _mola(args: argparse.Namespace) -> None:
+    raw_path = args.raw / "megt90n000cb.img"
+    if not raw_path.exists():
+        raw_path.write_bytes(_download_bytes(MEGDR_URL))
+    write_mola(megdr_to_web(raw_path.read_bytes()), args.out)
+    print(f"wrote {args.out}/mola.bin (1440x720, 4 px/deg)")
+
+
+def _download_bytes(url: str) -> bytes:
+    from urllib.request import urlopen
+
+    with urlopen(url, timeout=120) as response:
+        data: bytes = response.read()
+        return data
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="marsmap")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -143,6 +199,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     act.add_argument("--samples", type=Path, required=True)
     act.add_argument("--waypoints", type=Path, required=True)
     act.add_argument("--out", type=Path, required=True)
+    sites = sub.add_parser("sites", help="terrain grids + hazard overlays for every site")
+    sites.add_argument("--config", type=Path, required=True)
+    sites.add_argument("--out", type=Path, required=True)
+    sites.add_argument("--max-slope", type=float, default=MAX_SAFE_SLOPE_DEG)
+    mola = sub.add_parser("mola", help="global MOLA topography (4 px/deg) for the globe")
+    mola.add_argument("--raw", type=Path, required=True)
+    mola.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
     commands = {
@@ -151,6 +214,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "layers": _layers,
         "weather": _weather,
         "stops": _stops,
+        "sites": _sites,
+        "mola": _mola,
     }
     commands[args.command](args)
     return 0

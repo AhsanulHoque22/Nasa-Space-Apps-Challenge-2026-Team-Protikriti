@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from numpy.typing import NDArray
+from rasterio.enums import Resampling
 from rasterio.transform import Affine
 from rasterio.warp import transform_bounds
 from rasterio.windows import Window, from_bounds
@@ -22,8 +23,16 @@ class Dem:
     crs: str
 
 
-def load_dem(path: Path, bounds_lonlat: tuple[float, float, float, float]) -> Dem:
-    """Crop a square-pixel DEM to (west, south, east, north) in Mars degrees. Nodata -> NaN."""
+def load_dem(
+    path: Path | str,
+    bounds_lonlat: tuple[float, float, float, float],
+    target_pixel_m: float | None = None,
+) -> Dem:
+    """Crop a square-pixel DEM to (west, south, east, north) in Mars degrees. Nodata -> NaN.
+
+    With target_pixel_m coarser than the source, reads a decimated grid (GDAL uses the file's
+    overviews, so a remote multi-GB mosaic costs only a few MB). Never upsamples.
+    """
     with rasterio.open(path) as src:
         res_x, res_y = src.res
         if res_x != res_y:
@@ -34,11 +43,20 @@ def load_dem(path: Path, bounds_lonlat: tuple[float, float, float, float]) -> De
         if not _windows_overlap(window, full):
             raise ValueError(f"AOI {bounds_lonlat} is outside the DEM extent")
         window = window.intersection(full)
-        elevation = src.read(1, window=window, masked=True).filled(np.nan).astype(np.float32)
+        factor = max(1, round((target_pixel_m or res_x) / res_x))
+        shape = (max(1, round(window.height / factor)), max(1, round(window.width / factor)))
+        elevation = (
+            src.read(1, window=window, out_shape=shape, masked=True, resampling=Resampling.average)
+            .filled(np.nan)
+            .astype(np.float32)
+        )
+        transform = src.window_transform(window) @ Affine.scale(
+            window.width / shape[1], window.height / shape[0]
+        )
         return Dem(
             elevation_m=elevation,
-            pixel_size_m=float(res_x),
-            transform=src.window_transform(window),
+            pixel_size_m=float(res_x * factor),
+            transform=transform,
             crs=src.crs.to_proj4(),
         )
 

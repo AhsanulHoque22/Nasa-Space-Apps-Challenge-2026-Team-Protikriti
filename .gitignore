@@ -17,3 +17,6 @@ web/public/data/weather/
 web/public/data/stops/
 web/public/data/activities.json
 web/public/models/
+web/public/data/sites/
+web/public/data/sites.json
+web/public/data/mola.*

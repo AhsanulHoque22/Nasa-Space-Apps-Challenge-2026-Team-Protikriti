@@ -1,7 +1,11 @@
 /** Title and view switch (whole planet vs. the Jezero Marswalk site). */
-export type ViewId = 'mars' | 'jezero'
+export type ViewId = string // 'mars' or a site id
 
-export function renderHeader(parent: HTMLElement, onView: (view: ViewId) => void): void {
+export function renderHeader(
+  parent: HTMLElement,
+  sites: ReadonlyArray<{ id: string; name: string }>,
+  onView: (view: ViewId) => void,
+): void {
   const header = document.createElement('header')
   header.className = 'panel masthead'
   header.innerHTML = `
@@ -11,7 +15,7 @@ export function renderHeader(parent: HTMLElement, onView: (view: ViewId) => void
     </div>
     <div class="view-switch" role="group" aria-label="Camera view">
       <button type="button" data-view="mars" aria-pressed="false">Mars</button>
-      <button type="button" data-view="jezero" aria-pressed="true">Jezero</button>
+      ${sites.map((s, i) => `<button type="button" data-view="${s.id}" aria-pressed="${i === 0}">${s.name.split(' ')[0]}</button>`).join('')}
     </div>`
   const buttons = header.querySelectorAll<HTMLButtonElement>('button[data-view]')
   for (const button of buttons) {

@@ -71,3 +71,16 @@ def test_pixel_size_and_crs(dem_path: Path) -> None:
 def test_aoi_outside_extent_raises(dem_path: Path) -> None:
     with pytest.raises(ValueError, match="outside"):
         load_dem(dem_path, (0.0, 0.0, 1.0, 1.0))
+
+
+def test_load_dem_can_decimate_to_a_coarser_resolution(dem_path: Path) -> None:
+    dem = load_dem(dem_path, lonlat_box(0, 0, 10, 10), target_pixel_m=40.0)
+    assert dem.elevation_m.shape == (5, 5)
+    assert dem.pixel_size_m == 40.0
+    # the transform describes the coarser grid, so exported bounds are unchanged
+    assert dem.transform.a == 40.0
+
+
+def test_load_dem_never_upsamples(dem_path: Path) -> None:
+    dem = load_dem(dem_path, lonlat_box(0, 0, 10, 10), target_pixel_m=5.0)
+    assert dem.pixel_size_m == PIXEL_M

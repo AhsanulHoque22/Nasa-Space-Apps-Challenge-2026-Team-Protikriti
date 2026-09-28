@@ -1,0 +1,22 @@
+{
+  "sites": [
+    {
+      "id": "jezero",
+      "name": "Jezero crater",
+      "rover": "Perseverance",
+      "dem": "../data/raw/jezero_ctx_dem.tif",
+      "bounds": [77.33, 18.36, 77.53, 18.56],
+      "pixel_m": 20,
+      "source": "USGS Mars 2020 Science Investigation CTX DEM Mosaic, 20 m/px"
+    },
+    {
+      "id": "gale",
+      "name": "Gale crater (Mount Sharp)",
+      "rover": "Curiosity",
+      "dem": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+      "bounds": [137.30, -4.90, 137.48, -4.55],
+      "pixel_m": 32,
+      "source": "USGS MSL Gale Merged DEM Mosaic v3 (1 m/px), read at 32 m/px via internal overviews"
+    }
+  ]
+}

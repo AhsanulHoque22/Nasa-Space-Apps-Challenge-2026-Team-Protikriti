@@ -1,12 +1,13 @@
 import './style.css'
-import { parseGrid } from './core/grid'
+import { type Site, elevationAt, parseMola } from './core/elevation'
+import { type Grid, parseGrid } from './core/grid'
 import { addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
 import { type Activity, addActivities } from './map/activities-layer'
 import { createReplay } from './map/replay'
 import { addStreetViewStops } from './map/streetview-layer'
 import { createRouteLayer } from './map/route-layer'
-import { createGridTerrain } from './map/terrain'
+import { createTerrain } from './map/terrain'
 import { decodeView, encodeView } from './core/deeplink'
 import {
   applyView,
@@ -36,12 +37,27 @@ async function fetchOk(url: string): Promise<Response> {
   return response
 }
 
-async function loadGrid() {
+type SiteInfo = { id: string; name: string; rover: string; source: string }
+
+async function loadSites(): Promise<Site[]> {
+  const index = (await fetchOk('data/sites.json').then((r) => r.json())) as { sites: SiteInfo[] }
+  return Promise.all(
+    index.sites.map(async (info) => {
+      const [meta, bin] = await Promise.all([
+        fetchOk(`data/sites/${info.id}/grid.json`).then((r) => r.json()),
+        fetchOk(`data/sites/${info.id}/grid.bin`).then((r) => r.arrayBuffer()),
+      ])
+      return { ...info, grid: parseGrid(meta, bin) }
+    }),
+  )
+}
+
+async function loadMola(): Promise<Grid> {
   const [meta, bin] = await Promise.all([
-    fetchOk('data/grid.json').then((r) => r.json()),
-    fetchOk('data/grid.bin').then((r) => r.arrayBuffer()),
+    fetchOk('data/mola.json').then((r) => r.json()),
+    fetchOk('data/mola.bin').then((r) => r.arrayBuffer()),
   ])
-  return parseGrid(meta, bin)
+  return parseMola(meta, bin)
 }
 
 async function main() {
@@ -50,19 +66,23 @@ async function main() {
   if (!globe || !ui) throw new Error('#globe / #ui elements missing')
   const { viewer, hirise } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
-  const gridReady = loadGrid()
-  renderHeader(ui, (view) => {
-    void gridReady.then((g) =>
-      view === 'mars'
-        ? viewGlobe(viewer, (g.west + g.east) / 2, (g.south + g.north) / 2)
-        : viewAoi(viewer, g),
-    )
+  const [sites, mola] = await Promise.all([loadSites(), loadMola()])
+  const home = sites[0]
+  if (!home) throw new Error('sites.json lists no sites')
+  renderHeader(ui, sites, (view) => {
+    const site = sites.find((s) => s.id === view)
+    if (site) viewAoi(viewer, site.grid)
+    else
+      viewGlobe(
+        viewer,
+        (home.grid.west + home.grid.east) / 2,
+        (home.grid.south + home.grid.north) / 2,
+      )
   })
-  const grid = await gridReady
-  viewer.terrainProvider = createGridTerrain(grid)
+  viewer.terrainProvider = createTerrain((lon, lat) => elevationAt(sites, mola, lon, lat).m)
   const shared = decodeView(window.location.search)
   if (shared) applyView(viewer, shared)
-  else viewAoi(viewer, grid)
+  else viewAoi(viewer, home.grid)
   keepUrlInSync(viewer)
   const openRef: { current?: (ref: string) => void } = {}
   void loadPlaces().then((places) =>
@@ -75,7 +95,7 @@ async function main() {
   const side = document.createElement('div')
   side.className = 'side'
   ui.append(side)
-  renderRoutePanel(side, viewer, grid, createRouteClient(grid), createRouteLayer(viewer, grid))
+  renderRoutePanel(side, viewer, sites, createRouteClient, (g) => createRouteLayer(viewer, g))
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch'
@@ -87,9 +107,9 @@ async function main() {
     b.addEventListener('click', () => openWeather(b.dataset.station as WeatherStation))
   side.prepend(launcher)
   void stationPositions().then((positions) => addStationPins(viewer, positions, openWeather))
-  renderReadout(ui, viewer, grid)
+  renderReadout(ui, viewer, sites, mola)
   renderClock(ui, viewer)
-  const layerToggles = await addLayers(viewer, grid, hirise)
+  const layerToggles = await addLayers(viewer, sites, hirise)
   const streetView = await addStreetViewStops(viewer, (rover, index) =>
     openStreetView(rover, streetView.stops[rover], index, document.activeElement as HTMLElement),
   )
