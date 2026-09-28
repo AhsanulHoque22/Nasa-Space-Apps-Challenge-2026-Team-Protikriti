@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "skills": {
+    "cesiumjs-3d-tiles": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-3d-tiles/SKILL.md",
+      "computedHash": "ed0137b15b75a5aa278a57df0505b429d56721b01b1751ccd07c4d68eba1e357"
+    },
+    "cesiumjs-camera": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-camera/SKILL.md",
+      "computedHash": "889806b3997271c108067b7ca97f050392fcf971ef131eda88d55a1cc73d54a6"
+    },
+    "cesiumjs-core-utilities": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-core-utilities/SKILL.md",
+      "computedHash": "7e9bbd8ebd4f1338111244438e581496b01c2ae302b80998897c893770b9127a"
+    },
+    "cesiumjs-entities": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-entities/SKILL.md",
+      "computedHash": "eac52e04283cf7fc67ac4faa6ea14d4cb4efdc2d496760cecb05d7dedcb1394b"
+    },
+    "cesiumjs-imagery": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-imagery/SKILL.md",
+      "computedHash": "cf3419b3f9ef69453a752bdb9ba8b4e39d9c42b72234da17457bcd4e66eb2888"
+    },
+    "cesiumjs-interaction": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-interaction/SKILL.md",
+      "computedHash": "f88930faad2fe5018c7397fcc08fed3f4f73ea4b52e42f9e5071c32a2da78410"
+    },
+    "cesiumjs-primitives": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-primitives/SKILL.md",
+      "computedHash": "4bf31a11325031535d30dd2fc5f1b445daad07decad904ee814a5f45ec1b46d4"
+    },
+    "cesiumjs-spatial-math": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-spatial-math/SKILL.md",
+      "computedHash": "5cf50627a5af5c55a685c77c730e3175e1dcd80034615872da2dd322e21caca7"
+    },
+    "cesiumjs-terrain-environment": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-terrain-environment/SKILL.md",
+      "computedHash": "1e1c691671fa5e34dc0cbbbea8dddba8b1c2322a70cf07f325ce2346307762a8"
+    },
+    "cesiumjs-viewer-setup": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cesiumjs-viewer-setup/SKILL.md",
+      "computedHash": "b57fcf3bfd110678cd3f7c30b4d23f5702a48c25897a198949fdb946b57f23bf"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576"
+    },
+    "geomaster": {
+      "source": "k-dense-ai/scientific-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/geomaster/SKILL.md",
+      "computedHash": "df84074267c2ce78e5bb28c8bedc48b232f1f41b330fb69e5eb34b6a6c2d0d86"
+    },
+    "maplibre-cartography": {
+      "source": "maplibre/maplibre-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/maplibre-cartography/SKILL.md",
+      "computedHash": "13640f6cf66141bd93cb1d814cf35f75f440213c5c6f058218755649ecefcfd3"
+    },
+    "maplibre-fonts-glyphs": {
+      "source": "maplibre/maplibre-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/maplibre-fonts-glyphs/SKILL.md",
+      "computedHash": "46c62edb66a805697c43df18c5cb18e85ac9c111d6758aa4d80a86a3467a2d2b"
+    },
+    "maplibre-pmtiles-patterns": {
+      "source": "maplibre/maplibre-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/maplibre-pmtiles-patterns/SKILL.md",
+      "computedHash": "52110cdd693a32c28e46beda88c49636c1c2390cf64716f706b38c5f39f8984a"
+    },
+    "maplibre-source-wiring": {
+      "source": "maplibre/maplibre-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/maplibre-source-wiring/SKILL.md",
+      "computedHash": "1d6287fe0f6fd41a64d95eb488a44290bf41b588fe6f8faae85dc3f053f1d374"
+    },
+    "maplibre-terrain-rendering": {
+      "source": "maplibre/maplibre-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/maplibre-terrain-rendering/SKILL.md",
+      "computedHash": "ab520b4f51536746ac2f2098f840d9444cdfd28210ff0640eeadb8d3d6fcdc42"
+    },
+    "maplibre-tile-sources": {
+      "source": "maplibre/maplibre-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/maplibre-tile-sources/SKILL.md",
+      "computedHash": "f3bdeeccad44178664b3c2081989ee26f33a20b93aada8407fca1ea3945e02f4"
+    },
+    "using-cesiumjs-skills": {
+      "source": "cesiumgs/cesiumjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/using-cesiumjs-skills/SKILL.md",
+      "computedHash": "2abfc15cf4ff24053cc736a93f18cb67a8850c1c2b217687496307f5eacfe84c"
+    }
+  }
+}
