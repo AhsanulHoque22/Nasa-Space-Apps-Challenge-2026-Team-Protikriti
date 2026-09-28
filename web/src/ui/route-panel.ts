@@ -8,6 +8,7 @@ import { SCIENCE_STOP_MIN, evaDurationMin } from '../core/summary'
 import { MARS_SPHERE } from '../map/mars'
 import type { RouteClient } from '../map/route-client'
 import type { RouteLayer } from '../map/route-layer'
+import { isStationClick } from '../map/weather-stations'
 
 const MESSAGES = {
   idle: 'Click the Jezero terrain to set a start point.',
@@ -130,7 +131,10 @@ export function renderRoutePanel(
   }
 
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
-    (click: ScreenSpaceEventHandler.PositionedEvent) => apply(cellAt(click.position)),
+    (click: ScreenSpaceEventHandler.PositionedEvent) => {
+      if (isStationClick(viewer, click.position)) return // pins open their own panel
+      apply(cellAt(click.position))
+    },
     ScreenSpaceEventType.LEFT_CLICK,
   )
 

@@ -29,3 +29,12 @@ Mars has no GPS. All positions use the IAU/IAG **Mars 2000** frame: planetocentr
 | Mars Sol Date, Coordinated Mars Time, LMST/LTST, Ls, sun position | NASA GISS **Mars24** algorithm (Allison & McEwen 2000), https://www.giss.nasa.gov/tools/mars24/help/algorithm.html. Verified against both published worked examples. |
 | Mission sols | Landing epochs: MSL 2012-08-06 05:17:57 UTC at 137.4417°E; Mars 2020 2021-02-18 20:55 UTC at 77.4509°E. Verified against NASA raw-image records (Curiosity sol 5028 and Perseverance sol 1993 on 2026-09-28). |
 | Leap seconds | IERS table (TAI−UTC = 37 s since 2017-01-01). |
+
+## Weather
+
+| Station | Instrument | Feed | Status |
+|---|---|---|---|
+| Gale crater | Curiosity REMS (Centro de Astrobiología) | https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json | **Live** (4,745 sols; latest sol 4995 on 2026-08-25). Outreach data, per the feed's own disclaimer. |
+| Jezero crater | Perseverance MEDA | https://mars.nasa.gov/rss/api/?feed=weather&category=mars2020&feedtype=json | Last reported 2024-04-27 (sol 1133); shown as historical. |
+
+The app fetches live data with a 6 s timeout and falls back to `marsmap weather` snapshots. It always labels which one it used. Station pins sit at each rover's latest MMGIS traverse point.

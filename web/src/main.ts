@@ -13,12 +13,15 @@ import {
   viewAoi,
   viewGlobe,
 } from './map/viewer'
+import { loadWeather, type WeatherStation } from './map/weather-client'
+import { addStationPins, stationPositions } from './map/weather-stations'
 import { renderClock } from './ui/clock'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
 import { renderRoutePanel } from './ui/route-panel'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
+import { renderWeatherPanel } from './ui/weather-panel'
 
 async function fetchOk(url: string): Promise<Response> {
   const response = await fetch(url)
@@ -58,10 +61,50 @@ async function main() {
     renderSearchBox(ui, places, (p) => flyToPlace(viewer, p.lon, p.lat, p.sizeKm)),
   )
   // Planner and readout need only the grid: paint them before the heavier layers stream in.
-  renderRoutePanel(ui, viewer, grid, createRouteClient(grid), createRouteLayer(viewer, grid))
+  const side = document.createElement('div')
+  side.className = 'side'
+  ui.append(side)
+  renderRoutePanel(side, viewer, grid, createRouteClient(grid), createRouteLayer(viewer, grid))
+  const openWeather = weatherOpener(side)
+  const launcher = document.createElement('nav')
+  launcher.className = 'panel wx-launch'
+  launcher.setAttribute('aria-label', 'Mars weather stations')
+  launcher.innerHTML = `<span>Mars weather</span>
+    <button type="button" data-station="rems">Gale</button>
+    <button type="button" data-station="meda">Jezero</button>`
+  for (const b of launcher.querySelectorAll<HTMLButtonElement>('button'))
+    b.addEventListener('click', () => openWeather(b.dataset.station as WeatherStation))
+  side.prepend(launcher)
+  void stationPositions().then((positions) => addStationPins(viewer, positions, openWeather))
   renderReadout(ui, viewer, grid)
   renderClock(ui, viewer)
   renderLayerPanel(ui, await addLayers(viewer, grid, hirise))
+}
+
+/** One weather panel at a time; reopening a station replaces it. */
+function weatherOpener(side: HTMLElement): (station: WeatherStation) => void {
+  let panel: HTMLElement | undefined
+  let request = 0
+  return (station) => {
+    const id = ++request
+    panel?.remove()
+    const loading = document.createElement('p')
+    loading.className = 'panel weather wx-loading'
+    loading.setAttribute('role', 'status')
+    loading.textContent = 'Loading Mars weather…'
+    side.append(loading)
+    panel = loading
+    void loadWeather(station)
+      .then((result) => {
+        if (id !== request) return
+        loading.remove()
+        panel = renderWeatherPanel(side, station, result, () => panel?.remove())
+      })
+      .catch((error: unknown) => {
+        if (id !== request) return
+        loading.textContent = `Weather unavailable: ${String(error)}`
+      })
+  }
 }
 
 const URL_SYNC_DELAY_MS = 400

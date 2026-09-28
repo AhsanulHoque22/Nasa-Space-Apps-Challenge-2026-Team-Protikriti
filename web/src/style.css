@@ -310,10 +310,21 @@ body {
   color: var(--text-muted);
 }
 
-/* Route */
-.route {
+/* Right-hand stack: route planner and weather */
+.side {
   grid-area: route;
   align-self: start;
+  display: grid;
+  gap: var(--space-3);
+  max-height: calc(100vh - 2 * var(--space-4) - 220px);
+  overflow-y: auto;
+  pointer-events: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+/* Route */
+.route {
   padding: var(--space-3);
 }
 
@@ -429,6 +440,161 @@ body {
 
 .route-actions button.quiet:hover {
   background: rgb(255 255 255 / 0.14);
+}
+
+/* Weather */
+.wx-launch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.wx-launch span {
+  flex: 1;
+}
+
+.wx-launch button {
+  font: 600 12px var(--font);
+  color: #fff;
+  background: var(--nasa-blue);
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.weather {
+  padding: var(--space-3);
+}
+
+.wx-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wx-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wx-close {
+  font: 600 12px var(--font);
+  color: var(--text);
+  background: rgb(255 255 255 / 0.08);
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.wx-source,
+.wx-note,
+.wx-sol {
+  margin: var(--space-1) 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.wx-note {
+  margin-top: var(--space-3);
+}
+
+.wx-tiles {
+  margin: var(--space-3) 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2) var(--space-3);
+}
+
+.wx-tiles dt {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.wx-tiles dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wx-chart {
+  margin: var(--space-3) 0 0;
+}
+
+.wx-chart figcaption {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.wx-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+}
+
+.wx-grid {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.wx-tick {
+  fill: var(--text-muted);
+  font: 9px var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+.wx-cursor {
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.wx-tip {
+  min-height: 1.4em;
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wx-table {
+  margin-top: var(--space-3);
+  font-size: 12px;
+}
+
+.wx-table summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.wx-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.wx-table th,
+.wx-table td {
+  text-align: right;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.wx-table th:nth-child(2),
+.wx-table td:nth-child(2) {
+  text-align: left;
 }
 
 /* Clock */
