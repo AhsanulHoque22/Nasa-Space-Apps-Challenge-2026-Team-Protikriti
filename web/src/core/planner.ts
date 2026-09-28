@@ -2,13 +2,15 @@
 import type { Cell } from './grid'
 
 export type Plan = { stops: Cell[] }
-export type PickEvent = 'start-set' | 'stop-added' | 'outside'
+export type PickEvent = 'start-set' | 'stop-added' | 'outside' | 'same-point'
 
 export const EMPTY_PLAN: Plan = { stops: [] }
 
 /** `cell` is null when the pick is outside the terrain grid or on nodata. */
 export function pick(plan: Plan, cell: Cell | null): { plan: Plan; event: PickEvent } {
   if (!cell) return { plan, event: 'outside' }
+  const last = plan.stops.at(-1)
+  if (last && last.row === cell.row && last.col === cell.col) return { plan, event: 'same-point' }
   const stops = [...plan.stops, cell]
   return { plan: { stops }, event: stops.length === 1 ? 'start-set' : 'stop-added' }
 }

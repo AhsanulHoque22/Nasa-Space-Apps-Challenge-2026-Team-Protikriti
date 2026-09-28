@@ -56,7 +56,8 @@ export function renderRoutePanel(
   const legsEl = panel.querySelector('.route-legs') as HTMLElement
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
 
-  let plan: Plan = EMPTY_PLAN
+  let plan: Plan = EMPTY_PLAN // last plan with a computed route
+  let requested: Plan = EMPTY_PLAN // what the user has asked for, possibly still routing
   let latest = 0
 
   const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stopCount = 0) => {
@@ -78,16 +79,19 @@ export function renderRoutePanel(
   }
 
   const replan = async (next: Plan) => {
+    requested = next // later clicks build on this, even while it is still routing
     const id = ++latest
     status.textContent = MESSAGES.routing
     const reply = await client.route(next.stops)
     if (id !== latest) return // superseded by a newer request
     if (reply.type === 'error') {
+      requested = plan
       status.textContent = reply.message
       return
     }
     if (reply.path === null) {
       // Keep the last good plan; the unreachable stop is not added.
+      requested = plan
       status.textContent = noRouteMessage(reply.failedLeg ?? next.stops.length - 2)
       return
     }
@@ -95,19 +99,19 @@ export function renderRoutePanel(
     layer.setStops(plan.stops)
     layer.setPath(reply.path)
     showResult(reply, plan.stops.length)
-    const lastLeg = reply.legs.at(-1)
-    status.textContent = lastLeg && lastLeg.distanceM === 0 ? MESSAGES.samePoint : MESSAGES.found
+    status.textContent = MESSAGES.found
   }
 
-  const apply = (cell: Cell | null, from: Plan = plan) => {
+  const apply = (cell: Cell | null, from: Plan = requested) => {
     const { plan: next, event } = pick(from, cell)
-    if (event === 'outside') {
-      status.textContent = MESSAGES.outside
+    if (event === 'outside' || event === 'same-point') {
+      status.textContent = event === 'outside' ? MESSAGES.outside : MESSAGES.samePoint
       return
     }
     if (event === 'start-set') {
       latest++
       plan = next
+      requested = next
       layer.setStops(plan.stops)
       layer.setPath(null)
       showResult(null)
@@ -133,6 +137,7 @@ export function renderRoutePanel(
   const clear = () => {
     latest++
     plan = EMPTY_PLAN
+    requested = EMPTY_PLAN
     layer.setStops([])
     layer.setPath(null)
     showResult(null)
@@ -143,7 +148,7 @@ export function renderRoutePanel(
     apply(cellAt(new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2)))
   })
   panel.querySelector('[data-act="undo"]')?.addEventListener('click', () => {
-    const stops = plan.stops.slice(0, -1)
+    const stops = requested.stops.slice(0, -1)
     if (stops.length === 0) clear()
     else if (stops.length === 1)
       apply(stops[0], EMPTY_PLAN) // back to just the start

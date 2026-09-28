@@ -28,3 +28,14 @@ describe('planner pick', () => {
     expect(pick(plan, null)).toEqual({ plan, event: 'outside' })
   })
 })
+
+describe('planner same-point pick', () => {
+  it('re-picking the current last stop adds nothing', () => {
+    const plan = { stops: [a, b] }
+    expect(pick(plan, { row: 2, col: 2 })).toEqual({ plan, event: 'same-point' })
+  })
+
+  it('re-picking an earlier stop is allowed (walk back to base)', () => {
+    expect(pick({ stops: [a, b] }, a).plan.stops).toEqual([a, b, a])
+  })
+})
