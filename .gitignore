@@ -12,3 +12,4 @@ dist/
 web/public/data/grid.*
 web/public/data/slope_hazard.png
 web/public/data/layers/
+.claude/settings.local.json
