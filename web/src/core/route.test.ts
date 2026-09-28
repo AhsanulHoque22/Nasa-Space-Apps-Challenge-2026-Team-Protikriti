@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Cell, Grid } from './grid'
 import { findRoute, passableCells, stepTimeS } from './route'
-import { WALL, makeGrid } from './test-grids'
+import { WALL, makeGrid, noiseRows } from './test-grids'
 
 const W = WALL
 function mustRoute(g: Grid, start: Cell, goal: Cell): Cell[] {
@@ -112,17 +112,8 @@ describe('findRoute', () => {
     expect(path.some((c) => c.row === 2 && c.col === 2)).toBe(false)
   })
 
-  // Worst case (whole-grid diagonal, flat noise). Typical 2-4 km walks on the real grid: 60-90 ms.
-  // Runs in a Web Worker in the app, so this is a regression guard, not a UI budget.
-  it('routes corner to corner on a 600x600 grid in under 1 s', () => {
-    let seed = 42
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 // 0..2 m noise
-    const big = makeGrid(Array.from({ length: 600 }, () => Array.from({ length: 600 }, rand)))
-    passableCells(big) // one-off per grid, cached (the app pays it once at load)
-    const t0 = performance.now()
-    const path = findRoute(big, { row: 0, col: 0 }, { row: 599, col: 599 })
-    const ms = performance.now() - t0
-    expect(path).not.toBeNull()
-    expect(ms).toBeLessThan(1000)
+  it('routes corner to corner on a 600x600 grid (timing lives in route.bench.ts)', () => {
+    const big = makeGrid(noiseRows(600))
+    expect(findRoute(big, { row: 0, col: 0 }, { row: 599, col: 599 })).not.toBeNull()
   })
 })
