@@ -64,6 +64,8 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
   const hirise = viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE)
   viewer.scene.verticalExaggeration = VERTICAL_EXAGGERATION
   viewer.scene.globe.showGroundAtmosphere = false // Earth-tuned; causes artifacts on Mars
+  // Occlude labels and markers behind the planet or terrain (e.g. Phoenix's label seen from Jezero).
+  viewer.scene.globe.depthTestAgainstTerrain = true
   // Cesium's Sun and Moon follow Earth ephemerides: hide them; lighting comes from map/sun.ts.
   if (viewer.scene.sun) viewer.scene.sun.show = false
   if (viewer.scene.moon) viewer.scene.moon.show = false

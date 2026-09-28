@@ -46,6 +46,7 @@ export type LayerId =
   | 'slopeHazard'
   | 'traverses'
   | 'streetview'
+  | 'samples'
   | 'landingSites'
   | 'names'
   | 'zones'
@@ -61,6 +62,7 @@ export const LAYER_STYLE = {
   landed: '#FFFFFF',
   crashed: '#9AA6B8',
   zone: '#5B8DEF', // NASA blue, lifted for contrast on dark terrain
+  sample: '#7EDC8F', // CVD-validated against the other map colours; diamond shape + labels too
   graticule: 'rgba(255,255,255,0.28)',
 } as const
 
@@ -231,7 +233,7 @@ export async function addLayers(
   viewer: Viewer,
   grid: Grid,
   hirise: ImageryLayer,
-): Promise<Omit<LayerToggles, 'streetview'>> {
+): Promise<Omit<LayerToggles, 'streetview' | 'samples'>> {
   const names = await loadJson('data/layers/names.geojson')
   const [slope, traverses, landing, zones] = await Promise.all([
     addSlopeHazard(viewer, grid),

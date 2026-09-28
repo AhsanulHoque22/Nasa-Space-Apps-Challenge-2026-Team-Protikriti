@@ -12,3 +12,5 @@ fetch https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_traverse.json M20_tra
 fetch https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_traverse.json MSL_traverse.json
 fetch https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json M20_waypoints.json
 fetch https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json MSL_waypoints.json
+# NASA 3D Resources: official Perseverance rover model (glTF binary, ~5 MB), used in mission replay.
+fetch "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Mars%202020%20Perseverance%20Rover/Mars%202020%20Perseverance%20Rover.glb" perseverance.glb

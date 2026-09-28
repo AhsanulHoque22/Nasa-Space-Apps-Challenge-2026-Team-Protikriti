@@ -7,6 +7,8 @@ export type Place = {
   lat: number
   detail: string
   sizeKm?: number
+  /** Map object id this place opens (e.g. "activity:3"), when it has a panel of its own. */
+  ref?: string
 }
 
 type Entry = { place: Place; key: string; words: string[] }

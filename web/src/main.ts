@@ -2,6 +2,8 @@ import './style.css'
 import { parseGrid } from './core/grid'
 import { addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
+import { type Activity, addActivities } from './map/activities-layer'
+import { createReplay } from './map/replay'
 import { addStreetViewStops } from './map/streetview-layer'
 import { createRouteLayer } from './map/route-layer'
 import { createGridTerrain } from './map/terrain'
@@ -16,12 +18,15 @@ import {
 } from './map/viewer'
 import { loadWeather, type WeatherStation } from './map/weather-client'
 import { addStationPins, stationPositions } from './map/weather-stations'
+import { renderActivityCard } from './ui/activity-card'
 import { renderClock } from './ui/clock'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
+import { renderTimelineBar } from './ui/timeline-bar'
+import { positionAtSol } from './core/timeline'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
 
@@ -59,8 +64,12 @@ async function main() {
   if (shared) applyView(viewer, shared)
   else viewAoi(viewer, grid)
   keepUrlInSync(viewer)
+  const openRef: { current?: (ref: string) => void } = {}
   void loadPlaces().then((places) =>
-    renderSearchBox(ui, places, (p) => flyToPlace(viewer, p.lon, p.lat, p.sizeKm)),
+    renderSearchBox(ui, places, (p) => {
+      flyToPlace(viewer, p.lon, p.lat, p.sizeKm)
+      if (p.ref) openRef.current?.(p.ref)
+    }),
   )
   // Planner and readout need only the grid: paint them before the heavier layers stream in.
   const side = document.createElement('div')
@@ -84,7 +93,28 @@ async function main() {
   const streetView = await addStreetViewStops(viewer, (rover, index) =>
     openStreetView(rover, streetView.stops[rover], index, document.activeElement as HTMLElement),
   )
-  renderLayerPanel(ui, { ...layerToggles, streetview: streetView.setVisible })
+  const openActivity = (activity: Activity) => {
+    const card = renderActivityCard(side, activity, {
+      onClose: () => card.remove(),
+      onStreetView: () => {
+        if (activity.sol === null) return
+        const { index } = positionAtSol(streetView.stops.m20, activity.sol)
+        openStreetView('m20', streetView.stops.m20, index, document.activeElement as HTMLElement)
+      },
+    })
+  }
+  const samples = await addActivities(viewer, openActivity)
+  openRef.current = (ref) => {
+    const match = /^activity:(\d+)$/.exec(ref)
+    const activity = match ? samples.activities[Number(match[1])] : undefined
+    if (activity) openActivity(activity)
+  }
+  renderLayerPanel(ui, {
+    ...layerToggles,
+    streetview: streetView.setVisible,
+    samples: samples.setVisible,
+  })
+  renderTimelineBar(ui, streetView.stops, createReplay(viewer, streetView.stops))
   if (import.meta.env.DEV) Object.assign(window, { streetView, openStreetView }) // console debugging
 }
 

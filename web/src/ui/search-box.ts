@@ -26,6 +26,11 @@ export async function loadPlaces(): Promise<Place[]> {
       loadCollection(`data/layers/${n}.geojson`),
     ),
   )
+  const activities = await fetch('data/activities.json')
+    .then((r) =>
+      r.ok ? (r.json() as Promise<{ activities: Array<Record<string, unknown>> }>) : null,
+    )
+    .catch(() => null)
   const point = (f: Collection['features'][number]) => {
     const [lon = 0, lat = 0] = f.geometry.coordinates
     return { lon, lat }
@@ -45,6 +50,21 @@ export async function loadPlaces(): Promise<Place[]> {
       detail: `${String(f.properties.agency)} · ${String(f.properties.year)}${f.properties.status === 'crashed' ? ' · crash site' : ''}`,
       sizeKm: 20,
     })),
+    ...(activities?.activities ?? []).flatMap((a, i): Place[] =>
+      typeof a.lon === 'number' && typeof a.lat === 'number'
+        ? [
+            {
+              name: `${String(a.name)} (sample ${String(a.number)})`,
+              kind: 'sample',
+              lon: a.lon,
+              lat: a.lat,
+              detail: `Perseverance · sealed sol ${String(a.sol)}`,
+              sizeKm: 2,
+              ref: `activity:${i}`,
+            },
+          ]
+        : [],
+    ),
     ...zones.features.map((f): Place => ({
       ...point(f),
       name: String(f.properties.name),

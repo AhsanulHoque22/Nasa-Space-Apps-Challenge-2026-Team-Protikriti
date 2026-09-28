@@ -45,3 +45,12 @@ The app fetches live data with a 6 s timeout and falls back to `marsmap weather`
 |---|---|
 | Stops (703 Perseverance, 1,384 Curiosity) | NASA/JPL MMGIS waypoints `M20_waypoints.json` and `MSL_waypoints.json`: localized position, site, drive, sol |
 | Frames | NASA raw-image APIs, fetched live (CORS-open): Perseverance `mars.nasa.gov/rss/api/?feed=raw_images&category=mars2020` (NAVCAM_LEFT) and Curiosity `mars.nasa.gov/api/v1/raw_image_items/` (NAV_LEFT_B). Matched to a stop by exact site and drive. Placed by mast azimuth and elevation plus the subframe offset. Navcam fields of view: M20 96°×73° (5120×3840), MSL 45°×45° (1024×1024). Images © NASA/JPL-Caltech. |
+
+## Mission replay and activities
+
+| What | Source |
+|---|---|
+| Perseverance rock samples (30) | NASA Science "Mars Rock Samples" page (retrieved 2026-09-29), curated in `pipeline/data/m20_samples.json`: name, number, type, rock type, sol and date sealed, core length, current location, official image. Positioned at the rover's MMGIS waypoint for the sealing sol; samples with "TBD" sols (29 Bell Island, 30 Gallants) are listed but not mapped. |
+| Rover positions over time | MMGIS waypoints, linearly interpolated between localizations (clamped before landing and after the latest waypoint) |
+| Perseverance 3D model | NASA 3D Resources, `Mars 2020 Perseverance Rover.glb` (https://github.com/nasa/NASA-3D-Resources), scaled to the rover's ~2 m half-diagonal. Curiosity has no official glTF, so it is shown as a marker rather than a substitute model. |
+| Not yet mapped | Curiosity drill sites (no machine-readable official list found); Ingenuity flights (the official log has no coordinates) |

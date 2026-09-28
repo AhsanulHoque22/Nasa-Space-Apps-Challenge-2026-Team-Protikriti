@@ -1,7 +1,7 @@
 /** What (if anything) of ours is under the pointer. Map objects use "kind:..." string ids. */
 import type { Cartesian2, Viewer } from 'cesium'
 
-export const INTERACTIVE_PREFIXES = ['station:', 'stop:'] as const
+export const INTERACTIVE_PREFIXES = ['station:', 'stop:', 'activity:'] as const
 
 /** String id of the picked entity or primitive, if any. */
 export function pickedId(viewer: Viewer, position: Cartesian2): string | undefined {
