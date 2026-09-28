@@ -22,6 +22,7 @@ from marsmap.layers import (
     traverse_feature,
 )
 from marsmap.slope import slope_deg
+from marsmap.stops import waypoint_stops
 from marsmap.weather import snapshot_weather
 
 # Octavia E. Butler landing site + western delta front, Jezero crater (Mars 2000 degrees E/N).
@@ -92,6 +93,17 @@ def _weather(args: argparse.Namespace) -> None:
     print(f"wrote weather snapshots to {args.out} at {now}")
 
 
+ROVER_WAYPOINTS = {"m20": "M20_waypoints.json", "msl": "MSL_waypoints.json"}
+
+
+def _stops(args: argparse.Namespace) -> None:
+    args.out.mkdir(parents=True, exist_ok=True)
+    for rover, file in ROVER_WAYPOINTS.items():
+        stops = waypoint_stops(json.loads((args.raw / file).read_text()))
+        (args.out / f"{rover}.json").write_text(json.dumps(stops, separators=(",", ":")))
+        print(f"wrote {rover}: {len(stops)} stops")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="marsmap")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -106,9 +118,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     layers.add_argument("--out", type=Path, required=True)
     weather = sub.add_parser("weather", help="snapshot NASA REMS + MEDA weather feeds")
     weather.add_argument("--out", type=Path, required=True)
+    stops = sub.add_parser("stops", help="rover waypoints -> Street View stops")
+    stops.add_argument("--raw", type=Path, required=True)
+    stops.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
-    {"build": _build, "layers": _layers, "weather": _weather}[args.command](args)
+    commands = {"build": _build, "layers": _layers, "weather": _weather, "stops": _stops}
+    commands[args.command](args)
     return 0
 
 

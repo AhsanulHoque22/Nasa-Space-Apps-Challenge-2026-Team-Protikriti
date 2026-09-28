@@ -17,6 +17,7 @@ data:
 	cd pipeline && uv run python -m marsmap build --dem ../data/raw/jezero_ctx_dem.tif --out ../web/public/data
 	cd pipeline && uv run python -m marsmap layers --raw ../data/raw --curated data --out ../web/public/data/layers
 	cd pipeline && uv run python -m marsmap weather --out ../web/public/data/weather
+	cd pipeline && uv run python -m marsmap stops --raw ../data/raw --out ../web/public/data/stops
 
 dev:
 	cd web && npm run dev
