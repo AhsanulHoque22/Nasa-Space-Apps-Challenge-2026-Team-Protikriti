@@ -55,10 +55,12 @@ Engineering standards: [CLAUDE.md](CLAUDE.md) · Product/design brief: [PRODUCT.
 
 ## Contributing (team workflow)
 
-1. Branch from `main`: `git switch -c feat/<short-name>`.
-2. Follow [CLAUDE.md](CLAUDE.md) (our engineering standards): write the failing test first, keep functions small, and put units in names.
-3. Run `make lint test` before pushing, then open a pull request into `main`.
-4. Never commit downloaded data (`data/raw/`) or secrets (`.env`).
+- **Repo owner:** commits directly to `main`.
+- **Teammates:** create your own branch from the latest `main` (`git switch main && git pull && git switch -c <your-name>/<short-topic>`), push it, and open a pull request into `main`.
+- **Everyone:**
+  - Follow [CLAUDE.md](CLAUDE.md), our engineering standards: write the failing test first, keep functions small, and put units in names.
+  - Run `make lint test` before pushing.
+  - Never commit downloaded data (`data/raw/`) or secrets (`.env`).
 
 ## Limitations (known, deliberate)
 
