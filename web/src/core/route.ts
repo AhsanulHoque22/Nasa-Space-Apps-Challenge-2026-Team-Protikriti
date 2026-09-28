@@ -10,6 +10,16 @@ const KMH_TO_MS = 1 / 3.6
 const ROW_STEPS = [-1, 1, 0, 0, -1, -1, 1, 1]
 const COL_STEPS = [0, 0, -1, 1, -1, 1, -1, 1]
 
+/** Walking speed on a slope (Tobler's hiking function, Earth baseline), metres per second. */
+export function toblerSpeedMs(grade: number, speedFactor = 1): number {
+  return (
+    TOBLER_PEAK_KMH *
+    Math.exp(-TOBLER_DECAY * Math.abs(grade + TOBLER_OFFSET)) *
+    KMH_TO_MS *
+    speedFactor
+  )
+}
+
 /** Seconds to walk from a to b (adjacent cells), or Infinity if unsafe, nodata or off-grid. */
 export function stepTimeS(g: Grid, a: Cell, b: Cell, speedFactor: number): number {
   const inGrid = (c: Cell) => c.row >= 0 && c.row < g.height && c.col >= 0 && c.col < g.width
@@ -37,9 +47,7 @@ function stepTimeByIndex(
 ): number {
   if (!isPassable(g, from, to, lengthM, limit)) return Infinity
   const grade = (g.elevationM[to] - g.elevationM[from]) / lengthM
-  const speedMs =
-    TOBLER_PEAK_KMH * Math.exp(-TOBLER_DECAY * Math.abs(grade + TOBLER_OFFSET)) * KMH_TO_MS
-  return lengthM / (speedMs * speedFactor)
+  return lengthM / toblerSpeedMs(grade, speedFactor)
 }
 
 const passableCache = new WeakMap<Grid, Uint8Array>()
