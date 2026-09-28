@@ -36,3 +36,41 @@ def test_build_writes_web_assets(tmp_path: Path) -> None:
     assert (out / "grid.json").exists()
     assert (out / "grid.bin").stat().st_size > 0
     assert (out / "slope_hazard.png").exists()
+
+
+def test_layers_writes_geojson_for_every_layer(tmp_path: Path) -> None:
+    import json
+    import zipfile
+
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    kml = (
+        '<kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark><ExtendedData>'
+        '<SchemaData><SimpleData name="clean_name">Gale</SimpleData></SchemaData>'
+        "</ExtendedData><Point><coordinates>137.8,-5.4</coordinates></Point></Placemark>"
+        "</Document></kml>"
+    )
+    with zipfile.ZipFile(raw / "MARS_nomenclature_center_pts.kmz", "w") as kmz:
+        kmz.writestr("MARS_nomenclature_center_pts.kml", kml)
+    line = {"features": [{"geometry": {"type": "LineString", "coordinates": [[1, 1], [2, 2]]}}]}
+    for name in ("M20_traverse.json", "MSL_traverse.json"):
+        (raw / name).write_text(json.dumps(line))
+    curated = tmp_path / "curated"
+    curated.mkdir()
+    (curated / "landing_sites.json").write_text(
+        json.dumps({"source": "s", "sites": [{"mission": "M", "lon": 1.0, "lat": 2.0}]})
+    )
+    (curated / "exploration_zones.json").write_text(
+        json.dumps({"source": "s", "radius_km": 100, "zones": [{"name": "G", "anchor": "Gale"}]})
+    )
+    out = tmp_path / "layers"
+
+    code = main(["layers", "--raw", str(raw), "--curated", str(curated), "--out", str(out)])
+
+    assert code == 0
+    for layer in ("names", "traverses", "landing_sites", "exploration_zones"):
+        collection = json.loads((out / f"{layer}.geojson").read_text())
+        assert collection["type"] == "FeatureCollection"
+        assert collection["features"], layer
+    zones = json.loads((out / "exploration_zones.geojson").read_text())
+    assert zones["radius_km"] == 100

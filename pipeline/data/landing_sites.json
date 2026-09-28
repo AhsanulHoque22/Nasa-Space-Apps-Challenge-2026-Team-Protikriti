@@ -1,0 +1,21 @@
+{
+  "source": "Wikipedia 'List of artificial objects on Mars' (coord templates, retrieved 2026-09-29); Perseverance and Curiosity from NASA MMGIS first waypoint. Longitudes east, -180..180.",
+  "sites": [
+    {"mission": "Mars 2", "agency": "USSR", "year": 1971, "status": "crashed", "lon": 47.0, "lat": -45.0},
+    {"mission": "Mars 3", "agency": "USSR", "year": 1971, "status": "landed", "lon": -158.0, "lat": -45.0},
+    {"mission": "Mars 6", "agency": "USSR", "year": 1974, "status": "crashed", "lon": -19.42, "lat": -23.9},
+    {"mission": "Viking 1", "agency": "NASA", "year": 1976, "status": "landed", "lon": -48.222, "lat": 22.697},
+    {"mission": "Viking 2", "agency": "NASA", "year": 1976, "status": "landed", "lon": 134.01, "lat": 48.269},
+    {"mission": "Mars Pathfinder / Sojourner", "agency": "NASA", "year": 1997, "status": "landed", "lon": -33.55, "lat": 19.33},
+    {"mission": "Mars Polar Lander", "agency": "NASA", "year": 1999, "status": "crashed", "lon": 165.0, "lat": -76.0},
+    {"mission": "Beagle 2", "agency": "ESA/UK", "year": 2003, "status": "landed", "lon": 90.4295, "lat": 11.5265},
+    {"mission": "Spirit", "agency": "NASA", "year": 2004, "status": "landed", "lon": 175.4785, "lat": -14.5718},
+    {"mission": "Opportunity", "agency": "NASA", "year": 2004, "status": "landed", "lon": -5.5266, "lat": -1.9462},
+    {"mission": "Phoenix", "agency": "NASA", "year": 2008, "status": "landed", "lon": -125.7, "lat": 68.22},
+    {"mission": "Curiosity", "agency": "NASA", "year": 2012, "status": "landed", "lon": 137.441633, "lat": -4.589467},
+    {"mission": "Schiaparelli", "agency": "ESA/Roscosmos", "year": 2016, "status": "crashed", "lon": -6.21, "lat": -2.05},
+    {"mission": "InSight", "agency": "NASA", "year": 2018, "status": "landed", "lon": 135.6234, "lat": 4.5024},
+    {"mission": "Perseverance / Ingenuity", "agency": "NASA", "year": 2021, "status": "landed", "lon": 77.45088572, "lat": 18.44462715},
+    {"mission": "Zhurong", "agency": "CNSA", "year": 2021, "status": "landed", "lon": 109.9, "lat": 25.1}
+  ]
+}

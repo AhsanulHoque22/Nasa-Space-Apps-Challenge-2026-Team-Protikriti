@@ -11,3 +11,4 @@ dist/
 .pytest_cache/
 web/public/data/grid.*
 web/public/data/slope_hazard.png
+web/public/data/layers/

@@ -1,0 +1,226 @@
+{
+  "source": "First Landing Site/Exploration Zone Workshop for Human Missions to the Surface of Mars, Houston, 27-30 Oct 2015, LPI Contribution No. 1879 (abstract numbers). An EZ is ~100 km radius. Location: centre of the named IAU feature unless the abstract states coordinates; proposals may be offset from that centre.",
+  "radius_km": 100,
+  "zones": [
+    {
+      "name": "Eastern Melas Chasma",
+      "anchor": "Melas Chasma",
+      "abstracts": [
+        1007
+      ]
+    },
+    {
+      "name": "Holden Crater",
+      "anchor": "Holden",
+      "abstracts": [
+        1049
+      ]
+    },
+    {
+      "name": "Gale Crater",
+      "anchor": "Gale",
+      "abstracts": [
+        1020,
+        1022
+      ]
+    },
+    {
+      "name": "Meridiani Planum",
+      "anchor": "Meridiani Planum",
+      "abstracts": [
+        1030,
+        1042,
+        1057
+      ]
+    },
+    {
+      "name": "Gusev Crater",
+      "anchor": "Gusev",
+      "abstracts": [
+        1008,
+        1046
+      ]
+    },
+    {
+      "name": "Apollinaris Sulci",
+      "anchor": "Apollinaris Sulci",
+      "abstracts": [
+        1043,
+        1046
+      ]
+    },
+    {
+      "name": "Zephyria Planum",
+      "anchor": "Zephyria Planum",
+      "abstracts": [
+        1016
+      ]
+    },
+    {
+      "name": "Hebrus Valles",
+      "anchor": "Hebrus Valles",
+      "abstracts": [
+        1012
+      ]
+    },
+    {
+      "name": "Hypanis (Xanthe Terra)",
+      "anchor": "Hypanis Valles",
+      "abstracts": [
+        1051
+      ]
+    },
+    {
+      "name": "Jezero-Syrtis-Isidis",
+      "anchor": "Jezero",
+      "abstracts": [
+        1034
+      ]
+    },
+    {
+      "name": "Nili Fossae",
+      "anchor": "Nili Fossae",
+      "abstracts": [
+        1010
+      ]
+    },
+    {
+      "name": "Aram Chaos",
+      "anchor": "Aram Chaos",
+      "abstracts": [
+        1048
+      ]
+    },
+    {
+      "name": "Cerberus",
+      "anchor": "Cerberus Fossae",
+      "abstracts": [
+        1017
+      ]
+    },
+    {
+      "name": "Southern Nectaris Fossae",
+      "anchor": "Nectaris Fossae",
+      "abstracts": [
+        1005
+      ]
+    },
+    {
+      "name": "Hadriacus Palus",
+      "anchor": "Hadriacus Palus",
+      "abstracts": [
+        1052
+      ]
+    },
+    {
+      "name": "Mawrth Vallis",
+      "anchor": "Mawrth Vallis",
+      "abstracts": [
+        1009
+      ]
+    },
+    {
+      "name": "McLaughlin Crater",
+      "anchor": "McLaughlin",
+      "abstracts": [
+        1025
+      ]
+    },
+    {
+      "name": "South of Firsoff Crater (Arabia Terra)",
+      "anchor": "Firsoff",
+      "abstracts": [
+        1026
+      ]
+    },
+    {
+      "name": "Columbus Crater",
+      "anchor": "Columbus",
+      "abstracts": [
+        1041
+      ]
+    },
+    {
+      "name": "Huygens Crater",
+      "anchor": "Huygens",
+      "abstracts": [
+        1032
+      ]
+    },
+    {
+      "name": "Noctis Landing",
+      "anchor": "Noctis Labyrinthus",
+      "abstracts": [
+        1050
+      ]
+    },
+    {
+      "name": "Deuteronilus Mensae",
+      "anchor": "Deuteronilus Mensae",
+      "abstracts": [
+        1033,
+        1044
+      ]
+    },
+    {
+      "name": "Eastern Rim of Hellas",
+      "lon": 104.0,
+      "lat": -40.0,
+      "abstracts": [
+        1038
+      ],
+      "location_basis": "abstract #1038: centred near 40S, 104E"
+    },
+    {
+      "name": "Ismenius Cavus",
+      "anchor": "Ismenius Cavus",
+      "abstracts": [
+        1027
+      ]
+    },
+    {
+      "name": "Hale Crater",
+      "anchor": "Hale",
+      "abstracts": [
+        1028
+      ]
+    },
+    {
+      "name": "Newton Crater",
+      "anchor": "Newton",
+      "abstracts": [
+        1015
+      ]
+    },
+    {
+      "name": "Protonilus Mensae",
+      "anchor": "Protonilus Mensae",
+      "abstracts": [
+        1053
+      ]
+    },
+    {
+      "name": "Ausonia Cavus",
+      "anchor": "Ausonia Cavus",
+      "abstracts": [
+        1045
+      ]
+    },
+    {
+      "name": "Kasei Valles",
+      "anchor": "Kasei Valles",
+      "abstracts": [
+        1045
+      ]
+    },
+    {
+      "name": "Chryse Planitia (Viking 1 site)",
+      "lon": -48.222,
+      "lat": 22.697,
+      "abstracts": [
+        1019
+      ],
+      "location_basis": "Viking 1 landing site (abstract: EZ centred near VL-1)"
+    }
+  ]
+}
