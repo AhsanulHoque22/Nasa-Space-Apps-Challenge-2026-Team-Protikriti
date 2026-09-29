@@ -118,4 +118,82 @@ describe('stitch', () => {
         worst = Math.max(worst, Math.abs(at(cornered, az, el) - at(clean, az, el)))
     expect(worst).toBeLessThan(3)
   })
+
+  it('builds the sky above the photos as a smooth dome, not smears of their top edges', () => {
+    // A bright-sky frame whose top-left corner is dark (lens fringe), as between Navcam shots.
+    const frame = flat(200, { azDeg: 90, widthDeg: 90, heightDeg: 30 })
+    frame.width = 180
+    frame.height = 60
+    frame.pixels = new Uint8ClampedArray(180 * 60 * 4)
+    for (let y = 0; y < 60; y++)
+      for (let x = 0; x < 180; x++) {
+        const v = x < 25 && y < 10 ? 40 : 200
+        frame.pixels.set([v, v, v, 255], (y * 180 + x) * 4)
+      }
+    const out = stitch([frame], 1440)
+    const sky = []
+    for (let az = 50; az <= 130; az += 1)
+      for (let el = 20; el <= 60; el += 2) sky.push(at(out, az, el))
+    expect(Math.min(...sky)).toBeGreaterThan(160) // no dark cloud rising from the corner
+  })
+
+  it('keeps the sky even above the notch where two shots meet', () => {
+    // Two shots whose top corners are cut away (lens circle), leaving a V-shaped notch at 90°.
+    // Each shows bright sky above 12° elevation and darker ground below.
+    const shot = (azDeg: number) => {
+      const f = flat(0, { azDeg, widthDeg: 44, heightDeg: 30, imageCircleTan2: 0.2 })
+      f.width = 88
+      f.height = 60
+      f.pixels = new Uint8ClampedArray(88 * 60 * 4)
+      for (let y = 0; y < 60; y++)
+        for (let x = 0; x < 88; x++) {
+          const v = y < 6 ? 210 : 90
+          f.pixels.set([v, v, v, 255], (y * 88 + x) * 4)
+        }
+      return f
+    }
+    const out = stitch([shot(70), shot(110)], 1440)
+    // Just above the photos, where a notch would start a darker spike rising up the sky.
+    for (const el of [13, 14, 15, 16]) {
+      const across = []
+      for (let az = 80; az <= 100; az += 0.25) across.push(at(out, az, el))
+      expect(Math.max(...across) - Math.min(...across)).toBeLessThan(15)
+    }
+  })
+
+  it('still fills a sky when no photo reaches the horizon', () => {
+    const out = stitch([flat(150, { azDeg: 90, elDeg: -40, heightDeg: 20 })], 720)
+    for (const el of [5, 10, 45]) expect(at(out, 90, el)).toBeGreaterThan(60)
+  })
+
+  it('lets a low-weight frame fill only where no full-weight frame sees', () => {
+    // A right-Navcam frame (offset 42 cm) must not ghost over the left frame, only fill beside it.
+    const left = flat(100, { azDeg: 90, widthDeg: 40 })
+    // The right frame is brighter, and has a dark rock in its far half that only it sees.
+    const right = flat(200, { azDeg: 110, widthDeg: 40, weight: 0.001 })
+    for (let y = 0; y < right.height; y++)
+      for (let x = 30; x < right.width; x++)
+        right.pixels.set([40, 40, 40, 255], (y * right.width + x) * 4)
+    const out = stitch([left, right], 720)
+    const alone = stitch([left], 720)
+    expect(Math.abs(at(out, 95, 0) - at(alone, 95, 0))).toBeLessThan(3) // no ghost where left sees
+    expect(at(out, 125, 0)).toBeLessThan(60) // the rock: right's real pixels where only it sees
+  })
+
+  it('matches contrast as well as brightness, so sky and ground both agree across a seam', () => {
+    // Same scene (sky 200 above the horizon, ground 80 below), but NASA stretched the second
+    // frame's contrast: 1.3 x - 40 makes its sky 220 and its ground 64. One gain can't fix both.
+    const scene = (azDeg: number, stretch: (v: number) => number) => {
+      const f = flat(0, { azDeg, widthDeg: 40 })
+      for (let y = 0; y < f.height; y++)
+        for (let x = 0; x < f.width; x++) {
+          const v = stretch(y < f.height / 2 ? 200 : 80)
+          f.pixels.set([v, v, v, 255], (y * f.width + x) * 4)
+        }
+      return f
+    }
+    const out = stitch([scene(80, (v) => v), scene(100, (v) => 1.3 * v - 40)], 720)
+    expect(Math.abs(at(out, 72, 8) - at(out, 108, 8))).toBeLessThan(8) // sky
+    expect(Math.abs(at(out, 72, -8) - at(out, 108, -8))).toBeLessThan(8) // ground
+  })
 })

@@ -31,12 +31,18 @@ export type Source = {
   exposure?: string
   /** tan² of the lens's image-circle radius: pixels farther off-axis are black, not data. */
   imageCircleTan2?: number
+  /**
+   * Blend priority (default 1). A tiny weight makes a frame fill only where no full-weight frame
+   * sees, e.g. the right Navcam, whose 42 cm offset would ghost nearby objects over the left's.
+   */
+  weight?: number
 }
 
 export type Panorama = { pixels: Uint8ClampedArray; width: number; height: number }
 
 const RAD = Math.PI / 180
 const SIGMA_N = 10 // grey-level noise in overlap means (Brown & Lowe)
+const SIGMA_O = 50 // prior spread of the offsets around 0, in grey levels (NASA stretches shift tens)
 const SIGMA_G = 0.3 // prior spread of the gains around 1 (Navcam auto-exposure varies a lot)
 const CIRCLE_FADE_TAN2 = 0.1 // weight fades to zero over this last band inside the image circle
 const GAIN_GRID_DEG = 1 // overlap statistics are sampled on this grid
@@ -156,14 +162,53 @@ function sample(s: Source, x: number, y: number, t2: number, out: Float32Array):
 const luma = (v: Float32Array) => (v[0]! + v[1]! + v[2]!) / 3
 
 /**
- * Brown & Lowe gain compensation: one gain per image, minimising overlap brightness differences.
- * Overlaps are sampled on a sphere grid, plus the shared pixel strip of tiles cut from one shot:
- * NASA brightens each tile separately, and their overlap (~0.6°) is too thin for the grid.
+ * Overlap statistics per ordered pair (i, j): sums over samples seen by both images, where a is
+ * image i's luma and b image j's. Enough to fit a brightness-and-contrast match by least squares.
  */
-function gains(sources: readonly Source[], cams: readonly Camera[]): number[] {
+type PairStats = {
+  n: Float64Array
+  a: Float64Array
+  b: Float64Array
+  aa: Float64Array
+  ab: Float64Array
+}
+
+function addSample(
+  st: PairStats,
+  n: number,
+  i: number,
+  j: number,
+  a: number,
+  b: number,
+  w: number,
+) {
+  const k = i * n + j
+  st.n[k] = st.n[k]! + w
+  st.a[k] = st.a[k]! + w * a
+  st.b[k] = st.b[k]! + w * b
+  st.aa[k] = st.aa[k]! + w * a * a
+  st.ab[k] = st.ab[k]! + w * a * b
+}
+
+/**
+ * Exposure matching after Brown & Lowe (IJCV 2007, §6), extended from one gain to a gain and an
+ * offset per image: NASA stretches each browse tile's contrast separately, and a gain alone can
+ * match the ground or the sky but not both. Overlaps are sampled on a sphere grid, plus the shared
+ * pixel strip of tiles cut from one shot (too thin, ~0.6°, for the grid). Low-priority images
+ * (the right Navcam) adapt to the others, never the reverse.
+ */
+function exposures(
+  sources: readonly Source[],
+  cams: readonly Camera[],
+): { gain: number[]; offset: number[] } {
   const n = sources.length
-  const count = Array.from({ length: n }, () => new Float64Array(n))
-  const sum = Array.from({ length: n }, () => new Float64Array(n)) // sum[i][j]: luma of i where j overlaps
+  const st: PairStats = {
+    n: new Float64Array(n * n),
+    a: new Float64Array(n * n),
+    b: new Float64Array(n * n),
+    aa: new Float64Array(n * n),
+    ab: new Float64Array(n * n),
+  }
   const v = new Float32Array(3)
   const p = new Float64Array(4)
   for (let el = -90 + GAIN_GRID_DEG / 2; el < 90; el += GAIN_GRID_DEG) {
@@ -181,44 +226,52 @@ function gains(sources: readonly Source[], cams: readonly Camera[]): number[] {
         hits.push([i, luma(v)])
       })
       for (const [i, li] of hits)
-        for (const [j] of hits) {
-          if (i === j) continue
-          count[i]![j]! += 1
-          sum[i]![j]! += li
-        }
+        for (const [j, lj] of hits) if (i !== j) addSample(st, n, i, j, li, lj, 1)
     }
   }
-  addTileStrips(sources, cams, count, sum)
-  // Normal equations of the quadratic error, solved by Gaussian elimination (n is small).
-  const a = Array.from({ length: n }, () => new Float64Array(n + 1))
+  addTileStrips(sources, cams, st)
+  // Normal equations for unknowns [g0..gn-1, o0..on-1], residual g_i a + o_i - g_j b - o_j.
+  const m = 2 * n
+  const rows = Array.from({ length: m }, () => new Float64Array(m + 1))
+  const priority = sources.map((src) => src.weight ?? 1)
+  const s2 = SIGMA_N ** 2
   for (let i = 0; i < n; i++) {
     let overlap = 0
+    const [gi, oi] = [rows[i]!, rows[n + i]!]
     for (let j = 0; j < n; j++) {
-      const nij = count[i]![j]!
-      if (!nij) continue
-      overlap += nij
-      const iij = sum[i]![j]! / nij
-      const iji = sum[j]![i]! / nij
-      a[i]![i]! += (nij * iij * iij) / SIGMA_N ** 2
-      a[i]![j]! -= (nij * iij * iji) / SIGMA_N ** 2
+      const k = i * n + j
+      const N = st.n[k]!
+      if (!N || priority[j]! < priority[i]!) continue
+      overlap += N
+      const [A, B, AA, AB] = [st.a[k]!, st.b[k]!, st.aa[k]!, st.ab[k]!]
+      gi[i] = gi[i]! + AA / s2
+      gi[n + i] = gi[n + i]! + A / s2
+      gi[j] = gi[j]! - AB / s2
+      gi[n + j] = gi[n + j]! - A / s2
+      oi[i] = oi[i]! + A / s2
+      oi[n + i] = oi[n + i]! + N / s2
+      oi[j] = oi[j]! - B / s2
+      oi[n + j] = oi[n + j]! - N / s2
     }
-    const prior = Math.max(1, overlap) / SIGMA_G ** 2
-    a[i]![i]! += prior
-    a[i]![n]! += prior
+    const weight = Math.max(1, overlap)
+    gi[i] = gi[i]! + weight / SIGMA_G ** 2
+    gi[m] = gi[m]! + weight / SIGMA_G ** 2 // gains prefer 1
+    oi[n + i] = oi[n + i]! + weight / SIGMA_O ** 2 // offsets prefer 0
   }
-  for (let col = 0; col < n; col++) {
+  for (let col = 0; col < m; col++) {
     let pivot = col
-    for (let r = col + 1; r < n; r++)
-      if (Math.abs(a[r]![col]!) > Math.abs(a[pivot]![col]!)) pivot = r
-    ;[a[col], a[pivot]] = [a[pivot]!, a[col]!]
-    const row = a[col]!
-    for (let r = 0; r < n; r++) {
+    for (let r = col + 1; r < m; r++)
+      if (Math.abs(rows[r]![col]!) > Math.abs(rows[pivot]![col]!)) pivot = r
+    ;[rows[col], rows[pivot]] = [rows[pivot]!, rows[col]!]
+    const row = rows[col]!
+    for (let r = 0; r < m; r++) {
       if (r === col) continue
-      const k = a[r]![col]! / row[col]!
-      for (let c = col; c <= n; c++) a[r]![c]! -= k * row[c]!
+      const f = rows[r]![col]! / row[col]!
+      for (let c = col; c <= m; c++) rows[r]![c]! -= f * row[c]!
     }
   }
-  return a.map((row, i) => row[n]! / row[i]!)
+  const solved = rows.map((row, i) => row[m]! / row[i]!)
+  return { gain: solved.slice(0, n), offset: solved.slice(n) }
 }
 
 const STRIP_SAMPLES = 64 // along the strip; 4 across it
@@ -226,17 +279,13 @@ const STRIP_SAMPLES = 64 // along the strip; 4 across it
 const STRIP_WEIGHT = 10
 
 /** Add the shared sensor strip of every pair of tiles from one shot to the overlap statistics. */
-function addTileStrips(
-  sources: readonly Source[],
-  cams: readonly Camera[],
-  count: Float64Array[],
-  sum: Float64Array[],
-): void {
-  const heaviest = Math.max(1, ...count.map((row) => Math.max(...row)))
+function addTileStrips(sources: readonly Source[], cams: readonly Camera[], st: PairStats): void {
+  const n = sources.length
+  const heaviest = Math.max(1, ...st.n)
   const vi = new Float32Array(3)
   const vj = new Float32Array(3)
-  for (let i = 0; i < sources.length; i++)
-    for (let j = i + 1; j < sources.length; j++) {
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
       if (!sources[i]!.exposure || sources[i]!.exposure !== sources[j]!.exposure) continue
       const [ax, ay, aw, ah] = cams[i]!.window
       const [bx, by, bw, bh] = cams[j]!.window
@@ -256,10 +305,8 @@ function addTileStrips(
           if (t2 >= Math.min(cams[i]!.imageCircleTan2, cams[j]!.imageCircleTan2)) continue
           sample(sources[i]!, (tx - ax) / aw, (ty - ay) / ah, t2, vi)
           sample(sources[j]!, (tx - bx) / bw, (ty - by) / bh, t2, vj)
-          count[i]![j]! += w
-          count[j]![i]! += w
-          sum[i]![j]! += w * luma(vi)
-          sum[j]![i]! += w * luma(vj)
+          addSample(st, n, i, j, luma(vi), luma(vj), w)
+          addSample(st, n, j, i, luma(vj), luma(vi), w)
         }
     }
 }
@@ -268,8 +315,9 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
   const width = outWidth
   const height = outWidth / 2
   const cams = sources.map(camera)
-  const gain = gains(sources, cams)
-  const acc = new Float32Array(width * height * 4) // r, g, b, weight
+  const { gain, offset } = exposures(sources, cams)
+  const acc = new Float32Array(width * height * 4) // r, g, b, blend weight
+  const seen = new Float32Array(width * height) // how well photos cover a pixel, ignoring priority
   const v = new Float32Array(3)
   const p = new Float64Array(4)
   const sinAz = new Float64Array(width)
@@ -282,6 +330,7 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
   cams.forEach((c, i) => {
     const s = sources[i]!
     const g = gain[i]!
+    const off = offset[i]!
     const elLo = Math.max(-90, c.centreElDeg - c.radiusDeg)
     const elHi = Math.min(90, c.centreElDeg + c.radiusDeg)
     const yLo = Math.max(0, Math.floor(((90 - elHi) / 180) * height))
@@ -306,15 +355,17 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
         sample(s, p[0]!, p[1]!, p[3]!, v)
         const o = (y * width + x) * 4
         // Feathered at the tile edges and favouring the sharp, bright sensor centre.
-        const w = p[2]! / (1 + p[3]!)
-        acc[o] = acc[o]! + v[0]! * g * w
-        acc[o + 1] = acc[o + 1]! + v[1]! * g * w
-        acc[o + 2] = acc[o + 2]! + v[2]! * g * w
+        const cover = p[2]! / (1 + p[3]!)
+        const w = cover * (s.weight ?? 1)
+        acc[o] = acc[o]! + (v[0]! * g + off) * w
+        acc[o + 1] = acc[o + 1]! + (v[1]! * g + off) * w
+        acc[o + 2] = acc[o + 2]! + (v[2]! * g + off) * w
         acc[o + 3] = acc[o + 3]! + w
+        seen[o / 4] = seen[o / 4]! + cover
       }
     }
   })
-  return fillGaps(acc, width, height)
+  return fillGaps(acc, seen, width, height)
 }
 
 type Level = { rgb: Float32Array; a: Float32Array; width: number; height: number }
@@ -390,8 +441,96 @@ function push(fine: Level, coarse: Level): void {
   }
 }
 
+const SKY_EDGE_DEG = 0.5 // the imaged sky colour is read from this band at the photos' top edge
+const SKY_LOCAL_DEG = 8 // just above the photos, their edge colour blurred this much in azimuth
+const SKY_RING_DEG = 30 // a few degrees up, the sky colour blurred this much in azimuth
+const SKY_RING_RISE_DEG = 6 // climb over which the local edge colour gives way to the ring
+const SKY_ZENITH_EL_DEG = 75 // elevation by which the sky is one even tone
+// The notch where two shots' cut-off corners meet is bridged: the sky starts from the highest
+// photo top within this many degrees, and notch columns don't lend it their darker colours.
+const SKY_NOTCH_DEG = 4
+
+/**
+ * Paint the sky above the photos as a smooth dome: the photos' own sky colour at their top edge,
+ * blurred more and more in azimuth as it rises, reaching one zenith tone by 75°. Extrapolating
+ * pixels instead turns every dim corner or hazy patch at the edge into a cloud rising up the sky.
+ * Returns false (leaving the sky to push-pull) when no photo reaches the horizon.
+ */
+function skyDome(l: Level, zenith: readonly number[]): boolean {
+  const { width, height } = l
+  const rowOf = (el: number) => Math.round(((90 - el) / 180) * height)
+  const elOf = (y: number) => 90 - ((y + 0.5) / height) * 180
+  const horizon = rowOf(0)
+  const top = new Int32Array(width).fill(-1)
+  for (let x = 0; x < width; x++) {
+    let y = 0
+    while (y < height && l.a[y * width + x]! < 0.5) y++
+    if (y < height && y <= horizon) top[x] = y // else this column's photos never reach the sky
+  }
+  // Highest photo top nearby (smallest row), so notches between shots don't dip the sky.
+  const reach = Math.max(1, Math.round((SKY_NOTCH_DEG / 360) * width))
+  const skyRow = new Int32Array(width).fill(-1)
+  for (let x = 0; x < width; x++)
+    for (let d = -reach; d <= reach; d++) {
+      const t = top[(((x + d) % width) + width) % width]!
+      if (t >= 0 && (skyRow[x]! < 0 || t < skyRow[x]!)) skyRow[x] = t
+    }
+  const edge = new Float32Array(width * 4) // r, g, b, weight
+  const band = Math.max(1, Math.round((SKY_EDGE_DEG / 180) * height))
+  const notchRows = Math.max(1, Math.round((1 / 180) * height)) // more than 1° below: a notch
+  for (let x = 0; x < width; x++) {
+    const y = top[x]!
+    if (y < 0 || y - skyRow[x]! > notchRows) continue
+    for (let r = y; r < Math.min(height, y + band); r++) {
+      const i = r * width + x
+      for (let k = 0; k < 3; k++) edge[x * 4 + k]! += l.rgb[i * 3 + k]!
+      edge[x * 4 + 3]! += 1
+    }
+  }
+  if (!edge.some((v, i) => i % 4 === 3 && v > 0)) return false // no sky seen: leave it to push-pull
+  const blur = (deg: number) => {
+    let cur = edge
+    const radius = Math.max(1, Math.round((deg / 360) * width))
+    for (let pass = 0; pass < 3; pass++) {
+      const next = new Float32Array(width * 4)
+      for (let x = 0; x < width; x++)
+        for (let d = -radius; d <= radius; d++) {
+          const j = (((x + d) % width) + width) % width
+          for (let k = 0; k < 4; k++) next[x * 4 + k]! += cur[j * 4 + k]!
+        }
+      cur = next
+    }
+    return (x: number, k: number) => cur[x * 4 + k]! / Math.max(1e-6, cur[x * 4 + 3]!)
+  }
+  const local = blur(SKY_LOCAL_DEG)
+  const ring = blur(SKY_RING_DEG)
+  const smooth = (t: number) => {
+    const c = Math.min(1, Math.max(0, t))
+    return c * c * (3 - 2 * c)
+  }
+  for (let x = 0; x < width; x++) {
+    // Paint down to this column's own photo top (into a notch), but grade from the bridged top.
+    const start = top[x]! >= 0 ? top[x]! : skyRow[x]! >= 0 ? skyRow[x]! : horizon
+    const elStart = elOf(skyRow[x]! >= 0 ? skyRow[x]! : horizon)
+    for (let y = 0; y < start; y++) {
+      const i = y * width + x
+      const a = l.a[i]!
+      const el = elOf(y)
+      const toRing = skyRow[x]! >= 0 ? smooth((el - elStart) / SKY_RING_RISE_DEG) : 1
+      const toZenith = smooth((el - elStart) / Math.max(1, SKY_ZENITH_EL_DEG - elStart))
+      for (let k = 0; k < 3; k++) {
+        const near = local(x, k) + (ring(x, k) - local(x, k)) * toRing
+        const sky = near + (zenith[k]! - near) * toZenith
+        l.rgb[i * 3 + k] = l.rgb[i * 3 + k]! * a + sky * (1 - a)
+      }
+      l.a[i] = 1
+    }
+  }
+  return true
+}
+
 /** Normalise the blend and fill everything no frame saw with push-pull interpolation. */
-function fillGaps(acc: Float32Array, width: number, height: number): Panorama {
+function fillGaps(acc: Float32Array, seen: Float32Array, width: number, height: number): Panorama {
   const base: Level = {
     rgb: new Float32Array(width * height * 3),
     a: new Float32Array(width * height),
@@ -401,7 +540,7 @@ function fillGaps(acc: Float32Array, width: number, height: number): Panorama {
   for (let i = 0; i < width * height; i++) {
     const w = acc[i * 4 + 3]!
     if (w <= 0) continue
-    base.a[i] = Math.min(1, w / FULL_WEIGHT) // soft edge where the imagery runs out
+    base.a[i] = Math.min(1, seen[i]! / FULL_WEIGHT) // soft edge where the imagery runs out
     for (let k = 0; k < 3; k++) base.rgb[i * 3 + k] = acc[i * 4 + k]! / w
   }
   // Anchor the poles: the sky tone above, the ground tone below (column means of the imagery's
@@ -418,8 +557,10 @@ function fillGaps(acc: Float32Array, width: number, height: number): Panorama {
       }
     return [0, 1, 2].map((k) => (sum[3] ? sum[k]! / sum[3] : 100) * shade)
   }
+  const zenith = tone(true, 0.9)
+  const dome = skyDome(base, zenith)
   const poles: Array<[number, number[]]> = [
-    [0, tone(true, 0.9)],
+    ...(dome ? [] : [[0, zenith] as [number, number[]]]),
     [height - 1, tone(false, 0.75)],
   ]
   for (const [y, rgb] of poles)
