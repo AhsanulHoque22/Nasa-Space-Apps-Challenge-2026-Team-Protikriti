@@ -11,13 +11,14 @@ precision highp float;
 in vec2 ndc;
 out vec4 colour;
 uniform sampler2D pano;
-uniform float yaw, pitch, tanHalfFov, aspect;
+uniform float yaw, pitch;
+uniform vec2 tanHalf; // tangent of the half field of view, horizontal and vertical
 const float PI = 3.141592653589793;
 void main() {
   vec3 f = vec3(cos(pitch) * sin(yaw), sin(pitch), cos(pitch) * cos(yaw));
   vec3 r = vec3(cos(yaw), 0.0, -sin(yaw));
   vec3 u = vec3(-sin(pitch) * sin(yaw), cos(pitch), -sin(pitch) * cos(yaw));
-  vec3 d = normalize(f + r * ndc.x * tanHalfFov + u * ndc.y * tanHalfFov / aspect);
+  vec3 d = normalize(f + r * ndc.x * tanHalf.x + u * ndc.y * tanHalf.y);
   float lon = atan(d.x, d.z) / (2.0 * PI);
   vec2 uv = vec2(fract(lon), 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI);
   // u jumps 1 -> 0 at north: take gradients from whichever parametrisation is continuous here,
@@ -30,7 +31,7 @@ void main() {
 
 export type PanoRenderer = {
   setImage(pixels: Uint8ClampedArray, width: number, height: number): void
-  /** Angles in degrees; `fovDeg` is horizontal. */
+  /** Angles in degrees; `fovDeg` spans the longer side of the screen. */
   draw(yawDeg: number, pitchDeg: number, fovDeg: number): void
 }
 
@@ -66,7 +67,7 @@ export function createPanoRenderer(canvas: HTMLCanvasElement): PanoRenderer {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
   const uniform = (name: string) => gl.getUniformLocation(program, name)
-  const [yaw, pitch, tanHalfFov, aspect] = ['yaw', 'pitch', 'tanHalfFov', 'aspect'].map(uniform)
+  const [yaw, pitch, tanHalf] = ['yaw', 'pitch', 'tanHalf'].map(uniform)
   const rad = Math.PI / 180
   return {
     setImage(pixels, width, height) {
@@ -81,8 +82,10 @@ export function createPanoRenderer(canvas: HTMLCanvasElement): PanoRenderer {
       gl.viewport(0, 0, w, h)
       gl.uniform1f(yaw, yawDeg * rad)
       gl.uniform1f(pitch, pitchDeg * rad)
-      gl.uniform1f(tanHalfFov, Math.tan((fovDeg * rad) / 2))
-      gl.uniform1f(aspect, w / h)
+      // The field of view spans the screen's longer side, so portrait phones aren't stretched.
+      const t = Math.tan((fovDeg * rad) / 2)
+      const long = Math.max(w, h)
+      gl.uniform2f(tanHalf, (t * w) / long, (t * h) / long)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     },
   }

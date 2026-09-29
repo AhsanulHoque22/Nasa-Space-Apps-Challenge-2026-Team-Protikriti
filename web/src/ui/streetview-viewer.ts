@@ -3,6 +3,7 @@
  * seamless 360° sphere (core/stitch) and drawn with WebGL, plus walk arrows to the neighbouring
  * stops on a CSS-3D layer that shares the camera.
  */
+import { FOV_RANGE, pinchFov, wheelFov } from '../core/look'
 import { selectPanorama } from '../core/panorama'
 import {
   type Frame,
@@ -18,7 +19,7 @@ import { type Rover, framesForStop } from '../map/raw-images'
 import { stitchPanorama } from '../map/stitch-client'
 
 const ROVER_NAME: Record<Rover, string> = { m20: 'Perseverance', msl: 'Curiosity' }
-const FOV = { min: 25, max: 100, start: 70 }
+const FOV = { ...FOV_RANGE, start: 70 }
 const DRAG_DEG_PER_PX = 0.15
 const KEY_STEP_DEG = 8
 const SEARCH_RADIUS = 6 // stops to check each way when a stop has no usable panorama
@@ -88,7 +89,8 @@ export function openStreetView(
   let index = startIndex
   let request = 0
 
-  const focalPx = () => view.clientWidth / 2 / Math.tan((state.fov * Math.PI) / 360)
+  const focalPx = () =>
+    Math.max(view.clientWidth, view.clientHeight) / 2 / Math.tan((state.fov * Math.PI) / 360)
 
   const layout = () => {
     const f = focalPx()
@@ -255,27 +257,44 @@ export function openStreetView(
   }
   document.addEventListener('keydown', onKey)
 
-  // Look around: drag, keys, wheel.
-  let dragging: { x: number; y: number } | null = null
+  // Look around: one finger or mouse drags the view, two fingers pinch to zoom, wheel zooms.
+  const pointers = new Map<number, { x: number; y: number }>()
+  const gesture = () => {
+    const [a, b] = [...pointers.values()]
+    if (!a) return null
+    if (!b) return { x: a.x, y: a.y, dist: 0 }
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, dist: Math.hypot(a.x - b.x, a.y - b.y) }
+  }
+  let last = gesture()
+  const release = (e: PointerEvent) => {
+    pointers.delete(e.pointerId)
+    last = gesture() // re-anchor so lifting one finger of a pinch doesn't jump the view
+  }
   view.addEventListener('pointerdown', (e) => {
     if ((e.target as Element).closest('.sv-arrow')) return // let the arrow's click through
-    dragging = { x: e.clientX, y: e.clientY }
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
     view.setPointerCapture(e.pointerId)
+    last = gesture()
   })
   view.addEventListener('pointermove', (e) => {
-    if (!dragging) return
+    if (!pointers.has(e.pointerId)) return
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const now = gesture()
+    if (!now || !last) return
+    if (now.dist > 0 && last.dist > 0) state.fov = pinchFov(state.fov, last.dist, now.dist)
     const scale = DRAG_DEG_PER_PX * (state.fov / FOV.start)
-    state.yaw -= (e.clientX - dragging.x) * scale
-    state.pitch = Math.max(-85, Math.min(85, state.pitch + (e.clientY - dragging.y) * scale))
-    dragging = { x: e.clientX, y: e.clientY }
+    state.yaw -= (now.x - last.x) * scale
+    state.pitch = Math.max(-85, Math.min(85, state.pitch + (now.y - last.y) * scale))
+    last = now
     layout()
   })
-  view.addEventListener('pointerup', () => (dragging = null))
+  for (const type of ['pointerup', 'pointercancel'] as const) view.addEventListener(type, release)
   view.addEventListener(
     'wheel',
     (e) => {
       e.preventDefault()
-      state.fov = Math.max(FOV.min, Math.min(FOV.max, state.fov + Math.sign(e.deltaY) * 5))
+      const px = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY
+      state.fov = wheelFov(state.fov, px)
       layout()
     },
     { passive: false },
