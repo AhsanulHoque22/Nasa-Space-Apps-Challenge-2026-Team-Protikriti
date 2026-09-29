@@ -104,3 +104,12 @@ const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
 export function compassPoint(deg: number): string {
   return POINTS[Math.round((((deg % 360) + 360) % 360) / 45) % 8] ?? 'N'
 }
+
+/**
+ * One camera exposure: Perseverance splits a Navcam shot into tiles whose file names share the
+ * camera, sol and spacecraft-clock prefix (NLF_0400_0702458867_...); any other image stands alone.
+ */
+export function exposureId(url: string): string {
+  const file = url.split('/').pop() ?? url
+  return /^[A-Z]{3}_\d{4}_\d{10}/.exec(file)?.[0] ?? file
+}

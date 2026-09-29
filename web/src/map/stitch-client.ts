@@ -1,9 +1,12 @@
 /** Stitch a stop's panorama in a worker; frames are fetched through the same-origin NASA proxy. */
-import type { Frame } from '../core/streetview'
+import { type Frame, exposureId } from '../core/streetview'
 import type { StitchReply, StitchRequest } from './stitch.worker'
 
 const OUT_WIDTH = 4096 // ~11 px per degree: about the Navcam browse images' own resolution
 const NASA = 'https://mars.nasa.gov'
+// Perseverance Navcam browse images are black beyond tan² ≈ 1.66 off-axis (measured on sol 400
+// frames) and dim from 1.52; Curiosity's 45° Navcam never gets that far off-axis.
+const NAVCAM_IMAGE_CIRCLE_TAN2 = 1.5
 
 const proxied = (url: string) =>
   url.startsWith(NASA) ? new URL(`nasa-raw${url.slice(NASA.length)}`, document.baseURI).href : url
@@ -42,6 +45,8 @@ export function stitchPanorama(
       widthDeg: f.fovDeg[0],
       heightDeg: f.fovDeg[1],
       sensorTan: sensorTan(f),
+      exposure: exposureId(f.url),
+      imageCircleTan2: NAVCAM_IMAGE_CIRCLE_TAN2,
     })),
   }
   return new Promise<Stitched>((resolve, reject) => {

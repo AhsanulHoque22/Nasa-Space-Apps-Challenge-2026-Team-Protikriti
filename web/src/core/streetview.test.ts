@@ -3,6 +3,7 @@ import {
   type Frame,
   type Stop,
   bearingDeg,
+  exposureId,
   compassPoint,
   cssTransform,
   frameGeometry,
@@ -109,5 +110,18 @@ describe('compassPoint', () => {
     expect(compassPoint(44)).toBe('NE')
     expect(compassPoint(-90)).toBe('W')
     expect(compassPoint(350)).toBe('N')
+  })
+})
+
+describe('exposureId', () => {
+  it('groups the tiles of one Perseverance shot by camera, sol and spacecraft clock', () => {
+    const tile = (n: string) =>
+      `https://mars.nasa.gov/mars2020-raw-images/x/NLF_0400_0702458867_385ECM_N0191126NCAM03400_${n}_195J01_800.jpg`
+    expect(exposureId(tile('01'))).toBe('NLF_0400_0702458867')
+    expect(exposureId(tile('04'))).toBe(exposureId(tile('01')))
+  })
+  it('keeps any other image as its own exposure', () => {
+    const url = 'https://mars.nasa.gov/msl-raw-images/x/NLB_843851071EDR_F1241978NCAM00353M_.JPG'
+    expect(exposureId(url)).toBe('NLB_843851071EDR_F1241978NCAM00353M_.JPG')
   })
 })

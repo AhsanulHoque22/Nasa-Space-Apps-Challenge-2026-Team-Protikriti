@@ -49,6 +49,15 @@ describe('selectPanorama', () => {
     const dup = [frame({ azDeg: 10 }), frame({ azDeg: 10.2 }), frame({ azDeg: 120 })]
     expect(selectPanorama(dup).frames).toHaveLength(2)
   })
+  it('adds other sequences at the stop that fill directions the main sweep missed', () => {
+    const main = [0, 75, 150].map((az) => frame({ sequence: 'NCAM03400', azDeg: az }))
+    const back = [240, 300].map((az) => frame({ sequence: 'NCAM02400', azDeg: az }))
+    const staring = [frame({ sequence: 'NCAM00528', azDeg: 60 })] // adds nothing new
+    const pano = selectPanorama([...main, ...back, ...staring])
+    expect(pano.coverageDeg).toBe(360)
+    expect(pano.frames).toHaveLength(5)
+    expect(pano.frames.some((f) => f.sequence === 'NCAM00528')).toBe(false)
+  })
   it('is empty for no frames', () => {
     expect(selectPanorama([])).toEqual({ frames: [], coverageDeg: 0 })
   })

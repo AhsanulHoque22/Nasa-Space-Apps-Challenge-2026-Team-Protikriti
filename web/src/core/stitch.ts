@@ -27,6 +27,10 @@ export type Source = {
    * sensor tiles: an off-axis window of one pinhole camera, not a camera of their own.
    */
   sensorTan?: [number, number, number, number]
+  /** Tiles of one camera shot share this id; their shared pixel strips are matched exactly. */
+  exposure?: string
+  /** tan² of the lens's image-circle radius: pixels farther off-axis are black, not data. */
+  imageCircleTan2?: number
 }
 
 export type Panorama = { pixels: Uint8ClampedArray; width: number; height: number }
@@ -34,6 +38,7 @@ export type Panorama = { pixels: Uint8ClampedArray; width: number; height: numbe
 const RAD = Math.PI / 180
 const SIGMA_N = 10 // grey-level noise in overlap means (Brown & Lowe)
 const SIGMA_G = 0.3 // prior spread of the gains around 1 (Navcam auto-exposure varies a lot)
+const CIRCLE_FADE_TAN2 = 0.1 // weight fades to zero over this last band inside the image circle
 const GAIN_GRID_DEG = 1 // overlap statistics are sampled on this grid
 // Blend weight at which a pixel counts as fully imaged; below it, imagery fades into the fill.
 const FULL_WEIGHT = 0.02
@@ -47,6 +52,7 @@ type Camera = {
   r: [number, number, number]
   u: [number, number, number]
   window: [number, number, number, number]
+  imageCircleTan2: number
   // Bounding cone of the image on the sphere: centre direction and angular radius.
   centreAzDeg: number
   centreElDeg: number
@@ -85,6 +91,7 @@ function camera(s: Source): Camera {
     r,
     u,
     window,
+    imageCircleTan2: s.imageCircleTan2 ?? Infinity,
     centreAzDeg: Math.atan2(centre[0]!, centre[2]!) / RAD,
     centreElDeg: Math.asin(centre[1]!) / RAD,
     radiusDeg: radius / RAD + 0.5, // half a degree of slack for the pixel grid
@@ -114,10 +121,14 @@ function project(
   const x = (tx - cx) / hw
   const y = (ty - cy) / hh
   if (x <= -1 || x >= 1 || y <= -1 || y >= 1) return false
+  const t2 = tx * tx + ty * ty
+  if (t2 >= c.imageCircleTan2) return false
   out[0] = x
   out[1] = y
-  out[2] = (1 - Math.abs(x)) * (1 - Math.abs(y))
-  out[3] = tx * tx + ty * ty
+  // Feathered at the tile edges and faded out towards the edge of the lens's image circle.
+  out[2] =
+    (1 - Math.abs(x)) * (1 - Math.abs(y)) * Math.min(1, (c.imageCircleTan2 - t2) / CIRCLE_FADE_TAN2)
+  out[3] = t2
   return true
 }
 
@@ -144,7 +155,11 @@ function sample(s: Source, x: number, y: number, t2: number, out: Float32Array):
 
 const luma = (v: Float32Array) => (v[0]! + v[1]! + v[2]!) / 3
 
-/** Brown & Lowe gain compensation: one gain per frame minimising overlap brightness differences. */
+/**
+ * Brown & Lowe gain compensation: one gain per image, minimising overlap brightness differences.
+ * Overlaps are sampled on a sphere grid, plus the shared pixel strip of tiles cut from one shot:
+ * NASA brightens each tile separately, and their overlap (~0.6°) is too thin for the grid.
+ */
 function gains(sources: readonly Source[], cams: readonly Camera[]): number[] {
   const n = sources.length
   const count = Array.from({ length: n }, () => new Float64Array(n))
@@ -173,6 +188,7 @@ function gains(sources: readonly Source[], cams: readonly Camera[]): number[] {
         }
     }
   }
+  addTileStrips(sources, cams, count, sum)
   // Normal equations of the quadratic error, solved by Gaussian elimination (n is small).
   const a = Array.from({ length: n }, () => new Float64Array(n + 1))
   for (let i = 0; i < n; i++) {
@@ -203,6 +219,49 @@ function gains(sources: readonly Source[], cams: readonly Camera[]): number[] {
     }
   }
   return a.map((row, i) => row[n]! / row[i]!)
+}
+
+const STRIP_SAMPLES = 64 // along the strip; 4 across it
+// A shared strip is the same pixels seen twice, so it outweighs any sphere-grid overlap.
+const STRIP_WEIGHT = 10
+
+/** Add the shared sensor strip of every pair of tiles from one shot to the overlap statistics. */
+function addTileStrips(
+  sources: readonly Source[],
+  cams: readonly Camera[],
+  count: Float64Array[],
+  sum: Float64Array[],
+): void {
+  const heaviest = Math.max(1, ...count.map((row) => Math.max(...row)))
+  const vi = new Float32Array(3)
+  const vj = new Float32Array(3)
+  for (let i = 0; i < sources.length; i++)
+    for (let j = i + 1; j < sources.length; j++) {
+      if (!sources[i]!.exposure || sources[i]!.exposure !== sources[j]!.exposure) continue
+      const [ax, ay, aw, ah] = cams[i]!.window
+      const [bx, by, bw, bh] = cams[j]!.window
+      const x0 = Math.max(ax - aw, bx - bw)
+      const x1 = Math.min(ax + aw, bx + bw)
+      const y0 = Math.max(ay - ah, by - bh)
+      const y1 = Math.min(ay + ah, by + bh)
+      if (x1 <= x0 || y1 <= y0) continue
+      const tall = y1 - y0 > x1 - x0
+      const [nx, ny] = tall ? [4, STRIP_SAMPLES] : [STRIP_SAMPLES, 4]
+      const w = (STRIP_WEIGHT * heaviest) / (nx * ny)
+      for (let u = 0; u < nx; u++)
+        for (let k = 0; k < ny; k++) {
+          const tx = x0 + ((u + 0.5) / nx) * (x1 - x0)
+          const ty = y0 + ((k + 0.5) / ny) * (y1 - y0)
+          const t2 = tx * tx + ty * ty
+          if (t2 >= Math.min(cams[i]!.imageCircleTan2, cams[j]!.imageCircleTan2)) continue
+          sample(sources[i]!, (tx - ax) / aw, (ty - ay) / ah, t2, vi)
+          sample(sources[j]!, (tx - bx) / bw, (ty - by) / bh, t2, vj)
+          count[i]![j]! += w
+          count[j]![i]! += w
+          sum[i]![j]! += w * luma(vi)
+          sum[j]![i]! += w * luma(vj)
+        }
+    }
 }
 
 export function stitch(sources: readonly Source[], outWidth: number): Panorama {

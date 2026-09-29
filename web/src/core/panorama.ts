@@ -54,21 +54,38 @@ function dedupePointings(frames: readonly Frame[]): Frame[] {
   return kept
 }
 
+// Another sequence at the same stop joins the panorama only if it shows this much new azimuth.
+const MIN_ADDED_COVERAGE_DEG = 15
+
+/**
+ * The widest sweep at the stop, plus any other sequences there that fill directions it missed
+ * (e.g. a drive-direction pan and a look back). Repeated pointings are dropped.
+ */
 export function selectPanorama(frames: readonly Frame[]): { frames: Frame[]; coverageDeg: number } {
   const bySequence = new Map<string, Frame[]>()
   for (const f of frames) {
     const key = `${f.sol}:${f.sequence}`
     bySequence.set(key, [...(bySequence.get(key) ?? []), f])
   }
-  let best: { frames: Frame[]; coverageDeg: number } = { frames: [], coverageDeg: 0 }
-  for (const group of bySequence.values()) {
-    const unique = dedupePointings(group)
-    const coverageDeg = azimuthCoverageDeg(unique)
-    if (
-      coverageDeg > best.coverageDeg ||
-      (coverageDeg === best.coverageDeg && unique.length > best.frames.length)
-    )
-      best = { frames: unique, coverageDeg }
+  const candidates = [...bySequence.values()].map(dedupePointings)
+  let chosen: Frame[] = []
+  let coverageDeg = 0
+  for (;;) {
+    let best: { frames: Frame[]; coverage: number; index: number } | undefined
+    candidates.forEach((group, index) => {
+      const merged = dedupePointings([...chosen, ...group])
+      const coverage = azimuthCoverageDeg(merged)
+      const better =
+        !best ||
+        coverage > best.coverage ||
+        (coverage === best.coverage && merged.length > best.frames.length)
+      if (better) best = { frames: merged, coverage, index }
+    })
+    const minGain = chosen.length ? MIN_ADDED_COVERAGE_DEG : Number.MIN_VALUE
+    if (!best || best.coverage - coverageDeg < minGain) break
+    chosen = best.frames
+    coverageDeg = best.coverage
+    candidates.splice(best.index, 1)
   }
-  return best
+  return { frames: chosen, coverageDeg }
 }
