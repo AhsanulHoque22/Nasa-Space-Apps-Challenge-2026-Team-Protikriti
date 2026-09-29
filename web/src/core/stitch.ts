@@ -318,6 +318,8 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
   const { gain, offset } = exposures(sources, cams)
   const acc = new Float32Array(width * height * 4) // r, g, b, blend weight
   const seen = new Float32Array(width * height) // how well photos cover a pixel, ignoring priority
+  const bands = toneBands(sources, cams, gain, offset)
+  const tone = new Float32Array(3)
   const v = new Float32Array(3)
   const p = new Float64Array(4)
   const sinAz = new Float64Array(width)
@@ -357,14 +359,25 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
         // Feathered at the tile edges and favouring the sharp, bright sensor centre.
         const cover = p[2]! / (1 + p[3]!)
         const w = cover * (s.weight ?? 1)
-        acc[o] = acc[o]! + (v[0]! * g + off) * w
-        acc[o + 1] = acc[o + 1]! + (v[1]! * g + off) * w
-        acc[o + 2] = acc[o + 2]! + (v[2]! * g + off) * w
+        // Detail band: the photo minus its own coarse tone (the tone band is added afterwards).
+        const hasTone = readLow(bands.own[i]!, (x + 0.5) / width, (y + 0.5) / height, tone)
+        for (let k = 0; k < 3; k++) {
+          const val = v[k]! * g + off
+          acc[o + k] = acc[o + k]! + (hasTone ? val - tone[k]! : 0) * w
+        }
         acc[o + 3] = acc[o + 3]! + w
         seen[o / 4] = seen[o / 4]! + cover
       }
     }
   })
+  // Tone band: the photos' tones cross-faded, under every photographed pixel.
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const o = (y * width + x) * 4
+      const w = acc[o + 3]!
+      if (w <= 0 || !readLow(bands.target, (x + 0.5) / width, (y + 0.5) / height, tone)) continue
+      for (let k = 0; k < 3; k++) acc[o + k] = acc[o + k]! + tone[k]! * w
+    }
   return fillGaps(acc, seen, width, height)
 }
 
@@ -529,6 +542,152 @@ function skyDome(l: Level, zenith: readonly number[]): boolean {
   return true
 }
 
+const LOW_W = 256 // low-band grid: ~1.4° cells
+const LOW_H = LOW_W / 2
+const TONE_BLUR_DEG = 4 // tone changes between photos fade over about this
+
+/** Box-blur a 4-channel coarse grid (values pre-multiplied by channel 3), wrapping in azimuth. */
+function blurLow(src: Float32Array, radius: number): Float32Array {
+  let cur = src
+  for (let pass = 0; pass < 3; pass++) {
+    const horiz = new Float32Array(cur.length)
+    for (let y = 0; y < LOW_H; y++)
+      for (let x = 0; x < LOW_W; x++)
+        for (let d = -radius; d <= radius; d++) {
+          const j = (y * LOW_W + ((((x + d) % LOW_W) + LOW_W) % LOW_W)) * 4
+          const o = (y * LOW_W + x) * 4
+          for (let k = 0; k < 4; k++) horiz[o + k] = horiz[o + k]! + cur[j + k]!
+        }
+    const vert = new Float32Array(cur.length)
+    for (let y = 0; y < LOW_H; y++)
+      for (let d = -radius; d <= radius; d++) {
+        const yy = Math.min(LOW_H - 1, Math.max(0, y + d))
+        for (let x = 0; x < LOW_W; x++) {
+          const o = (y * LOW_W + x) * 4
+          const j = (yy * LOW_W + x) * 4
+          for (let k = 0; k < 4; k++) vert[o + k] = vert[o + k]! + horiz[j + k]!
+        }
+      }
+    cur = vert
+  }
+  return cur
+}
+
+/** Bilinear read of a pre-multiplied coarse grid at (u, v) in 0..1; false where it has no data. */
+function readLow(grid: Float32Array, u: number, v: number, out: Float32Array): boolean {
+  // Allocation-free: this runs for every photographed output pixel.
+  const fx = u * LOW_W - 0.5
+  const fy = Math.min(LOW_H - 1.001, Math.max(0, v * LOW_H - 0.5))
+  const x0 = Math.floor(fx)
+  const y0 = Math.floor(fy)
+  const tx = fx - x0
+  const ty = fy - y0
+  const xa = ((x0 % LOW_W) + LOW_W) % LOW_W
+  const xb = (xa + 1) % LOW_W
+  const a = (y0 * LOW_W + xa) * 4
+  const b = (y0 * LOW_W + xb) * 4
+  const c = ((y0 + 1) * LOW_W + xa) * 4
+  const d = ((y0 + 1) * LOW_W + xb) * 4
+  const fa = (1 - tx) * (1 - ty)
+  const fb = tx * (1 - ty)
+  const fc = (1 - tx) * ty
+  const fd = tx * ty
+  const w = grid[a + 3]! * fa + grid[b + 3]! * fb + grid[c + 3]! * fc + grid[d + 3]! * fd
+  if (w <= 1e-9) return false
+  for (let k = 0; k < 3; k++)
+    out[k] = (grid[a + k]! * fa + grid[b + k]! * fb + grid[c + k]! * fc + grid[d + k]! * fd) / w
+  return true
+}
+
+/**
+ * The low band of a two-band blend (Burt & Adelson; Brown & Lowe §7). Each photo's own tone on a
+ * coarse grid, blurred; and the target tone: those tones cross-faded by where each photo wins
+ * (most priority-weighted cover), blurred the same way. The stitcher then adds each photo's detail
+ * (its pixels minus its own tone) with sharp priority weights on top of the target tone, so detail
+ * comes from one photo (no ghosts) while tone fades between photos (no patch edges).
+ */
+function toneBands(
+  sources: readonly Source[],
+  cams: readonly Camera[],
+  gain: readonly number[],
+  offset: readonly number[],
+): { own: Float32Array[]; target: Float32Array } {
+  const cells = LOW_W * LOW_H
+  const radius = Math.max(1, Math.round((TONE_BLUR_DEG / 360) * LOW_W))
+  const p = new Float64Array(4)
+  const v = new Float32Array(3)
+  const raw = cams.map((c, i) => {
+    const grid = new Float32Array(cells * 4)
+    const s = sources[i]!
+    for (let y = 0; y < LOW_H; y++) {
+      const el = (90 - ((y + 0.5) / LOW_H) * 180) * RAD
+      for (let x = 0; x < LOW_W; x++) {
+        const az = ((x + 0.5) / LOW_W) * 2 * Math.PI
+        if (!project(c, Math.sin(az), Math.cos(az), Math.sin(el), Math.cos(el), p)) continue
+        sample(s, p[0]!, p[1]!, p[3]!, v)
+        const cover = p[2]! / (1 + p[3]!)
+        const o = (y * LOW_W + x) * 4
+        for (let k = 0; k < 3; k++) grid[o + k] = (v[k]! * gain[i]! + offset[i]!) * cover
+        grid[o + 3] = cover
+      }
+    }
+    return grid
+  })
+  const priority = sources.map((s) => s.weight ?? 1)
+  const winner = new Int32Array(cells).fill(-1)
+  const best = new Float64Array(cells)
+  raw.forEach((grid, i) => {
+    for (let c = 0; c < cells; c++) {
+      const w = grid[c * 4 + 3]! * priority[i]!
+      if (w > best[c]!) [best[c], winner[c]] = [w, i]
+    }
+  })
+  const own = raw.map((grid) => blurLow(grid, radius))
+  const target = new Float32Array(cells * 4)
+  own.forEach((tone, i) => {
+    const mask = new Float32Array(cells * 4)
+    let wins = false
+    for (let c = 0; c < cells; c++)
+      if (winner[c] === i) {
+        mask[c * 4 + 3] = 1
+        wins = true
+      }
+    if (!wins) return
+    const area = blurLow(mask, radius)
+    for (let c = 0; c < cells; c++) {
+      const cover = tone[c * 4 + 3]!
+      const m = area[c * 4 + 3]!
+      if (cover <= 1e-9 || m <= 0) continue
+      for (let k = 0; k < 3; k++)
+        target[c * 4 + k] = target[c * 4 + k]! + (m * tone[c * 4 + k]!) / cover
+      target[c * 4 + 3] = target[c * 4 + 3]! + m
+    }
+  })
+  return { own, target }
+}
+
+const WHITE = 250 // highlight level after exposure scaling, a little under full scale
+const HIGHLIGHT_PERCENTILE = 0.995
+
+/**
+ * Scale the whole panorama down if its highlights exceed white: vignetting correction and
+ * exposure matching lift bright sky past 255, and clipping it would leave flat white patches.
+ */
+function exposureScale(rgb: Float32Array): number {
+  const bins = new Uint32Array(1024)
+  const n = rgb.length / 3
+  for (let i = 0; i < n; i++) {
+    const peak = Math.max(rgb[i * 3]!, rgb[i * 3 + 1]!, rgb[i * 3 + 2]!)
+    bins[Math.min(1023, Math.max(0, Math.round(peak)))]! += 1
+  }
+  let seen = 0
+  for (let v = 0; v < 1024; v++) {
+    seen += bins[v]!
+    if (seen >= n * HIGHLIGHT_PERCENTILE) return v > WHITE ? WHITE / v : 1
+  }
+  return 1
+}
+
 /** Normalise the blend and fill everything no frame saw with push-pull interpolation. */
 function fillGaps(acc: Float32Array, seen: Float32Array, width: number, height: number): Panorama {
   const base: Level = {
@@ -573,11 +732,12 @@ function fillGaps(acc: Float32Array, seen: Float32Array, width: number, height: 
   const levels = [base]
   while (levels.at(-1)!.height > 1) levels.push(pull(levels.at(-1)!))
   for (let l = levels.length - 2; l >= 0; l--) push(levels[l]!, levels[l + 1]!)
+  const scale = exposureScale(base.rgb)
   const pixels = new Uint8ClampedArray(width * height * 4)
   for (let i = 0; i < width * height; i++) {
-    pixels[i * 4] = base.rgb[i * 3]!
-    pixels[i * 4 + 1] = base.rgb[i * 3 + 1]!
-    pixels[i * 4 + 2] = base.rgb[i * 3 + 2]!
+    pixels[i * 4] = base.rgb[i * 3]! * scale
+    pixels[i * 4 + 1] = base.rgb[i * 3 + 1]! * scale
+    pixels[i * 4 + 2] = base.rgb[i * 3 + 2]! * scale
     pixels[i * 4 + 3] = 255
   }
   return { pixels, width, height }

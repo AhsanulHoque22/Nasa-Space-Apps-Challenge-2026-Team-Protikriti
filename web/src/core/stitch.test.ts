@@ -197,4 +197,28 @@ describe('stitch', { timeout: 20_000 }, () => {
     expect(Math.abs(at(out, 72, 8) - at(out, 108, 8))).toBeLessThan(8) // sky
     expect(Math.abs(at(out, 72, -8) - at(out, 108, -8))).toBeLessThan(8) // ground
   })
+
+  it('fades tone across the edge of a lower-ranked patch, keeping detail from one photo only', () => {
+    // A main-session frame, and a later session (weight 0.01) of the same flat ground under
+    // uneven light (brighter towards one side), filling beyond the main frame's edge at 110°.
+    const main = flat(160, { azDeg: 90, widthDeg: 40 })
+    const later = flat(0, { azDeg: 115, widthDeg: 40, weight: 0.01 })
+    for (let y = 0; y < later.height; y++)
+      for (let x = 0; x < later.width; x++) {
+        const v = 160 * (0.5 + x / later.width)
+        later.pixels.set([v, v, v, 255], (y * later.width + x) * 4)
+      }
+    const out = stitch([main, later], 1440)
+    const across = [106, 107, 108, 109, 110, 111, 112, 113, 114].map((az) => at(out, az, 0))
+    const steps = across.slice(1).map((v, i) => Math.abs(v - (across[i] ?? v)))
+    expect(Math.max(...steps)).toBeLessThan(8) // no hard edge where the later session takes over
+  })
+
+  it('scales exposure down instead of clipping a bright sky to flat white', () => {
+    // A bright frame: vignetting correction lifts its edges past 255. Clipping would flatten the
+    // centre and the edges to the same white; the tonal gradient should survive.
+    const out = stitch([flat(245, { widthDeg: 96, heightDeg: 73 })], 720)
+    // 25° and 35° off-axis: about 290 and 340 before any exposure scaling.
+    expect(at(out, 115, 0)).toBeLessThan(at(out, 125, 0))
+  })
 })
