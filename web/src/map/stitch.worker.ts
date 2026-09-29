@@ -4,10 +4,12 @@ import { type Source, stitch } from '../core/stitch'
 
 export type StitchRequest = {
   outWidth: number
+  previewWidth: number
   frames: Array<Omit<Source, 'pixels' | 'width' | 'height'> & { url: string }>
 }
 export type StitchReply =
   | { type: 'progress'; loaded: number; total: number }
+  | { type: 'preview'; pixels: Uint8ClampedArray; width: number; height: number; used: number }
   | { type: 'done'; pixels: Uint8ClampedArray; width: number; height: number; used: number }
   | { type: 'error'; message: string }
 
@@ -38,6 +40,9 @@ self.onmessage = async ({ data }: MessageEvent<StitchRequest>) => {
   )
   const sources = settled.flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []))
   if (!sources.length) return post({ type: 'error', message: 'none of the frames downloaded' })
+  // A quick low-resolution sphere first, so the viewer can look around within seconds.
+  const preview = stitch(sources, data.previewWidth)
+  post({ type: 'preview', ...preview, used: sources.length }, [preview.pixels.buffer])
   const pano = stitch(sources, data.outWidth)
   post({ type: 'done', ...pano, used: sources.length }, [pano.pixels.buffer])
 }

@@ -34,6 +34,7 @@ import { isExploring } from './map/picking'
 import type { Place } from './core/search'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
+import type { Rover } from './map/raw-images'
 import { renderTimelineBar } from './ui/timeline-bar'
 import { positionAtSol } from './core/timeline'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
@@ -184,16 +185,27 @@ async function main() {
   })
   renderClock(ui, viewer)
   const layerToggles = await addLayers(viewer, sites, hirise)
-  const streetView = await addStreetViewStops(viewer, (rover, index) =>
-    openStreetView(rover, streetView.stops[rover], index, document.activeElement as HTMLElement),
-  )
+  // The globe is hidden behind Street View: stop redrawing it so the panorama gets the device.
+  const showStreetView = (rover: Rover, index: number) => {
+    viewer.useDefaultRenderLoop = false
+    openStreetView(
+      rover,
+      streetView.stops[rover],
+      index,
+      document.activeElement as HTMLElement,
+      () => {
+        viewer.useDefaultRenderLoop = true
+      },
+    )
+  }
+  const streetView = await addStreetViewStops(viewer, showStreetView)
   const openActivity = (activity: Activity) => {
     const card = renderActivityCard(side, activity, {
       onClose: () => card.remove(),
       onStreetView: () => {
         if (activity.sol === null) return
         const { index } = positionAtSol(streetView.stops.m20, activity.sol)
-        openStreetView('m20', streetView.stops.m20, index, document.activeElement as HTMLElement)
+        showStreetView('m20', index)
       },
     })
   }

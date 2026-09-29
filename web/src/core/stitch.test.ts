@@ -16,7 +16,8 @@ const at = (out: ReturnType<typeof stitch>, azDeg: number, elDeg: number) => {
   return out.pixels[(y * out.width + x) * 4] ?? -1
 }
 
-describe('stitch', () => {
+// Full-resolution stitches take a few seconds each; the suite runs them in parallel with others.
+describe('stitch', { timeout: 20_000 }, () => {
   it('projects a frame onto the equirectangular sphere at its pointing', () => {
     const out = stitch([flat(200)], 360)
     expect(out.width).toBe(360)

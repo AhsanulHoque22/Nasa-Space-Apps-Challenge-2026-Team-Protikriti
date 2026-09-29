@@ -33,6 +33,7 @@ export function openStreetView(
   stops: Stop[],
   startIndex: number,
   returnFocus?: HTMLElement | null,
+  onClose?: () => void,
 ): void {
   document.querySelector('.sv')?.remove()
   const root = document.createElement('div')
@@ -79,6 +80,7 @@ export function openStreetView(
     root.querySelector('[data-act="close"]')?.addEventListener('click', () => {
       root.remove()
       returnFocus?.focus()
+      onClose?.()
     })
     return
   }
@@ -163,34 +165,53 @@ export function openStreetView(
     status.textContent = `Stitching ${pano.frames.length} NASA Navcam frames into a ${sweep} view…`
     stitching?.abort()
     stitching = new AbortController()
+    // Open looking at the middle of the sweep, level with the horizon, once something is shown.
+    const reveal = (text: string, layers: Element[]) => {
+      detail.textContent += text
+      sphere.replaceChildren(...layers)
+      const mid = pano.frames[Math.floor(pano.frames.length / 2)] ?? first
+      state.yaw = frameGeometry(mid).azDeg + yawDeg
+      state.pitch = 0
+      credit.href = first.link
+      status.hidden = true
+      layout()
+    }
+    const paint = (p: { pixels: Uint8ClampedArray; width: number; height: number }) => {
+      renderer.setImage(p.pixels, p.width, p.height)
+      hasImage = true
+      canvas.hidden = false
+      layout()
+    }
+    let previewed = false
     try {
-      const stitched = await stitchPanorama(
+      const full = await stitchPanorama(
         pano.frames,
         yawDeg,
-        (loaded, total) => {
-          if (id === request) status.textContent = `Downloading Navcam frames ${loaded}/${total}…`
+        {
+          progress: (loaded, total) => {
+            if (id === request) status.textContent = `Downloading Navcam frames ${loaded}/${total}…`
+          },
+          preview: (p) => {
+            if (id !== request) return
+            paint(p)
+            reveal(
+              ` · ${sweep} panorama stitched from ${p.used} Navcam frames, sol ${first.sol}`,
+              walkArrows(),
+            )
+            previewed = true
+          },
         },
         stitching.signal,
       )
-      if (id !== request) return
-      renderer.setImage(stitched.pixels, stitched.width, stitched.height)
-      hasImage = true
-      canvas.hidden = false
-      detail.textContent += ` · ${sweep} panorama stitched from ${stitched.used} Navcam frames, sol ${first.sol}`
-      sphere.replaceChildren(...walkArrows())
+      if (id === request) paint(full) // sharpen in place, keeping where the viewer is looking
     } catch {
-      if (id !== request) return
+      if (id !== request || previewed) return
       // No same-origin image proxy (e.g. a static host): show the sweep as positioned photos.
-      detail.textContent += ` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`
-      sphere.replaceChildren(...photoTiles(pano.frames, yawDeg), ...walkArrows())
+      reveal(` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`, [
+        ...photoTiles(pano.frames, yawDeg),
+        ...walkArrows(),
+      ])
     }
-    // Open looking at the middle of the sweep, level with the horizon.
-    const mid = pano.frames[Math.floor(pano.frames.length / 2)] ?? first
-    state.yaw = frameGeometry(mid).azDeg + yawDeg
-    state.pitch = 0
-    credit.href = first.link
-    status.hidden = true
-    layout()
   }
 
   const load = async (target: number) => {
@@ -251,6 +272,7 @@ export function openStreetView(
     document.removeEventListener('keydown', onKey)
     window.removeEventListener('resize', layout)
     returnFocus?.focus()
+    onClose?.()
   }
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') close()

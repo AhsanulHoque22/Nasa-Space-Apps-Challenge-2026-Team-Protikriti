@@ -1,6 +1,6 @@
 /** Street View's panorama at a stop: which frames to stitch and how much azimuth they cover. */
 import { sunPosition } from './mars-time'
-import { type Frame, frameGeometry } from './streetview'
+import { type Frame, frameGeometry, isRightNavcam } from './streetview'
 
 const mod = (x: number, m: number) => ((x % m) + m) % m
 
@@ -56,14 +56,40 @@ function showsSun(f: Frame, stop: StopPose): boolean {
   return Math.abs(dAz) < g.widthDeg / 2 && Math.abs(sun.elevationDeg - g.elDeg) < g.heightDeg / 2
 }
 
+// Same eye, same sensor window and pointing within this: a re-shot of the same view.
+const SAME_VIEW_DEG = 1
+// A right-eye frame this close to a left-eye one is its stereo twin (42 cm apart, slight toe-in).
+const TWIN_DEG = 2
+
+const sameView = (a: Frame, b: Frame, withinDeg: number) =>
+  a.subframe.join() === b.subframe.join() &&
+  Math.abs(((a.azDeg - b.azDeg + 540) % 360) - 180) < withinDeg &&
+  Math.abs(a.elDeg - b.elDeg) < withinDeg
+
 /**
- * Every frame NASA took at the stop, whatever sequence, sol or pointing: repeats and extra shots
- * still add detail, exposure information and sky. Only shots aimed at the Sun are left out.
+ * Every distinct view NASA took at the stop, across all sequences and sols. Repeats of one view
+ * (monitoring shots, re-shoots) collapse to the latest, and a right-eye frame is dropped when its
+ * left-eye twin is there: neither adds pixels, and busy stops have hundreds of them. Shots aimed
+ * at the Sun are left out.
  */
 export function selectPanorama(
   frames: readonly Frame[],
   stop?: StopPose,
 ): { frames: Frame[]; coverageDeg: number } {
   const usable = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
-  return { frames: usable, coverageDeg: azimuthCoverageDeg(usable) }
+  // Left eye first, then newest first, so the kept copy of a view is the left eye's latest.
+  const order = [...usable].sort(
+    (a, b) =>
+      Number(isRightNavcam(a.url)) - Number(isRightNavcam(b.url)) ||
+      b.takenUtc.localeCompare(a.takenUtc),
+  )
+  const kept: Frame[] = []
+  for (const f of order) {
+    const right = isRightNavcam(f.url)
+    const repeat = kept.some((k) => isRightNavcam(k.url) === right && sameView(k, f, SAME_VIEW_DEG))
+    const twin = right && kept.some((k) => !isRightNavcam(k.url) && sameView(k, f, TWIN_DEG))
+    if (!repeat && !twin) kept.push(f)
+  }
+  const chosen = usable.filter((f) => kept.includes(f))
+  return { frames: chosen, coverageDeg: azimuthCoverageDeg(chosen) }
 }

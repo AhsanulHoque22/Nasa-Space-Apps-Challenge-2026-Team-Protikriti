@@ -34,16 +34,22 @@ function sensorTan(f: Frame): [number, number, number, number] {
 
 export type Stitched = { pixels: Uint8ClampedArray; width: number; height: number; used: number }
 
-/** `yawDeg` turns rover-frame mast azimuths into compass bearings. Abort with `signal`. */
+const PREVIEW_WIDTH = 1024 // ~2.5 s for 66 frames, against ~20 s at full resolution
+
+/**
+ * `yawDeg` turns rover-frame mast azimuths into compass bearings. `onPreview` gets a quick
+ * low-resolution sphere; the promise resolves with the full one. Abort with `signal`.
+ */
 export function stitchPanorama(
   frames: readonly Frame[],
   yawDeg: number,
-  onProgress: (loaded: number, total: number) => void,
+  on: { progress: (loaded: number, total: number) => void; preview: (p: Stitched) => void },
   signal: AbortSignal,
 ): Promise<Stitched> {
   const worker = new Worker(new URL('./stitch.worker.ts', import.meta.url), { type: 'module' })
   const request: StitchRequest = {
     outWidth: OUT_WIDTH,
+    previewWidth: PREVIEW_WIDTH,
     frames: frames.map((f) => ({
       // The mast pointing is the camera's optical axis; the subframe is a window of its sensor.
       url: proxied(f.url),
@@ -64,7 +70,8 @@ export function stitchPanorama(
     })
     worker.onerror = (e) => reject(new Error(e.message))
     worker.onmessage = ({ data }: MessageEvent<StitchReply>) => {
-      if (data.type === 'progress') return onProgress(data.loaded, data.total)
+      if (data.type === 'progress') return on.progress(data.loaded, data.total)
+      if (data.type === 'preview') return on.preview(data)
       worker.terminate()
       if (data.type === 'error') reject(new Error(data.message))
       else resolve(data)
