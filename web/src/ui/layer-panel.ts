@@ -15,7 +15,7 @@ export const LAYER_ITEMS: LayerItem[] = [
     id: 'imagery',
     group: 'Surface',
     label: 'HiRISE imagery',
-    detail: 'MRO · 25 cm/px · Jezero',
+    detail: 'MRO · every released strip · 17 site mosaics',
     visible: true,
   },
   {

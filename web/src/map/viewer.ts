@@ -11,6 +11,12 @@ import {
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import type { ViewState } from '../core/deeplink'
+import {
+  HIRISE_GLOBAL_MAX_LEVEL,
+  HIRISE_GLOBAL_TILE_PX,
+  HIRISE_GLOBAL_URL,
+  HIRISE_MOSAICS,
+} from '../core/hirise'
 import { MARS_SPHERE } from './mars'
 
 const TREK_WMTS = 'https://trek.nasa.gov/tiles/Mars/EQ'
@@ -38,15 +44,8 @@ export function trekLayer(
 // Viking MDIM 2.1 global colour mosaic, 232 m/px -> useful to ~level 7.
 const GLOBAL_BASE = trekLayer('Mars_Viking_MDIM21_ClrMosaic_global_232m', 'jpg', 7)
 
-// MRO HiRISE controlled orthomosaic of Jezero, 25 cm/px -> ~level 17.
-const JEZERO_HIRISE = trekLayer(
-  'JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first_dd',
-  'png',
-  17,
-  Rectangle.fromDegrees(77.2229331, 18.3067994, 77.583964, 18.669315),
-)
-
-// MRO CTX block-adjusted mosaic of Gale crater, 6 m/px (15 levels) -> ~level 14.
+// MRO CTX block-adjusted mosaic of Gale crater, 6 m/px (15 levels) -> ~level 14: fills the
+// crater around the HiRISE strip.
 const GALE_CTX = trekLayer(
   'Gale_CTX_BlockAdj_dd',
   'png',
@@ -54,7 +53,26 @@ const GALE_CTX = trekLayer(
   Rectangle.fromDegrees(135.1842593, -6.5732988, 139.2413012, -2.8077809),
 )
 
-/** Site imagery (HiRISE Jezero + CTX Gale) toggled together. */
+/** Every released HiRISE observation: 512 px geographic tiles, black (transparent) outside. */
+function hiriseGlobal() {
+  const provider = new WebMapTileServiceImageryProvider({
+    url: HIRISE_GLOBAL_URL,
+    layer: 'HiRISE',
+    style: 'default',
+    format: 'image/png',
+    tileMatrixSetID: 'default028mm',
+    tilingScheme: new GeographicTilingScheme({ ellipsoid: MARS_SPHERE }),
+    tileWidth: HIRISE_GLOBAL_TILE_PX,
+    tileHeight: HIRISE_GLOBAL_TILE_PX,
+    maximumLevel: HIRISE_GLOBAL_MAX_LEVEL,
+    credit: 'NASA/JPL-Caltech/University of Arizona HiRISE, via Esri OnMars and NASA Mars Trek',
+  })
+  // Tiles off the HiRISE footprints are 404s: expected, so keep them out of the console.
+  provider.errorEvent.addEventListener(() => undefined)
+  return provider
+}
+
+/** All HiRISE imagery (global strips + site mosaics) and CTX Gale, toggled together. */
 export type SiteImagery = { show: boolean }
 
 export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hirise: SiteImagery } {
@@ -74,7 +92,12 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
   })
   const layers = [
     viewer.imageryLayers.addImageryProvider(GALE_CTX),
-    viewer.imageryLayers.addImageryProvider(JEZERO_HIRISE),
+    viewer.imageryLayers.addImageryProvider(hiriseGlobal()),
+    ...HIRISE_MOSAICS.map((m) =>
+      viewer.imageryLayers.addImageryProvider(
+        trekLayer(m.id, 'png', m.maxLevel, Rectangle.fromDegrees(m.west, m.south, m.east, m.north)),
+      ),
+    ),
   ]
   const hirise: SiteImagery = {
     get show() {

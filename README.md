@@ -44,14 +44,15 @@ Martian Map puts a 3D globe, rover Street View, live weather, walkable terrain a
 | 🌡️ | **Live Mars weather** | Curiosity's REMS station (live) and Perseverance's MEDA (latest archive): temperatures, pressure, UV, sunrise and sunset, and a Mars-year chart. |
 | ⏱️ | **Mission replay and samples** | Play both rovers' journeys sol by sol with a 3D Perseverance, and open all 30 Perseverance rock-sample cores where they were sealed. |
 | 🏕️ | **Settlement site reports** | Right-click anywhere: elevation, terrain detail, daylight, season, buried-ice likelihood (SWIM), surface radiation, and the nearest named feature, landing site and Exploration Zone. |
-| 🗺️ | **Science layers** | HiRISE and CTX imagery, MOLA colour elevation, TES dust, surface roughness, slope hazards and a lat/lon grid. |
+| 🗺️ | **Science layers** | Every released HiRISE image strip on the planet (down to ~25 cm/px), 17 controlled HiRISE site mosaics you can search by name (Jezero, Gale, Spirit, Opportunity, Phoenix, Viking 1 and 2, Pathfinder, InSight, the Ares 3 and 4 sites from *The Martian*, and more), CTX imagery, MOLA colour elevation, TES dust, surface roughness, slope hazards and a lat/lon grid. |
 | 🕰️ | **Mars clock and coordinates** | Local solar time, each rover's sol, season (Ls) and Mars Sol Date; the real sun lights the globe. Positions use the IAU Mars 2000 frame (Mars has no GPS). |
 
 ## Controls
 
 | Where | Action | How |
 |---|---|---|
-| **Map** | Rotate / zoom / tilt | Drag · scroll · Ctrl + drag |
+| **Map** | Rotate / zoom / tilt | Drag · scroll · Ctrl + drag (zoom stops 20 m above the ground) |
+| | Fly to HiRISE imagery | Search a site name, e.g. "Opportunity", "Viking 1" or "Ares 3" |
 | | Site report | Right-click the ground, or **Site report for the view centre** |
 | | Open Street View, a weather station or a sample | Click its marker (Street View cameras appear when you zoom within ~150 km) |
 | **Street View** | Look around / zoom | Drag or arrow keys · scroll or `+` `-` |

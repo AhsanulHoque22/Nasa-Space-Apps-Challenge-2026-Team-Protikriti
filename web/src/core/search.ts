@@ -2,7 +2,7 @@
 
 export type Place = {
   name: string
-  kind: 'feature' | 'landing' | 'zone' | 'sample' | 'stop'
+  kind: 'feature' | 'landing' | 'zone' | 'sample' | 'stop' | 'hirise'
   lon: number
   lat: number
   detail: string

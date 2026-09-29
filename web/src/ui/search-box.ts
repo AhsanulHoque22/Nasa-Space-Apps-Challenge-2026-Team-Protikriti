@@ -1,4 +1,5 @@
-/** Place search: an ARIA combobox over IAU names, landing sites and exploration zones. */
+/** Place search: an ARIA combobox over IAU names, landing sites, zones and HiRISE mosaics. */
+import { HIRISE_MOSAICS, mosaicSizeKm } from '../core/hirise'
 import { type Place, type SearchIndex, buildIndex, search } from '../core/search'
 
 type Collection = {
@@ -11,6 +12,7 @@ const KIND_LABEL: Record<Place['kind'], string> = {
   zone: 'Exploration zone',
   sample: 'Rock sample',
   stop: 'Rover stop',
+  hirise: 'HiRISE mosaic',
 }
 
 async function loadCollection(url: string): Promise<Collection> {
@@ -71,6 +73,14 @@ export async function loadPlaces(): Promise<Place[]> {
       kind: 'zone',
       detail: 'Candidate human exploration zone (NASA 2015)',
       sizeKm: 200,
+    })),
+    ...HIRISE_MOSAICS.map((s): Place => ({
+      name: s.name,
+      kind: 'hirise',
+      lon: (s.west + s.east) / 2,
+      lat: (s.south + s.north) / 2,
+      detail: 'MRO HiRISE orthomosaic',
+      sizeKm: mosaicSizeKm(s),
     })),
   ]
 }

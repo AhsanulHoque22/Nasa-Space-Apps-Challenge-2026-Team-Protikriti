@@ -4,7 +4,8 @@
 |---|---|---|---|
 | Elevation (DEM), slope | MRO / CTX stereo | USGS "Mars 2020 Science Investigation CTX DEM Mosaic", 20 m/px, Calef et al. 2021 (doi:10.1126/science.abl4051), eqc lat_ts=18.4663, Mars sphere R=3,396,190 m | https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic |
 | Base imagery (global) | Viking Orbiters | MDIM 2.1 global colour mosaic, 232 m/px, via NASA Mars Trek WMTS (`Mars_Viking_MDIM21_ClrMosaic_global_232m`) | https://trek.nasa.gov/tiles/apidoc/trekAPI.html?body=mars |
-| Jezero imagery | MRO / HiRISE | Jezero controlled orthomosaic, 25 cm/px, via NASA Mars Trek WMTS (`JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first_dd`) | https://trek.nasa.gov/tiles/apidoc/trekAPI.html?body=mars |
+| HiRISE imagery (planet-wide) | MRO / HiRISE | Every released HiRISE RED observation as one uncontrolled mosaic ("MRO HiRISE, Mosaic Global Uncontrolled", Trek layer `HiRISE_Global`), served by Esri OnMars (`astro.arcgis.com/arcgis/rest/services/OnMars/HiRISE/MapServer`, GCS Mars 2000 sphere, 512 px tiles to level 17 ≈ 0.16 m/px, transparent outside the footprints). Uncontrolled: can sit tens of metres off; the site mosaics below are drawn on top where they exist. | https://trek.nasa.gov/tiles/Mars/EQ/HiRISE_Global/1.0.0/WMTSCapabilities.xml |
+| HiRISE site mosaics (17) | MRO / HiRISE (2 with CTX + HRSC) | Every HiRISE "Mosaic" product in the Trek catalogue (`searchItems`, instrument=HiRISE, retrieved 2026-09-30), listed with Trek layer IDs, extents and tile levels in `web/src/core/hirise.ts`: Jezero controlled 25 cm/px, Jezero–NE Syrtis–Midway, Gale (Curiosity), Columbia Hills and Spirit (Gusev), Opportunity (Meridiani, 2), Phoenix, Pathfinder/Sojourner, Viking 1 and 2, InSight, Ares 3 and Ares 4 (The Martian), Marth crater rim, SW Candor Chasma. Each is searchable by name. | https://trek.nasa.gov/mars/TrekServices/ws/index/eq/searchItems?proj=urn:ogc:def:crs:EPSG::104905&facetKeys=instrument&facetValues=HiRISE |
 | Named features (2,052) | IAU / USGS | Gazetteer of Planetary Nomenclature, Mars centre points (east lon, planetocentric lat) | https://planetarynames.wr.usgs.gov/GIS_Downloads |
 | Rover traverses | Mars 2020 Perseverance, MSL Curiosity | NASA/JPL MMGIS traverse GeoJSON (`M20_traverse.json`, `MSL_traverse.json`), Douglas-Peucker simplified at ~1.2 m | https://mars.nasa.gov/mmgis-maps/ |
 | Landing sites (16) | All Mars landers incl. failures | Curated in `pipeline/data/landing_sites.json` from Wikipedia "List of artificial objects on Mars"; Perseverance/Curiosity from MMGIS first waypoint | https://en.wikipedia.org/wiki/List_of_artificial_objects_on_Mars |
@@ -65,7 +66,7 @@ The app fetches live data with a 6 s timeout and falls back to `marsmap weather`
 | Global relief | **MGS MOLA MEGDR** `megt90n000cb` (4 px/deg, metres above the MOLA areoid), NASA PDS Geosciences Node. https://pds-geosciences.wustl.edu/missions/mgs/megdr.html. Verified: Olympus Mons 20,009 m (at 15 km cells), Valles Marineris floor −4,850 m, Hellas −6,028 m. |
 
 Site DEMs take precedence inside their bounds; MOLA covers the rest of the planet (terrain, and the readout's elevation, which always names its source).
-| Gale imagery | MRO CTX block-adjusted Gale mosaic, 6 m/px, via NASA Mars Trek WMTS (`Gale_CTX_BlockAdj_dd`) |
+| Gale imagery | MRO CTX block-adjusted Gale mosaic, 6 m/px, via NASA Mars Trek WMTS (`Gale_CTX_BlockAdj_dd`), under the Gale HiRISE mosaic |
 
 ## Settlement guide (site report)
 
