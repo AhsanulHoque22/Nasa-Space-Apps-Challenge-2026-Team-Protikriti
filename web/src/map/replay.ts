@@ -4,6 +4,7 @@ import {
   Cartographic,
   Color,
   CustomDataSource,
+  DistanceDisplayCondition,
   HeadingPitchRoll,
   HeightReference,
   Math as CesiumMath,
@@ -20,6 +21,9 @@ import type { Rover } from './raw-images'
 /** Half of Perseverance's ~3.0 x 2.7 m footprint diagonal: the model is scaled to this. */
 const ROVER_RADIUS_M = 2.0
 const MIN_MODEL_PX = 40
+// Beyond this the rover is a sub-pixel speck anyway; minimumPixelSize would blow the 4 m model up
+// to hundreds of km from orbit, and it smeared across the screen as two long bands.
+const MODEL_MAX_DISTANCE_M = 50_000
 const MODEL_URL = 'models/perseverance.glb' // NASA 3D Resources (official)
 
 export type Replay = {
@@ -50,6 +54,7 @@ export function createReplay(viewer: Viewer, stops: Record<Rover, Stop[]>): Repl
       url: MODEL_URL,
       modelMatrix: poseMatrix(pos),
       minimumPixelSize: MIN_MODEL_PX,
+      distanceDisplayCondition: new DistanceDisplayCondition(0, MODEL_MAX_DISTANCE_M),
       heightReference: HeightReference.CLAMP_TO_GROUND,
       scene: viewer.scene,
     }).then((m) => {
