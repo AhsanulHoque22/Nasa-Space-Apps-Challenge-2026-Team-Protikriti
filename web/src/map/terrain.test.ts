@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { sampleGrid } from '../core/elevation'
 import { makeGrid } from '../core/test-grids'
-import { sampleHeights } from './terrain'
+import { lowestCameraHeightM, sampleHeights } from './terrain'
 
 // makeGrid spans lon 0..1, lat 0..1. 2x2 cells -> cell centres at 0.25 / 0.75.
 const g = makeGrid([
@@ -38,5 +38,19 @@ describe('sampleHeights', () => {
     )
     expect(h.every((v) => Number.isFinite(v))).toBe(true)
     expect(sampleHeights(() => NaN, { west: 0, south: 0, east: 1, north: 1 }, 2)[0]).toBe(0)
+  })
+})
+
+describe('lowestCameraHeightM', () => {
+  it('stands the camera above the exaggerated true ground', () => {
+    expect(lowestCameraHeightM(-2600, undefined, 2)).toBe(-5200 + 20)
+  })
+
+  it('uses the rendered mesh where it sits above the true ground', () => {
+    expect(lowestCameraHeightM(-2600, -5000, 2)).toBe(-5000 + 20)
+  })
+
+  it('treats nodata as the datum', () => {
+    expect(lowestCameraHeightM(NaN, undefined, 2)).toBe(20)
   })
 })

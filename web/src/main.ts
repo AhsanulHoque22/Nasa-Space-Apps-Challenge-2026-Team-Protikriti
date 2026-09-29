@@ -7,7 +7,7 @@ import { type Activity, addActivities } from './map/activities-layer'
 import { createReplay } from './map/replay'
 import { addStreetViewStops } from './map/streetview-layer'
 import { createRouteLayer } from './map/route-layer'
-import { createTerrain } from './map/terrain'
+import { createTerrain, keepCameraAboveGround } from './map/terrain'
 import { decodeView, encodeView } from './core/deeplink'
 import {
   applyView,
@@ -96,7 +96,9 @@ async function main() {
         (home.grid.south + home.grid.north) / 2,
       )
   })
-  viewer.terrainProvider = createTerrain((lon, lat) => elevationAt(sites, mola, lon, lat).m)
+  const groundM = (lon: number, lat: number) => elevationAt(sites, mola, lon, lat).m
+  viewer.terrainProvider = createTerrain(groundM)
+  keepCameraAboveGround(viewer, groundM)
   const shared = decodeView(window.location.search)
   if (shared) applyView(viewer, shared)
   else viewAoi(viewer, home.grid)
