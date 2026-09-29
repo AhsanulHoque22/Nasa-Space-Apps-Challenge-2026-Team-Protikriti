@@ -113,3 +113,8 @@ export function exposureId(url: string): string {
   const file = url.split('/').pop() ?? url
   return /^[A-Z]{3}_\d{4}_\d{10}/.exec(file)?.[0] ?? file
 }
+
+/** Right-eye Navcam frame: file names start NR (right) rather than NL (left), on both rovers. */
+export function isRightNavcam(url: string): boolean {
+  return /^NR/.test(url.split('/').pop() ?? '')
+}

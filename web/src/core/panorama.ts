@@ -1,12 +1,8 @@
-/**
- * Pick the real panorama at a stop. A stop's Navcam frames mix many imaging sequences, and
- * several stare at one spot (e.g. 21 atmospheric-monitoring frames at the same pointing).
- * Street View should show the one sequence that sweeps the widest arc, without repeats.
- */
+/** Street View's panorama at a stop: which frames to stitch and how much azimuth they cover. */
+import { sunPosition } from './mars-time'
 import { type Frame, frameGeometry } from './streetview'
 
 const mod = (x: number, m: number) => ((x % m) + m) % m
-const SAME_POINTING_DEG = 1
 
 /** Degrees of azimuth covered by the union of the frames' footprints (max 360). */
 export function azimuthCoverageDeg(frames: readonly Frame[]): number {
@@ -40,52 +36,34 @@ export function azimuthCoverageDeg(frames: readonly Frame[]): number {
   return Math.min(360, covered + (curEnd - curStart))
 }
 
-function dedupePointings(frames: readonly Frame[]): Frame[] {
-  const kept: Frame[] = []
-  for (const f of frames) {
-    const g = frameGeometry(f)
-    const repeat = kept.some((k) => {
-      const h = frameGeometry(k)
-      const dAz = Math.abs(mod(g.azDeg - h.azDeg + 180, 360) - 180)
-      return dAz < SAME_POINTING_DEG && Math.abs(g.elDeg - h.elDeg) < SAME_POINTING_DEG
-    })
-    if (!repeat) kept.push(f)
-  }
-  return kept
-}
-
-// Another sequence at the same stop joins the panorama only if it shows this much new azimuth.
-const MIN_ADDED_COVERAGE_DEG = 15
+/** Where the stop is and which way the rover faced (mast azimuths are rover-relative). */
+export type StopPose = { lon: number; lat: number; yawDeg: number | null }
 
 /**
- * The widest sweep at the stop, plus any other sequences there that fill directions it missed
- * (e.g. a drive-direction pan and a look back). Repeated pointings are dropped.
+ * Whether the frame was aimed at the Sun: Navcam's dust-opacity shots use exposures so short
+ * that everything but the Sun is black, so they show nothing of the place.
  */
-export function selectPanorama(frames: readonly Frame[]): { frames: Frame[]; coverageDeg: number } {
-  const bySequence = new Map<string, Frame[]>()
-  for (const f of frames) {
-    const key = `${f.sol}:${f.sequence}`
-    bySequence.set(key, [...(bySequence.get(key) ?? []), f])
-  }
-  const candidates = [...bySequence.values()].map(dedupePointings)
-  let chosen: Frame[] = []
-  let coverageDeg = 0
-  for (;;) {
-    let best: { frames: Frame[]; coverage: number; index: number } | undefined
-    candidates.forEach((group, index) => {
-      const merged = dedupePointings([...chosen, ...group])
-      const coverage = azimuthCoverageDeg(merged)
-      const better =
-        !best ||
-        coverage > best.coverage ||
-        (coverage === best.coverage && merged.length > best.frames.length)
-      if (better) best = { frames: merged, coverage, index }
-    })
-    const minGain = chosen.length ? MIN_ADDED_COVERAGE_DEG : Number.MIN_VALUE
-    if (!best || best.coverage - coverageDeg < minGain) break
-    chosen = best.frames
-    coverageDeg = best.coverage
-    candidates.splice(best.index, 1)
-  }
-  return { frames: chosen, coverageDeg }
+function showsSun(f: Frame, stop: StopPose): boolean {
+  if (!f.takenUtc) return false
+  const utc = Date.parse(f.takenUtc.endsWith('Z') ? f.takenUtc : `${f.takenUtc}Z`)
+  if (Number.isNaN(utc)) return false
+  const sun = sunPosition(utc, stop.lon, stop.lat)
+  if (sun.elevationDeg < 0) return false
+  const g = frameGeometry(f)
+  const dAz =
+    (((sun.azimuthDeg - (g.azDeg + (stop.yawDeg ?? 0)) + 540) % 360) - 180) *
+    Math.cos((sun.elevationDeg * Math.PI) / 180)
+  return Math.abs(dAz) < g.widthDeg / 2 && Math.abs(sun.elevationDeg - g.elDeg) < g.heightDeg / 2
+}
+
+/**
+ * Every frame NASA took at the stop, whatever sequence, sol or pointing: repeats and extra shots
+ * still add detail, exposure information and sky. Only shots aimed at the Sun are left out.
+ */
+export function selectPanorama(
+  frames: readonly Frame[],
+  stop?: StopPose,
+): { frames: Frame[]; coverageDeg: number } {
+  const usable = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
+  return { frames: usable, coverageDeg: azimuthCoverageDeg(usable) }
 }

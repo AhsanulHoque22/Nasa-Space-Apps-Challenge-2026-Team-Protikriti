@@ -4,6 +4,7 @@ import {
   type Stop,
   bearingDeg,
   exposureId,
+  isRightNavcam,
   compassPoint,
   cssTransform,
   frameGeometry,
@@ -123,5 +124,18 @@ describe('exposureId', () => {
   it('keeps any other image as its own exposure', () => {
     const url = 'https://mars.nasa.gov/msl-raw-images/x/NLB_843851071EDR_F1241978NCAM00353M_.JPG'
     expect(exposureId(url)).toBe('NLB_843851071EDR_F1241978NCAM00353M_.JPG')
+  })
+})
+
+describe('isRightNavcam', () => {
+  it('recognises right-eye Navcam frames of both rovers by file name', () => {
+    expect(
+      isRightNavcam('https://x/NRF_0400_0702458867_385ECM_N0191126NCAM03400_01_195J01_800.jpg'),
+    ).toBe(true)
+    expect(
+      isRightNavcam('https://x/NLF_0400_0702458867_385ECM_N0191126NCAM03400_01_195J01_800.jpg'),
+    ).toBe(false)
+    expect(isRightNavcam('https://x/NRB_843851071EDR_F1241978NCAM00353M_.JPG')).toBe(true)
+    expect(isRightNavcam('https://x/NLA_443851071EDR_F1241978NCAM00353M_.JPG')).toBe(false)
   })
 })

@@ -33,30 +33,28 @@ describe('azimuthCoverageDeg', () => {
 })
 
 describe('selectPanorama', () => {
-  it('prefers the wide sweep over a bigger sequence that stares at one spot', () => {
+  it('uses every frame at the stop: all sequences, sols and repeated pointings', () => {
     const staring = Array.from({ length: 21 }, () => frame({ sequence: 'NCAM00528', azDeg: 34 }))
     const sweep = [-150, -75, 0, 75, 150].map((az) => frame({ sequence: 'NCAM15980', azDeg: az }))
-    const pano = selectPanorama([...staring, ...sweep])
-    expect(pano.frames.every((f) => f.sequence === 'NCAM15980')).toBe(true)
+    const later = [0, 90].map((az) => frame({ sol: 1989, azDeg: az }))
+    const pano = selectPanorama([...staring, ...sweep, ...later])
+    expect(pano.frames).toHaveLength(28)
     expect(pano.coverageDeg).toBe(360)
   })
-  it('treats the same sequence on different sols as different panoramas', () => {
-    const a = [0, 90].map((az) => frame({ sol: 1981, azDeg: az }))
-    const b = [0, 90, 180, 270].map((az) => frame({ sol: 1988, azDeg: az }))
-    expect(selectPanorama([...a, ...b]).frames.every((f) => f.sol === 1988)).toBe(true)
-  })
-  it('drops repeated pointings within the chosen sequence', () => {
-    const dup = [frame({ azDeg: 10 }), frame({ azDeg: 10.2 }), frame({ azDeg: 120 })]
-    expect(selectPanorama(dup).frames).toHaveLength(2)
-  })
-  it('adds other sequences at the stop that fill directions the main sweep missed', () => {
-    const main = [0, 75, 150].map((az) => frame({ sequence: 'NCAM03400', azDeg: az }))
-    const back = [240, 300].map((az) => frame({ sequence: 'NCAM02400', azDeg: az }))
-    const staring = [frame({ sequence: 'NCAM00528', azDeg: 60 })] // adds nothing new
-    const pano = selectPanorama([...main, ...back, ...staring])
-    expect(pano.coverageDeg).toBe(360)
-    expect(pano.frames).toHaveLength(5)
-    expect(pano.frames.some((f) => f.sequence === 'NCAM00528')).toBe(false)
+  it('leaves out frames aimed at the Sun (dust-opacity shots, black around the Sun)', () => {
+    // Real sol 400 stop: the Sun stood at azimuth 238°, elevation 41° when SAPP00601 was taken.
+    const stop = { lon: 77.4361, lat: 18.46194, yawDeg: -105.8 }
+    const when = { takenUtc: '2022-04-05T18:47:28.503' } // Perseverance times have no "Z"
+    const sun = frame({
+      ...when,
+      sequence: 'SAPP00601',
+      azDeg: 346.7,
+      elDeg: 39.9,
+      subframe: [1921, 1441, 1280, 960],
+    })
+    const ground = frame({ ...when, azDeg: 60, elDeg: -30 })
+    const untimed = frame({ azDeg: 346.7, elDeg: 39.9 })
+    expect(selectPanorama([sun, ground, untimed], stop).frames).toEqual([ground, untimed])
   })
   it('is empty for no frames', () => {
     expect(selectPanorama([])).toEqual({ frames: [], coverageDeg: 0 })

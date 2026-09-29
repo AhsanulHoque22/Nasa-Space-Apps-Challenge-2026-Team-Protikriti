@@ -155,7 +155,7 @@ export function openStreetView(
     })
 
   const show = async (stop: Stop, found: Frame[], id: number) => {
-    const pano = selectPanorama(found)
+    const pano = selectPanorama(found, stop)
     const first = pano.frames[0]
     if (!first) return
     const yawDeg = stop.yawDeg ?? 0 // mast azimuths are rover-frame; yaw makes them compass
@@ -213,7 +213,7 @@ export function openStreetView(
           if (!s) continue
           const found = await framesForStop(rover, s, stops[candidate + 1]?.sol)
           if (id !== request) return
-          const coverage = selectPanorama(found).coverageDeg
+          const coverage = selectPanorama(found, s).coverageDeg
           if (found.length && coverage > (best?.coverage ?? -1))
             best = { at: candidate, frames: found, coverage }
           if (best && best.coverage >= GOOD_COVERAGE_DEG) break
