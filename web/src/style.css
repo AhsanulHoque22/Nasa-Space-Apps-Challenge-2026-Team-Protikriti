@@ -906,6 +906,27 @@ body.exploring #ui {
   font-variant-numeric: tabular-nums;
 }
 
+.xh-storm {
+  width: 100%;
+  margin-top: var(--space-2);
+  font: 600 12px var(--font);
+  color: var(--text);
+  background: rgb(255 255 255 / 0.08);
+  border: 0;
+  border-radius: 6px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.xh-storm:hover {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.xh-storm[aria-pressed='true'] {
+  background: #8a4b17; /* dust-storm ochre; the label says what is shown, not the colour */
+  color: #fff;
+}
+
 .xh-warn {
   margin: var(--space-2) 0 0;
   min-height: 1.4em;

@@ -3,7 +3,15 @@ import { Cartesian3, DirectionalLight, type Viewer } from 'cesium'
 import { subSolarPoint } from '../core/mars-time'
 import { MARS_SPHERE } from './mars'
 
+let sceneUtcMs: number | null = null
+
+/** The moment the map is showing (the clock may be shifted); now until the clock sets it. */
+export function sceneTimeMs(): number {
+  return sceneUtcMs ?? Date.now()
+}
+
 export function setSunTime(viewer: Viewer, utcMs: number): void {
+  sceneUtcMs = utcMs
   const { lon, lat } = subSolarPoint(utcMs)
   const toSun = Cartesian3.normalize(
     Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE),

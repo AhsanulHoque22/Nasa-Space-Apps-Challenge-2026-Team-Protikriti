@@ -1,12 +1,15 @@
-/** Explore-mode HUD: compass, position, local Mars time, distance, and safety warnings. */
+/** Explore-mode HUD: compass, position, local time and sky, weather, pace and safety warnings. */
 import type { Viewer } from 'cesium'
 import { COORDINATE_FRAME, formatMarsPosition } from '../core/coords'
 import { type Site, sampleGrid } from '../core/elevation'
 import { formatDistance } from '../core/format'
-import { localMeanSolarTimeHours } from '../core/mars-time'
 import { type ExploreSession, startExplore } from '../map/explore-camera'
+import { loadWeather } from '../map/weather-client'
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+
+const hhmm = (h: number) =>
+  `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`
 
 export function openExplore(
   viewer: Viewer,
@@ -28,33 +31,52 @@ export function openExplore(
       <div><dt>Position</dt><dd data-k="pos"></dd></div>
       <div><dt>Elevation</dt><dd data-k="elev"></dd></div>
       <div><dt>Local time</dt><dd data-k="time"></dd></div>
+      <div><dt>Sky</dt><dd data-k="sky"></dd></div>
+      <div><dt>Air</dt><dd data-k="air"></dd></div>
+      <div><dt>Wind</dt><dd data-k="wind"></dd></div>
+      <div><dt>Dust devils</dt><dd data-k="devils"></dd></div>
+      <div><dt>Pace</dt><dd data-k="pace"></dd></div>
       <div><dt>Walked</dt><dd data-k="dist"></dd></div>
     </dl>
+    <button type="button" class="xh-storm" aria-pressed="false">Replay the 2018 dust storm</button>
     <p class="xh-warn" role="status" aria-live="polite"></p>
-    <p class="xh-help">W/S or ↑/↓ walk · A/D strafe · ←/→ turn · drag to look · true-scale terrain from ${site.source.split(',')[0]} · ${COORDINATE_FRAME}</p>`
+    <p class="xh-help">W/S or ↑/↓ walk · Shift run · Space jump · A/D strafe · ←/→ turn · drag to look · the map clock sets the time · Mars gravity 3.72 m/s² · terrain from ${site.source.split(',')[0]} · ${COORDINATE_FRAME}</p>
+    <p class="xh-help" data-k="source"></p>`
   document.body.append(hud)
   const field = (k: string) => hud.querySelector(`[data-k="${k}"]`) as HTMLElement
   const compass = hud.querySelector('.xh-compass') as HTMLElement
   const warn = hud.querySelector('.xh-warn') as HTMLElement
   let lastWarning: string | null = null
+  const weather = loadWeather(site.id === 'gale' ? 'rems' : 'meda').then((r) => r.sols)
 
   const session = startExplore(
     viewer,
     site,
     from,
-    (w) => {
-      const p = formatMarsPosition(w.lon, w.lat, sampleGrid(site.grid, w.lon, w.lat))
-      compass.textContent = `${COMPASS[Math.round(w.headingDeg / 45) % 8]} ${Math.round(w.headingDeg)}°`
+    weather,
+    ({ body, sunElDeg, lmstHours, conditions: c }) => {
+      const p = formatMarsPosition(body.lon, body.lat, sampleGrid(site.grid, body.lon, body.lat))
+      compass.textContent = `${COMPASS[Math.round(body.headingDeg / 45) % 8]} ${Math.round(body.headingDeg)}°`
       field('pos').textContent = `${p.lat}, ${p.lon}`
       field('elev').textContent = p.elevation
-      const h = localMeanSolarTimeHours(Date.now(), w.lon)
       field('time').textContent =
-        `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')} LMST`
-      field('dist').textContent = formatDistance(w.distanceM)
-      if (w.warning !== lastWarning) {
-        warn.textContent = w.warning ?? ''
-        warn.classList.toggle('active', !!w.warning)
-        lastWarning = w.warning
+        `${hhmm(lmstHours)} LMST · Sun ${sunElDeg >= 0 ? `${Math.round(sunElDeg)}° up` : 'below horizon'}`
+      field('sky').textContent =
+        `${c.sky} · dust τ ${c.tau.toFixed(1)} · visibility ${c.visibilityKm >= 10 ? Math.round(c.visibilityKm) : c.visibilityKm.toFixed(1)} km`
+      field('air').textContent =
+        `${Math.round(c.airTempC)} °C${c.pressurePa === null ? '' : ` · ${c.pressurePa} Pa`}`
+      field('wind').textContent = `${Math.round(c.windMs)} m/s`
+      field('devils').textContent =
+        c.dustDevilsPerHour >= 0.05 ? `~${c.dustDevilsPerHour.toFixed(1)} per hour` : 'none now'
+      field('pace').textContent = body.grounded
+        ? `${body.speedMs.toFixed(1)} m/s${body.speedMs > 2 ? ' · loping' : ''}`
+        : `airborne · ${body.vzMs >= 0 ? 'rising' : 'falling'}`
+      field('dist').textContent = formatDistance(body.distanceM)
+      field('source').textContent = `Conditions: ${c.source}; dust from rover sky records.`
+      if (body.warning !== lastWarning) {
+        warn.textContent = body.warning ?? ''
+        warn.classList.toggle('active', !!body.warning)
+        lastWarning = body.warning
       }
     },
     () => {
@@ -64,5 +86,12 @@ export function openExplore(
     },
   )
   hud.querySelector('.wx-close')?.addEventListener('click', () => session.stop())
+  const storm = hud.querySelector('.xh-storm') as HTMLButtonElement
+  storm.addEventListener('click', () => {
+    const on = storm.getAttribute('aria-pressed') !== 'true'
+    storm.setAttribute('aria-pressed', String(on))
+    storm.textContent = on ? 'Back to the actual sky' : 'Replay the 2018 dust storm'
+    session.setStormReplay(on)
+  })
   return session
 }

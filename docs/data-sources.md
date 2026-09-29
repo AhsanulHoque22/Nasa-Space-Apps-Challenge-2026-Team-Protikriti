@@ -57,6 +57,20 @@ The app fetches live data with a 6 s timeout and falls back to `marsmap weather`
 | Perseverance 3D model | NASA 3D Resources, `Mars 2020 Perseverance Rover.glb` (https://github.com/nasa/NASA-3D-Resources), scaled to the rover's ~2 m half-diagonal. Curiosity has no official glTF, so it is shown as a marker rather than a substitute model. |
 | Not yet mapped | Curiosity drill sites (no machine-readable official list found); Ingenuity flights (the official log has no coordinates) |
 
+## Explore on foot (conditions and physics)
+
+| What | Source |
+|---|---|
+| Time and Sun | The map clock (live or shifted); Sun position from Mars24 at the walker's location |
+| Dust opacity | Seasonal climatology of visible column opacity at the rover sites: ~0.4 near aphelion, ~0.9 around Ls 250 (Lemmon et al. 2015, *Icarus* 251; Lemmon et al. 2022, *GRL* 49). Documented events override it: the 2018 (MY34) global storm, peak τ ≈ 8.5 at Gale (Guzewich et al. 2019, *GRL* 46), and the January 2022 regional storm over Jezero, τ ≈ 2 (Lemmon et al. 2022). The HUD button replays the 2018 storm at the current moment and says so. |
+| Visibility | Koschmieder's law, V = 3.9 H / τ, with an ~8 km dust scale height |
+| Air temperature, pressure | REMS (Gale) or MEDA (Jezero) readings within 3 days of the date, spread over the sol (coldest ~05:00, warmest ~14:00 LMST); a seasonal climatology otherwise. The HUD names which one it used. |
+| Wind | Diurnal shape from MEDA (calm nights, convective afternoons; Viúdez-Moreiras et al. 2022, *JGR Planets*), stronger in storms; daytime direction towards ~290° |
+| Dust devils | Midday-peaked rate: frequent at Jezero (Newman et al. 2022, *Sci. Adv.* 8), rare at Gale (Kahanpää et al. 2016, *JGR Planets* 121); none during a storm |
+| Sky and light | Butterscotch daytime sky, blue aureole around a low Sun (Pathfinder, MER and Mastcam-Z imaging; e.g. Lemmon et al. 2004, *Science* 306); sunlight attenuated by exp(−τ/sin elevation) plus diffuse skylight; slope shading from the terrain; greyscale HiRISE tinted to Mastcam-Z soil colour |
+| Physics | Mars gravity 3.721 m/s²; walking pace from Tobler's hiking function; traction 0.7 g (starts and stops take longer than on Earth); loping run ×2.3; jump take-off 2.7 m/s (≈1 m high, ≈1.45 s in the air) |
+| Close-up ground | Procedural grain and pebbles below the 25 cm/px HiRISE limit, world-locked, fading out by ~35 m. They are illustrative, not data. |
+
 ## Terrain (multi-site + global)
 
 | Layer | Source |

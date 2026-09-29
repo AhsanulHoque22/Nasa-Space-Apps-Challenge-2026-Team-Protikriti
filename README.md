@@ -40,7 +40,7 @@ Martian Map puts a 3D globe, rover Street View, live weather, walkable terrain a
 | 🌍 | **Whole-planet 3D globe** | Spin around all of Mars on MOLA topography, with high-resolution terrain at Jezero (20 m) and Gale (32 m). Search 2,052 IAU-named places, 16 lander sites and 30 candidate human Exploration Zones. Every view has a shareable link. |
 | 📷 | **Rover Street View** | Stand at any of 2,087 rover stops (703 Perseverance, 1,384 Curiosity) and look around a panorama stitched live from NASA's raw Navcam images. Walk arrows take you to the next stop. |
 | 🥾 | **Safe Marswalk planner** | Click a start and science stops. Each leg is the fastest route that never crosses ground steeper than 15°, with distance, climb, steepest step and EVA time. |
-| 🎮 | **Explore on foot** | Walk the real terrain at true scale with the keyboard, starting where the rover is today. |
+| 🎮 | **Explore on foot** | Descend onto the real terrain and walk it at true scale, starting where the rover is today. Mars gravity (jumps hang ~1.5 s), loping runs, a dusty butterscotch sky that turns blue around the setting Sun, stars at night, dust haze, drifting dust devils at midday, and air temperature, wind and dust for the moment on the map clock. Replay the 2018 global dust storm with one button. |
 | 🌡️ | **Live Mars weather** | Curiosity's REMS station (live) and Perseverance's MEDA (latest archive): temperatures, pressure, UV, sunrise and sunset, and a Mars-year chart. |
 | ⏱️ | **Mission replay and samples** | Play both rovers' journeys sol by sol with a 3D Perseverance, and open all 30 Perseverance rock-sample cores where they were sealed. |
 | 🏕️ | **Settlement site reports** | Right-click anywhere: elevation, terrain detail, daylight, season, buried-ice likelihood (SWIM), surface radiation, and the nearest named feature, landing site and Exploration Zone. |
@@ -59,6 +59,8 @@ Martian Map puts a 3D globe, rover Street View, live weather, walkable terrain a
 | | Next stop | Click an arrow on the ground, or **Prev** / **Next** |
 | | Leave | `Esc` or **Close** |
 | **Explore on foot** | Walk / strafe / turn | `W` `S` or `↑` `↓` · `A` `D` · `←` `→` |
+| | Run / jump | Hold `Shift` · `Space` |
+| | Time of day | Set the map clock before you go (`+1 h`, `+1 sol`) |
 | | Look | Drag |
 | | Leave | `Esc` |
 
@@ -172,7 +174,7 @@ You are planning the first human walk on Mars. Everything you see is real data f
 3. **Visit a robot.** Press the **Jezero** button at the top to fly to the crater where the Perseverance rover landed in 2021. The orange line is the path it drove.
 4. **See through the rover's eyes.** Zoom in close to the orange line and click a camera dot. You are now standing where Perseverance stood! Drag to look around, click the arrows on the ground to drive to the next stop, and press `Esc` to leave.
 5. **Check the weather.** Press **Gale** under *Mars weather*. Is it colder than your freezer? (Hint: almost always!)
-6. **Go for a walk.** Press **Jezero** under *Explore on foot*. Walk with `W` `A` `S` `D` or the arrow keys and look around by dragging. Press `Esc` to stop.
+6. **Go for a walk.** Press **Jezero** under *Explore on foot*. Walk with `W` `A` `S` `D` or the arrow keys, run with `Shift`, jump with `Space` (you float, because Mars gravity is only 38% of Earth's) and look around by dragging. Press `Esc` to stop.
 7. **Plan a safe Marswalk.** In the *Marswalk route* panel, press **Add point at view centre**, move the map, and add a few more stops. The app finds a path that avoids the red hatched areas, which are too steep to walk on safely.
 8. **Travel in time.** At the bottom, press **Play** in *Mission replay* and watch the rover's whole journey, sol by sol. (A *sol* is one Mars day: 24 hours and 40 minutes.)
 

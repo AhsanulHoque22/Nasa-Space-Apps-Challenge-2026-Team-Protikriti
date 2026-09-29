@@ -268,9 +268,10 @@ export async function addLayers(
       target.show = visible
       redraw()
     }
-  // Explore mode: hide floating labels, restore exactly what was showing before.
+  // Explore mode: hide floating labels and the paint-on overlays (hazards, science colours) that
+  // would cover the ground in front of the walker; restore exactly what was showing before.
   let saved: boolean[] = []
-  const clutter = [nameLabels, zones, graticule]
+  const clutter = [nameLabels, zones, graticule, slope, ...Object.values(trek)]
   const hideForExplore = (on: boolean) => {
     if (on) {
       saved = clutter.map((c) => c.show)
