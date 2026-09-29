@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Martian Map · Feature List</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --blue: #0B3D91; --blue-soft: #E8EEF8; --red: #FC3D21; --ink: #14181F;
+    --muted: #5A6372; --rule: #D9DEE7; --page: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--page); color: var(--ink);
+    font: 10.5pt/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; padding: 16mm 16mm 14mm; position: relative;
+    page-break-after: always; overflow: hidden; }
+  .page:last-child { page-break-after: auto; }
+  h1, h2, h3 { margin: 0; line-height: 1.15; letter-spacing: -0.01em; }
+  p { margin: 0 0 2.5mm; }
+  .eyebrow { font-size: 8pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--blue); }
+  .foot { position: absolute; left: 16mm; right: 16mm; bottom: 8mm; display: flex; justify-content: space-between;
+    font-size: 7.5pt; color: var(--muted); border-top: 0.3mm solid var(--rule); padding-top: 2mm; }
+
+  /* Cover */
+  .cover { padding: 0; background: #05070C; color: #fff; }
+  .cover .hero { height: 150mm; background: url(map.jpg) 46% 40% / 165% auto no-repeat; position: relative; }
+  .cover .hero::after { content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(5,7,12,0) 45%, #05070C 100%); }
+  .cover .body { padding: 6mm 16mm 0; }
+  .cover .eyebrow { color: #8FB0EA; }
+  .cover h1 { font-size: 40pt; font-weight: 800; margin: 3mm 0 3mm; }
+  .cover h1 span { color: var(--red); }
+  .cover .lede { font-size: 13pt; line-height: 1.45; color: #D5DBE6; max-width: 160mm; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 9mm;
+    border-top: 0.3mm solid #2A3140; }
+  .stat { padding: 4mm 3mm 0 0; }
+  .stat b { display: block; font-size: 20pt; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 8pt; color: #9AA6B8; }
+  .cover .foot { color: #7D889A; border-color: #2A3140; }
+
+  /* Feature grid */
+  .intro { display: flex; justify-content: space-between; align-items: end; margin-bottom: 7mm;
+    padding-bottom: 4mm; border-bottom: 0.6mm solid var(--blue); }
+  .intro h2 { font-size: 22pt; font-weight: 800; color: var(--ink); margin-top: 1.5mm; }
+  .intro p { max-width: 80mm; font-size: 9pt; color: var(--muted); margin: 0; text-align: right; }
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm 8mm; }
+  .feature { break-inside: avoid; }
+  .feature h3 { font-size: 12pt; font-weight: 750; display: flex; gap: 2.5mm; align-items: baseline; margin-bottom: 1.5mm; }
+  .feature h3 .n { font-size: 8pt; font-weight: 800; color: #fff; background: var(--blue); border-radius: 1mm;
+    padding: 0.4mm 1.4mm; font-variant-numeric: tabular-nums; }
+  .feature p { font-size: 9.5pt; margin-bottom: 1.5mm; }
+  .feature ul { margin: 0; padding-left: 4mm; font-size: 9pt; color: #2B3240; }
+  .feature li { margin-bottom: 0.6mm; }
+  .src { font-size: 7.5pt; color: var(--muted); margin-top: 1.5mm; }
+  .src b { color: var(--blue); font-weight: 700; }
+
+  /* Street View spread */
+  .shot { border-radius: 2mm; overflow: hidden; border: 0.3mm solid var(--rule); }
+  .shot img { display: block; width: 100%; }
+  .caption { font-size: 8pt; color: var(--muted); margin: 1.5mm 0 5mm; }
+  .how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin-top: 2mm; }
+  .step { border-top: 0.6mm solid var(--blue); padding-top: 2mm; }
+  .step b { display: block; font-size: 9.5pt; margin-bottom: 1mm; }
+  .step span { font-size: 8.5pt; color: #2B3240; display: block; line-height: 1.4; }
+
+  /* Data + quality */
+  table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  th { text-align: left; font-size: 7.5pt; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    border-bottom: 0.4mm solid var(--ink); padding: 0 2mm 1.5mm 0; }
+  td { border-bottom: 0.25mm solid var(--rule); padding: 1.6mm 2mm 1.6mm 0; vertical-align: top; }
+  td:first-child { font-weight: 650; width: 40mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 8mm; }
+  .box { background: var(--blue-soft); border-radius: 2mm; padding: 5mm; }
+  .box h3 { font-size: 11pt; margin-bottom: 2.5mm; color: var(--blue); }
+  .box ul { margin: 0; padding-left: 4mm; font-size: 8.8pt; }
+  .box li { margin-bottom: 1mm; }
+  .warn h3 { color: #A32412; }
+  .warn { background: #FDEEEB; }
+</style>
+</head>
+<body>
+
+<!-- 1. Cover -->
+<section class="page cover">
+  <div class="hero"></div>
+  <div class="body">
+    <div class="eyebrow">NASA Space Apps Challenge 2026 · Team Protikriti</div>
+    <h1>Martian Map<span>.</span></h1>
+    <p class="lede">A Google-Maps-style atlas of Mars for the first human explorers. It has a 3D globe, rover Street View, live weather, walkable terrain and a Marswalk planner that keeps astronauts off dangerous slopes. Everything is built from open NASA, USGS and IAU data.</p>
+    <div class="stats">
+      <div class="stat"><b>2,087</b><span>rover Street View stops<br>(703 Perseverance · 1,384 Curiosity)</span></div>
+      <div class="stat"><b>2,052</b><span>IAU-named places<br>searchable on the globe</span></div>
+      <div class="stat"><b>30</b><span>Perseverance rock samples<br>at their exact sites</span></div>
+      <div class="stat"><b>15°</b><span>maximum slope on every<br>planned Marswalk leg</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>Challenge: Interplanetary Survival Guide: Martian Map</span><span>Feature list · 2026</span></div>
+</section>
+
+<!-- 2. Features -->
+<section class="page">
+  <div class="intro">
+    <div><div class="eyebrow">What it does</div><h2>Eight tools, one map of Mars</h2></div>
+    <p>Every layer, stop and number comes from a published NASA, USGS or IAU dataset, with the source cited in the repository.</p>
+  </div>
+  <div class="features">
+    <div class="feature">
+      <h3><span class="n">01</span>Whole-planet 3D globe</h3>
+      <p>Spin and zoom around all of Mars on real topography, with high-resolution terrain where the rovers are.</p>
+      <ul>
+        <li>Global MOLA elevation; Jezero at 20 m and Gale at 32 m</li>
+        <li>Search 2,052 named features, 16 lander sites and 30 candidate human Exploration Zones</li>
+        <li>Shareable links that reopen the exact view</li>
+      </ul>
+      <div class="src"><b>Data:</b> MGS MOLA · USGS CTX and MSL DEMs · IAU Gazetteer · Viking MDIM</div>
+    </div>
+    <div class="feature">
+      <h3><span class="n">02</span>Rover Street View</h3>
+      <p>Stand where Perseverance or Curiosity stopped and look around in 360°.</p>
+      <ul>
+        <li>Each stop's Navcam sweep stitched live into one seamless sphere</li>
+        <li>Walk arrows to the next stop and a compass heading</li>
+        <li>Links back to every source frame on NASA's site</li>
+      </ul>
+      <div class="src"><b>Data:</b> NASA raw-image APIs (Navcam) · JPL MMGIS waypoints</div>
+    </div>
+    <div class="feature">
+      <h3><span class="n">03</span>Safe Marswalk planner</h3>
+      <p>Click a start and science stops; each leg is the fastest route that never crosses ground steeper than 15°.</p>
+      <ul>
+        <li>A* routing with Tobler's walking-speed model, off the main thread</li>
+        <li>Distance, climb and descent, steepest step and EVA time</li>
+        <li>Slope hazards hatched in red, never shown by colour alone</li>
+      </ul>
+      <div class="src"><b>Data:</b> USGS CTX DEM (Jezero) · MSL HiRISE DEM mosaic (Gale)</div>
+    </div>
+    <div class="feature">
+      <h3><span class="n">04</span>Explore on foot</h3>
+      <p>Drop onto the terrain at true scale and walk it like a video game.</p>
+      <ul>
+        <li>Keyboard walking, strafing and turning; drag to look</li>
+        <li>Live position, heading and elevation</li>
+        <li>Starts where the rover is today</li>
+      </ul>
+      <div class="src"><b>Data:</b> site DEMs draped with HiRISE and CTX imagery</div>
+    </div>
+    <div class="feature">
+      <h3><span class="n">05</span>Live Mars weather</h3>
+      <p>Today's conditions from the rovers' own weather stations.</p>
+      <ul>
+        <li>Curiosity REMS (live): air and ground temperature, pressure, UV, sky</li>
+        <li>Perseverance MEDA (latest archive)</li>
+        <li>Sunrise and sunset in local Mars time, and a Mars-year temperature chart</li>
+      </ul>
+      <div class="src"><b>Data:</b> NASA/JPL REMS and MEDA feeds, with snapshot fallback</div>
+    </div>
+    <div class="feature">
+      <h3><span class="n">06</span>Mission replay and samples</h3>
+      <p>Play both rovers' journeys sol by sol, and visit every Perseverance sample core.</p>
+      <ul>
+        <li>Timeline scrubber with follow-camera</li>
+        <li>3D Perseverance model at its position on any sol</li>
+        <li>30 sample cards with rock type and sealing sol, linked to Street View</li>
+      </ul>
+      <div class="src"><b>Data:</b> MMGIS traverses · NASA Mars Rock Samples · NASA 3D Resources</div>
+    </div>
+    <div class="feature">
+      <h3><span class="n">07</span>Settlement site reports</h3>
+      <p>Right-click anywhere on Mars for a one-page briefing for settlers.</p>
+      <ul>
+        <li>Elevation and terrain detail, daylight hours and season</li>
+        <li>Likelihood of water ice in the top metre of ground</li>
+        <li>Surface radiation, and the nearest named feature, landing site and Exploration Zone</li>
+      </ul>
+      <div class="src"><b>Data:</b> SWIM 2.0 ice · MSL RAD · MOLA · IAU Gazetteer · Mars24</div>
+    </div>
+    <div class="feature">
+      <h3><span class="n">08</span>Mars clock and coordinates</h3>
+      <p>The time and place, measured the Mars way.</p>
+      <ul>
+        <li>Local solar time, sols for each rover, season (Ls) and Mars Sol Date</li>
+        <li>Real sun position lights the globe; step through hours and sols</li>
+        <li>IAU Mars 2000 planetocentric coordinates (Mars has no GPS)</li>
+      </ul>
+      <div class="src"><b>Model:</b> NASA GISS Mars24 algorithm · IAU 2015 Mars frame</div>
+    </div>
+  </div>
+  <div class="foot"><span>Martian Map · Team Protikriti</span><span>2</span></div>
+</section>
+
+<!-- 3. Street View -->
+<section class="page">
+  <div class="intro">
+    <div><div class="eyebrow">Signature feature</div><h2>Street View on another planet</h2></div>
+    <p>NASA publishes rover photos one frame at a time. Martian Map turns each stop's frames into a single sphere you can look around.</p>
+  </div>
+  <div class="shot"><img src="streetview-perseverance.jpg" alt="Stitched 360 degree panorama from Perseverance on sol 1980, looking south across Jezero crater"></div>
+  <p class="caption">Perseverance, sol 1980, Jezero Crater: 10 Navcam frames stitched into a 360° view, facing south.</p>
+  <div class="shot"><img src="streetview-curiosity.jpg" alt="Stitched panorama from Curiosity on sol 5016 with the rover deck in the foreground"></div>
+  <p class="caption">Curiosity, sol 5016, Gale Crater: 7 frames stitched into a 219° view, with the rover's own deck in front.</p>
+  <div class="how">
+    <div class="step"><b>1 · Pick the sweep</b><span>From all frames at a stop, keep the sequence that covers the widest arc and drop repeated shots.</span></div>
+    <div class="step"><b>2 · Place each frame</b><span>Project it through the camera's real pointing and the rover's heading onto a sphere.</span></div>
+    <div class="step"><b>3 · Match and blend</b><span>Correct lens darkening, balance exposure between frames, feather every seam.</span></div>
+    <div class="step"><b>4 · Fill the gaps</b><span>Blend unseen sky and ground smoothly from the nearby imagery. No black holes.</span></div>
+  </div>
+  <div class="foot"><span>Martian Map · Team Protikriti</span><span>3</span></div>
+</section>
+
+<!-- 4. Data + quality -->
+<section class="page">
+  <div class="intro">
+    <div><div class="eyebrow">Validity</div><h2>Built on real NASA data</h2></div>
+    <p>Positions use the IAU Mars 2000 sphere (radius 3,396,190 m). Every derived file is rebuilt from source by one command.</p>
+  </div>
+  <table>
+    <thead><tr><th>Dataset</th><th>Mission / instrument</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td>Global topography</td><td>Mars Global Surveyor · MOLA MEGDR</td><td>Globe terrain, elevation readout, colour relief, roughness</td></tr>
+      <tr><td>Jezero elevation</td><td>MRO · CTX DEM, 20 m (USGS)</td><td>Terrain, slope hazards, route planning</td></tr>
+      <tr><td>Gale elevation</td><td>MRO · HiRISE-derived MSL DEM mosaic, read at 32 m (USGS)</td><td>Terrain, slope hazards, route planning</td></tr>
+      <tr><td>Surface imagery</td><td>MRO HiRISE 25 cm · CTX · Viking MDIM (NASA Trek)</td><td>Photo-real ground at every zoom</td></tr>
+      <tr><td>Rover positions</td><td>JPL MMGIS traverses and waypoints</td><td>Tracks, Street View stops, mission replay</td></tr>
+      <tr><td>Rover photos</td><td>Perseverance and Curiosity Navcam raw images</td><td>Street View panoramas</td></tr>
+      <tr><td>Weather</td><td>Curiosity REMS · Perseverance MEDA</td><td>Weather panels and Mars-year charts</td></tr>
+      <tr><td>Buried ice</td><td>SWIM 2.0 (Subsurface Water Ice Mapping)</td><td>Settlement site reports</td></tr>
+      <tr><td>Radiation</td><td>Curiosity · RAD (Hassler et al. 2014)</td><td>Surface dose in site reports</td></tr>
+      <tr><td>Dust</td><td>Mars Global Surveyor · TES dust index</td><td>Dust-cover layer</td></tr>
+      <tr><td>Place names</td><td>IAU / USGS Gazetteer of Planetary Nomenclature</td><td>2,052 searchable features</td></tr>
+      <tr><td>Human Exploration Zones</td><td>NASA 2015 First Landing Sites workshop</td><td>30 candidate zones on the globe</td></tr>
+      <tr><td>Rock samples</td><td>NASA Mars Rock Samples page</td><td>30 sample cards at their sealing sites</td></tr>
+      <tr><td>Rover model</td><td>NASA 3D Resources · Perseverance glTF</td><td>3D rover in mission replay</td></tr>
+    </tbody>
+  </table>
+  <div class="two">
+    <div class="box">
+      <h3>Engineering quality</h3>
+      <ul>
+        <li>182 automated tests: 40 Python and 142 TypeScript</li>
+        <li>Strict checks on every push: ruff, mypy --strict, ESLint, tsc, Prettier</li>
+        <li>Routing and panorama stitching run in Web Workers, so the map never freezes</li>
+        <li>Keyboard-operable, labelled controls; hazards never shown by colour alone</li>
+        <li>Open-source stack: Python pipeline, TypeScript + CesiumJS web app</li>
+      </ul>
+    </div>
+    <div class="box warn">
+      <h3>Honest limits</h3>
+      <ul>
+        <li>Walking speed is an Earth model (Tobler), not tuned for spacesuits yet</li>
+        <li>Slope maps resolve 20–32 m; boulders need 1 m HiRISE checks</li>
+        <li>Routes are planned only inside the two high-resolution sites</li>
+        <li>Perseverance weather is the latest archived data, not live</li>
+        <li>Stitched Street View needs the included image proxy; plain static hosting shows separate photos</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Sources in full: docs/data-sources.md · Imagery © NASA/JPL-Caltech, USGS, MSSS, University of Arizona</span><span>4</span></div>
+</section>
+
+</body>
+</html>
