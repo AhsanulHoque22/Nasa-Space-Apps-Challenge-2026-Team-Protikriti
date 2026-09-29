@@ -45,6 +45,7 @@ The app fetches live data with a 6 s timeout and falls back to `marsmap weather`
 |---|---|
 | Stops (703 Perseverance, 1,384 Curiosity) | NASA/JPL MMGIS waypoints `M20_waypoints.json` and `MSL_waypoints.json`: localized position, site, drive, sol |
 | Frames | NASA raw-image APIs, fetched live (CORS-open): Perseverance `mars.nasa.gov/rss/api/?feed=raw_images&category=mars2020` (NAVCAM_LEFT) and Curiosity `mars.nasa.gov/api/v1/raw_image_items/` (NAV_LEFT_B). Matched to a stop by exact site and drive. Placed by mast azimuth and elevation plus the subframe offset. Navcam fields of view: M20 96°×73° (5120×3840), MSL 45°×45° (1024×1024). Images © NASA/JPL-Caltech. |
+| Panorama | Per stop, the imaging sequence with the widest azimuth sweep (repeated pointings dropped). Its frames are stitched in the browser into one equirectangular 360° sphere: pinhole projection through the mast's optical axis (subframes are windows of the sensor), mast azimuth + MMGIS rover yaw for compass bearings, cos^1.7 vignetting correction, Brown & Lowe gain compensation, feathered blending, push-pull fill for directions no frame saw. Image files carry no CORS headers, so they are read through the same-origin `/nasa-raw` proxy (Vite dev and preview); without it the viewer shows the sweep as positioned photos. |
 
 ## Mission replay and activities
 

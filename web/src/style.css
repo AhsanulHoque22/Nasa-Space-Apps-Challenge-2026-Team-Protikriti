@@ -623,15 +623,83 @@ body {
   left: 50%;
   top: 50%;
   transform-style: preserve-3d;
+  pointer-events: none;
 }
 
+.sv-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sv-canvas[hidden] {
+  display: none;
+}
+
+/* Fallback when stitching is unavailable: frames as positioned photos. */
 .sv-tile {
   position: absolute;
   left: 0;
   top: 0;
   backface-visibility: hidden;
   user-select: none;
+}
+
+/* Walk arrows lie on the ground toward the neighbouring stops, like Street View chevrons. */
+.sv-arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 88px;
+  height: 88px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(5 7 12 / 0.45);
+  cursor: pointer;
   pointer-events: auto;
+  backface-visibility: hidden;
+}
+
+.sv-arrow::before {
+  content: '';
+  position: absolute;
+  inset: 22px 24px 30px;
+  background: #fff;
+  clip-path: polygon(50% 0, 100% 70%, 78% 100%, 50% 58%, 22% 100%, 0 70%);
+}
+
+.sv-arrow:hover,
+.sv-arrow:focus-visible {
+  background: var(--nasa-blue);
+  outline: 3px solid #fff;
+}
+
+.sv-compass {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(5 7 12 / 0.6);
+  font: 600 12px var(--font);
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  pointer-events: none;
+}
+
+.sv-retry {
+  margin-left: var(--space-2);
+  font: 600 13px var(--font);
+  color: #fff;
+  background: var(--nasa-blue);
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
 }
 
 .sv-bar {

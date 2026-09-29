@@ -15,6 +15,7 @@ describe('normalizeM20 (Perseverance Navcam)', () => {
     expect(f?.fovDeg).toEqual([96, 73])
     expect(f?.subframe).toHaveLength(4)
     expect(f?.url).toMatch(/_800\.jpg$/) // medium: sharp enough, light enough
+    expect(f?.sequence).toMatch(/^NCAM\d{5}$/)
     expect(f?.link).toMatch(/^https:\/\/mars\.nasa\.gov\//)
   })
 })

@@ -1,5 +1,6 @@
 /** Fetch a stop's Navcam frames live from NASA's raw-image APIs (CORS-open JSON). */
 import { normalizeM20, normalizeMsl } from '../core/raw-images'
+import { retry } from '../core/retry'
 import { type Frame, type Stop, imagesForStop } from '../core/streetview'
 
 export type Rover = 'm20' | 'msl'
@@ -7,7 +8,8 @@ export type Rover = 'm20' | 'msl'
 const PAGE_SIZE = 100
 const MAX_PAGES = 6 // 600 frames per stop is far more than a panorama needs
 const MAX_SOL_SPAN = 10 // a parked rover images over a few sols; cap the query
-const TIMEOUT_MS = 10_000
+const TIMEOUT_MS = 20_000
+const RETRY_DELAYS_MS = [1_000, 3_000] // the NASA API times out intermittently
 
 function pageUrl(rover: Rover, fromSol: number, toSol: number, page: number): string {
   if (rover === 'm20') {
@@ -43,11 +45,13 @@ export async function framesForStop(rover: Rover, stop: Stop, nextSol?: number):
   const normalize = rover === 'm20' ? normalizeM20 : normalizeMsl
   const frames: Frame[] = []
   for (let page = 0; page < MAX_PAGES; page++) {
-    const response = await fetch(pageUrl(rover, stop.sol, toSol, page), {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
-    if (!response.ok) throw new Error(`NASA raw images: HTTP ${response.status}`)
-    const payload = (await response.json()) as { images?: unknown[]; items?: unknown[] }
+    const payload = await retry(async () => {
+      const response = await fetch(pageUrl(rover, stop.sol, toSol, page), {
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      })
+      if (!response.ok) throw new Error(`NASA raw images: HTTP ${response.status}`)
+      return (await response.json()) as { images?: unknown[]; items?: unknown[] }
+    }, RETRY_DELAYS_MS)
     frames.push(...normalize(payload))
     const rawCount = (payload.images ?? payload.items ?? []).length
     if (rawCount < PAGE_SIZE) break // short page: nothing more to fetch

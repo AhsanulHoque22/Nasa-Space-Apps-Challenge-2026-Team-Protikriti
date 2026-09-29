@@ -1,12 +1,29 @@
-/** Rover Street View: NASA Navcam frames placed on a CSS-3D sphere at their true pointing. */
-import { type Frame, type Stop, cssTransform, frameGeometry, neighbours } from '../core/streetview'
+/**
+ * Rover Street View: at each stop, the widest Navcam sweep NASA took there, stitched into one
+ * seamless 360° sphere (core/stitch) and drawn with WebGL, plus walk arrows to the neighbouring
+ * stops on a CSS-3D layer that shares the camera.
+ */
+import { selectPanorama } from '../core/panorama'
+import {
+  type Frame,
+  type Stop,
+  bearingDeg,
+  compassPoint,
+  cssTransform,
+  frameGeometry,
+  neighbours,
+} from '../core/streetview'
+import { type PanoRenderer, createPanoRenderer } from '../map/pano-gl'
 import { type Rover, framesForStop } from '../map/raw-images'
+import { stitchPanorama } from '../map/stitch-client'
 
 const ROVER_NAME: Record<Rover, string> = { m20: 'Perseverance', msl: 'Curiosity' }
 const FOV = { min: 25, max: 100, start: 70 }
 const DRAG_DEG_PER_PX = 0.15
 const KEY_STEP_DEG = 8
-const SEARCH_RADIUS = 8 // stops to check each way when a stop has no imagery
+const SEARCH_RADIUS = 6 // stops to check each way when a stop has no usable panorama
+const GOOD_COVERAGE_DEG = 90 // a sweep this wide reads as a place, not a close-up
+const ARROW_EL_DEG = -28 // walk arrows sit on the ground ahead, like Street View chevrons
 
 type State = { yaw: number; pitch: number; fov: number }
 
@@ -25,8 +42,10 @@ export function openStreetView(
   root.innerHTML = `
     <div class="sv-view" tabindex="0"
       aria-label="Look around: drag, or arrow keys; plus and minus to zoom">
+      <canvas class="sv-canvas"></canvas>
       <div class="sv-sphere"></div>
     </div>
+    <p class="sv-compass" aria-live="off"></p>
     <header class="panel sv-bar">
       <div class="sv-heading">
         <h2 id="sv-title"></h2>
@@ -39,7 +58,7 @@ export function openStreetView(
       </div>
     </header>
     <p class="panel sv-status" role="status" aria-live="polite"></p>
-    <p class="sv-credit">Navcam raw images: NASA/JPL-Caltech · <a target="_blank" rel="noopener">view this frame on NASA</a></p>`
+    <p class="sv-credit">Navcam raw images: NASA/JPL-Caltech · <a target="_blank" rel="noopener">view the source frames on NASA</a></p>`
   document.body.append(root)
   const view = root.querySelector('.sv-view') as HTMLElement
   const sphere = root.querySelector('.sv-sphere') as HTMLElement
@@ -49,9 +68,23 @@ export function openStreetView(
   const credit = root.querySelector('.sv-credit a') as HTMLAnchorElement
   const prev = root.querySelector('[data-act="prev"]') as HTMLButtonElement
   const next = root.querySelector('[data-act="next"]') as HTMLButtonElement
+  const compass = root.querySelector('.sv-compass') as HTMLElement
+  const canvas = root.querySelector('.sv-canvas') as HTMLCanvasElement
+  let renderer: PanoRenderer
+  try {
+    renderer = createPanoRenderer(canvas)
+  } catch (error) {
+    status.textContent = `Street View needs WebGL2, which this browser could not start (${String(error)}).`
+    root.querySelector('[data-act="close"]')?.addEventListener('click', () => {
+      root.remove()
+      returnFocus?.focus()
+    })
+    return
+  }
+  let stitching: AbortController | undefined
+  let hasImage = false
 
   const state: State = { yaw: 0, pitch: 0, fov: FOV.start }
-  let frames: Frame[] = []
   let index = startIndex
   let request = 0
 
@@ -60,13 +93,20 @@ export function openStreetView(
   const layout = () => {
     const f = focalPx()
     view.style.perspective = `${f}px`
-    sphere.style.transform = `translateZ(${f}px) rotateX(${-state.pitch}deg) rotateY(${state.yaw}deg)`
-    for (const tile of sphere.children as HTMLCollectionOf<HTMLElement>) {
+    sphere.style.transform = `translateZ(${f}px) rotateX(${state.pitch}deg) rotateY(${state.yaw}deg)`
+    if (hasImage) renderer.draw(state.yaw, state.pitch, state.fov)
+    for (const tile of sphere.querySelectorAll<HTMLElement>('.sv-tile')) {
       const g = JSON.parse(tile.dataset.geom ?? '{}') as ReturnType<typeof frameGeometry>
       tile.style.width = `${2 * f * Math.tan((g.widthDeg * Math.PI) / 360)}px`
       tile.style.height = `${2 * f * Math.tan((g.heightDeg * Math.PI) / 360)}px`
       tile.style.transform = `translate(-50%, -50%) ${cssTransform(g.azDeg, g.elDeg, f)}`
     }
+    for (const arrow of sphere.querySelectorAll<HTMLElement>('.sv-arrow')) {
+      const az = Number(arrow.dataset.az)
+      arrow.style.transform = `translate(-50%, -50%) ${cssTransform(az, ARROW_EL_DEG, f)} rotateX(-62deg)`
+    }
+    const heading = ((state.yaw % 360) + 360) % 360
+    compass.textContent = `Facing ${Math.round(heading).toString().padStart(3, '0')}° ${compassPoint(heading)}`
   }
 
   const describe = (stop: Stop) => {
@@ -83,33 +123,71 @@ export function openStreetView(
     next.disabled = n.next === null
   }
 
-  const show = (found: Frame[]) => {
-    frames = found
-    const sols = frames.map((f) => f.sol)
-    const [lo, hi] = [Math.min(...sols), Math.max(...sols)]
-    detail.textContent += ` · ${frames.length} frames, sol${lo === hi ? ` ${lo}` : `s ${lo}–${hi}`}`
-    sphere.replaceChildren(
-      ...frames.map((f) => {
-        const img = document.createElement('img')
-        img.className = 'sv-tile'
-        img.src = f.url
-        img.alt = f.caption
-        img.loading = 'lazy'
-        img.decoding = 'async'
-        img.referrerPolicy = 'no-referrer'
-        img.draggable = false
-        img.dataset.geom = JSON.stringify(frameGeometry(f))
-        img.addEventListener('pointerenter', () => (credit.href = f.link))
-        return img
-      }),
-    )
-    const first = frames[0]
-    if (first) {
-      const g = frameGeometry(first)
-      state.yaw = g.azDeg
-      state.pitch = Math.max(-40, Math.min(40, g.elDeg))
-      credit.href = first.link
+  const walkArrows = () =>
+    (['previous', 'next'] as const).flatMap((which) => {
+      const target = neighbours(stops, index)[which]
+      const here = stops[index]
+      const there = target === null ? undefined : stops[target]
+      if (!here || !there || (here.lon === there.lon && here.lat === there.lat)) return []
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'sv-arrow'
+      button.dataset.az = String(bearingDeg(here, there))
+      button.setAttribute('aria-label', `Walk to the ${which} stop (sol ${there.sol})`)
+      button.addEventListener('click', () => void load(target as number))
+      return [button]
+    })
+
+  const photoTiles = (frames: Frame[], yawDeg: number) =>
+    frames.map((f) => {
+      const img = document.createElement('img')
+      img.className = 'sv-tile'
+      img.src = f.url
+      img.alt = f.caption
+      img.decoding = 'async'
+      img.referrerPolicy = 'no-referrer'
+      img.draggable = false
+      const g = frameGeometry(f)
+      img.dataset.geom = JSON.stringify({ ...g, azDeg: g.azDeg + yawDeg })
+      return img
+    })
+
+  const show = async (stop: Stop, found: Frame[], id: number) => {
+    const pano = selectPanorama(found)
+    const first = pano.frames[0]
+    if (!first) return
+    const yawDeg = stop.yawDeg ?? 0 // mast azimuths are rover-frame; yaw makes them compass
+    const sweep = pano.coverageDeg >= 359 ? '360°' : `${Math.round(pano.coverageDeg)}°`
+    status.textContent = `Stitching ${pano.frames.length} NASA Navcam frames into a ${sweep} view…`
+    stitching?.abort()
+    stitching = new AbortController()
+    try {
+      const stitched = await stitchPanorama(
+        pano.frames,
+        yawDeg,
+        (loaded, total) => {
+          if (id === request) status.textContent = `Downloading Navcam frames ${loaded}/${total}…`
+        },
+        stitching.signal,
+      )
+      if (id !== request) return
+      renderer.setImage(stitched.pixels, stitched.width, stitched.height)
+      hasImage = true
+      canvas.hidden = false
+      detail.textContent += ` · ${sweep} panorama stitched from ${stitched.used} Navcam frames, sol ${first.sol}`
+      sphere.replaceChildren(...walkArrows())
+    } catch {
+      if (id !== request) return
+      // No same-origin image proxy (e.g. a static host): show the sweep as positioned photos.
+      detail.textContent += ` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`
+      sphere.replaceChildren(...photoTiles(pano.frames, yawDeg), ...walkArrows())
     }
+    // Open looking at the middle of the sweep, level with the horizon.
+    const mid = pano.frames[Math.floor(pano.frames.length / 2)] ?? first
+    state.yaw = frameGeometry(mid).azDeg + yawDeg
+    state.pitch = 0
+    credit.href = first.link
+    status.hidden = true
     layout()
   }
 
@@ -120,42 +198,53 @@ export function openStreetView(
     if (!stop) return
     describe(stop)
     sphere.replaceChildren()
+    hasImage = false
+    canvas.hidden = true // hide the previous stop while loading
     status.hidden = false
-    status.textContent = 'Loading NASA Navcam frames…'
+    status.textContent = 'Loading NASA Navcam panorama…'
     try {
-      const found = await framesForStop(rover, stop, stops[index + 1]?.sol)
-      if (id !== request) return
-      if (found.length) {
-        status.hidden = true
-        show(found)
-        return
-      }
-      status.textContent =
-        'No Navcam frames at this stop. Looking for the nearest stop with imagery…'
-      for (let d = 1; d <= SEARCH_RADIUS; d++) {
-        for (const candidate of [index - d, index + d]) {
+      // This stop first, then outward: take the first wide sweep, else the widest seen.
+      let best: { at: number; frames: Frame[]; coverage: number } | undefined
+      for (let d = 0; d <= SEARCH_RADIUS; d++) {
+        for (const candidate of d === 0 ? [index] : [index - d, index + d]) {
           const s = stops[candidate]
           if (!s) continue
-          const near = await framesForStop(rover, s, stops[candidate + 1]?.sol)
+          const found = await framesForStop(rover, s, stops[candidate + 1]?.sol)
           if (id !== request) return
-          if (near.length) {
-            index = candidate
-            describe(s)
-            status.hidden = true
-            show(near)
-            return
-          }
+          const coverage = selectPanorama(found).coverageDeg
+          if (found.length && coverage > (best?.coverage ?? -1))
+            best = { at: candidate, frames: found, coverage }
+          if (best && best.coverage >= GOOD_COVERAGE_DEG) break
         }
+        if (best && best.coverage >= GOOD_COVERAGE_DEG) break
+        if (d === 0 && !best) status.textContent = 'No panorama at this stop. Looking nearby…'
       }
-      status.textContent = 'No Navcam imagery near this stop.'
+      const s = best && stops[best.at]
+      if (!best || !s) {
+        status.textContent = 'No Navcam imagery near this stop.'
+        return
+      }
+      index = best.at
+      describe(s)
+      await show(s, best.frames, id)
     } catch (error) {
-      if (id === request)
-        status.textContent = `NASA image service unavailable (${String(error)}). Try again shortly.`
+      if (id !== request) return
+      status.replaceChildren(
+        `NASA's raw-image service did not answer (${error instanceof Error ? error.message : String(error)}). `,
+      )
+      const again = document.createElement('button')
+      again.type = 'button'
+      again.className = 'sv-retry'
+      again.textContent = 'Try again'
+      again.addEventListener('click', () => void load(target))
+      status.append(again)
+      again.focus()
     }
   }
 
   const close = () => {
     request++
+    stitching?.abort()
     root.remove()
     document.removeEventListener('keydown', onKey)
     window.removeEventListener('resize', layout)
@@ -169,6 +258,7 @@ export function openStreetView(
   // Look around: drag, keys, wheel.
   let dragging: { x: number; y: number } | null = null
   view.addEventListener('pointerdown', (e) => {
+    if ((e.target as Element).closest('.sv-arrow')) return // let the arrow's click through
     dragging = { x: e.clientX, y: e.clientY }
     view.setPointerCapture(e.pointerId)
   })

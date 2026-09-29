@@ -43,7 +43,7 @@ curated JSON  ─┘                                                  map/   Ces
 
 - `pipeline/`: `python -m marsmap build` (DEM → 562×593 elevation grid + hazard overlay) and `python -m marsmap layers` (names, traverses, landing sites, exploration zones → GeoJSON).
 - `web/src/core`: framework-free, fully unit-tested logic. `map/` and `ui/` are the thin shell.
-- No backend. Everything is static files, deployable to GitHub Pages (`.github/workflows/deploy.yml`).
+- No backend. Everything is static files, deployable to GitHub Pages (`.github/workflows/deploy.yml`). Street View stitching reads NASA image pixels through a same-origin `/nasa-raw` → `https://mars.nasa.gov` proxy (built into `npm run dev` and `npm run preview`); a static host without that rewrite falls back to unstitched photos.
 
 Engineering standards: [CLAUDE.md](CLAUDE.md) · Product/design brief: [PRODUCT.md](PRODUCT.md) · Data provenance: [docs/data-sources.md](docs/data-sources.md) · Plan: [docs/superpowers/plans](docs/superpowers/plans).
 

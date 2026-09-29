@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   type Frame,
   type Stop,
+  bearingDeg,
+  compassPoint,
   cssTransform,
   frameGeometry,
   imagesForStop,
@@ -25,6 +27,7 @@ const frame = (over: Partial<Frame>): Frame => ({
   site: 91,
   drive: 970,
   sol: 1993,
+  sequence: 'NCAM00500',
   azDeg: 0,
   elDeg: 0,
   subframe: [1, 1, 5120, 3840],
@@ -71,8 +74,8 @@ describe('cssTransform', () => {
   it('places azimuth 0 / elevation 0 straight ahead at the sphere radius', () => {
     expect(cssTransform(0, 0, 800)).toBe('rotateY(0deg) rotateX(0deg) translateZ(-800px)')
   })
-  it('turns clockwise azimuth to the right (negative CSS Y rotation) and tilts up', () => {
-    expect(cssTransform(90, 10, 800)).toBe('rotateY(-90deg) rotateX(10deg) translateZ(-800px)')
+  it('turns clockwise azimuth to the right and tilts up (CSS y points down)', () => {
+    expect(cssTransform(90, 10, 800)).toBe('rotateY(-90deg) rotateX(-10deg) translateZ(-800px)')
   })
 })
 
@@ -87,5 +90,24 @@ describe('stop navigation', () => {
     expect(nearestStopWithImagery([4, 0, 0, 0], 3)).toBe(0)
     expect(nearestStopWithImagery([0, 3, 0, 3], 2)).toBe(1) // ties prefer the earlier stop
     expect(nearestStopWithImagery([0, 0], 1)).toBeNull()
+  })
+})
+
+describe('bearingDeg', () => {
+  it('gives compass bearings between nearby points', () => {
+    const o = { lon: 77.45, lat: 18.45 }
+    expect(bearingDeg(o, { lon: 77.45, lat: 18.46 })).toBeCloseTo(0, 5)
+    expect(bearingDeg(o, { lon: 77.46, lat: 18.45 })).toBeCloseTo(90, 1)
+    expect(bearingDeg(o, { lon: 77.45, lat: 18.44 })).toBeCloseTo(180, 5)
+    expect(bearingDeg(o, { lon: 77.44, lat: 18.45 })).toBeCloseTo(270, 1)
+  })
+})
+
+describe('compassPoint', () => {
+  it('names the nearest of eight points', () => {
+    expect(compassPoint(0)).toBe('N')
+    expect(compassPoint(44)).toBe('NE')
+    expect(compassPoint(-90)).toBe('W')
+    expect(compassPoint(350)).toBe('N')
   })
 })

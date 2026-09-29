@@ -18,6 +18,8 @@ export type Frame = {
   site: number
   drive: number
   sol: number
+  /** Imaging sequence id (e.g. NCAM00500): frames of one panorama share it. */
+  sequence: string
   /** Mast pointing for the full sensor, degrees (azimuth clockwise). */
   azDeg: number
   elDeg: number
@@ -61,7 +63,7 @@ export function frameGeometry(f: Frame): {
 /** CSS transform placing a tile on the inside of a sphere, viewed from its centre. */
 export function cssTransform(azDeg: number, elDeg: number, radiusPx: number): string {
   const r = (v: number) => Math.round(v * 100) / 100 + 0 // +0 turns -0 into 0
-  return `rotateY(${r(-azDeg)}deg) rotateX(${r(elDeg)}deg) translateZ(${-radiusPx}px)`
+  return `rotateY(${r(-azDeg)}deg) rotateX(${r(-elDeg)}deg) translateZ(${-radiusPx}px)`
 }
 
 export function neighbours(
@@ -81,4 +83,24 @@ export function nearestStopWithImagery(counts: readonly number[], index: number)
     if ((counts[index + d] ?? 0) > 0) return index + d
   }
   return null
+}
+
+/** Initial great-circle bearing from `a` to `b`, degrees clockwise from north (0..360). */
+export function bearingDeg(
+  a: { lon: number; lat: number },
+  b: { lon: number; lat: number },
+): number {
+  const rad = Math.PI / 180
+  const dLon = (b.lon - a.lon) * rad
+  const y = Math.sin(dLon) * Math.cos(b.lat * rad)
+  const x =
+    Math.cos(a.lat * rad) * Math.sin(b.lat * rad) -
+    Math.sin(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos(dLon)
+  return (((Math.atan2(y, x) / rad) % 360) + 360) % 360
+}
+
+const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
+
+export function compassPoint(deg: number): string {
+  return POINTS[Math.round((((deg % 360) + 360) % 360) / 45) % 8] ?? 'N'
 }

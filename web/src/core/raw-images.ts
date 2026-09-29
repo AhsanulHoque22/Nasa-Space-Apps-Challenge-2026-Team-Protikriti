@@ -7,6 +7,11 @@ type Raw = Record<string, unknown>
 const M20_NAVCAM = { sensor: [5120, 3840] as [number, number], fov: [96, 73] as [number, number] }
 const MSL_NAVCAM = { sensor: [1024, 1024] as [number, number], fov: [45, 45] as [number, number] }
 
+/** Sequence id embedded in the product id, e.g. "...N0910970NCAM00500_00..." -> "NCAM00500". */
+function sequenceOf(imageId: unknown): string {
+  return /NCAM\d{5}/.exec(String(imageId ?? ''))?.[0] ?? String(imageId ?? '')
+}
+
 const finite = (v: unknown) => {
   const n = typeof v === 'number' ? v : Number(v)
   return Number.isFinite(n) ? n : null
@@ -45,6 +50,7 @@ export function normalizeM20(payload: unknown): Frame[] {
       site,
       drive,
       sol: Number(r.sol),
+      sequence: sequenceOf(r.imageid),
       azDeg: az,
       elDeg: el,
       subframe: rect(ext.subframeRect, M20_NAVCAM.sensor),
@@ -75,6 +81,7 @@ export function normalizeMsl(payload: unknown): Frame[] {
       site,
       drive,
       sol: Number(r.sol),
+      sequence: sequenceOf(r.imageid),
       azDeg: az,
       elDeg: el,
       subframe: rect(r.subframe_rect, MSL_NAVCAM.sensor),
