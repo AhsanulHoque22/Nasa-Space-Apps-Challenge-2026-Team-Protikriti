@@ -185,7 +185,7 @@ export function openStreetView(
     let previewed = false
     try {
       const full = await stitchPanorama(
-        pano.frames,
+        pano,
         yawDeg,
         {
           progress: (loaded, total) => {

@@ -74,7 +74,16 @@ describe('selectPanorama', () => {
     const untimed = frame({ azDeg: 346.7, elDeg: 39.9 })
     expect(selectPanorama([sun, ground, untimed], stop).frames).toEqual([ground, untimed])
   })
+  it('ranks photo sessions: the widest sweep first, then by how much new view each adds', () => {
+    // Shots from one session share light and shadows; mixing sessions ghosts and blotches.
+    const main = [0, 75, 150].map((az) => frame({ sequence: 'NCAM03400', azDeg: az }))
+    const back = [240, 300].map((az) => frame({ sequence: 'NCAM02400', azDeg: az }))
+    const extra = [frame({ sequence: 'NCAM00528', sol: 1989, azDeg: 40, elDeg: 30 })] // adds nothing new
+    const pano = selectPanorama([...extra, ...back, ...main])
+    const tierOf = (seq: string) => pano.tiers[pano.frames.findIndex((f) => f.sequence === seq)]
+    expect([tierOf('NCAM03400'), tierOf('NCAM02400'), tierOf('NCAM00528')]).toEqual([0, 1, 2])
+  })
   it('is empty for no frames', () => {
-    expect(selectPanorama([])).toEqual({ frames: [], coverageDeg: 0 })
+    expect(selectPanorama([])).toEqual({ frames: [], tiers: [], coverageDeg: 0 })
   })
 })

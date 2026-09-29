@@ -75,7 +75,7 @@ const sameView = (a: Frame, b: Frame, withinDeg: number) =>
 export function selectPanorama(
   frames: readonly Frame[],
   stop?: StopPose,
-): { frames: Frame[]; coverageDeg: number } {
+): { frames: Frame[]; tiers: number[]; coverageDeg: number } {
   const usable = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
   // Left eye first, then newest first, so the kept copy of a view is the left eye's latest.
   const order = [...usable].sort(
@@ -91,5 +91,41 @@ export function selectPanorama(
     if (!repeat && !twin) kept.push(f)
   }
   const chosen = usable.filter((f) => kept.includes(f))
-  return { frames: chosen, coverageDeg: azimuthCoverageDeg(chosen) }
+  return { frames: chosen, tiers: sessionTiers(chosen), coverageDeg: azimuthCoverageDeg(chosen) }
+}
+
+/**
+ * Rank photo sessions (one sequence on one sol shares light, shadows and pointing): the widest
+ * sweep is tier 0, then each next session by the new azimuth it adds (ties: more frames). The
+ * stitcher lets a lower tier show only where higher tiers don't see, instead of averaging
+ * morning, noon and re-pointed shots of the same ground into ghosts and blotches.
+ */
+function sessionTiers(frames: readonly Frame[]): number[] {
+  const sessions = new Map<string, Frame[]>()
+  for (const f of frames) {
+    const key = `${f.sol}:${f.sequence}`
+    sessions.set(key, [...(sessions.get(key) ?? []), f])
+  }
+  const pending = [...sessions.entries()]
+  const tierOf = new Map<string, number>()
+  let covered: Frame[] = []
+  while (pending.length) {
+    const base = azimuthCoverageDeg(covered)
+    const scored = pending.map(([key, group], index) => ({
+      key,
+      group,
+      index,
+      gain: azimuthCoverageDeg([...covered, ...group]) - base,
+    }))
+    const next = scored.reduce((a, b) =>
+      b.gain > a.gain + 1e-9 ||
+      (Math.abs(b.gain - a.gain) <= 1e-9 && b.group.length > a.group.length)
+        ? b
+        : a,
+    )
+    pending.splice(next.index, 1)
+    tierOf.set(next.key, tierOf.size)
+    covered = [...covered, ...next.group]
+  }
+  return frames.map((f) => tierOf.get(`${f.sol}:${f.sequence}`) ?? 0)
 }

@@ -7,7 +7,6 @@ export type Rover = 'm20' | 'msl'
 
 const PAGE_SIZE = 100
 const PAGE_CONCURRENCY = 6
-const MAX_PAGES = 200 // safety bound (20,000 raw items), far above any stop seen so far
 const LATEST_STOP_SOLS = 30 // the latest stop has no successor: search this far ahead
 const TIMEOUT_MS = 20_000
 const RETRY_DELAYS_MS = [1_000, 3_000] // the NASA API times out intermittently
@@ -62,7 +61,7 @@ const fetchPage = (url: string) =>
 async function allPages(url: (page: number) => string): Promise<Page[]> {
   const first = await fetchPage(url(0))
   const total = first.total_results ?? first.total ?? 0
-  const pages = Math.min(MAX_PAGES, Math.ceil(total / PAGE_SIZE))
+  const pages = Math.ceil(total / PAGE_SIZE) // every page NASA reports, no cap
   const rest: Page[] = []
   for (let start = 1; start < pages; start += PAGE_CONCURRENCY) {
     const batch = Array.from({ length: Math.min(PAGE_CONCURRENCY, pages - start) }, (_, k) =>
