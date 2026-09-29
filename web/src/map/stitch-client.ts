@@ -14,11 +14,6 @@ const NAVCAM_IMAGE_CIRCLE_TAN2 = 1.5
 // The right Navcam sits 42 cm from the left: nearby rocks and the rover deck would appear twice
 // (~12° apart at 2 m), so right-eye frames only fill where no left-eye frame sees.
 const RIGHT_EYE_WEIGHT = 0.001
-// Each lower-ranked photo session (core/panorama tiers) counts 100x less, so it shows only where
-// better sessions don't see instead of mixing different light and shadows. Capped so weights
-// stay well inside float32 range at stops with many sessions.
-const TIER_WEIGHT = 0.01
-const MAX_TIER = 6
 
 const proxied = (url: string) =>
   url.startsWith(NASA) ? new URL(`nasa-raw${url.slice(NASA.length)}`, document.baseURI).href : url
@@ -46,7 +41,7 @@ const PREVIEW_WIDTH = 1024 // ~2.5 s for 66 frames, against ~20 s at full resolu
  * low-resolution sphere; the promise resolves with the full one. Abort with `signal`.
  */
 export function stitchPanorama(
-  { frames, tiers }: { frames: readonly Frame[]; tiers: readonly number[] },
+  { frames }: { frames: readonly Frame[] },
   yawDeg: number,
   on: { progress: (loaded: number, total: number) => void; preview: (p: Stitched) => void },
   signal: AbortSignal,
@@ -55,7 +50,7 @@ export function stitchPanorama(
   const request: StitchRequest = {
     outWidth: OUT_WIDTH,
     previewWidth: PREVIEW_WIDTH,
-    frames: frames.map((f, i) => ({
+    frames: frames.map((f) => ({
       // The mast pointing is the camera's optical axis; the subframe is a window of its sensor.
       url: proxied(f.url),
       azDeg: f.azDeg + yawDeg,
@@ -65,9 +60,7 @@ export function stitchPanorama(
       sensorTan: sensorTan(f),
       exposure: exposureId(f.url),
       imageCircleTan2: NAVCAM_IMAGE_CIRCLE_TAN2,
-      weight:
-        TIER_WEIGHT ** Math.min(tiers[i] ?? 0, MAX_TIER) *
-        (isRightNavcam(f.url) ? RIGHT_EYE_WEIGHT : 1),
+      weight: isRightNavcam(f.url) ? RIGHT_EYE_WEIGHT : 1,
     })),
   }
   return new Promise<Stitched>((resolve, reject) => {
