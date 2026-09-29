@@ -22,6 +22,7 @@ import {
   photoPenalties,
   readGrid,
   sampleCoarse,
+  ownTone,
   toneBands,
 } from './seams'
 
@@ -235,6 +236,12 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
   const penalty = photoPenalties(sources, coarse, greyscale)
   const labels = chooseLabels(coarse, penalty)
   const { own, target } = toneBands(coarse, labels)
+  // Fallback photos need their own tone too, or their raw exposure shows as a bright patch.
+  const toneOf = (i: number) => {
+    let t = own.get(i)
+    if (!t) own.set(i, (t = ownTone(coarse[i]!)))
+    return t
+  }
   // Fallback photos per cell, best first: for pixels the labelled photos just miss.
   // A photo is a candidate in its cells and their neighbours: its real edge runs through cells
   // whose centres it misses, and the per-pixel projection decides coverage exactly.
@@ -333,7 +340,7 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
             if (tried.has(i)) continue
             tried.add(i)
             if (!valueAt(i, x, sinEl, cosEl, u, w01)) continue
-            const has = readGrid(target, u, w01, tone)
+            const has = readGrid(toneOf(i), u, w01, tone) || readGrid(target, u, w01, tone)
             for (let c = 0; c < 3; c++) sum[c] = v[c]! - (has ? tone[c]! : 0)
             total = 1
             cover = p[2]! / (1 + p[3]!)

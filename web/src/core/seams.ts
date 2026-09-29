@@ -221,6 +221,24 @@ export function readGrid(grid: Float32Array, u: number, v: number, out: Float32A
   return true
 }
 
+/** A photo's own low-frequency tone (blurred 2°) over the cells it covers. */
+export function ownTone({ rgb, cover }: Coarse): Float32Array {
+  const grid = new Float32Array(CELLS * 4)
+  let yLo = GRID_H
+  let yHi = -1
+  for (let c = 0; c < CELLS; c++) {
+    const w = cover[c]!
+    if (w < MIN_COVER) continue
+    for (let k = 0; k < 3; k++) grid[c * 4 + k] = rgb[c * 3 + k]! * w
+    grid[c * 4 + 3] = w
+    const y = Math.floor(c / GRID_W)
+    yLo = Math.min(yLo, y)
+    yHi = Math.max(yHi, y)
+  }
+  const radius = Math.max(1, Math.round((OWN_TONE_BLUR_DEG / 360) * GRID_W))
+  return blurGrid(grid, radius, yLo, yHi)
+}
+
 /**
  * The tone band: each labelled photo's own smoothed tone (`own`, for removing it from its detail)
  * and the target tone: in every cell the labelled photo's own tone, blurred across the joins.
@@ -230,25 +248,8 @@ export function toneBands(
   labels: Int32Array,
 ): { own: Map<number, Float32Array>; target: Float32Array } {
   const radius = Math.max(1, Math.round((TONE_BLUR_DEG / 360) * GRID_W))
-  const ownRadius = Math.max(1, Math.round((OWN_TONE_BLUR_DEG / 360) * GRID_W))
   const used = [...new Set(labels)].filter((i) => i >= 0)
-  const own = new Map<number, Float32Array>()
-  for (const i of used) {
-    const { rgb, cover } = coarse[i]!
-    const grid = new Float32Array(CELLS * 4)
-    let yLo = GRID_H
-    let yHi = -1
-    for (let c = 0; c < CELLS; c++) {
-      const w = cover[c]!
-      if (w < MIN_COVER) continue
-      for (let k = 0; k < 3; k++) grid[c * 4 + k] = rgb[c * 3 + k]! * w
-      grid[c * 4 + 3] = w
-      const y = Math.floor(c / GRID_W)
-      yLo = Math.min(yLo, y)
-      yHi = Math.max(yHi, y)
-    }
-    own.set(i, blurGrid(grid, ownRadius, yLo, yHi))
-  }
+  const own = new Map(used.map((i) => [i, ownTone(coarse[i]!)]))
   const winners = new Float32Array(CELLS * 4)
   for (let c = 0; c < CELLS; c++) {
     const tone = labels[c]! >= 0 ? own.get(labels[c]!) : undefined
