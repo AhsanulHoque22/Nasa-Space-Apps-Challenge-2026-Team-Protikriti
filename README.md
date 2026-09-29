@@ -12,6 +12,8 @@ NASA Space Apps Challenge 2026 · **Team Protikriti** · Challenge: [*Interplane
 
 > **The challenge:** build a layered, integrated view of a location or route on the Martian surface that pulls together data from multiple NASA science missions, to help a human explorer plan a successful Marswalk while doing new science along the way.
 
+🌐 **Live: [martian-map.vercel.app](https://martian-map.vercel.app)**
+
 Martian Map puts a 3D globe, rover Street View, live weather, walkable terrain and a safe-route planner on one map of Mars, built entirely from open NASA, USGS and IAU data. 📄 **[Feature list (PDF)](docs/feature-list.pdf)**
 
 ![Jezero Crater in Martian Map: HiRISE imagery on real terrain, slope hazards in red, Perseverance's traverse and sample sites, with the live Gale weather panel](docs/feature-list/map.jpg)
@@ -122,6 +124,17 @@ make build       # production build in web/dist
 cd web && npm run preview   # serve that build at http://localhost:4173
 ```
 
+### Deploy to Vercel
+
+```bash
+make build                          # web/dist, including the map data and vercel.json
+cd web/dist
+npx vercel link --yes --project martian-map
+npx vercel deploy --prod --yes      # publishes https://martian-map.vercel.app
+```
+
+`npx vercel login` first if the CLI isn't signed in; it prints a link you can approve from any device.
+
 ### Troubleshooting
 
 | Problem | Fix |
@@ -217,7 +230,7 @@ curated JSON           ─┘                              └─ weather/ snaps
 | `web/src/ui/` | Panels and dialogs: search, layers, route, weather, clock, Street View, explore, site report |
 | `docs/` | Data sources, feature list PDF, demo script, design spec and plans |
 
-There is no backend: the app is static files plus live calls to NASA's open APIs. Street View stitching reads NASA image pixels through a same-origin `/nasa-raw` → `https://mars.nasa.gov` proxy (built into `npm run dev` and `npm run preview`). A static host without that rewrite, such as the GitHub Pages workflow in `.github/workflows/deploy.yml`, falls back to unstitched photos.
+There is no backend: the app is static files plus live calls to NASA's open APIs. Street View stitching reads NASA image pixels through a same-origin `/nasa-raw` → `https://mars.nasa.gov` proxy (built into `npm run dev` and `npm run preview`). The live site runs on Vercel, where `web/public/vercel.json` provides the same rewrite. A static host without it falls back to unstitched photos.
 
 ## Quality
 
