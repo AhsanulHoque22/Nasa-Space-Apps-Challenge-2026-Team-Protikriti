@@ -1,4 +1,5 @@
 /** Stitch a stop's panorama in a worker; frames are fetched through the same-origin NASA proxy. */
+import { type StopPose, sunAt } from '../core/panorama'
 import { type Frame, exposureId, isRightNavcam } from '../core/streetview'
 import type { StitchReply, StitchRequest } from './stitch.worker'
 
@@ -37,20 +38,25 @@ export type Stitched = { pixels: Uint8ClampedArray; width: number; height: numbe
 const PREVIEW_WIDTH = 1024 // ~2.5 s for 66 frames, against ~20 s at full resolution
 
 /**
- * `yawDeg` turns rover-frame mast azimuths into compass bearings. `onPreview` gets a quick
- * low-resolution sphere; the promise resolves with the full one. Abort with `signal`.
+ * The stop's yaw turns rover-frame mast azimuths into compass bearings; its place and each
+ * frame's time give the Sun's position, so the stitcher can keep dusk shots out of daylight.
+ * `on.preview` gets a quick low-resolution sphere; the promise resolves with the full one.
  */
 export function stitchPanorama(
   { frames }: { frames: readonly Frame[] },
-  yawDeg: number,
+  stop: StopPose,
   on: { progress: (loaded: number, total: number) => void; preview: (p: Stitched) => void },
   signal: AbortSignal,
 ): Promise<Stitched> {
   const worker = new Worker(new URL('./stitch.worker.ts', import.meta.url), { type: 'module' })
+  const yawDeg = stop.yawDeg ?? 0
   const request: StitchRequest = {
     outWidth: OUT_WIDTH,
     previewWidth: PREVIEW_WIDTH,
     frames: frames.map((f) => ({
+      session: `${f.sol}:${f.sequence}`,
+      sunElDeg: sunAt(f, stop)?.elevationDeg,
+      sunAzDeg: sunAt(f, stop)?.azimuthDeg,
       // The mast pointing is the camera's optical axis; the subframe is a window of its sensor.
       url: proxied(f.url),
       azDeg: f.azDeg + yawDeg,

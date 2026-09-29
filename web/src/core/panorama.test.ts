@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { azimuthCoverageDeg, selectPanorama } from './panorama'
+import { azimuthCoverageDeg, selectPanorama, sunAt } from './panorama'
 import type { Frame } from './streetview'
 
 const frame = (over: Partial<Frame>): Frame => ({
@@ -58,5 +58,17 @@ describe('selectPanorama', () => {
   })
   it('is empty for no frames', () => {
     expect(selectPanorama([])).toEqual({ frames: [], coverageDeg: 0 })
+  })
+})
+
+describe('sunAt', () => {
+  it('gives where the Sun stood when the frame was taken', () => {
+    const stop = { lon: 77.4361, lat: 18.46194, yawDeg: -105.8 }
+    const sun = sunAt(frame({ takenUtc: '2022-04-05T18:47:28.503' }), stop)
+    expect(sun?.elevationDeg).toBeCloseTo(40.8, 0)
+    expect(sun?.azimuthDeg).toBeCloseTo(238.3, 0)
+  })
+  it('is null for frames without a time', () => {
+    expect(sunAt(frame({ takenUtc: '' }), { lon: 0, lat: 0, yawDeg: 0 })).toBeNull()
   })
 })

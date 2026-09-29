@@ -37,6 +37,11 @@ export type Source = {
    * sees, e.g. the right Navcam, whose 42 cm offset would ghost nearby objects over the left's.
    */
   weight?: number
+  /** Photos taken together (one sequence on one sol) share this: same light and shadows. */
+  session?: string
+  /** Where the Sun stood when the photo was taken (degrees), to keep dusk out of daylight. */
+  sunElDeg?: number
+  sunAzDeg?: number
 }
 
 export type Camera = {

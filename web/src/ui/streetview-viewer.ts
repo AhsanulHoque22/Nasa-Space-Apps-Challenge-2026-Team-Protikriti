@@ -186,7 +186,7 @@ export function openStreetView(
     try {
       const full = await stitchPanorama(
         pano,
-        yawDeg,
+        stop,
         {
           progress: (loaded, total) => {
             if (id === request) status.textContent = `Downloading Navcam frames ${loaded}/${total}…`

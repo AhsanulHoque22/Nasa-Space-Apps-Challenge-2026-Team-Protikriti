@@ -10,6 +10,20 @@
  */
 
 import { type Camera, RAD, type Source, camera, luma, project, sample } from './pinhole'
+import {
+  type Coarse,
+  GRID_H,
+  GRID_W,
+  MIN_COVER,
+  chooseLabels,
+  colourField,
+  colourise,
+  isGreyscale,
+  photoPenalties,
+  readGrid,
+  sampleCoarse,
+  toneBands,
+} from './seams'
 
 export type { Source } from './pinhole'
 
@@ -22,7 +36,11 @@ export type Panorama = { pixels: Uint8ClampedArray; width: number; height: numbe
 const SIGMA_N = 10 // grey-level noise in overlap means (Brown & Lowe)
 const SIGMA_O = 50 // prior spread of the offsets around 0, in grey levels (NASA stretches shift tens)
 const SIGMA_G = 0.3 // prior spread of the gains around 1 (Navcam auto-exposure varies a lot)
-const GAIN_GRID_DEG = 1 // overlap statistics are sampled on this grid
+// Overlap samples whose brightness ratio differs from the pair's median by more than this
+// (log units, ~±40%) show a change in the scene, not in exposure, and are left out of the fit.
+const OUTLIER_LOG_RATIO = 0.35
+const PAIR_PHOTOS_PER_CELL = 8
+const JOIN_SHARPNESS = 4 // bilinear label weights to this power: joins blend over ~0.3 of a cell
 // Blend weight at which a pixel counts as fully imaged; below it, imagery fades into the fill.
 const FULL_WEIGHT = 0.02
 
@@ -65,6 +83,7 @@ function addSample(
 function exposures(
   sources: readonly Source[],
   cams: readonly Camera[],
+  coarse: readonly Coarse[],
 ): { gain: number[]; offset: number[] } {
   const n = sources.length
   const st: PairStats = {
@@ -74,24 +93,46 @@ function exposures(
     aa: new Float64Array(n * n),
     ab: new Float64Array(n * n),
   }
-  const v = new Float32Array(3)
-  const p = new Float64Array(4)
-  for (let el = -90 + GAIN_GRID_DEG / 2; el < 90; el += GAIN_GRID_DEG) {
-    for (let az = 0; az < 360; az += GAIN_GRID_DEG / Math.max(0.05, Math.cos(el * RAD))) {
-      const hits: Array<[number, number]> = []
-      const [sa, ca, se, ce] = [
-        Math.sin(az * RAD),
-        Math.cos(az * RAD),
-        Math.sin(el * RAD),
-        Math.cos(el * RAD),
-      ]
-      cams.forEach((c, i) => {
-        if (!project(c, sa, ca, se, ce, p)) return
-        sample(sources[i]!, p[0]!, p[1]!, p[3]!, v)
-        hits.push([i, luma(v)])
-      })
+  const pairSamples = new Map<number, number[]>() // i < j: [luma i, luma j, ...]
+  // Overlaps come from the coarse grid every photo is sampled on anyway (~1.4° cells).
+  const cells = GRID_W * GRID_H
+  const hits: Array<[number, number]> = []
+  for (let cell = 0; cell < cells; cell++) {
+    hits.length = 0
+    for (let i = 0; i < n; i++) {
+      if (coarse[i]!.cover[cell]! < MIN_COVER) continue
+      const rgb = coarse[i]!.rgb
+      hits.push([i, (rgb[cell * 3]! + rgb[cell * 3 + 1]! + rgb[cell * 3 + 2]!) / 3])
+    }
+    if (hits.length < 2) continue
+    // Pair only the photos seeing this cell best: plenty of samples per pair, far fewer pairs.
+    if (hits.length > PAIR_PHOTOS_PER_CELL)
+      hits
+        .sort((a, b) => coarse[b[0]]!.cover[cell]! - coarse[a[0]]!.cover[cell]!)
+        .splice(PAIR_PHOTOS_PER_CELL)
+    {
       for (const [i, li] of hits)
-        for (const [j, lj] of hits) if (i !== j) addSample(st, n, i, j, li, lj, 1)
+        for (const [j, lj] of hits) {
+          if (i >= j) continue
+          const key = i * n + j
+          const list = pairSamples.get(key) ?? []
+          list.push(li, lj)
+          pairSamples.set(key, list)
+        }
+    }
+  }
+  // Robust: drop samples where the pair disagrees far more than its typical brightness ratio,
+  // i.e. something moved or a shadow changed between the shots, not the exposure.
+  for (const [key, list] of pairSamples) {
+    const [i, j] = [Math.floor(key / n), key % n]
+    const ratios: number[] = []
+    for (let k = 0; k < list.length; k += 2)
+      ratios.push(Math.log((list[k]! + 1) / (list[k + 1]! + 1)))
+    const typical = [...ratios].sort((x, y) => x - y)[ratios.length >> 1]!
+    for (let k = 0; k < list.length; k += 2) {
+      if (Math.abs(ratios[k / 2]! - typical) > OUTLIER_LOG_RATIO) continue
+      addSample(st, n, i, j, list[k]!, list[k + 1]!, 1)
+      addSample(st, n, j, i, list[k + 1]!, list[k]!, 1)
     }
   }
   addTileStrips(sources, cams, st)
@@ -180,11 +221,45 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
   const width = outWidth
   const height = outWidth / 2
   const cams = sources.map(camera)
-  const { gain, offset } = exposures(sources, cams)
-  const acc = new Float32Array(width * height * 4) // r, g, b, blend weight
-  const seen = new Float32Array(width * height) // how well photos cover a pixel, ignoring priority
+  // Sample every photo once on the coarse grid, match exposures there, then apply them.
+  const coarse = sources.map((s, i) => sampleCoarse(s, cams[i]!))
+  const { gain, offset } = exposures(sources, cams, coarse)
+  coarse.forEach(({ rgb }, i) => {
+    for (let k = 0; k < rgb.length; k++) rgb[k] = rgb[k]! * gain[i]! + offset[i]!
+  })
+  // Greyscale photos borrow colour from the colour photos around them.
+  const greyscale = sources.map(isGreyscale)
+  const colour = colourField(coarse, greyscale)
+  coarse.forEach((c, i) => greyscale[i] && colourise(c, colour))
+  // One photo per part of the sphere (seam selection), then its detail on cross-faded tone.
+  const penalty = photoPenalties(sources, coarse, greyscale)
+  const labels = chooseLabels(coarse, penalty)
+  const { own, target } = toneBands(coarse, labels)
+  // Fallback photos per cell, best first: for pixels the labelled photos just miss.
+  // A photo is a candidate in its cells and their neighbours: its real edge runs through cells
+  // whose centres it misses, and the per-pixel projection decides coverage exactly.
+  const fallback: number[][] = Array.from({ length: GRID_W * GRID_H }, () => [])
+  coarse.forEach(({ cover }, i) => {
+    const near = new Set<number>()
+    for (let c = 0; c < cover.length; c++) {
+      if (cover[c]! < MIN_COVER) continue
+      const cx = c % GRID_W
+      const cy = (c - cx) / GRID_W
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const yy = cy + dy
+          if (yy >= 0 && yy < GRID_H) near.add(yy * GRID_W + ((cx + dx + GRID_W) % GRID_W))
+        }
+    }
+    for (const c of near) fallback[c]!.push(i)
+  })
+  for (const list of fallback) list.sort((a, b) => penalty[a]! - penalty[b]!)
+  const acc = new Float32Array(width * height * 4) // r, g, b, 1 once painted
+  const seen = new Float32Array(width * height) // lens weight of the photo used, for the gap fill
   const v = new Float32Array(3)
   const p = new Float64Array(4)
+  const tone = new Float32Array(3)
+  const ratio = new Float32Array(3)
   const sinAz = new Float64Array(width)
   const cosAz = new Float64Array(width)
   for (let x = 0; x < width; x++) {
@@ -192,44 +267,86 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
     sinAz[x] = Math.sin(az)
     cosAz[x] = Math.cos(az)
   }
-  cams.forEach((c, i) => {
-    const s = sources[i]!
-    const g = gain[i]!
-    const off = offset[i]!
-    const elLo = Math.max(-90, c.centreElDeg - c.radiusDeg)
-    const elHi = Math.min(90, c.centreElDeg + c.radiusDeg)
-    const yLo = Math.max(0, Math.floor(((90 - elHi) / 180) * height))
-    const yHi = Math.min(height - 1, Math.ceil(((90 - elLo) / 180) * height))
-    for (let y = yLo; y <= yHi; y++) {
-      const el = 90 - ((y + 0.5) / height) * 180
-      const sinEl = Math.sin(el * RAD)
-      const cosEl = Math.cos(el * RAD)
-      // Azimuths within the frame's cone (angular radius R around the axis) on this row:
-      // cos dAz >= (cos R - sin el sin el0) / (cos el cos el0).
-      const el0 = c.centreElDeg * RAD
-      const bound =
-        (Math.cos(c.radiusDeg * RAD) - sinEl * Math.sin(el0)) /
-        Math.max(1e-9, cosEl * Math.cos(el0))
-      if (bound > 1) continue
-      const spread = bound <= -1 ? 180 : Math.acos(bound) / RAD
-      const xs = Math.floor(((c.centreAzDeg - spread) / 360) * width)
-      const xe = Math.ceil(((c.centreAzDeg + spread) / 360) * width)
-      for (let xx = xs; xx <= Math.min(xe, xs + width - 1); xx++) {
-        const x = ((xx % width) + width) % width
-        if (!project(c, sinAz[x]!, cosAz[x]!, sinEl, cosEl, p)) continue
-        sample(s, p[0]!, p[1]!, p[3]!, v)
-        const o = (y * width + x) * 4
-        // Feathered at the tile edges and favouring the sharp, bright sensor centre.
-        const cover = p[2]! / (1 + p[3]!)
-        const w = cover * (s.weight ?? 1)
-        acc[o] = acc[o]! + (v[0]! * g + off) * w
-        acc[o + 1] = acc[o + 1]! + (v[1]! * g + off) * w
-        acc[o + 2] = acc[o + 2]! + (v[2]! * g + off) * w
-        acc[o + 3] = acc[o + 3]! + w
-        seen[o / 4] = seen[o / 4]! + cover
+  /** Photo i's exposure-matched (and, if greyscale, coloured) value at this pixel into `v`. */
+  const valueAt = (i: number, x: number, sinEl: number, cosEl: number, u: number, w01: number) => {
+    if (!project(cams[i]!, sinAz[x]!, cosAz[x]!, sinEl, cosEl, p)) return false
+    sample(sources[i]!, p[0]!, p[1]!, p[3]!, v)
+    for (let k = 0; k < 3; k++) v[k] = v[k]! * gain[i]! + offset[i]! // exposure, then colour
+    if (greyscale[i] && readGrid(colour, u, w01, ratio))
+      for (let k = 0; k < 3; k++) v[k] = (v[k]! + 1) * ratio[k]! - 1
+    return true
+  }
+  const ids = [0, 0, 0, 0]
+  const weights = [0, 0, 0, 0]
+  const sum = [0, 0, 0]
+  for (let y = 0; y < height; y++) {
+    const w01 = (y + 0.5) / height
+    const el = (90 - w01 * 180) * RAD
+    const [sinEl, cosEl] = [Math.sin(el), Math.cos(el)]
+    const fy = Math.min(GRID_H - 1.001, Math.max(0, w01 * GRID_H - 0.5))
+    const y0 = Math.floor(fy)
+    const ty = fy - y0
+    for (let x = 0; x < width; x++) {
+      const u = (x + 0.5) / width
+      const fx = u * GRID_W - 0.5
+      const x0 = Math.floor(fx)
+      const tx = fx - x0
+      const xa = (x0 + GRID_W) % GRID_W
+      const xb = (xa + 1) % GRID_W
+      // Smooth joins: each nearby cell's photo counts by bilinear weight, sharpened so the
+      // hand-over is a narrow blend along a curve instead of a staircase of cell edges.
+      let n = 0
+      const corners: Array<[number, number]> = [
+        [y0 * GRID_W + xa, (1 - tx) * (1 - ty)],
+        [y0 * GRID_W + xb, tx * (1 - ty)],
+        [(y0 + 1) * GRID_W + xa, (1 - tx) * ty],
+        [(y0 + 1) * GRID_W + xb, tx * ty],
+      ]
+      for (const [cell, w] of corners) {
+        const id = labels[cell]!
+        if (id < 0 || w <= 0) continue
+        const k = ids.indexOf(id)
+        if (k >= 0 && k < n) weights[k] = weights[k]! + w
+        else [ids[n], weights[n++]] = [id, w]
       }
+      const o = (y * width + x) * 4
+      let total = 0
+      let cover = 0
+      sum.fill(0)
+      for (let k = 0; k < n; k++) {
+        const i = ids[k]!
+        const w = weights[k]! ** JOIN_SHARPNESS
+        if (w < 1e-4 || !valueAt(i, x, sinEl, cosEl, u, w01)) continue
+        // Detail: the photo minus its own tone; the cross-faded tone is added below.
+        // (Where its own tone can't be read, subtract the target tone: the two cancel below.)
+        const has = readGrid(own.get(i) ?? target, u, w01, tone) || readGrid(target, u, w01, tone)
+        for (let c = 0; c < 3; c++) sum[c] = sum[c]! + (v[c]! - (has ? tone[c]! : 0)) * w
+        total += w
+        cover += (p[2]! / (1 + p[3]!)) * w
+      }
+      if (total === 0) {
+        // Cell edges the labelled photos just miss: the best-ranked photo that sees the pixel.
+        // Candidates from all four surrounding cells: the pixel may sit in any of them.
+        const tried = new Set<number>()
+        search: for (const [cell] of corners)
+          for (const i of fallback[cell] ?? []) {
+            if (tried.has(i)) continue
+            tried.add(i)
+            if (!valueAt(i, x, sinEl, cosEl, u, w01)) continue
+            const has = readGrid(target, u, w01, tone)
+            for (let c = 0; c < 3; c++) sum[c] = v[c]! - (has ? tone[c]! : 0)
+            total = 1
+            cover = p[2]! / (1 + p[3]!)
+            break search
+          }
+      }
+      if (total === 0) continue
+      const hasTarget = readGrid(target, u, w01, tone)
+      for (let c = 0; c < 3; c++) acc[o + c] = sum[c]! / total + (hasTarget ? tone[c]! : 0)
+      acc[o + 3] = 1
+      seen[o / 4] = cover / total
     }
-  })
+  }
   return fillGaps(acc, seen, width, height)
 }
 

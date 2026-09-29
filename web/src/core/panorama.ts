@@ -39,16 +39,23 @@ export function azimuthCoverageDeg(frames: readonly Frame[]): number {
 /** Where the stop is and which way the rover faced (mast azimuths are rover-relative). */
 export type StopPose = { lon: number; lat: number; yawDeg: number | null }
 
+/** Where the Sun stood when the frame was taken, or null without a usable time. */
+export function sunAt(
+  f: Frame,
+  stop: StopPose,
+): { elevationDeg: number; azimuthDeg: number } | null {
+  if (!f.takenUtc) return null
+  const utc = Date.parse(f.takenUtc.endsWith('Z') ? f.takenUtc : `${f.takenUtc}Z`)
+  return Number.isNaN(utc) ? null : sunPosition(utc, stop.lon, stop.lat)
+}
+
 /**
  * Whether the frame was aimed at the Sun: Navcam's dust-opacity shots use exposures so short
  * that everything but the Sun is black, so they show nothing of the place.
  */
 function showsSun(f: Frame, stop: StopPose): boolean {
-  if (!f.takenUtc) return false
-  const utc = Date.parse(f.takenUtc.endsWith('Z') ? f.takenUtc : `${f.takenUtc}Z`)
-  if (Number.isNaN(utc)) return false
-  const sun = sunPosition(utc, stop.lon, stop.lat)
-  if (sun.elevationDeg < 0) return false
+  const sun = sunAt(f, stop)
+  if (!sun || sun.elevationDeg < 0) return false
   const g = frameGeometry(f)
   const dAz =
     (((sun.azimuthDeg - (g.azDeg + (stop.yawDeg ?? 0)) + 540) % 360) - 180) *
