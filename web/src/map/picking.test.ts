@@ -24,6 +24,21 @@ describe('pickedId', () => {
     expect(pickedId(viewerPicking({ id: { id: 'guid-1' } }, { id: 'guid-2' }), AT)).toBe('guid-1')
   })
 
+  it('searches a finger-sized area on touch screens, a small one for a mouse', () => {
+    const sizes: number[] = []
+    const viewer = {
+      scene: {
+        drillPick: (_at: unknown, _limit: number, width: number) => (sizes.push(width), []),
+      },
+    } as unknown as Viewer
+    for (const coarse of [true, false]) {
+      Object.assign(globalThis, { matchMedia: () => ({ matches: coarse }) })
+      pickedId(viewer, AT)
+    }
+    expect(sizes[0]).toBeGreaterThanOrEqual(24)
+    expect(sizes[1]).toBeLessThan(sizes[0] ?? 0)
+  })
+
   it('returns undefined over bare terrain', () => {
     expect(pickedId(viewerPicking(), AT)).toBeUndefined()
   })

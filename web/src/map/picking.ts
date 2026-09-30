@@ -6,6 +6,14 @@ export const INTERACTIVE_PREFIXES = ['station:', 'stop:', 'activity:'] as const
 // Objects to look through under the cursor: stop dots share their pixels with the draped
 // traverse line and replay trail, which sit on top and would otherwise swallow the click.
 const PICK_DEPTH = 8
+// Pick area (px square). Cesium's default 3 px misses a 6-14 px stop dot under a ~40 px
+// fingertip, so a tap on a dot on a phone landed on the ground and added a Marswalk point.
+const TOUCH_PICK_PX = 28
+const MOUSE_PICK_PX = 8
+
+function pickSizePx(): number {
+  return globalThis.matchMedia?.('(pointer: coarse)').matches ? TOUCH_PICK_PX : MOUSE_PICK_PX
+}
 
 function idOf(picked: { id?: unknown }): string | undefined {
   const id = picked.id
@@ -17,7 +25,9 @@ function idOf(picked: { id?: unknown }): string | undefined {
 /** Id of the clickable map object under the pointer, else of the topmost object, if any. */
 export function pickedId(viewer: Viewer, position: Cartesian2): string | undefined {
   if (isExploring()) return undefined // explore mode owns the canvas
-  const ids = (viewer.scene.drillPick(position, PICK_DEPTH) as { id?: unknown }[]).map(idOf)
+  const size = pickSizePx()
+  const picked = viewer.scene.drillPick(position, PICK_DEPTH, size, size) as { id?: unknown }[]
+  const ids = picked.map(idOf)
   return ids.find((id) => id && INTERACTIVE_PREFIXES.some((p) => id.startsWith(p))) ?? ids[0]
 }
 
