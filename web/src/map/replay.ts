@@ -8,6 +8,7 @@ import {
   HeadingPitchRoll,
   HeightReference,
   Math as CesiumMath,
+  Matrix4,
   Model,
   Transforms,
   type Viewer,
@@ -123,13 +124,14 @@ export function createReplay(viewer: Viewer, stops: Record<Rover, Stop[]>): Repl
       current = undefined
       trail.entities.removeAll()
       if (model) model.show = false
-      if (following)
-        viewer.camera.lookAtTransform(Transforms.eastNorthUpToFixedFrame(Cartesian3.ZERO))
+      if (following) viewer.camera.lookAtTransform(Matrix4.IDENTITY)
       following = false
     },
     follow(on) {
+      // Release to the identity frame: any other transform reads as "following" and turns off
+      // the keep-above-ground clamp (terrain.ts), letting zoom sink into the planet.
+      if (following && !on) viewer.camera.lookAtTransform(Matrix4.IDENTITY)
       following = on
-      if (!on) viewer.camera.lookAtTransform(Transforms.eastNorthUpToFixedFrame(Cartesian3.ZERO))
       place()
     },
   }
