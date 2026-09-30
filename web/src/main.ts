@@ -200,7 +200,11 @@ async function main() {
       },
     )
   }
-  const streetView = await addStreetViewStops(viewer, showStreetView)
+  const streetView = await addStreetViewStops(
+    viewer,
+    (lon, lat) => (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration,
+    showStreetView,
+  )
   const openActivity = (activity: Activity) => {
     const card = renderActivityCard(side, activity, {
       onClose: () => card.remove(),

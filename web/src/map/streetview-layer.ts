@@ -3,7 +3,7 @@ import {
   BillboardCollection,
   Cartesian3,
   DistanceDisplayCondition,
-  HeightReference,
+  NearFarScalar,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   type Viewer,
@@ -14,7 +14,9 @@ import { MARS_SPHERE } from './mars'
 import { pickedId } from './picking'
 import type { Rover } from './raw-images'
 
-const VISIBLE_BELOW_M = 150_000 // like Street View's "pegman" level: only when zoomed in
+// Visible from a whole-crater view; shrunk with distance so the path still reads as a line.
+const VISIBLE_BELOW_M = 1_500_000
+const SCALE_BY_DISTANCE = new NearFarScalar(20_000, 1, 1_500_000, 0.45)
 const DOT_PX = 14
 
 function dot(fill: string): HTMLCanvasElement {
@@ -34,8 +36,14 @@ function dot(fill: string): HTMLCanvasElement {
 
 export type StopsByRover = Record<Rover, Stop[]>
 
+/**
+ * `surfaceM` is the rendered ground height (terrain height x vertical exaggeration). Stops are
+ * placed on it directly: CLAMP_TO_GROUND left most of the ~2,000 billboards at the datum, km
+ * above the terrain, so they drifted off the draped traverse line in oblique views.
+ */
 export async function addStreetViewStops(
   viewer: Viewer,
+  surfaceM: (lon: number, lat: number) => number,
   onOpen: (rover: Rover, index: number) => void,
 ): Promise<{
   stops: StopsByRover
@@ -54,11 +62,12 @@ export async function addStreetViewStops(
     stops[rover].forEach((s, i) => {
       billboards.add({
         id: `stop:${rover}:${i}`,
-        position: Cartesian3.fromDegrees(s.lon, s.lat, 0, MARS_SPHERE),
+        position: Cartesian3.fromDegrees(s.lon, s.lat, surfaceM(s.lon, s.lat), MARS_SPHERE),
         image: images[rover],
-        heightReference: HeightReference.CLAMP_TO_GROUND,
+        scaleByDistance: SCALE_BY_DISTANCE,
         distanceDisplayCondition: new DistanceDisplayCondition(0, VISIBLE_BELOW_M),
-        disableDepthTestDistance: 20_000,
+        // Coarse far tiles can sit above the true ground; don't let them bury the dots.
+        disableDepthTestDistance: VISIBLE_BELOW_M,
       })
     })
   }
