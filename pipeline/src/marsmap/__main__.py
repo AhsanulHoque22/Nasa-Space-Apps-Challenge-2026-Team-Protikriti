@@ -192,12 +192,26 @@ def _swim(args: argparse.Namespace) -> None:
     print(f"wrote {args.out}/swim.bin ({shape[1]}x{shape[0]}, lat {south}..{north})")
 
 
-def _download_bytes(url: str) -> bytes:
-    from urllib.request import urlopen
+# NASA/USGS servers stall mid-transfer now and then (seen in CI); retry like `curl --retry 3`.
+DOWNLOAD_ATTEMPTS = 4
+DOWNLOAD_RETRY_WAIT_S = 10
 
-    with urlopen(url, timeout=120) as response:
-        data: bytes = response.read()
-        return data
+
+def _download_bytes(url: str) -> bytes:
+    import time
+    import urllib.request
+
+    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response:
+                data: bytes = response.read()
+                return data
+        except OSError as error:  # URLError and TimeoutError are both OSErrors
+            if attempt == DOWNLOAD_ATTEMPTS:
+                raise
+            print(f"download failed ({error}), retry {attempt}/{DOWNLOAD_ATTEMPTS - 1}: {url}")
+            time.sleep(DOWNLOAD_RETRY_WAIT_S)
+    raise AssertionError("unreachable")
 
 
 def main(argv: Sequence[str] | None = None) -> int:

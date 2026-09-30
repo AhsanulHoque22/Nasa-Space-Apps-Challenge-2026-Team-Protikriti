@@ -74,3 +74,47 @@ def test_layers_writes_geojson_for_every_layer(tmp_path: Path) -> None:
         assert collection["features"], layer
     zones = json.loads((out / "exploration_zones.geojson").read_text())
     assert zones["radius_km"] == 100
+
+
+class _FakeResponse:
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return b"payload"
+
+
+def test_download_retries_a_stalled_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    import urllib.request
+
+    from marsmap import __main__ as cli
+
+    calls: list[str] = []
+
+    def flaky(url: str, timeout: float) -> _FakeResponse:
+        calls.append(url)
+        if len(calls) < 3:
+            raise TimeoutError("The read operation timed out")
+        return _FakeResponse()
+
+    monkeypatch.setattr(urllib.request, "urlopen", flaky)
+    monkeypatch.setattr(cli, "DOWNLOAD_RETRY_WAIT_S", 0)
+    assert cli._download_bytes("https://example.test/f.tif") == b"payload"
+    assert len(calls) == 3
+
+
+def test_download_gives_up_after_the_last_attempt(monkeypatch: pytest.MonkeyPatch) -> None:
+    import urllib.request
+
+    from marsmap import __main__ as cli
+
+    def dead(url: str, timeout: float) -> _FakeResponse:
+        raise TimeoutError("The read operation timed out")
+
+    monkeypatch.setattr(urllib.request, "urlopen", dead)
+    monkeypatch.setattr(cli, "DOWNLOAD_RETRY_WAIT_S", 0)
+    with pytest.raises(TimeoutError):
+        cli._download_bytes("https://example.test/f.tif")
