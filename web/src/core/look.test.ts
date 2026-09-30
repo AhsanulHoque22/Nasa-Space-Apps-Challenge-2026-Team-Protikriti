@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FOV_RANGE, pinchFov, wheelFov } from './look'
+import { FOV_RANGE, pinchFov, wheelFov, wheelZoomDistanceM } from './look'
 
 describe('pinchFov', () => {
   it('zooms in proportionally as the fingers spread', () => {
@@ -23,5 +23,23 @@ describe('wheelFov', () => {
   })
   it('undoes itself when scrolled back the same amount', () => {
     expect(wheelFov(wheelFov(70, 120), -120)).toBeCloseTo(70)
+  })
+})
+
+describe('wheelZoomDistanceM', () => {
+  it('closes a fixed fraction of the distance per notch, however close the camera is', () => {
+    const far = wheelZoomDistanceM(10_000, -100) / 10_000
+    const near = wheelZoomDistanceM(100, -100) / 100
+    expect(far).toBeCloseTo(near)
+    expect(far).toBeGreaterThan(0.7)
+    expect(far).toBeLessThan(0.9)
+  })
+
+  it('backs off by the same factor when scrolling the other way', () => {
+    expect(wheelZoomDistanceM(wheelZoomDistanceM(1000, -100), 100)).toBeCloseTo(1000)
+  })
+
+  it('never reaches the point under the mouse', () => {
+    expect(wheelZoomDistanceM(12, -5000)).toBeGreaterThanOrEqual(5)
   })
 })

@@ -53,7 +53,7 @@ export function createTerrain(height: HeightFn): CustomHeightmapTerrainProvider 
 // Closest the camera may get to the ground. Cesium's own collision test only runs below
 // 0.0025 x radius (17 km on Mars at 2x relief, lower than Tharsis) and skips frames while tiles
 // load, so zooming could pass through the surface into the black inside of the planet.
-const GROUND_CLEARANCE_M = 20
+const GROUND_CLEARANCE_M = 5 // close enough to read HiRISE detail (25 cm/px)
 
 /**
  * Lowest camera height (above the datum) at a point: above both the true ground, exaggerated as

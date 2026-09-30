@@ -43,14 +43,14 @@ describe('sampleHeights', () => {
 
 describe('lowestCameraHeightM', () => {
   it('stands the camera above the exaggerated true ground', () => {
-    expect(lowestCameraHeightM(-2600, undefined, 2)).toBe(-5200 + 20)
+    expect(lowestCameraHeightM(-2600, undefined, 2)).toBe(-5200 + 5)
   })
 
   it('uses the rendered mesh where it sits above the true ground', () => {
-    expect(lowestCameraHeightM(-2600, -5000, 2)).toBe(-5000 + 20)
+    expect(lowestCameraHeightM(-2600, -5000, 2)).toBe(-5000 + 5)
   })
 
   it('treats nodata as the datum', () => {
-    expect(lowestCameraHeightM(NaN, undefined, 2)).toBe(20)
+    expect(lowestCameraHeightM(NaN, undefined, 2)).toBe(5)
   })
 })

@@ -8,6 +8,7 @@ import { createReplay } from './map/replay'
 import { addStreetViewStops } from './map/streetview-layer'
 import { createRouteLayer } from './map/route-layer'
 import { createTerrain, keepCameraAboveGround } from './map/terrain'
+import { installWheelZoom } from './map/wheel-zoom'
 import { decodeView, encodeView } from './core/deeplink'
 import {
   applyView,
@@ -101,6 +102,7 @@ async function main() {
   // CLAMP_TO_GROUND left most of them km above the terrain, off the draped lines and clicks.
   const surfaceM = (lon: number, lat: number) =>
     (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration
+  installWheelZoom(viewer, surfaceM)
   viewer.terrainProvider = createTerrain(groundM)
   keepCameraAboveGround(viewer, groundM)
   const shared = decodeView(window.location.search)
