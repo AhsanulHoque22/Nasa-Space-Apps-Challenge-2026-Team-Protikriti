@@ -63,6 +63,42 @@ function showsSun(f: Frame, stop: StopPose): boolean {
   return Math.abs(dAz) < g.widthDeg / 2 && Math.abs(sun.elevationDeg - g.elDeg) < g.heightDeg / 2
 }
 
+// A borrowed frame must widen the view by at least this much to be worth downloading.
+const MIN_GAIN_DEG = 1
+const FULL_CIRCLE_DEG = 359.5
+
+/** Frames taken at one stop, and which way the rover faced there (mast azimuths are rover-frame). */
+export type PosedFrames = { frames: readonly Frame[]; yawDeg: number }
+
+/**
+ * Most stops have no full Navcam ring. Close the gaps with real frames from nearby stops (nearest
+ * first), each turned into this stop's rover frame so the stitcher lines it up by compass
+ * bearing: a neighbour's mast azimuth a is compass a + yaw_n, which is this stop's a + yaw_n - yaw.
+ * Only frames that show azimuths not yet covered are added.
+ */
+export function fillGaps(
+  here: PosedFrames,
+  nearestFirst: readonly PosedFrames[],
+): { frames: Frame[]; borrowedStops: number } {
+  const frames = [...here.frames]
+  let coverage = azimuthCoverageDeg(frames)
+  let borrowedStops = 0
+  for (const near of nearestFirst) {
+    if (coverage >= FULL_CIRCLE_DEG) break
+    let borrowed = false
+    for (const f of near.frames) {
+      const turned = { ...f, azDeg: f.azDeg + near.yawDeg - here.yawDeg }
+      const widened = azimuthCoverageDeg([...frames, turned])
+      if (widened < coverage + MIN_GAIN_DEG) continue
+      frames.push(turned)
+      coverage = widened
+      borrowed = true
+    }
+    if (borrowed) borrowedStops++
+  }
+  return { frames, borrowedStops }
+}
+
 /**
  * Every frame NASA took at the stop, whatever sequence, sol or pointing: repeats and extra shots
  * still add detail, exposure information and sky. Only shots aimed at the Sun are left out.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { azimuthCoverageDeg, selectPanorama, sunAt } from './panorama'
+import { azimuthCoverageDeg, fillGaps, selectPanorama, sunAt } from './panorama'
 import type { Frame } from './streetview'
 
 const frame = (over: Partial<Frame>): Frame => ({
@@ -70,5 +70,43 @@ describe('sunAt', () => {
   })
   it('is null for frames without a time', () => {
     expect(sunAt(frame({ takenUtc: '' }), { lon: 0, lat: 0, yawDeg: 0 })).toBeNull()
+  })
+})
+
+describe('fillGaps', () => {
+  // 96°-wide frames; the stop's own sweep covers compass 302..78 (136°).
+  const here = { frames: [frame({ azDeg: 350 }), frame({ azDeg: 30 })], yawDeg: 0 }
+
+  it("adds a nearby stop's frame that looks into the gap, turned to this stop's heading", () => {
+    // The neighbour faced east (yaw 90): its mast azimuth 90 is compass 180, the missing south.
+    const south = frame({ sol: 2000, azDeg: 90 })
+    const filled = fillGaps(here, [{ frames: [south], yawDeg: 90 }])
+    expect(filled.frames).toHaveLength(3)
+    expect(filled.frames[2]?.azDeg).toBe(180) // rover-frame azimuth for this stop's yaw
+    expect(filled.borrowedStops).toBe(1)
+    expect(azimuthCoverageDeg(filled.frames)).toBeCloseTo(232)
+  })
+
+  it('skips frames that only repeat what this stop already shows', () => {
+    const same = frame({ sol: 2000, azDeg: 10 })
+    const filled = fillGaps(here, [{ frames: [same], yawDeg: 0 }])
+    expect(filled.frames).toHaveLength(2)
+    expect(filled.borrowedStops).toBe(0)
+  })
+
+  it('takes the nearest stop first and stops once the circle is closed', () => {
+    const ring = [90, 150, 210, 270].map((az) => frame({ sol: 2000, azDeg: az }))
+    const farther = [frame({ sol: 2001, azDeg: 180 })]
+    const filled = fillGaps(here, [
+      { frames: ring, yawDeg: 0 },
+      { frames: farther, yawDeg: 0 },
+    ])
+    expect(azimuthCoverageDeg(filled.frames)).toBe(360)
+    expect(filled.frames.some((f) => f.sol === 2001)).toBe(false)
+    expect(filled.borrowedStops).toBe(1)
+  })
+
+  it("returns the stop's own frames when there is nothing nearby", () => {
+    expect(fillGaps(here, []).frames).toEqual(here.frames)
   })
 })

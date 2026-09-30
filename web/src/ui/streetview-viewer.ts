@@ -4,7 +4,8 @@
  * stops on a CSS-3D layer that shares the camera.
  */
 import { FOV_RANGE, pinchFov, wheelFov } from '../core/look'
-import { selectPanorama } from '../core/panorama'
+import { type PosedFrames, fillGaps, selectPanorama } from '../core/panorama'
+import { distanceKm } from '../core/site-report'
 import {
   type Frame,
   type Stop,
@@ -23,6 +24,12 @@ const FOV = { ...FOV_RANGE, start: 70 }
 const DRAG_DEG_PER_PX = 0.15
 const KEY_STEP_DEG = 8
 const SEARCH_RADIUS = 6 // stops to check each way when a stop has no usable panorama
+// Gap filling: borrow frames from stops this close. Farther away, parallax shifts the foreground
+// too much for the frames to line up; the horizon still matches. Stops are ~20 m apart (median).
+const FILL_MAX_DISTANCE_M = 60
+const FILL_MAX_STOPS = 8 // each way along the traverse
+const FILL_BATCH = 4 // NASA raw-image queries in flight at once
+const FULL_CIRCLE_DEG = 359.5
 const GOOD_COVERAGE_DEG = 90 // a sweep this wide reads as a place, not a close-up
 const ARROW_EL_DEG = -28 // walk arrows sit on the ground ahead, like Street View chevrons
 
@@ -156,12 +163,16 @@ export function openStreetView(
       return img
     })
 
-  const show = async (stop: Stop, found: Frame[], id: number) => {
+  const show = async (stop: Stop, found: Frame[], id: number, borrowedStops = 0) => {
     const pano = selectPanorama(found, stop)
     const first = pano.frames[0]
     if (!first) return
     const yawDeg = stop.yawDeg ?? 0 // mast azimuths are rover-frame; yaw makes them compass
-    const sweep = pano.coverageDeg >= 359 ? '360°' : `${Math.round(pano.coverageDeg)}°`
+    const sweep =
+      (pano.coverageDeg >= 359 ? '360°' : `${Math.round(pano.coverageDeg)}°`) +
+      (borrowedStops
+        ? ` (gaps filled from ${borrowedStops} nearby stop${borrowedStops > 1 ? 's' : ''})`
+        : '')
     status.textContent = `Stitching ${pano.frames.length} NASA Navcam frames into a ${sweep} view…`
     stitching?.abort()
     stitching = new AbortController()
@@ -214,6 +225,46 @@ export function openStreetView(
     }
   }
 
+  // One query per stop per session: the search and the gap filling ask for the same stops.
+  const fetched = new Map<number, Promise<Frame[]>>()
+  const framesAt = (i: number, s: Stop) => {
+    let frames = fetched.get(i)
+    if (!frames) {
+      frames = framesForStop(rover, s, stops[i + 1]?.sol)
+      fetched.set(i, frames)
+      frames.catch(() => fetched.delete(i)) // let "Try again" ask NASA again
+    }
+    return frames
+  }
+
+  /** Real frames from nearby stops that look where this stop's own sweep does not. */
+  const filled = async (at: number, own: Frame[], id: number) => {
+    const here = stops[at]
+    if (!here || selectPanorama(own, here).coverageDeg >= FULL_CIRCLE_DEG) return null
+    const near = [...Array(2 * FILL_MAX_STOPS).keys()]
+      .map((k) => at + (k % 2 ? -1 : 1) * (Math.floor(k / 2) + 1))
+      .flatMap((i) => {
+        const s = stops[i]
+        const m = s && distanceKm(here.lon, here.lat, s.lon, s.lat) * 1000
+        return s && m !== undefined && m <= FILL_MAX_DISTANCE_M ? [{ i, s, m }] : []
+      })
+      .sort((a, b) => a.m - b.m)
+    if (near.length === 0) return null
+    status.textContent = 'Filling the gaps with Navcam frames from nearby stops…'
+    const posed: PosedFrames[] = []
+    for (let k = 0; k < near.length; k += FILL_BATCH) {
+      const batch = near.slice(k, k + FILL_BATCH)
+      const frames = await Promise.all(batch.map(({ i, s }) => framesAt(i, s).catch(() => [])))
+      if (id !== request) return null
+      batch.forEach(({ s }, j) =>
+        posed.push({ frames: selectPanorama(frames[j] ?? [], s).frames, yawDeg: s.yawDeg ?? 0 }),
+      )
+      const soFar = fillGaps({ frames: own, yawDeg: here.yawDeg ?? 0 }, posed)
+      if (selectPanorama(soFar.frames).coverageDeg >= FULL_CIRCLE_DEG) return soFar
+    }
+    return fillGaps({ frames: own, yawDeg: here.yawDeg ?? 0 }, posed)
+  }
+
   const load = async (target: number) => {
     const id = ++request
     index = target
@@ -232,7 +283,7 @@ export function openStreetView(
         for (const candidate of d === 0 ? [index] : [index - d, index + d]) {
           const s = stops[candidate]
           if (!s) continue
-          const found = await framesForStop(rover, s, stops[candidate + 1]?.sol)
+          const found = await framesAt(candidate, s)
           if (id !== request) return
           const coverage = selectPanorama(found, s).coverageDeg
           if (found.length && coverage > (best?.coverage ?? -1))
@@ -249,7 +300,9 @@ export function openStreetView(
       }
       index = best.at
       describe(s)
-      await show(s, best.frames, id)
+      const more = await filled(best.at, best.frames, id)
+      if (id !== request) return
+      await show(s, more?.frames ?? best.frames, id, more?.borrowedStops ?? 0)
     } catch (error) {
       if (id !== request) return
       status.replaceChildren(
