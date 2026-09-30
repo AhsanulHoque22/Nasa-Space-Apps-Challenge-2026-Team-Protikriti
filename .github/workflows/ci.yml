@@ -28,6 +28,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: make install
+      # Raw NASA/USGS downloads (~95 MB) change rarely; reuse them so a flaky server can't block
+      # a deploy. Bump the key to force a fresh download.
+      - uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: raw-data-v1-${{ hashFiles('pipeline/scripts/*.sh') }}
       - run: make data # downloads NASA/USGS sources (~95 MB) and builds web/public/data
       - run: make build
       - run: npx --yes vercel@61 deploy --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"
