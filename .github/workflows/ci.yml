@@ -40,5 +40,7 @@ jobs:
         env: { GH_TOKEN: '${{ github.token }}' }
       - run: make data # downloads NASA/USGS sources (~95 MB) and builds web/public/data
       - run: make build
-      - run: npx --yes vercel@61 deploy --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"
+      # Strip whitespace: a pasted secret can carry a stray space, which the CLI rejects.
+      - run: npx --yes vercel@61 deploy --prod --yes --token "$(printf %s "$VERCEL_TOKEN" | tr -d '[:space:]')"
         working-directory: web/dist
+        env: { VERCEL_TOKEN: '${{ secrets.VERCEL_TOKEN }}' }
