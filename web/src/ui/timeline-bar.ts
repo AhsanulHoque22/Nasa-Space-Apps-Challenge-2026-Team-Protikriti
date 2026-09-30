@@ -4,7 +4,9 @@ import type { Rover } from '../map/raw-images'
 import type { Replay } from '../map/replay'
 import { advancePlayhead } from '../core/playback'
 
-const SOLS_PER_SECOND = 40
+// Replay speeds (sols per second). Slow speeds give imagery tiles time to load along the path.
+const SPEEDS = [1, 2, 5, 10, 20, 40]
+const DEFAULT_SPEED = 5
 const ROVERS: Record<Rover, { name: string; landing: number }> = {
   m20: { name: 'Perseverance', landing: Date.UTC(2021, 1, 18, 20, 55) },
   msl: { name: 'Curiosity', landing: Date.UTC(2012, 7, 6, 5, 17, 57) },
@@ -26,6 +28,9 @@ export function renderTimelineBar(
         <button type="button" data-rover="msl" aria-pressed="false">Curiosity</button>
       </div>
       <button type="button" class="tl-play" aria-pressed="false">Play</button>
+      <label class="tl-speed">Speed
+        <select>${SPEEDS.map((v) => `<option value="${v}"${v === DEFAULT_SPEED ? ' selected' : ''}>${v} sol/s</option>`).join('')}</select>
+      </label>
       <label class="tl-follow"><input type="checkbox" /> Follow</label>
       <button type="button" class="tl-close quiet">Hide</button>
     </div>
@@ -37,6 +42,7 @@ export function renderTimelineBar(
   const label = bar.querySelector('.tl-label') as HTMLElement
   const play = bar.querySelector('.tl-play') as HTMLButtonElement
   const follow = bar.querySelector('.tl-follow input') as HTMLInputElement
+  const speed = bar.querySelector('.tl-speed select') as HTMLSelectElement
   let rover: Rover = 'm20'
   let playing = 0
   let playhead = 0 // fractional sol: per-frame steps are < 1 sol at 60 fps
@@ -60,7 +66,7 @@ export function renderTimelineBar(
     play.setAttribute('aria-pressed', 'false')
   }
   const tick = (last: number) => (now: number) => {
-    playhead = advancePlayhead(playhead, now - last, SOLS_PER_SECOND, Number(slider.max))
+    playhead = advancePlayhead(playhead, now - last, Number(speed.value), Number(slider.max))
     slider.value = String(Math.floor(playhead))
     render()
     if (playhead >= Number(slider.max)) stop()
