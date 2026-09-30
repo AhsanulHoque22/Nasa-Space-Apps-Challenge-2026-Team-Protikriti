@@ -5,7 +5,6 @@ import {
   Color,
   CustomDataSource,
   DistanceDisplayCondition,
-  HeightReference,
   LabelStyle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -14,7 +13,7 @@ import {
 } from 'cesium'
 import { LAYER_STYLE } from './layers'
 import { MARS_SPHERE } from './mars'
-import { pickedId } from './picking'
+import { addClickables, pickedId } from './picking'
 
 export type Activity = {
   kind: 'sample'
@@ -57,8 +56,10 @@ function diamond(): HTMLCanvasElement {
   return c
 }
 
+/** `surfaceM`: rendered ground height, as for the stop dots (streetview-layer.ts). */
 export async function addActivities(
   viewer: Viewer,
+  surfaceM: (lon: number, lat: number) => number,
   onOpen: (a: Activity) => void,
 ): Promise<{ activities: Activity[]; setVisible: (v: boolean) => void }> {
   const response = await fetch('data/activities.json')
@@ -68,12 +69,13 @@ export async function addActivities(
   const image = diamond()
   activities.forEach((a, i) => {
     if (a.lon === undefined || a.lat === undefined) return // never place what has no position
+    const position = Cartesian3.fromDegrees(a.lon, a.lat, surfaceM(a.lon, a.lat), MARS_SPHERE)
+    addClickables([{ id: `activity:${i}`, position, shown: () => source.show }])
     source.entities.add({
       id: `activity:${i}`,
-      position: Cartesian3.fromDegrees(a.lon, a.lat, 0, MARS_SPHERE),
+      position,
       billboard: {
         image,
-        heightReference: HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: 20_000,
       },
       label: {
@@ -85,7 +87,6 @@ export async function addActivities(
         style: LabelStyle.FILL_AND_OUTLINE,
         verticalOrigin: VerticalOrigin.BOTTOM,
         pixelOffset: new Cartesian2(0, -12),
-        heightReference: HeightReference.CLAMP_TO_GROUND,
         distanceDisplayCondition: new DistanceDisplayCondition(0, LABEL_MAX_M),
         disableDepthTestDistance: 20_000,
       },

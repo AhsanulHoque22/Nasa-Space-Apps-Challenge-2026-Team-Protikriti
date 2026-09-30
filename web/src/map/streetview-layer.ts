@@ -11,7 +11,7 @@ import {
 import type { Stop } from '../core/streetview'
 import { LAYER_STYLE } from './layers'
 import { MARS_SPHERE } from './mars'
-import { pickedId } from './picking'
+import { addClickables, pickedId } from './picking'
 import type { Rover } from './raw-images'
 
 // Visible from a whole-crater view; shrunk with distance so the path still reads as a line.
@@ -60,15 +60,25 @@ export async function addStreetViewStops(
   const images = { m20: dot(LAYER_STYLE.perseverance), msl: dot(LAYER_STYLE.curiosity) }
   for (const rover of ['m20', 'msl'] as const) {
     stops[rover].forEach((s, i) => {
+      const position = Cartesian3.fromDegrees(s.lon, s.lat, surfaceM(s.lon, s.lat), MARS_SPHERE)
       billboards.add({
         id: `stop:${rover}:${i}`,
-        position: Cartesian3.fromDegrees(s.lon, s.lat, surfaceM(s.lon, s.lat), MARS_SPHERE),
+        position,
         image: images[rover],
         scaleByDistance: SCALE_BY_DISTANCE,
         distanceDisplayCondition: new DistanceDisplayCondition(0, VISIBLE_BELOW_M),
         // Coarse far tiles can sit above the true ground; don't let them bury the dots.
         disableDepthTestDistance: VISIBLE_BELOW_M,
       })
+      addClickables([
+        {
+          id: `stop:${rover}:${i}`,
+          position,
+          shown: () =>
+            billboards.show &&
+            Cartesian3.distance(viewer.camera.positionWC, position) < VISIBLE_BELOW_M,
+        },
+      ])
     })
   }
   viewer.scene.primitives.add(billboards)

@@ -1,34 +1,49 @@
 /** What (if anything) of ours is under the pointer. Map objects use "kind:..." string ids. */
-import type { Cartesian2, Viewer } from 'cesium'
+import type { Cartesian2, Cartesian3, Viewer } from 'cesium'
+import { nearestWithin, type ScreenPoint } from '../core/hit'
+import { isOnNearSide } from '../core/horizon'
+import { MARS_SPHERE } from './mars'
 
 export const INTERACTIVE_PREFIXES = ['station:', 'stop:', 'activity:'] as const
 
-// Objects to look through under the cursor: stop dots share their pixels with the draped
-// traverse line and replay trail, which sit on top and would otherwise swallow the click.
-const PICK_DEPTH = 8
-// Pick area (px square). Cesium's default 3 px misses a 6-14 px stop dot under a ~40 px
-// fingertip, so a tap on a dot on a phone landed on the ground and added a Marswalk point.
-const TOUCH_PICK_PX = 28
-const MOUSE_PICK_PX = 8
+// Hit radius around the pointer. A fingertip covers ~40 px and a stop dot is 6-14 px, so taps
+// need a generous radius; a mouse is precise.
+const TOUCH_HIT_PX = 24
+const MOUSE_HIT_PX = 10
+// Same margin as the far-side label culling (layers.ts): below the deepest exaggerated ground.
+const HORIZON_MARGIN_M = 20_000
 
-function pickSizePx(): number {
-  return globalThis.matchMedia?.('(pointer: coarse)').matches ? TOUCH_PICK_PX : MOUSE_PICK_PX
+/** A clickable map point: where it is drawn, and whether it is showing right now. */
+export type Clickable = { id: string; position: Cartesian3; shown: () => boolean }
+
+// Hit-tested on the CPU, not with scene.pick/drillPick: GPU picking returned the draped traverse
+// line on top of the dots, and drillPick hides what it finds until the next frame, so the
+// second click handler in the same click saw nothing (the dot "blinked" and the click was lost).
+const clickables: Clickable[] = []
+
+export function addClickables(items: Clickable[]): void {
+  clickables.push(...items)
 }
 
-function idOf(picked: { id?: unknown }): string | undefined {
-  const id = picked.id
-  if (typeof id === 'string') return id // primitives (PointPrimitive.id)
-  const entityId = (id as { id?: unknown } | undefined)?.id
-  return typeof entityId === 'string' ? entityId : undefined // entities
+function hitRadiusPx(): number {
+  return globalThis.matchMedia?.('(pointer: coarse)').matches ? TOUCH_HIT_PX : MOUSE_HIT_PX
 }
 
-/** Id of the clickable map object under the pointer, else of the topmost object, if any. */
+/** Id of the clickable map point under the pointer, if any. */
 export function pickedId(viewer: Viewer, position: Cartesian2): string | undefined {
   if (isExploring()) return undefined // explore mode owns the canvas
-  const size = pickSizePx()
-  const picked = viewer.scene.drillPick(position, PICK_DEPTH, size, size) as { id?: unknown }[]
-  const ids = picked.map(idOf)
-  return ids.find((id) => id && INTERACTIVE_PREFIXES.some((p) => id.startsWith(p))) ?? ids[0]
+  const camera = viewer.camera.positionWC
+  const onScreen: ScreenPoint[] = []
+  for (const c of clickables) {
+    if (
+      !c.shown() ||
+      !isOnNearSide(camera, c.position, MARS_SPHERE.maximumRadius, HORIZON_MARGIN_M)
+    )
+      continue
+    const xy = viewer.scene.cartesianToCanvasCoordinates(c.position)
+    if (xy) onScreen.push({ id: c.id, x: xy.x, y: xy.y })
+  }
+  return nearestWithin(onScreen, position.x, position.y, hitRadiusPx())
 }
 
 /** True when the click hit a clickable map object (so terrain clicks should be ignored). */

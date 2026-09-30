@@ -97,6 +97,10 @@ async function main() {
       )
   })
   const groundM = (lon: number, lat: number) => elevationAt(sites, mola, lon, lat).m
+  // Height of the ground as drawn (terrain x vertical exaggeration). Markers sit on it directly:
+  // CLAMP_TO_GROUND left most of them km above the terrain, off the draped lines and clicks.
+  const surfaceM = (lon: number, lat: number) =>
+    (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration
   viewer.terrainProvider = createTerrain(groundM)
   keepCameraAboveGround(viewer, groundM)
   const shared = decodeView(window.location.search)
@@ -127,7 +131,7 @@ async function main() {
     b.addEventListener('click', () => openWeather(b.dataset.station as WeatherStation))
   side.prepend(launcher)
   const roverPositions = stationPositions()
-  void roverPositions.then((positions) => addStationPins(viewer, positions, openWeather))
+  void roverPositions.then((positions) => addStationPins(viewer, positions, surfaceM, openWeather))
   const explore = document.createElement('nav')
   explore.className = 'panel wx-launch'
   explore.setAttribute('aria-label', 'Explore a site on foot')
@@ -200,11 +204,7 @@ async function main() {
       },
     )
   }
-  const streetView = await addStreetViewStops(
-    viewer,
-    (lon, lat) => (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration,
-    showStreetView,
-  )
+  const streetView = await addStreetViewStops(viewer, surfaceM, showStreetView)
   const openActivity = (activity: Activity) => {
     const card = renderActivityCard(side, activity, {
       onClose: () => card.remove(),
@@ -215,7 +215,7 @@ async function main() {
       },
     })
   }
-  const samples = await addActivities(viewer, openActivity)
+  const samples = await addActivities(viewer, surfaceM, openActivity)
   openRef.current = (ref) => {
     const match = /^activity:(\d+)$/.exec(ref)
     const activity = match ? samples.activities[Number(match[1])] : undefined

@@ -4,7 +4,6 @@ import {
   Cartesian3,
   Color,
   CustomDataSource,
-  HeightReference,
   LabelStyle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -12,7 +11,7 @@ import {
   type Viewer,
 } from 'cesium'
 import { MARS_SPHERE } from './mars'
-import { pickedId } from './picking'
+import { addClickables, pickedId } from './picking'
 import type { WeatherStation } from './weather-client'
 
 const ROVER_STATION: Record<string, WeatherStation> = { Curiosity: 'rems', Perseverance: 'meda' }
@@ -40,6 +39,7 @@ export async function stationPositions(): Promise<Record<WeatherStation, [number
 export function addStationPins(
   viewer: Viewer,
   positions: Record<WeatherStation, [number, number]>,
+  surfaceM: (lon: number, lat: number) => number,
   onOpen: (station: WeatherStation) => void,
 ): void {
   const source = new CustomDataSource('weather-stations')
@@ -49,15 +49,16 @@ export function addStationPins(
   }
   for (const station of Object.keys(positions) as WeatherStation[]) {
     const [lon, lat] = positions[station]
+    const position = Cartesian3.fromDegrees(lon, lat, surfaceM(lon, lat), MARS_SPHERE)
+    addClickables([{ id: `${STATION_ID_PREFIX}${station}`, position, shown: () => source.show }])
     source.entities.add({
       id: `${STATION_ID_PREFIX}${station}`,
-      position: Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE),
+      position,
       point: {
         pixelSize: 14,
         color: Color.fromCssColorString('#0B3D91'),
         outlineColor: Color.WHITE,
         outlineWidth: 2,
-        heightReference: HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
       label: {
@@ -69,7 +70,6 @@ export function addStationPins(
         style: LabelStyle.FILL_AND_OUTLINE,
         verticalOrigin: VerticalOrigin.BOTTOM,
         pixelOffset: new Cartesian2(0, -12),
-        heightReference: HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
     })
