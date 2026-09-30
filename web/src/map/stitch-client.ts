@@ -8,7 +8,6 @@ import type { StitchReply, StitchRequest } from './stitch.worker'
 // ponytail: deviceMemory is a coarse hint (Chromium only); measure on low-end phones if they fail.
 const OUT_WIDTH =
   ((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) >= 8 ? 4096 : 3072
-const NASA = 'https://mars.nasa.gov'
 // Perseverance Navcam browse images are black beyond tan² ≈ 1.66 off-axis (measured on sol 400
 // frames) and dim from 1.52; Curiosity's 45° Navcam never gets that far off-axis.
 const NAVCAM_IMAGE_CIRCLE_TAN2 = 1.5
@@ -16,8 +15,15 @@ const NAVCAM_IMAGE_CIRCLE_TAN2 = 1.5
 // (~12° apart at 2 m), so right-eye frames only fill where no left-eye frame sees.
 const RIGHT_EYE_WEIGHT = 0.001
 
-const proxied = (url: string) =>
-  url.startsWith(NASA) ? new URL(`nasa-raw${url.slice(NASA.length)}`, document.baseURI).href : url
+// Curiosity's frames are listed on mars.jpl.nasa.gov, which redirects to the same files on
+// mars.nasa.gov: route both through the proxy, or the browser blocks every Curiosity frame (no
+// CORS) and Street View falls back to loose, unaligned photo tiles.
+const NASA_HOST = /^https?:\/\/mars(\.jpl)?\.nasa\.gov/
+
+export const proxied = (url: string) =>
+  NASA_HOST.test(url)
+    ? new URL(`nasa-raw${url.replace(NASA_HOST, '')}`, document.baseURI).href
+    : url
 
 /** The frame's place on the full sensor in tangent units (see core/stitch Source.sensorTan). */
 function sensorTan(f: Frame): [number, number, number, number] {
