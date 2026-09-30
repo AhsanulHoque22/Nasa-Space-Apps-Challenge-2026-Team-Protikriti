@@ -34,6 +34,10 @@ jobs:
         with:
           path: data/raw
           key: raw-data-v1-${{ hashFiles('pipeline/scripts/*.sh') }}
+      # swim.psi.edu serves ~32 KB/s, too slow for CI: take the unmodified copy on the
+      # data-mirror release instead (the pipeline skips files that already exist).
+      - run: mkdir -p data/raw && gh release download data-mirror -p SWIM2_c0_1.tif -D data/raw --skip-existing
+        env: { GH_TOKEN: '${{ github.token }}' }
       - run: make data # downloads NASA/USGS sources (~95 MB) and builds web/public/data
       - run: make build
       - run: npx --yes vercel@61 deploy --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"

@@ -86,7 +86,7 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 
 | Row | Source |
 |---|---|
-| Shallow water ice | **SWIM 2.0** combined ice consistency, 0–1 m depth (Morgan et al. 2021, *Nature Astronomy*), https://swim.psi.edu/. Reduced to 1/4°; covers ±60° latitude. Positive values are consistent with ice. |
+| Shallow water ice | **SWIM 2.0** combined ice consistency, 0–1 m depth (Morgan et al. 2021, *Nature Astronomy*), https://swim.psi.edu/. Reduced to 1/4°; covers ±60° latitude. Positive values are consistent with ice. CI builds from an unmodified copy on the repo's `data-mirror` release, because the PSI server is too slow for CI. |
 | Surface radiation | MSL RAD mean surface dose-equivalent rate at Gale ≈ 0.67 mSv/sol (Hassler et al. 2014, *Science* 343). Labelled as the Gale measurement; it varies with altitude and the solar cycle. |
 | Daylight, season | Mars24 sun model for the chosen point and sol |
 | Nearest places | IAU gazetteer, landing sites and exploration zones, great-circle distance on the Mars sphere |
