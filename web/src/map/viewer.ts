@@ -107,6 +107,13 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
       for (const l of layers) l.show = v
     },
   }
+  // Cesium's defaults (inertia 0.9/0.9/0.8, zoomFactor 5) fling the map on release and jump on
+  // each wheel notch; users found panning and zooming too twitchy. Lower = stops sooner.
+  const controls = viewer.scene.screenSpaceCameraController
+  controls.inertiaSpin = 0.6
+  controls.inertiaTranslate = 0.6
+  controls.inertiaZoom = 0.5
+  controls.zoomFactor = 2.5
   viewer.scene.verticalExaggeration = VERTICAL_EXAGGERATION
   viewer.scene.globe.showGroundAtmosphere = false // Earth-tuned; causes artifacts on Mars
   // Occlude labels and markers behind the planet or terrain (e.g. Phoenix's label seen from Jezero).
