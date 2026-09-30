@@ -10,6 +10,7 @@ import {
   DistanceDisplayCondition,
   GeoJsonDataSource,
   HeightReference,
+  JulianDate,
   LabelCollection,
   LabelStyle,
   NearFarScalar,
@@ -20,6 +21,7 @@ import {
 } from 'cesium'
 import { graticuleLines, labelMaxDistanceM } from '../core/coords'
 import type { Site } from '../core/elevation'
+import { isOnNearSide } from '../core/horizon'
 import { MARS_SPHERE } from './mars'
 import { trekLayer } from './viewer'
 
@@ -243,6 +245,32 @@ function addGraticule(viewer: Viewer): CustomDataSource {
   return source
 }
 
+// Below the deepest rendered ground (Hellas, ~-8 km at 2x exaggeration) so a camera down in a
+// crater still sees the labels around it.
+const HORIZON_MARGIN_M = 20_000
+
+type Cullable = { position: Cartesian3; setShow: (show: boolean) => void }
+
+/** Hide labels and markers on the far side of Mars whenever the camera moves. */
+function cullFarSide(viewer: Viewer, targets: Cullable[]): void {
+  const last = new Cartesian3(Number.NaN, Number.NaN, Number.NaN)
+  viewer.scene.preRender.addEventListener(() => {
+    const camera = viewer.camera.positionWC
+    if (Cartesian3.equals(camera, last)) return
+    Cartesian3.clone(camera, last)
+    for (const t of targets)
+      t.setShow(isOnNearSide(camera, t.position, MARS_SPHERE.maximumRadius, HORIZON_MARGIN_M))
+  })
+}
+
+function entityTargets(source: CustomDataSource): Cullable[] {
+  const now = JulianDate.now()
+  return source.entities.values.flatMap((e) => {
+    const position = e.position?.getValue(now)
+    return position ? [{ position, setShow: (show: boolean) => void (e.show = show) }] : []
+  })
+}
+
 export async function addLayers(
   viewer: Viewer,
   sites: readonly Site[],
@@ -261,6 +289,12 @@ export async function addLayers(
   const nameLabels = addNames(viewer, names)
   const graticule = addGraticule(viewer)
   graticule.show = false
+  const nameTargets: Cullable[] = []
+  for (let i = 0; i < nameLabels.length; i++) {
+    const l = nameLabels.get(i)
+    nameTargets.push({ position: l.position, setShow: (show) => void (l.show = show) })
+  }
+  cullFarSide(viewer, [...nameTargets, ...entityTargets(zones), ...entityTargets(landing)])
   const redraw = () => viewer.scene.requestRender()
   const toggle =
     (target: { show: boolean }) =>
