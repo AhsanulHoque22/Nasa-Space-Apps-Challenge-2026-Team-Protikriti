@@ -129,6 +129,11 @@ cd web && npm run preview   # serve that build at http://localhost:4173
 
 ### Deploy to Vercel
 
+Every push to `main` that passes lint and tests deploys automatically (the `deploy` job in
+`.github/workflows/ci.yml`). It needs three repo secrets: `VERCEL_TOKEN` (vercel.com/account/tokens),
+`VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` (both in `web/dist/.vercel/project.json` after `vercel link`).
+To deploy by hand:
+
 ```bash
 make build                          # web/dist, including the map data and vercel.json
 cd web/dist

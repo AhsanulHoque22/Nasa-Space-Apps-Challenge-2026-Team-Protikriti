@@ -11,3 +11,24 @@ jobs:
       - run: make install
       - run: make lint
       - run: make test
+
+  # Every green push to main goes live at https://martian-map.vercel.app (same steps as the
+  # manual deploy in the README). Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy, cancel-in-progress: true }
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: make install
+      - run: make data # downloads NASA/USGS sources (~95 MB) and builds web/public/data
+      - run: make build
+      - run: npx --yes vercel@61 deploy --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"
+        working-directory: web/dist
