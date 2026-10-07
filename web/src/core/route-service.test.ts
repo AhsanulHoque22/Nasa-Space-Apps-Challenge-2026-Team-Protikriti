@@ -45,4 +45,36 @@ describe('route service (worker protocol)', () => {
     const reply = createRouteService()({ type: 'range', id: 5, start: { row: 0, col: 0 } })
     expect(reply).toMatchObject({ type: 'error', id: 5 })
   })
+
+  it('routes around hazard cells and reports what the unhindered route would have been', () => {
+    const open = makeGrid(Array.from({ length: 9 }, () => Array(9).fill(0)))
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: open })
+    const stops = [
+      { row: 4, col: 0 },
+      { row: 4, col: 8 },
+    ]
+    const clear = handle({ type: 'route', id: 1, stops })
+    if (clear?.type !== 'route') throw new Error('expected route reply')
+    expect(clear.baseline).toBeNull() // no hazards, nothing to compare with
+
+    const reply = handle({ type: 'route', id: 2, stops, hazards: [{ row: 4, col: 4 }] })
+    if (reply?.type !== 'route' || !reply.baseline) throw new Error('expected a baseline')
+    expect(reply.baseline.hitsHazard).toBe(true)
+    expect(reply.path?.some((c) => c.row === 4 && c.col === 4)).toBe(false)
+    expect(reply.total?.distanceM).toBeGreaterThan(reply.baseline.total.distanceM)
+  })
+
+  it('says the route is unaffected when it already keeps clear of the hazards', () => {
+    const open = makeGrid(Array.from({ length: 9 }, () => Array(9).fill(0)))
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: open })
+    const stops = [
+      { row: 0, col: 0 },
+      { row: 0, col: 8 },
+    ]
+    const reply = handle({ type: 'route', id: 3, stops, hazards: [{ row: 8, col: 4 }] })
+    if (reply?.type !== 'route' || !reply.baseline) throw new Error('expected a baseline')
+    expect(reply.baseline.hitsHazard).toBe(false)
+  })
 })

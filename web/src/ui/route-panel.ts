@@ -3,6 +3,7 @@ import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer 
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
+import { HAZARD_RADIUS_M } from '../core/hazards'
 import { RANGE_RINGS_MIN, homeLimitInMap, rangeRaster, walkRange } from '../core/range'
 import { type Cell, type Grid, lonLatToCell } from '../core/grid'
 import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH } from '../core/route'
@@ -78,7 +79,10 @@ export function renderRoutePanel(
       <button type="button" data-act="undo" class="quiet">Undo stop</button>
       <button type="button" data-act="clear" class="quiet">Clear</button>
       <button type="button" data-act="range" class="quiet" aria-pressed="false">Walking range</button>
+      <button type="button" data-act="hazard" class="quiet" aria-pressed="false">Mark hazard</button>
+      <button type="button" data-act="clear-hazards" class="quiet" hidden>Clear hazards</button>
     </div>
+    <p class="route-note hazard-note" role="status" hidden></p>
     <p class="route-note range-note" role="status" hidden></p>`
   parent.append(panel)
   const status = panel.querySelector('.route-status') as HTMLElement
@@ -89,6 +93,26 @@ export function renderRoutePanel(
   const evaLine = panel.querySelector('.eva-line') as HTMLElement
   const evaDetail = panel.querySelector('.eva-detail') as HTMLElement
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
+
+  const hazardButton = panel.querySelector('[data-act="hazard"]') as HTMLButtonElement
+  const clearHazardsButton = panel.querySelector('[data-act="clear-hazards"]') as HTMLButtonElement
+  const hazardNote = panel.querySelector('.hazard-note') as HTMLElement
+  const hazardsBySite = new Map<string, Cell[]>()
+  let hazardMode = false
+  let detour = '' // what the last route said about the hazards
+  const hazardsOf = (site: Site) => hazardsBySite.get(site.id) ?? []
+  const hazardCount = () => [...hazardsBySite.values()].reduce((n, h) => n + h.length, 0)
+  const updateHazardNote = () => {
+    const n = hazardCount()
+    hazardNote.hidden = !hazardMode && n === 0
+    clearHazardsButton.hidden = n === 0
+    hazardNote.textContent =
+      (hazardMode
+        ? `Hazard mode: click the map to mark ground to avoid (${HAZARD_RADIUS_M} m keep-out). `
+        : '') +
+      (n ? `${n} hazard${n === 1 ? '' : 's'} marked. ` : '') +
+      detour
+  }
 
   const rangeButton = panel.querySelector('[data-act="range"]') as HTMLButtonElement
   const rangeNote = panel.querySelector('.range-note') as HTMLElement
@@ -179,11 +203,21 @@ export function renderRoutePanel(
     status.textContent = MESSAGES.routing
     if (!active) return
     const { client, layer } = tools(active)
-    const reply = await client.route(next.stops)
+    const reply = await client.route(next.stops, hazardsOf(active))
     if (id !== latest) return // superseded by a newer request
     if (reply.type === 'error') {
       requested = plan
       status.textContent = reply.message
+      return
+    }
+    if (reply.path === null && reply.baseline) {
+      // Fine without the hazards: they are what blocks it. Never leave the old route on show.
+      layer.setPath(null)
+      layer.setBaseline(null)
+      showResult(null)
+      detour = 'No safe route: the hazards block the way. Clear them to continue. '
+      updateHazardNote()
+      status.textContent = 'A hazard blocks the way to your last stop.'
       return
     }
     if (reply.path === null) {
@@ -195,6 +229,17 @@ export function renderRoutePanel(
     plan = next
     layer.setStops(plan.stops)
     layer.setPath(reply.path)
+    layer.setBaseline(reply.baseline?.hitsHazard ? reply.baseline.path : null)
+    const extraM = (reply.total?.distanceM ?? 0) - (reply.baseline?.total.distanceM ?? 0)
+    const extraMin = (reply.total?.durationMin ?? 0) - (reply.baseline?.total.durationMin ?? 0)
+    detour = !reply.baseline
+      ? ''
+      : !reply.baseline.hitsHazard
+        ? 'The route already keeps clear of them. '
+        : Math.round(extraM) === 0 && Math.round(extraMin) === 0
+          ? 'A small sidestep keeps you clear, with no measurable extra distance or time (dashed: direct route). '
+          : `Detour: +${formatDistance(extraM)}, +${formatDuration(extraMin)} versus the direct route (dashed). `
+    updateHazardNote()
     showResult(reply, plan.stops)
     status.textContent = MESSAGES.found
   }
@@ -218,6 +263,9 @@ export function renderRoutePanel(
       const { layer } = tools(active)
       layer.setStops(plan.stops)
       layer.setPath(null)
+      layer.setBaseline(null)
+      detour = ''
+      updateHazardNote()
       showResult(null)
       status.textContent = MESSAGES.start
       void refreshRange()
@@ -243,19 +291,36 @@ export function renderRoutePanel(
     const t = perSite.get(site.id)
     t?.layer.setStops([])
     t?.layer.setPath(null)
+    t?.layer.setBaseline(null)
     void t?.range.setRaster(null)
   }
 
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
       if (isExploring() || isInteractiveClick(viewer, click.position)) return // explore owns input
-      apply(cellAt(click.position))
+      place(cellAt(click.position))
     },
     ScreenSpaceEventType.LEFT_CLICK,
   )
 
+  const placeHazard = (hit: { site: Site; cell: Cell } | null) => {
+    if (!hit) {
+      status.textContent = outside
+      return
+    }
+    hazardsBySite.set(hit.site.id, [...hazardsOf(hit.site), hit.cell])
+    tools(hit.site).layer.setHazards(hazardsOf(hit.site))
+    detour = ''
+    updateHazardNote()
+    if (active && hit.site.id === active.id && requested.stops.length >= 2) void replan(requested)
+  }
+  const place = (hit: { site: Site; cell: Cell } | null) =>
+    hazardMode ? placeHazard(hit) : apply(hit)
+
   const clear = () => {
     latest++
+    detour = ''
+    updateHazardNote()
     plan = EMPTY_PLAN
     requested = EMPTY_PLAN
     if (active) clearLayer(active)
@@ -265,7 +330,7 @@ export function renderRoutePanel(
   }
   panel.querySelector('[data-act="add"]')?.addEventListener('click', () => {
     const canvas = viewer.scene.canvas
-    apply(cellAt(new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2)))
+    place(cellAt(new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2)))
   })
   panel.querySelector('[data-act="undo"]')?.addEventListener('click', () => {
     const stops = requested.stops.slice(0, -1)
@@ -275,6 +340,20 @@ export function renderRoutePanel(
     else void replan({ stops })
   })
   panel.querySelector('[data-act="clear"]')?.addEventListener('click', clear)
+  hazardButton.addEventListener('click', () => {
+    hazardMode = !hazardMode
+    hazardButton.setAttribute('aria-pressed', String(hazardMode))
+    updateHazardNote()
+  })
+  clearHazardsButton.addEventListener('click', () => {
+    for (const [id, cells] of hazardsBySite) {
+      if (cells.length) perSite.get(id)?.layer.setHazards([])
+    }
+    hazardsBySite.clear()
+    detour = ''
+    updateHazardNote()
+    if (active && requested.stops.length >= 2) void replan(requested)
+  })
   rangeButton.addEventListener('click', () => {
     rangeOn = !rangeOn
     rangeButton.setAttribute('aria-pressed', String(rangeOn))

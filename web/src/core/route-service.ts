@@ -1,12 +1,13 @@
 /** Message protocol for the routing Web Worker, kept pure so it can be unit-tested. */
 import type { Cell, Grid } from './grid'
+import { hazardMask, touchesHazard } from './hazards'
 import { passableCells, travelTimesS } from './route'
 import { type RouteSummary, summarizeRoute } from './summary'
 import { routeViaWaypoints } from './waypoints'
 
 export type RouteRequest =
   | { type: 'grid'; grid: Grid }
-  | { type: 'route'; id: number; stops: Cell[]; speedFactor?: number }
+  | { type: 'route'; id: number; stops: Cell[]; speedFactor?: number; hazards?: Cell[] }
   | { type: 'range'; id: number; start: Cell }
 
 export type RouteReply =
@@ -17,6 +18,8 @@ export type RouteReply =
       total: RouteSummary | null
       legs: RouteSummary[]
       failedLeg?: number
+      /** The route with no hazards, to compare against; null when no hazard is marked. */
+      baseline: { path: Cell[]; total: RouteSummary; hitsHazard: boolean } | null
       ms: number
     }
   | { type: 'error'; id: number; message: string }
@@ -42,7 +45,19 @@ export function createRouteService(): (msg: RouteRequest) => RouteReply | RangeR
       const backS = travelTimesS(g, msg.start, undefined, 'back')
       return { type: 'range', id: msg.id, outS, backS, ms: performance.now() - t0 }
     }
-    const result = routeViaWaypoints(g, msg.stops, msg.speedFactor)
+    const mask = msg.hazards?.length ? hazardMask(g, msg.hazards) : undefined
+    const result = routeViaWaypoints(g, msg.stops, msg.speedFactor, mask)
+    let baseline: Extract<RouteReply, { type: 'route' }>['baseline'] = null
+    if (mask) {
+      const free = routeViaWaypoints(g, msg.stops, msg.speedFactor)
+      if (free.path) {
+        baseline = {
+          path: free.path,
+          total: summarizeRoute(g, free.path, msg.speedFactor),
+          hitsHazard: touchesHazard(free.path, g.width, mask),
+        }
+      }
+    }
     const ms = performance.now() - t0
     if (result.path === null) {
       return {
@@ -52,6 +67,7 @@ export function createRouteService(): (msg: RouteRequest) => RouteReply | RangeR
         total: null,
         legs: [],
         failedLeg: result.failedLeg,
+        baseline,
         ms,
       }
     }
@@ -61,6 +77,7 @@ export function createRouteService(): (msg: RouteRequest) => RouteReply | RangeR
       path: result.path,
       total: summarizeRoute(g, result.path, msg.speedFactor),
       legs: result.legs.map((leg) => summarizeRoute(g, leg, msg.speedFactor)),
+      baseline,
       ms,
     }
   }

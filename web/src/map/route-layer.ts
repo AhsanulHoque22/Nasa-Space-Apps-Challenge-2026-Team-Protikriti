@@ -6,6 +6,7 @@ import {
   CustomDataSource,
   HeightReference,
   LabelStyle,
+  PolylineDashMaterialProperty,
   VerticalOrigin,
   type Viewer,
 } from 'cesium'
@@ -18,6 +19,9 @@ export type RouteLayer = {
   setPath(path: Cell[] | null): void
   /** Where the crew can no longer get home in time, or null when the route is safe. */
   setFail(cell: Cell | null): void
+  setHazards(cells: Cell[]): void
+  /** The route as it would be without the hazards, drawn dashed; null to hide it. */
+  setBaseline(path: Cell[] | null): void
 }
 
 export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
@@ -32,8 +36,47 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
   let path: Cell[] | null = null
   let stops: Cell[] = []
   let fail: Cell | null = null
+  let hazards: Cell[] = []
+  let baseline: Cell[] | null = null
   const redraw = () => {
     source.entities.removeAll()
+    if (baseline && baseline.length > 1) {
+      source.entities.add({
+        name: 'Direct route (before hazards)',
+        polyline: {
+          positions: baseline.map(toCartesian),
+          width: 3,
+          material: new PolylineDashMaterialProperty({ color: Color.WHITE, dashLength: 12 }),
+          clampToGround: true,
+        },
+      })
+    }
+    hazards.forEach((cell, i) => {
+      source.entities.add({
+        name: `Hazard ${i + 1}`,
+        position: toCartesian(cell),
+        point: {
+          pixelSize: 14,
+          color: Color.BLACK,
+          outlineColor: red,
+          outlineWidth: 4,
+          heightReference: HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: `Hazard ${i + 1}`,
+          font: '700 13px system-ui, sans-serif',
+          fillColor: Color.WHITE,
+          outlineColor: red,
+          outlineWidth: 4,
+          style: LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: VerticalOrigin.TOP,
+          pixelOffset: new Cartesian2(0, 12),
+          heightReference: HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      })
+    })
     if (path && path.length > 1) {
       source.entities.add({
         name: 'Planned Marswalk',
@@ -111,6 +154,14 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
     },
     setFail(next) {
       fail = next
+      redraw()
+    },
+    setHazards(next) {
+      hazards = next
+      redraw()
+    },
+    setBaseline(next) {
+      baseline = next
       redraw()
     },
   }

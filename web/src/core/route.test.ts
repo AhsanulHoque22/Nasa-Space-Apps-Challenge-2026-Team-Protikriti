@@ -195,3 +195,30 @@ describe('travelTimesS', () => {
     expect(out).toBeGreaterThan(back) // going up is slower than coming down
   })
 })
+
+describe('findRoute with blocked cells', () => {
+  const open5 = makeGrid(Array.from({ length: 5 }, () => [0, 0, 0, 0, 0]))
+  const blockCols = (cols: number[], rows: number[]) => {
+    const m = new Uint8Array(25)
+    for (const r of rows) for (const c of cols) m[r * 5 + c] = 1
+    return m
+  }
+
+  it('detours around blocked cells that the direct route would use', () => {
+    const blocked = blockCols([2], [1, 2, 3])
+    const path = findRoute(open5, { row: 2, col: 0 }, { row: 2, col: 4 }, undefined, blocked)
+    expect(path).not.toBeNull()
+    expect(path?.every((c) => !blocked[c.row * 5 + c.col])).toBe(true) // never enters a blocked cell
+  })
+
+  it('returns null when the start or the goal is blocked', () => {
+    const blocked = blockCols([0], [2])
+    expect(findRoute(open5, { row: 2, col: 0 }, { row: 2, col: 4 }, undefined, blocked)).toBeNull()
+    expect(findRoute(open5, { row: 2, col: 4 }, { row: 2, col: 0 }, undefined, blocked)).toBeNull()
+  })
+
+  it('returns null when blocked cells seal off the goal', () => {
+    const blocked = blockCols([2], [0, 1, 2, 3, 4])
+    expect(findRoute(open5, { row: 2, col: 0 }, { row: 2, col: 4 }, undefined, blocked)).toBeNull()
+  })
+})

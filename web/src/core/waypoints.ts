@@ -9,12 +9,13 @@ export function routeViaWaypoints(
   g: Grid,
   stops: Cell[],
   speedFactor = DEFAULT_SUIT_FACTOR,
+  blocked?: Uint8Array,
 ): WaypointRoute {
   if (stops.length === 0) return { path: null, legs: [], failedLeg: 0 }
   const legs: Cell[][] = []
   const path: Cell[] = [stops[0]]
   for (let i = 1; i < stops.length; i++) {
-    const leg = findRoute(g, stops[i - 1], stops[i], speedFactor)
+    const leg = findRoute(g, stops[i - 1], stops[i], speedFactor, blocked)
     if (!leg) return { path: null, legs: [], failedLeg: i - 1 } // zero-based leg index
     legs.push(leg)
     path.push(...leg.slice(1)) // leg starts where the previous one ended

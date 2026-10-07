@@ -3,7 +3,7 @@ import type { Cell, Grid } from '../core/grid'
 import type { RangeReply, RouteReply } from '../core/route-service'
 
 export type RouteClient = {
-  route(stops: Cell[]): Promise<RouteReply>
+  route(stops: Cell[], hazards?: Cell[]): Promise<RouteReply>
   range(start: Cell): Promise<RangeReply>
 }
 
@@ -26,7 +26,7 @@ export function createRouteClient(grid: Grid): RouteClient {
     })
   }
   return {
-    route: (stops) => call<RouteReply>({ type: 'route', stops }),
+    route: (stops, hazards) => call<RouteReply>({ type: 'route', stops, hazards }),
     range: (start) => call<RangeReply>({ type: 'range', start }),
   }
 }

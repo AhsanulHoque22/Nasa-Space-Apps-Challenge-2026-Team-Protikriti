@@ -112,6 +112,7 @@ function search(
   goal: Cell | null,
   speedFactor: number,
   direction: Direction,
+  blocked?: Uint8Array,
 ): { costS: Float64Array; cameFrom: Int32Array } {
   const { width, height } = g
   const startIndex = start.row * width + start.col
@@ -128,6 +129,7 @@ function search(
   const cameFrom = new Int32Array(width * height).fill(-1)
   const terrainOk = passableCells(g)
   if (!terrainOk[startIndex] || (goal && !terrainOk[goalIndex])) return { costS, cameFrom }
+  if (blocked?.[startIndex] || (goal && blocked?.[goalIndex])) return { costS, cameFrom }
   const closed = new Uint8Array(width * height)
   const open = new MinHeap(1024)
   costS[startIndex] = 0
@@ -145,7 +147,7 @@ function search(
       const nextCol = col + COL_STEPS[k]
       if (nextRow < 0 || nextRow >= height || nextCol < 0 || nextCol >= width) continue
       const next = nextRow * width + nextCol
-      if (closed[next] || !terrainOk[next]) continue
+      if (closed[next] || !terrainOk[next] || blocked?.[next]) continue
       if (k >= 4) {
         const vertical = nextRow * width + col
         const horizontal = row * width + nextCol
@@ -171,14 +173,18 @@ function search(
   return { costS, cameFrom }
 }
 
-/** Fastest route from start to goal, both ends included; null if no safe route exists. */
+/**
+ * Fastest route from start to goal, both ends included; null if no safe route exists.
+ * `blocked` marks extra impassable cells (hazard markers), by grid index.
+ */
 export function findRoute(
   g: Grid,
   start: Cell,
   goal: Cell,
   speedFactor = DEFAULT_SUIT_FACTOR,
+  blocked?: Uint8Array,
 ): Cell[] | null {
-  const { costS, cameFrom } = search(g, start, goal, speedFactor, 'out')
+  const { costS, cameFrom } = search(g, start, goal, speedFactor, 'out', blocked)
   const goalIndex = goal.row * g.width + goal.col
   return costS[goalIndex] === Infinity ? null : reconstruct(cameFrom, goalIndex, g.width)
 }
