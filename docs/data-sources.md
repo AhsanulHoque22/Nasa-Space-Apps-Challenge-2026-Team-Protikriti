@@ -187,3 +187,10 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 |---|---|
 | Choosing a zone | Purposes act on the Exploration Zone ranking, because SWIM ice (about 15 km cells) and latitude only differ between zones, not inside an 11 km site. Water (ISRU): drops zones whose SWIM 2.0 consistency is missing or not above 0, ice weighted x3. Habitat: drops zones beyond the +/-50 deg latitude limit, low elevation x2 (more air overhead, less radiation). Logistics: same latitude rule, low elevation x3 (more air to slow a landing), near-equator x2. Explore: no rule, equal weights. Weights are team choices; every ruled-out zone is listed with its reason. |
 | Walking a route | Explore spends the science-stop time (20 min, team assumption) at every stop after the start; Emergency spends none, so the EVA time and the walk-home check change with the purpose. The route itself is the same minimum-time path. |
+
+## Offline sync (simulated)
+
+| Item | Method |
+|---|---|
+| Queue | While "offline", hazard marks and clears are queued in the browser's localStorage (key `martian-map:hazard-queue`), so they survive a reload; if storage is blocked the panel says so and the queue lives in memory. No network is involved: Ground's copy is simulated in the page. |
+| Merge | On reconnect the queue is applied in the order the edits were made. A mark Ground already has is not doubled ("already there"); a clear removes only what was there at that moment. Every edit is logged with its UTC time and outcome. |

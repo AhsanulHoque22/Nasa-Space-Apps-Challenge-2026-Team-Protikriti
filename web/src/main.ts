@@ -52,6 +52,7 @@ import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
 import { renderDustPanel } from './ui/dust-panel'
 import { renderScenarioPanel } from './ui/scenario-panel'
+import { renderSyncPanel } from './ui/sync-panel'
 import type { SiteId } from './core/surface-conditions'
 import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
@@ -150,7 +151,9 @@ async function main() {
     makeLayer: (g) => createRouteLayer(viewer, g),
     makeRange: (g) => createRangeLayer(viewer, g),
     onEvent: quest.notify,
+    onHazardOp: (op) => sync.record(op),
   })
+  const sync = renderSyncPanel(side, routePanel.restoreHazards)
   // Optional validation card: a missing file must not take the planner down with it.
   void fetchOk('data/benchmark.json')
     .then((r) => r.json())

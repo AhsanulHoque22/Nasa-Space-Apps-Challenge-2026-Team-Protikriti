@@ -1684,6 +1684,22 @@ body.exploring #ui {
   color: var(--text);
 }
 
+.sync-heading {
+  margin: var(--space-3) 0 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sync-log {
+  margin: var(--space-1) 0 0;
+  padding-left: 1.2em;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .dust-scroll {
   overflow-x: auto;
   margin-top: var(--space-2);

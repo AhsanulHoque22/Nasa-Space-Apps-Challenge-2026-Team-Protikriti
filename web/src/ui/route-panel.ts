@@ -8,6 +8,7 @@ import { type PlanBundle, buildBundle } from '../core/bundle'
 import { describeNoRoute, describeRoute } from '../core/describe'
 import type { QuestEvent } from '../core/quest'
 import { HAZARD_RADIUS_M } from '../core/hazards'
+import type { HazardOp } from '../core/sync'
 import {
   DEM_SIGMA_M,
   ERROR_CORRELATION_CELLS,
@@ -64,14 +65,21 @@ export type RoutePanelDeps = {
   makeRange: (grid: Grid) => RangeLayer
   /** Told what the user has done, for the walkthrough. */
   onEvent: (event: QuestEvent) => void
+  /** Told about every hazard edit, for offline sync. */
+  onHazardOp?: (op: HazardOp) => void
 }
 
 export function renderRoutePanel(
   parent: HTMLElement,
   viewer: Viewer,
   sites: readonly Site[],
-  { makeClient, makeLayer, makeRange, onEvent }: RoutePanelDeps,
-): { currentPlan: () => string | null; currentBundle: () => PlanBundle | null } {
+  { makeClient, makeLayer, makeRange, onEvent, onHazardOp }: RoutePanelDeps,
+): {
+  currentPlan: () => string | null
+  currentBundle: () => PlanBundle | null
+  /** Show hazards restored from an earlier visit (offline edits kept in the browser). */
+  restoreHazards: (siteId: string, cells: Cell[]) => void
+} {
   const names = sites.map((s) => s.name.split(' (')[0]).join(' or ')
   const idle = `Click the ${names} terrain to set a start point.`
   const outside = `That point is outside the mapped site terrain (${names}). Zoom to a site and pick a point there.`
@@ -562,6 +570,7 @@ export function renderRoutePanel(
       return
     }
     onEvent('hazard-placed')
+    onHazardOp?.({ op: 'add', site: hit.site.id, cell: hit.cell, atMs: Date.now() })
     hazardsBySite.set(hit.site.id, [...hazardsOf(hit.site), hit.cell])
     tools(hit.site).layer.setHazards(hazardsOf(hit.site))
     detour = ''
@@ -619,7 +628,9 @@ export function renderRoutePanel(
   })
   clearHazardsButton.addEventListener('click', () => {
     for (const [id, cells] of hazardsBySite) {
-      if (cells.length) perSite.get(id)?.layer.setHazards([])
+      if (!cells.length) continue
+      perSite.get(id)?.layer.setHazards([])
+      onHazardOp?.({ op: 'clear', site: id, atMs: Date.now() })
     }
     hazardsBySite.clear()
     detour = ''
@@ -661,5 +672,16 @@ export function renderRoutePanel(
     rangeButton.setAttribute('aria-pressed', String(rangeOn))
     void refreshRange()
   })
-  return { currentPlan: () => planLabel, currentBundle: () => bundle?.() ?? null }
+  const restoreHazards = (siteId: string, cells: Cell[]) => {
+    const site = sites.find((s) => s.id === siteId)
+    if (!site) return
+    hazardsBySite.set(siteId, cells)
+    tools(site).layer.setHazards(cells)
+    updateHazardNote()
+  }
+  return {
+    currentPlan: () => planLabel,
+    currentBundle: () => bundle?.() ?? null,
+    restoreHazards,
+  }
 }
