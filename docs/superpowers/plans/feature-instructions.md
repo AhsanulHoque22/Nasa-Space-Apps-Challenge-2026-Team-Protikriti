@@ -7,6 +7,32 @@
 > Source document: *Martian Map: Idea Brainstorming* (Claude Docs, tab
 > "Idea catalogue" + "Martian Map: Idea Brainstorming").
 
+## Build status (updated 2026-10-07)
+
+**Built, tested and pushed:** #1 EVA safety card · #2 pace model (3.3 km/h cap) · #3 and #5 as one
+routed *Walking range* (not circles) · #6 hazard markers · #7 replay benchmark · #8 route
+reliability · #9 provenance · #11 zone ranking (MOLA, SWIM, latitude) · #14 as a data-derived note
+· #31 simulated Crew/Ground link · #33 as a downloadable plan file · #35 line of sight · #47 and
+#48 as rule-based explanations (no language model) · #58 guided walkthrough · #60 English route
+text and keyboard map control · #61 audio profile · #62a offline cache · #62b teacher worksheet ·
+#63 as a sourced search note (IAU: town in Bangladesh, approved 1991; no district is claimed).
+Already existed: #42 rock samples layer.
+
+**Deliberately not built, and why**
+
+| Items | Reason |
+|---|---|
+| #10, #49 to #56 | Need a language model or trained models; conflicts with the offline-first rule, and the rule that a model may only explain, never compute. |
+| #13, #15 to #21, #23, #26 | Would produce subsurface, dose or protected-zone numbers the sources do not support (SWIM is about 15 km per cell against an 11 km site; no published Special Region map; the research notes forbid claiming these). |
+| #41, #43, #44 | Data licence or access unconfirmed (SIM 3464 licence and CRS; CRISM Jezero query untested). |
+| #17, #28, #30 | Need downloads (THEMIS, Montabone NetCDF) not yet in the pipeline. #30 is next-easiest. |
+| #36 to #40 | Need SPICE kernels (about 300 to 450 MB) or unverified status facts. |
+| #32 | The app has no live crew position to put an uncertainty ring on. |
+| #46 | Robbins craters of 1 km and up: none lie inside the 22 km Jezero site; named craters are already in the gazetteer layer. |
+| #64, #65, #66, #45, #25, #57, #67 | Need new imagery, cited text or creative choices; not started. |
+| #53, #59, Bangla parts of #60 and #62 | Paused by the team on request. |
+| #68, #69 | The plan's own "cut first" items. |
+
 **Baseline already done:** `docs/superpowers/plans/2026-09-28-martian-map.md`
 Tasks 1-13 (slope pipeline → DEM → grid → A* routing → Cesium viewer →
 layers → route panel). All features here build on that baseline.
