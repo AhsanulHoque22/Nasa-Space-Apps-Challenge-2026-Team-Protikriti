@@ -1,11 +1,5 @@
 /** Marswalk planner: click a start, then science stops; see the safest timed EVA. */
-import {
-  Cartesian2,
-  JulianDate,
-  ScreenSpaceEventHandler,
-  ScreenSpaceEventType,
-  type Viewer,
-} from 'cesium'
+import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer } from 'cesium'
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
@@ -39,6 +33,7 @@ import type { RangeLayer } from '../map/range-layer'
 import type { RouteLayer } from '../map/route-layer'
 import { type Playback, playTones } from './audio-player'
 import { mountSunTool } from './sun-tool'
+import { sceneTimeMs } from '../map/sun'
 import { isExploring, isInteractiveClick } from '../map/picking'
 
 /** Tones in the height profile: enough to follow the shape, short enough to sit through. */
@@ -494,7 +489,7 @@ export function renderRoutePanel(
       },
       client: (site) => tools(site).client,
       overlay: (site) => tools(site).sun,
-      nowMs: () => JulianDate.toDate(viewer.clock.currentTime).getTime(),
+      nowMs: sceneTimeMs, // the clock panel's time, which may be shifted
     },
   )
   const clearLayer = (site: Site) => {

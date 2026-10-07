@@ -146,3 +146,10 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Cruise to Mars | Curiosity RAD inside the spacecraft: 1.84 +/- 0.30 mSv a day (Zeitlin et al. 2013, *Science* 340, 1080). |
 | Cave, pit or lava tube | Not measured; shown as unknown. |
 | Career limit | NASA-STD-3001 Vol. 1 (2022 update): 600 mSv effective dose over a career. "Days to the limit" is 600 divided by the daily rate. |
+
+## Sky and scale (main 3D view)
+
+| Item | Source and method |
+|---|---|
+| Sky glow | Cesium's sky atmosphere, rebuilt on the Mars sphere with a 11.1 km scale height (NASA Mars Fact Sheet) and scattering tuned so red outscatters blue, lit by the Mars sun. Illustrative: not a radiative-transfer model. |
+| Scale bar | Ground distance between two screen points across the lower middle of the view, rounded to 1, 2 or 5 x 10^n m. The note beside it says when heights are drawn exaggerated (x2 in the map, true scale on foot). |

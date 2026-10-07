@@ -10,6 +10,8 @@ import { createRangeLayer } from './map/range-layer'
 import { createRouteLayer } from './map/route-layer'
 import { createTerrain, keepCameraAboveGround } from './map/terrain'
 import { installKeyboardCamera } from './map/keyboard-camera'
+import { installScaleBar } from './map/scale-bar'
+import { sceneTimeMs } from './map/sun'
 import { installWheelZoom } from './map/wheel-zoom'
 import { decodeView, encodeView } from './core/deeplink'
 import {
@@ -52,7 +54,6 @@ import { renderDustPanel } from './ui/dust-panel'
 import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
 import { solarLongitudeDeg } from './core/mars-time'
-import { JulianDate } from 'cesium'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
 import { iceAt } from './core/site-report'
 
@@ -153,9 +154,7 @@ async function main() {
     .catch((error: unknown) => console.warn('Benchmark card not shown:', error))
   renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle)
   renderDosePanel(side)
-  renderDustPanel(side, sites, () =>
-    solarLongitudeDeg(JulianDate.toDate(viewer.clock.currentTime).getTime()),
-  )
+  renderDustPanel(side, sites, () => solarLongitudeDeg(sceneTimeMs()))
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch'
@@ -250,6 +249,7 @@ async function main() {
   })
   renderClock(ui, viewer)
   renderConnectionBadge(ui)
+  installScaleBar(viewer, ui)
   // Production only: a service worker in dev would serve stale files under hot reload.
   if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker

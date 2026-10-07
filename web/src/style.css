@@ -1752,3 +1752,35 @@ body.exploring #ui {
   font-size: 11px;
   color: var(--nasa-blue-lift);
 }
+
+.scale-bar {
+  position: fixed;
+  top: calc(var(--space-2) + 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  pointer-events: auto;
+}
+
+.scale-bar[hidden] {
+  display: none;
+}
+
+.scale-bar i {
+  display: block;
+  height: 6px;
+  border: 2px solid var(--text);
+  border-top: 0;
+}
+
+.scale-height {
+  color: var(--text-muted);
+}

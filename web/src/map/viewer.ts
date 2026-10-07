@@ -2,10 +2,12 @@
 import {
   Cartesian2,
   Cartesian3,
+  DynamicAtmosphereLightingType,
   GeographicTilingScheme,
   ImageryLayer,
   Math as CesiumMath,
   Rectangle,
+  SkyAtmosphere,
   Viewer,
   WebMapTileServiceImageryProvider,
 } from 'cesium'
@@ -121,7 +123,28 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
   // Cesium's Sun and Moon follow Earth ephemerides: hide them; lighting comes from map/sun.ts.
   if (viewer.scene.sun) viewer.scene.sun.show = false
   if (viewer.scene.moon) viewer.scene.moon.show = false
+  viewer.scene.skyAtmosphere = marsSky()
+  // Light the sky glow from the Mars sun that map/sun.ts sets, not from the camera.
+  viewer.scene.atmosphere.dynamicLighting = DynamicAtmosphereLightingType.SCENE_LIGHT
   return { viewer, hirise }
+}
+
+/** Mars atmospheric scale height (NASA Mars Fact Sheet: 11.1 km). */
+const MARS_SCALE_HEIGHT_M = 11_100
+
+/**
+ * Cesium builds its sky glow only for the Earth, so Mars had a black sky. This is a thin,
+ * dust-scattered one: red light scattered more than blue, giving the butterscotch daytime sky of
+ * rover images. Illustrative, not a radiative-transfer model.
+ */
+function marsSky(): SkyAtmosphere {
+  const sky = new SkyAtmosphere(MARS_SPHERE)
+  sky.atmosphereRayleighScaleHeight = MARS_SCALE_HEIGHT_M
+  sky.atmosphereMieScaleHeight = MARS_SCALE_HEIGHT_M
+  sky.atmosphereRayleighCoefficient = new Cartesian3(9e-6, 6e-6, 3.5e-6)
+  sky.atmosphereMieCoefficient = new Cartesian3(30e-6, 18e-6, 9e-6)
+  sky.atmosphereMieAnisotropy = 0.8
+  return sky
 }
 
 /** Relief is subtle at 20 m/px over a ~12 km AOI; 2x makes the delta scarp readable. */
