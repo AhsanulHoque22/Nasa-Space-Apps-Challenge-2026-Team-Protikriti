@@ -34,6 +34,13 @@ export const LAYER_ITEMS: LayerItem[] = [
     visible: true,
   },
   {
+    id: 'thermal',
+    group: 'Surface',
+    label: 'Ground firmness',
+    detail: 'THEMIS thermal inertia · 100 m · sites',
+    visible: false,
+  },
+  {
     id: 'roughness',
     group: 'Surface',
     label: 'Surface roughness',

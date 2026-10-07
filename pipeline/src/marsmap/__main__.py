@@ -27,6 +27,7 @@ from marsmap.mola import MEGDR_URL, megdr_to_web, write_mola
 from marsmap.slope import slope_deg
 from marsmap.stops import waypoint_stops
 from marsmap.swim import SWIM_URL, swim_to_web, write_swim
+from marsmap.thermal import build_thermal
 from marsmap.weather import snapshot_weather
 
 # Octavia E. Butler landing site + western delta front, Jezero crater (Mars 2000 degrees E/N).
@@ -106,6 +107,13 @@ def _stops(args: argparse.Namespace) -> None:
         stops = waypoint_stops(json.loads((args.raw / file).read_text()))
         (args.out / f"{rover}.json").write_text(json.dumps(stops, separators=(",", ":")))
         print(f"wrote {rover}: {len(stops)} stops")
+
+
+def _thermal(args: argparse.Namespace) -> None:
+    for site in json.loads(args.config.read_text())["sites"]:
+        meta = build_thermal(tuple(site["bounds"]), args.out / "sites" / site["id"])
+        size = f"{meta['width']}x{meta['height']}"
+        print(f"wrote thermal inertia for {site['id']}: {size} (tile {meta['tile']})")
 
 
 def _benchmark(args: argparse.Namespace) -> None:
@@ -244,6 +252,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     act.add_argument("--samples", type=Path, required=True)
     act.add_argument("--waypoints", type=Path, required=True)
     act.add_argument("--out", type=Path, required=True)
+    thermal = sub.add_parser("thermal", help="THEMIS thermal inertia window for each site")
+    thermal.add_argument("--config", type=Path, required=True)
+    thermal.add_argument("--out", type=Path, required=True)
     bench = sub.add_parser("benchmark", help="replay Perseverance's real path against the map")
     bench.add_argument("--traverse", type=Path, required=True)
     bench.add_argument("--waypoints", type=Path, required=True)
@@ -265,6 +276,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "swim": _swim,
         "activities": _activities,
         "benchmark": _benchmark,
+        "thermal": _thermal,
         "build": _build,
         "layers": _layers,
         "weather": _weather,

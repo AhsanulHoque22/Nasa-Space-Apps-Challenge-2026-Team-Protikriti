@@ -120,3 +120,10 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Solar constant | 1361 W/m² at 1 AU (Kopp & Lean 2011, *Geophysical Research Letters* 38). |
 | Terrain | The site grid (CTX DEM): slope and aspect from the router's central differences; cast shadows by a sweep along the sun direction at 48 sun positions per sol. |
 | Limits | Top of the atmosphere: no dust, no air, no reflected light. A solar panel would receive less. Shadows are as fine as the 20-32 m terrain model. |
+
+## Ground firmness (layer, and the site report row)
+
+| Item | Source and method |
+|---|---|
+| Thermal inertia | USGS Astrogeology, THEMIS Thermal Inertia Mosaic, Quantitative 32-bit, 100 m/px (Fergason, R.L., et al. 2006, *J. Geophys. Res.* 111, E12004, doi:10.1029/2006JE002735). Public domain; "please cite authors". Tiles `00N060E` (Jezero) and `30S120E` (Gale) are 2.4 GB ISIS cubes; `marsmap thermal` reads only each site's window over HTTP range requests. https://astrogeology.usgs.gov/search/map/themis_thermal_inertia_mosaic_quantitative_30s060e_100mpp |
+| Reading | Lower thermal inertia usually means finer, looser material (dust, sand); higher means coarser or cemented ground and rock. The app shows each value and its rank within the site ("firmer than N%"), a relative index, not a measured bearing strength or digging force. Absolute accuracy of the product is about 20%. |

@@ -4,6 +4,7 @@ import { type Site, elevationAt, siteAt } from '../core/elevation'
 import type { Grid } from '../core/grid'
 import { season, solarLongitudeDeg } from '../core/mars-time'
 import type { Place } from '../core/search'
+import { type ThermalGrid, firmerThanPct, thermalAt } from '../core/thermal'
 import {
   RAD_GALE_MSV_PER_SOL,
   type SwimGrid,
@@ -18,6 +19,24 @@ export type ReportContext = {
   mola: Grid
   places: readonly Place[]
   swim: SwimGrid | null
+  /** THEMIS thermal inertia for the mapped sites (empty if the pipeline did not write it). */
+  thermal: readonly ThermalGrid[]
+}
+
+/**
+ * Thermal inertia and where it ranks within its site. Lower usually means finer, looser material
+ * (dust, sand: easier to dig, softer underfoot); higher means coarser or cemented ground and rock.
+ */
+function firmness(grids: readonly ThermalGrid[], lon: number, lat: number): string {
+  for (const g of grids) {
+    const v = thermalAt(g, lon, lat)
+    if (v === null) continue
+    const pct = Math.round(firmerThanPct(g, v))
+    const reading =
+      pct >= 67 ? 'firmer, rockier ground' : pct <= 33 ? 'looser, finer ground' : 'mid-range ground'
+    return `${Math.round(v)} J m⁻² K⁻¹ s⁻½: ${reading}, firmer than ${pct}% of this site`
+  }
+  return 'Mapped only at the Jezero and Gale sites'
 }
 
 const hm = (hours: number) =>
@@ -64,6 +83,11 @@ export function renderSiteReport(
       'Shallow water ice',
       `${iceVerdict(ice)}${ice === null ? '' : ` (${ice >= 0 ? '+' : ''}${ice.toFixed(2)})`}`,
       'SWIM 2.0, 0–1 m depth',
+    ],
+    [
+      'Ground firmness',
+      firmness(ctx.thermal, lon, lat),
+      'THEMIS thermal inertia, 100 m (Fergason et al. 2006)',
     ],
     [
       'Surface radiation',

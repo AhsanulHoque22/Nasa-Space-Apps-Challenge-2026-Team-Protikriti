@@ -39,6 +39,14 @@ export const PROVENANCE: Record<LayerId, Provenance> = {
     datum: MARS_SPHERE,
     url: 'https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic',
   },
+  thermal: {
+    mission: '2001 Mars Odyssey / THEMIS',
+    product:
+      'USGS THEMIS quantitative thermal inertia mosaic, 100 m/px (Fergason et al. 2006, doi:10.1029/2006JE002735); only the Jezero and Gale windows are read. Blue runs dark (low, looser ground) to light (high, firmer or rockier), stretched over each site. Absolute accuracy is about 20%',
+    crs: 'Simple cylindrical, Mars sphere, planetocentric east longitude',
+    datum: NO_DATUM_IMAGE,
+    url: 'https://astrogeology.usgs.gov/search/map/themis_thermal_inertia_mosaic_quantitative_30s060e_100mpp',
+  },
   roughness: {
     mission: 'MGS MOLA',
     product: 'Trek layer mola_roughness, about 3 px/deg',

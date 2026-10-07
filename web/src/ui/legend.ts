@@ -11,6 +11,9 @@ export const SWATCHES: Record<LayerId, string> = {
   tesDust: svg(
     '<rect x="2" y="2" width="16" height="16" rx="2" fill="#6b4a2f"/><circle cx="7" cy="8" r="2" fill="#e8c9a0"/><circle cx="13" cy="12" r="2.5" fill="#e8c9a0" opacity=".7"/>',
   ),
+  thermal: svg(
+    '<defs><linearGradient id="ti" x1="0" x2="1"><stop offset="0" stop-color="#0d366b"/><stop offset=".5" stop-color="#3987e5"/><stop offset="1" stop-color="#cde2fb"/></linearGradient></defs><rect x="2" y="2" width="16" height="16" rx="2" fill="url(#ti)"/>',
+  ),
   roughness: svg(
     '<rect x="2" y="2" width="16" height="16" rx="2" fill="#20263a"/><path d="M3 13l3-4 2 3 3-6 2 5 2-2 2 4" fill="none" stroke="#c9d2e6" stroke-width="1.4"/>',
   ),

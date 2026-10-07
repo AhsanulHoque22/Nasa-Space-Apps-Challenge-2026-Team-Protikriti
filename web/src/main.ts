@@ -48,6 +48,7 @@ import { positionAtSol } from './core/timeline'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
+import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
 import { iceAt } from './core/site-report'
 
 async function fetchOk(url: string): Promise<Response> {
@@ -188,11 +189,18 @@ async function main() {
   const exploreHooks: Array<(on: boolean) => void> = []
   renderReadout(ui, viewer, sites, mola)
   // Settlement guide: right-click anywhere, or the readout's button for the view centre.
+  const thermalReady = loadThermalGrids(sites)
   let swim: Promise<SwimGrid | null> | undefined
   const getSwim = () => (swim ??= loadSwim().catch(() => null))
   const openReport = async (lon: number, lat: number) => {
     const places: Place[] = await placesReady.catch(() => [])
-    renderSiteReport(side, lon, lat, { sites, mola, places, swim: await getSwim() })
+    renderSiteReport(side, lon, lat, {
+      sites,
+      mola,
+      places,
+      swim: await getSwim(),
+      thermal: (await thermalReady).map((t) => t.grid),
+    })
   }
   renderZonePanel(
     side,
@@ -240,6 +248,7 @@ async function main() {
       .catch((error: unknown) => console.warn('Offline cache unavailable:', error))
   }
   const layerToggles = await addLayers(viewer, sites, hirise)
+  const thermalLayer = await addThermalLayer(viewer, await thermalReady)
   // The globe is hidden behind Street View: stop redrawing it so the panorama gets the device.
   const showStreetView = (rover: Rover, index: number) => {
     viewer.useDefaultRenderLoop = false
@@ -270,8 +279,16 @@ async function main() {
     const activity = match ? samples.activities[Number(match[1])] : undefined
     if (activity) openActivity(activity)
   }
-  exploreHooks.push(layerToggles.hideForExplore, streetView.hideForExplore)
+  let thermalWasShown = false
+  exploreHooks.push(layerToggles.hideForExplore, streetView.hideForExplore, (on) => {
+    // like the other paint-on overlays, ground firmness would cover the walker's view
+    if (on) {
+      thermalWasShown = thermalLayer.show
+      thermalLayer.show = false
+    } else thermalLayer.show = thermalWasShown
+  })
   renderLayerPanel(ui, {
+    thermal: (visible) => void (thermalLayer.show = visible),
     ...layerToggles,
     streetview: streetView.setVisible,
     samples: samples.setVisible,

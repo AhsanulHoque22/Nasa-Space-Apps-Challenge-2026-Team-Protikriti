@@ -52,6 +52,7 @@ export type LayerId =
   | 'names'
   | 'zones'
   | 'graticule'
+  | 'thermal'
 
 export type LayerToggles = Record<LayerId, (visible: boolean) => void>
 
@@ -276,7 +277,7 @@ export async function addLayers(
   sites: readonly Site[],
   hirise: { show: boolean },
 ): Promise<
-  Omit<LayerToggles, 'streetview' | 'samples'> & { hideForExplore: (on: boolean) => void }
+  Omit<LayerToggles, 'streetview' | 'samples' | 'thermal'> & { hideForExplore: (on: boolean) => void }
 > {
   const names = await loadJson('data/layers/names.geojson')
   const [slope, traverses, landing, zones] = await Promise.all([
