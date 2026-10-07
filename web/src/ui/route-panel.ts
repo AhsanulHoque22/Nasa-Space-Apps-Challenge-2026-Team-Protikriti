@@ -47,7 +47,7 @@ export function renderRoutePanel(
   makeClient: (grid: Grid) => RouteClient,
   makeLayer: (grid: Grid) => RouteLayer,
   makeRange: (grid: Grid) => RangeLayer,
-): void {
+): { currentPlan: () => string | null } {
   const names = sites.map((s) => s.name.split(' (')[0]).join(' or ')
   const idle = `Click the ${names} terrain to set a start point.`
   const outside = `That point is outside the mapped site terrain (${names}). Zoom to a site and pick a point there.`
@@ -155,6 +155,7 @@ export function renderRoutePanel(
 
   const sightButton = panel.querySelector('[data-act="sight"]') as HTMLButtonElement
   const sightNote = panel.querySelector('.sight-note') as HTMLElement
+  let planLabel: string | null = null // one line about the route on show, to send to Ground
   let sightOn = false
   let sightRequest = 0
   let sightMask: Uint8Array | null = null // what the start can see, for the active site
@@ -271,11 +272,18 @@ export function renderRoutePanel(
     const stopCount = stops.length
     const total = reply?.total
     result.hidden = !total || stopCount < 2
+    planLabel = null
     if (!reply || !total) {
       if (active) tools(active).layer.setFail(null)
       return
     }
     const shown = showCard(reply, stops)
+    if (shown && stopCount >= 2) {
+      const n = hazardCount()
+      planLabel =
+        `Route, ${stopCount - 1} stop${stopCount === 2 ? '' : 's'}, ${formatDistance(total.distanceM)}, ` +
+        `${shown.card.verdict}${n ? `, ${n} hazard${n === 1 ? '' : 's'} marked` : ''}`
+    }
     field('eva').textContent = formatDuration(evaDurationMin(total.durationMin, stopCount))
     field('distance').textContent = formatDistance(total.distanceM)
     field('relief').textContent =
@@ -505,4 +513,5 @@ export function renderRoutePanel(
     rangeButton.setAttribute('aria-pressed', String(rangeOn))
     void refreshRange()
   })
+  return { currentPlan: () => planLabel }
 }

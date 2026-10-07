@@ -1435,3 +1435,78 @@ body.exploring #ui {
   color: var(--text-muted);
   max-width: 60ch;
 }
+
+.link {
+  padding: var(--space-3);
+}
+
+.link summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.link-note {
+  margin: var(--space-2) 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+.link-delays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+}
+
+.link-delays legend {
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.link-clock {
+  margin: var(--space-2) 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.link button {
+  font: 600 12px var(--font);
+  color: #fff;
+  background: var(--nasa-blue);
+  border: 0;
+  border-radius: 8px;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.link button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.link-table {
+  width: 100%;
+  margin-top: var(--space-2);
+  border-collapse: collapse;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.link-table th,
+.link-table td {
+  padding: var(--space-1);
+  text-align: left;
+  border-top: 1px solid var(--rule);
+  font-weight: 400;
+}
+
+.link-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+}

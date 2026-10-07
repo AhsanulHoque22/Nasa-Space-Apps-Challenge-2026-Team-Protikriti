@@ -37,6 +37,7 @@ import { ScreenSpaceEventHandler, ScreenSpaceEventType } from 'cesium'
 import { MARS_SPHERE } from './map/mars'
 import { isExploring } from './map/picking'
 import type { Place } from './core/search'
+import { renderLinkPanel } from './ui/link-panel'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
 import type { Rover } from './map/raw-images'
@@ -130,7 +131,7 @@ async function main() {
   const side = document.createElement('div')
   side.className = 'side'
   ui.append(side)
-  renderRoutePanel(
+  const routePanel = renderRoutePanel(
     side,
     viewer,
     sites,
@@ -143,6 +144,7 @@ async function main() {
     .then((r) => r.json())
     .then((doc) => renderBenchmarkCard(side, parseBenchmark(doc)))
     .catch((error: unknown) => console.warn('Benchmark card not shown:', error))
+  renderLinkPanel(side, routePanel.currentPlan)
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch'
