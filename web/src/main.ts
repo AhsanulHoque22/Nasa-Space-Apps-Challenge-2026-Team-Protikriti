@@ -277,8 +277,9 @@ function keepUrlInSync(viewer: Parameters<typeof currentView>[0]): void {
 
 main().catch((error: unknown) => {
   console.error(error)
-  document.body.insertAdjacentHTML(
-    'beforeend',
-    `<p role="alert" class="fatal">Could not load the map: ${String(error)}</p>`,
-  )
+  const alert = document.createElement('p')
+  alert.setAttribute('role', 'alert')
+  alert.className = 'fatal'
+  alert.textContent = `Could not load the map: ${String(error)}`
+  document.body.append(alert)
 })
