@@ -172,3 +172,11 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Reading | `marsmap caves` reads `data/Mars_Cave_Catalog.csv` by column position, as the PDS label defines it (ID, longitude 0-360 E, latitude, type, priority, APC diameter, APC depth, comment). The CSV's own header names the first three columns wrongly. Longitudes are converted to -180..180 E. APC sizes stay text (some are "135x195"). |
 | Symbols | One violet; lighter and larger for targeting priority 1, darker and smaller for 3; a hollow ring for priority 0 (already imaged by HiRISE as of March 2017). The card spells out each priority's meaning from the archive description, section C-5. |
 | Limits | Interior size, roof thickness and radiation shielding are unknown for every candidate and the card says so. The nearest candidate to Jezero (CC0808) is 607 km away; to Gale (CC0832), 1,407 km. |
+
+## Storm warning (planning tool)
+
+| Item | Source and method |
+|---|---|
+| Habitat | The route start stands for the habitat. The walk home is the router's fastest walk from the route point farthest (in time) from home (`timesHomeS`), plus the EVA card's 20% for a tired crew. |
+| Nearest cave | The nearest USGS cave candidate (see above) to that point. Its walk is a floor: straight-line distance at the 3.3 km/h suit top pace; real ground is only slower. The cave is far outside the site grid, so no terrain route is run to it. |
+| Warning time | Entered by the user as a scenario. The app makes no claim about how much warning a solar particle event gives, nor how well any cave shields. |

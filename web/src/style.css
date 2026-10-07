@@ -1619,6 +1619,24 @@ body.exploring #ui {
   border-radius: 4px;
 }
 
+.storm-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.storm-warning input {
+  width: 6em;
+  font: inherit;
+  color: var(--text);
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 2px var(--space-2);
+}
+
+.storm-note p,
 .sun-note p {
   margin: var(--space-1) 0 0;
 }

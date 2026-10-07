@@ -21,7 +21,7 @@ import {
   reachesAnywhere,
   walkRange,
 } from '../core/range'
-import { type Cell, type Grid, lonLatToCell } from '../core/grid'
+import { type Cell, type Grid, cellToLonLat, lonLatToCell } from '../core/grid'
 import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH, passableCells } from '../core/route'
 import { EMPTY_PLAN, type Plan, pick } from '../core/planner'
 import type { RouteReply } from '../core/route-service'
@@ -33,6 +33,7 @@ import type { RangeLayer } from '../map/range-layer'
 import type { RouteLayer } from '../map/route-layer'
 import { type Playback, playTones } from './audio-player'
 import { mountSunTool } from './sun-tool'
+import { type CrewPoint, mountStormTool } from './storm-tool'
 import { sceneTimeMs } from '../map/sun'
 import { isExploring, isInteractiveClick } from '../map/picking'
 
@@ -192,6 +193,7 @@ export function renderRoutePanel(
   let sightRequest = 0
   let sightMask: Uint8Array | null = null // what the start can see, for the active site
   let lastPath: Cell[] | null = null // the route on show, to say how much of it is out of sight
+  let lastHomeS: readonly number[] | null = null // fastest walk home from each point of that route
 
   const updateSightNote = () => {
     sightNote.hidden = !sightOn
@@ -283,6 +285,7 @@ export function renderRoutePanel(
     if (!active || !reply.path) return null
     const g = active.grid
     const card = evaCard(g, reply.path, stops, { homeS: reply.homeS ?? undefined })
+    lastHomeS = reply.homeS ?? null
     const failCell = card.failIndex === null ? null : (reply.path[card.failIndex] ?? null)
     tools(active).layer.setFail(failCell)
     const go = card.verdict === 'GO'
@@ -313,6 +316,8 @@ export function renderRoutePanel(
 
   const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stops: Cell[] = []) => {
     stopAudio() // the sound belongs to the route that was on show
+    if (!reply?.total) lastHomeS = null
+    stormTool.refresh()
     const stopCount = stops.length
     const total = reply?.total
     result.hidden = !total || stopCount < 2
@@ -491,6 +496,35 @@ export function renderRoutePanel(
       overlay: (site) => tools(site).sun,
       nowMs: sceneTimeMs, // the clock panel's time, which may be shifted
     },
+  )
+  /** Where a storm warning would hurt most: the route point with the longest walk home. */
+  const crewPoint = (): CrewPoint | null => {
+    const start = requested.stops[0]
+    if (!active || !start) return null
+    const g = active.grid
+    const path = lastPath
+    const homeS = lastHomeS
+    if (!path || !homeS || homeS.length !== path.length) {
+      const [lon, lat] = cellToLonLat(g, start)
+      return { lon, lat, homeMin: 0, where: 'the start' }
+    }
+    let worst = 0
+    homeS.forEach((s, i) => {
+      if (s > (homeS[worst] ?? -Infinity)) worst = i
+    })
+    const [lon, lat] = cellToLonLat(g, path[worst] as Cell)
+    const pad = EVA_LIMITS.walkbackPad
+    return {
+      lon,
+      lat,
+      homeMin: ((homeS[worst] ?? 0) / 60) * (1 + pad),
+      where: `the route's farthest point (+${Math.round(pad * 100)}% for a tired crew)`,
+    }
+  }
+  const stormTool = mountStormTool(
+    panel.querySelector('.route-tools .route-actions') as HTMLElement,
+    panel.querySelector('.route-tools') as HTMLElement,
+    crewPoint,
   )
   const clearLayer = (site: Site) => {
     const t = perSite.get(site.id)
