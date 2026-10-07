@@ -58,7 +58,7 @@ export function parseCaves(raw: unknown): CaveDoc {
   })
   return {
     source: String(d.source ?? ''),
-    url: String(d.url ?? ''),
+    url: /^https:\/\//.test(String(d.url)) ? String(d.url) : '', // only ever a web link
     license: String(d.license ?? ''),
     types: d.types ?? {},
     caves,

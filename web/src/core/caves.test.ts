@@ -25,6 +25,11 @@ describe('parseCaves', () => {
     })
   })
 
+  it('keeps only an https source link', () => {
+    expect(parseCaves(doc([])).url).toBe('https://example.test')
+    expect(parseCaves({ ...doc([]), url: 'javascript:alert(1)' }).url).toBe('')
+  })
+
   it('rejects rows with an impossible position or priority', () => {
     expect(() => parseCaves(doc([['X', 200, 0, 'sky', 1, null, null, '']]))).toThrow(/X/)
     expect(() => parseCaves(doc([['Y', 0, 0, 'sky', 9, null, null, '']]))).toThrow(/Y/)

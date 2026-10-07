@@ -60,7 +60,8 @@ export function renderCaveCard(
   link.target = '_blank'
   link.rel = 'noopener noreferrer'
   link.textContent = 'Source'
-  source.append(`${doc.source}. ${doc.license}. `, link)
+  source.append(`${doc.source}. ${doc.license}. `)
+  if (doc.url) source.append(link)
   card.querySelector('[data-act="close"]')?.addEventListener('click', () => card.remove())
   parent.prepend(card)
   ;(card.querySelector('[data-act="close"]') as HTMLButtonElement).focus()
