@@ -57,6 +57,8 @@ import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
 import { solarLongitudeDeg } from './core/mars-time'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
+import { createCaveLayer } from './map/caves-layer'
+import { renderCaveCard } from './ui/cave-card'
 import { iceAt } from './core/site-report'
 
 async function fetchOk(url: string): Promise<Response> {
@@ -272,6 +274,15 @@ async function main() {
   }
   const layerToggles = await addLayers(viewer, sites, hirise)
   const thermalLayer = await addThermalLayer(viewer, await thermalReady)
+  const siteCentres = sites.map((s) => ({
+    name: s.name.split(' (')[0] ?? s.name,
+    lon: (s.grid.west + s.grid.east) / 2,
+    lat: (s.grid.south + s.grid.north) / 2,
+  }))
+  const caveLayer = createCaveLayer(viewer, (cave, doc) =>
+    renderCaveCard(side, cave, doc, siteCentres),
+  )
+  let cavesShown = false
   // The globe is hidden behind Street View: stop redrawing it so the panorama gets the device.
   const showStreetView = (rover: Rover, index: number) => {
     viewer.useDefaultRenderLoop = false
@@ -321,8 +332,13 @@ async function main() {
       thermalLayer.show = false
     } else thermalLayer.show = thermalWasShown
   })
+  exploreHooks.push((on) => caveLayer.setVisible(!on && cavesShown)) // a paint-on overlay too
   renderLayerPanel(ui, {
     thermal: (visible) => void (thermalLayer.show = visible),
+    caves: (visible) => {
+      cavesShown = visible
+      caveLayer.setVisible(visible)
+    },
     ...layerToggles,
     streetview: streetView.setVisible,
     samples: samples.setVisible,

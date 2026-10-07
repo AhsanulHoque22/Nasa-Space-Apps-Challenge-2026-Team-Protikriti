@@ -69,6 +69,13 @@ export const LAYER_ITEMS: LayerItem[] = [
     visible: true,
   },
   {
+    id: 'caves',
+    group: 'Human exploration',
+    label: 'Cave candidates',
+    detail: 'USGS catalogue · 1,062 · interiors unknown',
+    visible: false,
+  },
+  {
     id: 'zones',
     group: 'Human exploration',
     label: 'Exploration zones',

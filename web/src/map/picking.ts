@@ -4,7 +4,7 @@ import { nearestWithin, type ScreenPoint } from '../core/hit'
 import { isOnNearSide } from '../core/horizon'
 import { MARS_SPHERE } from './mars'
 
-export const INTERACTIVE_PREFIXES = ['station:', 'stop:', 'activity:'] as const
+export const INTERACTIVE_PREFIXES = ['station:', 'stop:', 'activity:', 'cave:'] as const
 
 // Hit radius around the pointer. A fingertip covers ~40 px and a stop dot is 6-14 px, so taps
 // need a generous radius; a mouse is precise.

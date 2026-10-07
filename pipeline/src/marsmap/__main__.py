@@ -14,6 +14,7 @@ from typing import Any
 
 from marsmap.activities import resolve_positions
 from marsmap.benchmark import run_benchmark
+from marsmap.caves import build_caves
 from marsmap.dem import load_dem
 from marsmap.dust import build_dust
 from marsmap.export import export_grid, export_slope_overlay
@@ -115,6 +116,11 @@ def _dust(args: argparse.Namespace) -> None:
     out = build_dust(args.raw, sites, args.out)
     years = {len(s["years"]) for s in out["sites"].values()}
     print(f"wrote {args.out}: {len(out['sites'])} sites, {max(years)} Mars years")
+
+
+def _caves(args: argparse.Namespace) -> None:
+    count = build_caves(args.csv, args.out)
+    print(f"wrote {args.out}: {count} cave candidates")
 
 
 def _thermal(args: argparse.Namespace) -> None:
@@ -264,6 +270,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     dust.add_argument("--raw", type=Path, required=True, help="folder of dustscenario_MY*.nc")
     dust.add_argument("--config", type=Path, required=True)
     dust.add_argument("--out", type=Path, required=True)
+    caves = sub.add_parser("caves", help="USGS Mars cave candidate catalogue -> caves.json")
+    caves.add_argument("--csv", type=Path, required=True)
+    caves.add_argument("--out", type=Path, required=True)
     thermal = sub.add_parser("thermal", help="THEMIS thermal inertia window for each site")
     thermal.add_argument("--config", type=Path, required=True)
     thermal.add_argument("--out", type=Path, required=True)
@@ -289,6 +298,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "activities": _activities,
         "benchmark": _benchmark,
         "thermal": _thermal,
+        "caves": _caves,
         "dust": _dust,
         "build": _build,
         "layers": _layers,

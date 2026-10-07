@@ -163,3 +163,12 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Typical dust | The app's seasonal rover-sky climatology (visible opacity about 0.4 near aphelion, about 0.9 in the dusty season: Lemmon et al. 2015, *Icarus* 251; Lemmon et al. 2022, *GRL* 49), without named storms. Never a forecast. |
 | Dust devils | The peak-shaped rate already in walk mode (Newman et al. 2022, *Sci. Adv.* 8 at Jezero; Kahanpää et al. 2016 at Gale): hours at half the peak rate or more. |
 | Haze by hand | Walk-mode slider that sets the sky's dust opacity for the look only; the HUD labels it "set by hand (look only)". |
+
+## Cave candidates
+
+| Item | Source and method |
+|---|---|
+| Catalogue | Mars Global Cave Candidate Catalog v1 (MGC3), G. E. Cushing, USGS Astrogeology 2017; PDS bundle `mars_mro.odyssey_multi_cavecatalog_cushing_2016`, doi:10.17189/1519222. Public domain. Zip from https://astrogeology.usgs.gov/search/map/mars_global_cave_candidate_catalog_v1_cushing (USGS CKAN resource), 1,062 rows. |
+| Reading | `marsmap caves` reads `data/Mars_Cave_Catalog.csv` by column position, as the PDS label defines it (ID, longitude 0-360 E, latitude, type, priority, APC diameter, APC depth, comment). The CSV's own header names the first three columns wrongly. Longitudes are converted to -180..180 E. APC sizes stay text (some are "135x195"). |
+| Symbols | One violet; lighter and larger for targeting priority 1, darker and smaller for 3; a hollow ring for priority 0 (already imaged by HiRISE as of March 2017). The card spells out each priority's meaning from the archive description, section C-5. |
+| Limits | Interior size, roof thickness and radiation shielding are unknown for every candidate and the card says so. The nearest candidate to Jezero (CC0808) is 607 km away; to Gale (CC0832), 1,407 km. |

@@ -23,3 +23,7 @@ for my in 24 25 26 27 28 29 30 31 32 33 34 35 36; do
   case $my in 33) v=2-1 ;; 34 | 35 | 36) v=2-5 ;; *) v=2-0 ;; esac
   fetch "$DUST/dustscenario_MY${my}_v${v}.nc" "dust/dustscenario_MY${my}_v${v}.nc"
 done
+
+# USGS Mars Global Cave Candidate Catalog (MGC3, public domain, 1.7 MB zip), doi:10.17189/1519222.
+fetch "https://astrogeology.usgs.gov/ckan/dataset/c2960f77-ee20-4cc6-ac85-abbecc0fc7f6/resource/ccd54fb2-9a50-46bf-8971-80c241bb2f40/download/mars_cave_catalog.zip" mars_cave_catalog.zip
+[ -s "$RAW/Mars_Cave_Catalog.csv" ] || unzip -p "$RAW/mars_cave_catalog.zip" data/Mars_Cave_Catalog.csv > "$RAW/Mars_Cave_Catalog.csv"

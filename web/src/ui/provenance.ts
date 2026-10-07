@@ -93,6 +93,14 @@ export const PROVENANCE: Record<LayerId, Provenance> = {
     datum: NO_DATUM_2D,
     url: 'https://en.wikipedia.org/wiki/List_of_artificial_objects_on_Mars',
   },
+  caves: {
+    mission: 'MRO CTX and HiRISE, Mars Odyssey THEMIS (USGS survey)',
+    product:
+      'Mars Global Cave Candidate Catalog v1 (MGC3), Cushing 2017, doi:10.17189/1519222, public domain: 1,062 candidate entrances with type and a subjective targeting priority. Rows read by position because the CSV header mislabels the first three columns. Interior size, roof thickness and radiation shielding are unknown for every one',
+    crs: MARS_2000,
+    datum: NO_DATUM_2D,
+    url: 'https://astrogeology.usgs.gov/search/map/mars_global_cave_candidate_catalog_v1_cushing',
+  },
   zones: {
     mission: 'NASA HLS2 workshop, 2015',
     product:

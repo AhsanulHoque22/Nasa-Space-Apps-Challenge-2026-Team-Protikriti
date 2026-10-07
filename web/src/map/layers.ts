@@ -53,6 +53,7 @@ export type LayerId =
   | 'zones'
   | 'graticule'
   | 'thermal'
+  | 'caves'
 
 export type LayerToggles = Record<LayerId, (visible: boolean) => void>
 
@@ -65,6 +66,9 @@ export const LAYER_STYLE = {
   crashed: '#9AA6B8',
   zone: '#5B8DEF', // NASA blue, lifted for contrast on dark terrain
   sample: '#7EDC8F', // CVD-validated against the other map colours; diamond shape + labels too
+  // Cave candidates, one violet, lighter and larger for higher targeting priority (size and the
+  // card carry it too); a hollow ring is a candidate HiRISE has already imaged.
+  cave: ['#E2D4FF', '#B08CF5', '#7D58CC'],
   graticule: 'rgba(255,255,255,0.28)',
 } as const
 
@@ -250,10 +254,10 @@ function addGraticule(viewer: Viewer): CustomDataSource {
 // crater still sees the labels around it.
 const HORIZON_MARGIN_M = 20_000
 
-type Cullable = { position: Cartesian3; setShow: (show: boolean) => void }
+export type Cullable = { position: Cartesian3; setShow: (show: boolean) => void }
 
 /** Hide labels and markers on the far side of Mars whenever the camera moves. */
-function cullFarSide(viewer: Viewer, targets: Cullable[]): void {
+export function cullFarSide(viewer: Viewer, targets: Cullable[]): void {
   const last = new Cartesian3(Number.NaN, Number.NaN, Number.NaN)
   viewer.scene.preRender.addEventListener(() => {
     const camera = viewer.camera.positionWC
@@ -277,7 +281,7 @@ export async function addLayers(
   sites: readonly Site[],
   hirise: { show: boolean },
 ): Promise<
-  Omit<LayerToggles, 'streetview' | 'samples' | 'thermal'> & {
+  Omit<LayerToggles, 'streetview' | 'samples' | 'thermal' | 'caves'> & {
     hideForExplore: (on: boolean) => void
   }
 > {

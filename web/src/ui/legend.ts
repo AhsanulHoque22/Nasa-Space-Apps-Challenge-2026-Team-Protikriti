@@ -41,6 +41,9 @@ export const SWATCHES: Record<LayerId, string> = {
   zones: svg(
     `<circle cx="10" cy="10" r="7" fill="none" stroke="${LAYER_STYLE.zone}" stroke-width="2"/>`,
   ),
+  caves: svg(
+    `<circle cx="5" cy="10" r="3.6" fill="${LAYER_STYLE.cave[0]}" stroke="#05070C"/><circle cx="11" cy="10" r="2.8" fill="${LAYER_STYLE.cave[2]}" stroke="#05070C"/><circle cx="16.5" cy="10" r="2.6" fill="none" stroke="${LAYER_STYLE.cave[0]}" stroke-width="1.4"/>`,
+  ),
   graticule: svg(
     '<path d="M2 7h16M2 13h16M7 2v16M13 2v16" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/>',
   ),
