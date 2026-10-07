@@ -43,7 +43,7 @@ export function stepTimeS(g: Grid, a: Cell, b: Cell, speedFactor: number): numbe
   return stepTimeByIndex(g, from, to, lengthM, maxGrade(g), speedFactor)
 }
 
-const maxGrade = (g: Grid) => Math.tan((g.maxSafeSlopeDeg * Math.PI) / 180)
+export const maxGrade = (g: Grid) => Math.tan((g.maxSafeSlopeDeg * Math.PI) / 180)
 
 // Hot path: indices only, no allocation. NaN rise fails the comparison -> impassable.
 function isPassable(g: Grid, from: number, to: number, lengthM: number, limit: number): boolean {
@@ -76,23 +76,38 @@ export function passableCells(g: Grid): Uint8Array {
   const { width, height, elevationM: z, pixelSizeM: px } = g
   const limit = maxGrade(g)
   const at = (row: number, col: number) => z[row * width + col]
-  const derivative = (lo: number, hi: number, span: number) => (hi - lo) / (span * px)
   const passable = new Uint8Array(width * height)
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
-      const c0 = Math.max(col - 1, 0)
-      const c1 = Math.min(col + 1, width - 1)
-      const r0 = Math.max(row - 1, 0)
-      const r1 = Math.min(row + 1, height - 1)
-      const dx = c1 > c0 ? derivative(at(row, c0), at(row, c1), c1 - c0) : 0
-      const dy = r1 > r0 ? derivative(at(r0, col), at(r1, col), r1 - r0) : 0
-      const grade = Math.hypot(dx, dy)
+      const grade = cellGrade(at, width, height, px, row, col)
       // NaN (here or in a neighbour) fails the comparison -> impassable.
       passable[row * width + col] = grade <= limit && !Number.isNaN(at(row, col)) ? 1 : 0
     }
   }
   passableCache.set(g, passable)
   return passable
+}
+
+/**
+ * Terrain grade (rise over run) at a cell, the way numpy.gradient does it: central differences
+ * inside the grid, one-sided at the edges. NaN in a neighbour makes the grade NaN.
+ */
+export function cellGrade(
+  at: (row: number, col: number) => number,
+  width: number,
+  height: number,
+  pixelSizeM: number,
+  row: number,
+  col: number,
+): number {
+  const derivative = (lo: number, hi: number, span: number) => (hi - lo) / (span * pixelSizeM)
+  const c0 = Math.max(col - 1, 0)
+  const c1 = Math.min(col + 1, width - 1)
+  const r0 = Math.max(row - 1, 0)
+  const r1 = Math.min(row + 1, height - 1)
+  const dx = c1 > c0 ? derivative(at(row, c0), at(row, c1), c1 - c0) : 0
+  const dy = r1 > r0 ? derivative(at(r0, col), at(r1, col), r1 - r0) : 0
+  return Math.hypot(dx, dy)
 }
 
 /** Which way steps are timed: `out` from the start, or `back` toward it (home). */

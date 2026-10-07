@@ -4,6 +4,12 @@ import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
 import { HAZARD_RADIUS_M } from '../core/hazards'
+import {
+  DEM_SIGMA_M,
+  ERROR_CORRELATION_CELLS,
+  RELIABILITY_TRIALS,
+  routeReliability,
+} from '../core/reliability'
 import { RANGE_RINGS_MIN, homeLimitInMap, rangeRaster, walkRange } from '../core/range'
 import { type Cell, type Grid, lonLatToCell } from '../core/grid'
 import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH } from '../core/route'
@@ -64,6 +70,7 @@ export function renderRoutePanel(
       <div class="eva-card" role="status">
         <p class="eva-verdict"><span class="eva-badge"></span><span class="eva-line"></span></p>
         <p class="eva-detail"></p>
+        <p class="eva-detail eva-reliability"></p>
       </div>
       <dl class="route-summary">
         <div><dt>EVA time <span class="qualifier">incl. ${SCIENCE_STOP_MIN} min/stop</span></dt><dd data-k="eva"></dd></div>
@@ -92,6 +99,7 @@ export function renderRoutePanel(
   const evaBadge = panel.querySelector('.eva-badge') as HTMLElement
   const evaLine = panel.querySelector('.eva-line') as HTMLElement
   const evaDetail = panel.querySelector('.eva-detail') as HTMLElement
+  const evaReliability = panel.querySelector('.eva-reliability') as HTMLElement
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
 
   const hazardButton = panel.querySelector('[data-act="hazard"]') as HTMLButtonElement
@@ -172,6 +180,11 @@ export function renderRoutePanel(
       `Walk home from the last stop: ${formatDuration(card.walkbackMin)}. Assumes ` +
       `${formatDuration(maxEvaMin)} EVA, ${formatDuration(backupMin)} reserve, ` +
       `+${Math.round(walkbackPad * 100)}% on the walk home.`
+    const held = routeReliability(g, reply.path)
+    evaReliability.textContent =
+      `Terrain check: the route stays within ${g.maxSafeSlopeDeg}° in ${Math.round(held * 100)}% of ` +
+      `${RELIABILITY_TRIALS} simulated terrain errors (±${DEM_SIGMA_M} m, smooth over ` +
+      `${ERROR_CORRELATION_CELLS * g.pixelSizeM} m: a team assumption, not a measured error).`
   }
 
   const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stops: Cell[] = []) => {
