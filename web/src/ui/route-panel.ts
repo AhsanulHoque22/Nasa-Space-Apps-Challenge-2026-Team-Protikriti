@@ -125,6 +125,7 @@ export function renderRoutePanel(
       <button type="button" role="radio" aria-checked="true" data-purpose="explore">Explore</button>
       <button type="button" role="radio" aria-checked="false" data-purpose="emergency">Emergency</button>
     </div>
+    <p class="route-note purpose-note">${ROUTE_PURPOSES.explore.label}: ${ROUTE_PURPOSES.explore.why}</p>
     <p class="route-note hazard-note" role="status" hidden></p>
     <details class="route-tools">
       <summary>Planning tools</summary>
@@ -632,7 +633,8 @@ export function renderRoutePanel(
       for (const other of purposeButtons) other.setAttribute('aria-checked', String(other === b))
       ;(panel.querySelector('[data-k="stop-time"]') as HTMLElement).textContent =
         stopMin() === 0 ? 'no time at stops' : `incl. ${stopMin()} min/stop`
-      status.textContent = `${ROUTE_PURPOSES[purpose].label}: ${ROUTE_PURPOSES[purpose].why}`
+      ;(panel.querySelector('.purpose-note') as HTMLElement).textContent =
+        `${ROUTE_PURPOSES[purpose].label}: ${ROUTE_PURPOSES[purpose].why}`
       if (requested.stops.length >= 2) void replan(requested) // re-time the route on show
     })
   }
