@@ -100,3 +100,13 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Terrain | The Jezero CTX grid the planner uses (20 m pixels, 15° limit). Slope is computed exactly as the hazard overlay does. |
 | Method | `marsmap benchmark`. A leg is blocked if any mapped point on it is steeper than the limit or has no data. A false pass is a waypoint where the rover's tilt exceeded the limit but the map's slope did not. Legs and waypoints off the map are not judged. |
 | Limits | A rover that drove a slope does not prove a suited crew can. Rover tilt is measured at wheel scale, so it is finer than any 20 m map. Only 9 mapped waypoints exceed 15°, so the false-pass rate is a small sample. No 1 m HiRISE DTM is used yet, so the 20 m vs 1 m comparison is not made. |
+
+## Exploration Zone ranking
+
+| Item | Source and method |
+|---|---|
+| Zones (30) | NASA HLS2 workshop 2015, as above. |
+| Elevation | MGS MOLA global topography (4 px/deg), sampled at each zone centre. |
+| Shallow ice | SWIM 2.0 combined consistency (Morgan et al. 2021), sampled at each zone centre (about 15 km cells; zones are about 200 km across). |
+| Latitude limit (±50°) | Summarised from the workshop criteria in our research notes; **still to be checked against LPI Contribution 1879**. |
+| Score | User-weighted share of the best value on each measure, min-max scaled over the 30 zones. A zone with no data for a measure scores 0 on it. Not an official ranking. |

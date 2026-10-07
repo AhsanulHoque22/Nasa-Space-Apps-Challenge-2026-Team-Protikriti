@@ -44,6 +44,8 @@ import { renderTimelineBar } from './ui/timeline-bar'
 import { positionAtSol } from './core/timeline'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
+import { renderZonePanel } from './ui/zone-panel'
+import { iceAt } from './core/site-report'
 
 async function fetchOk(url: string): Promise<Response> {
   const response = await fetch(url)
@@ -184,11 +186,27 @@ async function main() {
   renderReadout(ui, viewer, sites, mola)
   // Settlement guide: right-click anywhere, or the readout's button for the view centre.
   let swim: Promise<SwimGrid | null> | undefined
+  const getSwim = () => (swim ??= loadSwim().catch(() => null))
   const openReport = async (lon: number, lat: number) => {
-    swim ??= loadSwim().catch(() => null)
     const places: Place[] = await placesReady.catch(() => [])
-    renderSiteReport(side, lon, lat, { sites, mola, places, swim: await swim })
+    renderSiteReport(side, lon, lat, { sites, mola, places, swim: await getSwim() })
   }
+  renderZonePanel(
+    side,
+    async () => {
+      const [places, swimGrid] = await Promise.all([placesReady, getSwim()])
+      return places
+        .filter((p) => p.kind === 'zone')
+        .map((p) => ({
+          name: p.name,
+          lon: p.lon,
+          lat: p.lat,
+          elevationM: elevationAt(sites, mola, p.lon, p.lat).m ?? null,
+          ice: swimGrid ? iceAt(swimGrid, p.lon, p.lat) : null,
+        }))
+    },
+    (zone) => flyToPlace(viewer, zone.lon, zone.lat, 200),
+  )
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
       if (isExploring()) return // explore mode owns input

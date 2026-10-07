@@ -1362,3 +1362,76 @@ body.exploring #ui {
   outline: 2px solid var(--nasa-blue-lift);
   outline-offset: -2px;
 }
+
+.zones {
+  padding: var(--space-3);
+}
+
+.zones summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.zone-weights {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: 12px;
+}
+
+.zone-weights label {
+  display: grid;
+  grid-template-columns: 8.5em 1fr 1.5em;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.zone-scroll {
+  max-height: 260px;
+  overflow: auto;
+  margin-top: var(--space-3);
+  scrollbar-width: thin;
+}
+
+.zone-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.zone-table th,
+.zone-table td {
+  padding: var(--space-1) var(--space-1);
+  text-align: left;
+  border-top: 1px solid var(--rule);
+  font-weight: 400;
+}
+
+.zone-table thead th {
+  color: var(--text-muted);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: var(--surface-raised);
+}
+
+.zone-name {
+  all: unset;
+  cursor: pointer;
+  color: var(--nasa-blue-lift);
+  text-align: left;
+}
+
+.zone-name:focus-visible {
+  outline: 2px solid var(--nasa-blue-lift);
+  outline-offset: 2px;
+}
+
+.zone-note {
+  margin: var(--space-2) 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
