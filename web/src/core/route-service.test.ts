@@ -135,4 +135,18 @@ describe('route service (worker protocol)', () => {
     expect(reply.kwh).toHaveLength(6)
     expect(reply.kwh[0]).toBeGreaterThan(0)
   })
+
+  it('routes under a stricter limit when asked (haul roads), and says what it would need', () => {
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: makeGrid([[0, 4, 8]]) }) // ~11° all along: fine on foot
+    const walk = handle({ type: 'route', id: 5, stops: stops(0, 2) })
+    expect(walk).toMatchObject({ type: 'route', id: 5 })
+    if (walk?.type !== 'route') throw new Error('expected route reply')
+    expect(walk.path).not.toBeNull()
+    const haul = handle({ type: 'route', id: 6, stops: stops(0, 2), limitDeg: 5 })
+    if (haul?.type !== 'route') throw new Error('expected route reply')
+    expect(haul.path).toBeNull()
+    expect(haul.needsDeg).toBeGreaterThan(5)
+    expect(haul.needsDeg).toBeLessThan(15)
+  })
 })

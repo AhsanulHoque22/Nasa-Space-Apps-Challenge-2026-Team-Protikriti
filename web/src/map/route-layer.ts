@@ -22,6 +22,8 @@ export type RouteLayer = {
   setHazards(cells: Cell[]): void
   /** The route as it would be without the hazards, drawn dashed; null to hide it. */
   setBaseline(path: Cell[] | null): void
+  /** A haul road under a vehicle grade limit, drawn dashed in yellow; null to hide it. */
+  setHaul(path: Cell[] | null): void
 }
 
 export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
@@ -38,8 +40,24 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
   let fail: Cell | null = null
   let hazards: Cell[] = []
   let baseline: Cell[] | null = null
+  let haul: Cell[] | null = null
   const redraw = () => {
     source.entities.removeAll()
+    if (haul && haul.length > 1) {
+      source.entities.add({
+        name: 'Haul road',
+        polyline: {
+          positions: haul.map(toCartesian),
+          width: 4,
+          material: new PolylineDashMaterialProperty({
+            color: Color.fromCssColorString(LAYER_STYLE.haul),
+            gapColor: Color.fromCssColorString('#05070C'),
+            dashLength: 16,
+          }),
+          clampToGround: true,
+        },
+      })
+    }
     if (baseline && baseline.length > 1) {
       source.entities.add({
         name: 'Direct route (before hazards)',
@@ -162,6 +180,10 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
     },
     setBaseline(next) {
       baseline = next
+      redraw()
+    },
+    setHaul(next) {
+      haul = next
       redraw()
     },
   }

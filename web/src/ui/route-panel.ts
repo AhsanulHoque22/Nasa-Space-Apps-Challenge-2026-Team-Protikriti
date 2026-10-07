@@ -36,6 +36,7 @@ import type { RouteLayer } from '../map/route-layer'
 import { type Playback, playTones } from './audio-player'
 import { mountSunTool } from './sun-tool'
 import { type CrewPoint, mountStormTool } from './storm-tool'
+import { mountHaulTool } from './haul-tool'
 import { sceneTimeMs } from '../map/sun'
 import { isExploring, isInteractiveClick } from '../map/picking'
 
@@ -336,6 +337,7 @@ export function renderRoutePanel(
     stopAudio() // the sound belongs to the route that was on show
     if (!reply?.total) lastHomeS = null
     stormTool.refresh()
+    haulTool.refresh()
     const stopCount = stops.length
     const total = reply?.total
     result.hidden = !total || stopCount < 2
@@ -547,11 +549,25 @@ export function renderRoutePanel(
     panel.querySelector('.route-tools') as HTMLElement,
     crewPoint,
   )
+  const haulTool = mountHaulTool(
+    panel.querySelector('.route-tools .route-actions') as HTMLElement,
+    panel.querySelector('.route-tools') as HTMLElement,
+    {
+      ends: () => {
+        const from = plan.stops[0]
+        const to = plan.stops.at(-1)
+        if (!active || !lastPath || !from || !to || plan.stops.length < 2) return null
+        const t = tools(active)
+        return { from, to, hazards: hazardsOf(active), client: t.client, layer: t.layer }
+      },
+    },
+  )
   const clearLayer = (site: Site) => {
     const t = perSite.get(site.id)
     t?.layer.setStops([])
     t?.layer.setPath(null)
     t?.layer.setBaseline(null)
+    t?.layer.setHaul(null)
     void t?.range.setRaster(null)
     void t?.sight.setRaster(null)
   }

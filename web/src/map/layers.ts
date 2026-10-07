@@ -69,6 +69,7 @@ export const LAYER_STYLE = {
   // Cave candidates, one violet, lighter and larger for higher targeting priority (size and the
   // card carry it too); a hollow ring is a candidate HiRISE has already imaged.
   cave: ['#E2D4FF', '#B08CF5', '#7D58CC'],
+  haul: '#FFE066', // yellow, dashed on a dark gap: distinct from the amber traverse and the route
   graticule: 'rgba(255,255,255,0.28)',
 } as const
 

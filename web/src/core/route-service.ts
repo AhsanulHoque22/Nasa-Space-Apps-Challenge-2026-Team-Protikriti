@@ -11,7 +11,15 @@ import { routeViaWaypoints } from './waypoints'
 
 export type RouteRequest =
   | { type: 'grid'; grid: Grid }
-  | { type: 'route'; id: number; stops: Cell[]; speedFactor?: number; hazards?: Cell[] }
+  | {
+      type: 'route'
+      id: number
+      stops: Cell[]
+      speedFactor?: number
+      hazards?: Cell[]
+      /** A different slope limit (e.g. a haul road's), in place of the walking limit. */
+      limitDeg?: number
+    }
   | { type: 'range'; id: number; start: Cell; hazards?: Cell[] }
   | { type: 'sight'; id: number; observer: Cell }
   | { type: 'solar'; id: number; utcMs: number }
@@ -53,14 +61,26 @@ export function createRouteService(): (
   msg: RouteRequest,
 ) => RouteReply | RangeReply | SightReply | SolarReply | undefined {
   let grid: Grid | undefined
+  // One grid object per slope limit, so passableCells' per-grid cache is reused across requests.
+  const limited = new Map<number, Grid>()
+  const withLimit = (base: Grid, limitDeg: number | undefined): Grid => {
+    if (limitDeg === undefined || limitDeg === base.maxSafeSlopeDeg) return base
+    let g = limited.get(limitDeg)
+    if (!g) {
+      g = { ...base, maxSafeSlopeDeg: limitDeg }
+      limited.set(limitDeg, g)
+    }
+    return g
+  }
   return (msg) => {
     if (msg.type === 'grid') {
       grid = msg.grid
+      limited.clear()
       passableCells(grid) // precompute once so the first route request is not slower
       return undefined
     }
     if (!grid) return { type: 'error', id: msg.id, message: 'Terrain grid not loaded yet' }
-    const g = grid
+    const g = msg.type === 'route' ? withLimit(grid, msg.limitDeg) : grid
     const t0 = performance.now()
     if (msg.type === 'solar') {
       // One sun position serves the whole site: it is ~11 km across.

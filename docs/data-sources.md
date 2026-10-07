@@ -209,3 +209,10 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Mars | NASA Trek WMTS mosaic `NES_JEZ_MID_Visible_Mosaic_HiRISE_CTX_HRSC_GCS_MARS_07-10-2018` (HiRISE, CTX, HRSC), level 11 tiles stitched and resampled to 640 px over a 20 x 20 km box centred on the western delta (77.38 E, 18.50 N) on the Mars 2000 sphere (R 3,396.19 km). |
 | Earth | NASA GIBS WMS (EPSG:4326), 20 x 20 km box on the Jamuna braid belt near Sirajganj (89.74 E, 24.45 N; R 6,371.0088 km). Scenes: Landsat WELD annual true-colour composites for 1989 and 1999; HLS L30 (Landsat) 2 Feb 2020; HLS S30 (Sentinel-2) 9 Mar 2024. Dry-season dates were picked by eye from a scan of GIBS dates for full coverage and no cloud. |
 | Caveat | The Jamuna (Brahmaputra) is not a recognised Mars analog; the panel says so first, above the images. Recognised analogs for Jezero's delta include the Wax Lake Delta. Shown only to compare shapes and to show channels moving over 35 years. |
+
+## Haul road (planning tool)
+
+| Item | Method |
+|---|---|
+| Road | The same router and CTX terrain grid as the walking route, run from the route's start to its last stop with the slope limit set to the vehicle grade (default 8%, about 4.6 deg; the user can set 1-26%). Marked hazards are avoided. When no road exists, the app reports the gentlest grade that would open one (the same search as the walking "needs N deg" message). |
+| Assumption | 8% is a common sustained-grade limit on Earth's open-pit haul roads: a team assumption for a Mars cargo road, not a Mars rule. The 20-32 m terrain model cannot see boulders. |
