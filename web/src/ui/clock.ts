@@ -16,7 +16,7 @@ const HOUR_MS = 3_600_000
 const TICK_MS = 10_000
 
 const hhmm = (hours: number) => {
-  const total = Math.floor(hours * 60)
+  const total = Math.round(hours * 60) % (24 * 60) // nearest minute: a jump to 09:00 reads 09:00
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
