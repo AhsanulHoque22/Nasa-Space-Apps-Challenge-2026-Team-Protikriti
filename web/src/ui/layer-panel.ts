@@ -1,6 +1,7 @@
 /** Layer panel: native checkboxes in a disclosure, keyboard operable by default. */
 import type { LayerId, LayerToggles } from '../map/layers'
 import { SWATCHES } from './legend'
+import { PROVENANCE, type Provenance } from './provenance'
 
 export type LayerItem = {
   id: LayerId
@@ -83,6 +84,45 @@ export const LAYER_ITEMS: LayerItem[] = [
   },
 ]
 
+const INFO_ICON =
+  '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 9v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="6" r="1.2" fill="currentColor"/></svg>'
+
+/** The "where does this come from" disclosure for one layer row. */
+function provenanceDrawer(id: string, p: Provenance): HTMLElement {
+  const dl = document.createElement('dl')
+  dl.className = 'provenance'
+  dl.id = `provenance-${id}`
+  dl.hidden = true
+  const rows: Array<[string, string]> = [
+    ['Mission / instrument', p.mission],
+    ['Product', p.product],
+    ['Coordinates', p.crs],
+    ['Vertical datum', p.datum],
+  ]
+  for (const [label, value] of rows) {
+    const row = document.createElement('div')
+    const dt = document.createElement('dt')
+    const dd = document.createElement('dd')
+    dt.textContent = label
+    dd.textContent = value
+    row.append(dt, dd)
+    dl.append(row)
+  }
+  const link = document.createElement('a')
+  link.href = p.url
+  link.target = '_blank'
+  link.rel = 'noopener noreferrer'
+  link.textContent = 'Source page'
+  const hint = document.createElement('span')
+  hint.className = 'visually-hidden'
+  hint.textContent = ' (opens in a new tab)'
+  link.append(hint)
+  const last = document.createElement('div')
+  last.append(link)
+  dl.append(last)
+  return dl
+}
+
 export function renderLayerPanel(parent: HTMLElement, toggles: LayerToggles): void {
   const panel = document.createElement('details')
   panel.className = 'panel layers'
@@ -108,6 +148,19 @@ export function renderLayerPanel(parent: HTMLElement, toggles: LayerToggles): vo
         <span class="layer-text"><span class="layer-name">${item.label}</span>
         <span class="layer-detail">${item.detail}</span></span>
       </label>`
+    const drawer = provenanceDrawer(item.id, PROVENANCE[item.id])
+    const info = document.createElement('button')
+    info.type = 'button'
+    info.className = 'layer-info'
+    info.setAttribute('aria-label', `Data source for ${item.label}`)
+    info.setAttribute('aria-expanded', 'false')
+    info.setAttribute('aria-controls', drawer.id)
+    info.innerHTML = INFO_ICON
+    info.addEventListener('click', () => {
+      drawer.hidden = !drawer.hidden
+      info.setAttribute('aria-expanded', String(!drawer.hidden))
+    })
+    li.append(info, drawer)
     const input = li.querySelector('input')
     input?.addEventListener('change', () => toggles[item.id](input.checked))
     toggles[item.id](item.visible)
