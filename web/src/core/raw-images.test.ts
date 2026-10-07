@@ -31,6 +31,19 @@ describe('normalizeMsl (Curiosity Navcam)', () => {
   })
 })
 
+describe('URLs from the remote API are untrusted', () => {
+  const first = m20.images[0]
+  it('blanks a javascript: credit link instead of passing it to an <a href>', () => {
+    const evil = { images: [{ ...first, link: 'javascript:alert(document.domain)' }] }
+    expect(normalizeM20(evil)[0]?.link).toBe('')
+  })
+
+  it('drops a frame whose image URL is not https', () => {
+    const files = { ...first?.image_files, medium: 'http://evil.example/x.jpg' }
+    expect(normalizeM20({ images: [{ ...first, image_files: files }] })).toEqual([])
+  })
+})
+
 describe('bad records are dropped, not guessed', () => {
   it('drops frames with no mast pointing', () => {
     const broken = {

@@ -28,6 +28,16 @@ function rect(value: unknown, sensor: [number, number]): [number, number, number
     : [1, 1, sensor[0], sensor[1]]
 }
 
+/** The URL if it parses as https, else ''. API values reach <img src> and <a href>. */
+function httpsUrl(value: unknown, base?: string): string {
+  try {
+    const url = new URL(String(value ?? ''), base)
+    return url.protocol === 'https:' ? url.href : ''
+  } catch {
+    return ''
+  }
+}
+
 function list(payload: unknown, key: string): Raw[] {
   const value = (payload as Raw | null)?.[key]
   if (!Array.isArray(value)) throw new Error(`raw images: expected "${key}" array`)
@@ -43,10 +53,11 @@ export function normalizeM20(payload: unknown): Frame[] {
     const el = finite(ext.mastEl)
     const site = finite(r.site)
     const drive = finite(r.drive)
-    if (az === null || el === null || site === null || drive === null) continue
+    const url = httpsUrl(files.medium ?? files.large)
+    if (az === null || el === null || site === null || drive === null || !url) continue
     frames.push({
-      url: String(files.medium ?? files.large ?? ''),
-      thumb: String(files.small ?? files.medium ?? ''),
+      url,
+      thumb: httpsUrl(files.small) || url,
       site,
       drive,
       sol: Number(r.sol),
@@ -57,7 +68,7 @@ export function normalizeM20(payload: unknown): Frame[] {
       sensor: M20_NAVCAM.sensor,
       fovDeg: M20_NAVCAM.fov,
       caption: String(r.caption ?? r.title ?? ''),
-      link: String(r.link ?? ''),
+      link: httpsUrl(r.link),
       takenUtc: String(r.date_taken_utc ?? ''),
     })
   }
@@ -73,8 +84,8 @@ export function normalizeMsl(payload: unknown): Frame[] {
     const el = finite(ext.mast_el)
     const site = finite(r.site)
     const drive = finite(r.drive)
-    if (az === null || el === null || site === null || drive === null) continue
-    const url = String(r.https_url ?? r.url ?? '')
+    const url = httpsUrl(r.https_url ?? r.url)
+    if (az === null || el === null || site === null || drive === null || !url) continue
     frames.push({
       url,
       thumb: url,
@@ -88,7 +99,7 @@ export function normalizeMsl(payload: unknown): Frame[] {
       sensor: MSL_NAVCAM.sensor,
       fovDeg: MSL_NAVCAM.fov,
       caption: String(r.description ?? r.title ?? ''),
-      link: `https://mars.nasa.gov${String(r.link ?? '')}`,
+      link: httpsUrl(r.link, 'https://mars.nasa.gov/'),
       takenUtc: String(r.date_taken ?? ''),
     })
   }
