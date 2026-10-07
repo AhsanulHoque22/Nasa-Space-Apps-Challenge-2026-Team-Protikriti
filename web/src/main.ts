@@ -39,6 +39,7 @@ import { MARS_SPHERE } from './map/mars'
 import { isExploring } from './map/picking'
 import type { Place } from './core/search'
 import { renderLinkPanel } from './ui/link-panel'
+import { renderQuestPanel } from './ui/quest-panel'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
 import type { Rover } from './map/raw-images'
@@ -132,14 +133,13 @@ async function main() {
   const side = document.createElement('div')
   side.className = 'side'
   ui.append(side)
-  const routePanel = renderRoutePanel(
-    side,
-    viewer,
-    sites,
-    createRouteClient,
-    (g) => createRouteLayer(viewer, g),
-    (g) => createRangeLayer(viewer, g),
-  )
+  const quest = renderQuestPanel(side)
+  const routePanel = renderRoutePanel(side, viewer, sites, {
+    makeClient: createRouteClient,
+    makeLayer: (g) => createRouteLayer(viewer, g),
+    makeRange: (g) => createRangeLayer(viewer, g),
+    onEvent: quest.notify,
+  })
   // Optional validation card: a missing file must not take the planner down with it.
   void fetchOk('data/benchmark.json')
     .then((r) => r.json())

@@ -6,6 +6,7 @@ import { EVA_LIMITS, evaCard } from '../core/eva-card'
 import { profileFrequencies } from '../core/audio-profile'
 import { type PlanBundle, buildBundle } from '../core/bundle'
 import { describeNoRoute, describeRoute } from '../core/describe'
+import type { QuestEvent } from '../core/quest'
 import { HAZARD_RADIUS_M } from '../core/hazards'
 import {
   DEM_SIGMA_M,
@@ -41,13 +42,19 @@ const MESSAGES = {
 const noRouteMessage = (leg: number, needsDeg: number | null | undefined, limitDeg: number) =>
   `${describeNoRoute(leg, needsDeg, limitDeg)} That stop was not added: pick another spot.`
 
+export type RoutePanelDeps = {
+  makeClient: (grid: Grid) => RouteClient
+  makeLayer: (grid: Grid) => RouteLayer
+  makeRange: (grid: Grid) => RangeLayer
+  /** Told what the user has done, for the walkthrough. */
+  onEvent: (event: QuestEvent) => void
+}
+
 export function renderRoutePanel(
   parent: HTMLElement,
   viewer: Viewer,
   sites: readonly Site[],
-  makeClient: (grid: Grid) => RouteClient,
-  makeLayer: (grid: Grid) => RouteLayer,
-  makeRange: (grid: Grid) => RangeLayer,
+  { makeClient, makeLayer, makeRange, onEvent }: RoutePanelDeps,
 ): { currentPlan: () => string | null; currentBundle: () => PlanBundle | null } {
   const names = sites.map((s) => s.name.split(' (')[0]).join(' or ')
   const idle = `Click the ${names} terrain to set a start point.`
@@ -359,6 +366,7 @@ export function renderRoutePanel(
         reply.needsDeg,
         active.grid.maxSafeSlopeDeg,
       )
+      onEvent('route-rejected')
       return
     }
     plan = next
@@ -379,6 +387,7 @@ export function renderRoutePanel(
     updateHazardNote()
     showResult(reply, plan.stops)
     status.textContent = MESSAGES.found
+    onEvent('route-found')
   }
 
   const apply = (hit: { site: Site; cell: Cell } | null, from: Plan = requested) => {
@@ -408,6 +417,7 @@ export function renderRoutePanel(
       status.textContent = MESSAGES.start
       void refreshRange()
       void refreshSight()
+      onEvent('start-set')
       return
     }
     void replan(next)
@@ -448,6 +458,7 @@ export function renderRoutePanel(
       status.textContent = outside
       return
     }
+    onEvent('hazard-placed')
     hazardsBySite.set(hit.site.id, [...hazardsOf(hit.site), hit.cell])
     tools(hit.site).layer.setHazards(hazardsOf(hit.site))
     detour = ''
@@ -527,6 +538,7 @@ export function renderRoutePanel(
   })
   rangeButton.addEventListener('click', () => {
     rangeOn = !rangeOn
+    if (rangeOn) onEvent('range-on')
     rangeButton.setAttribute('aria-pressed', String(rangeOn))
     void refreshRange()
   })

@@ -1536,3 +1536,51 @@ body.exploring #ui {
 .net-badge[data-online='false'] {
   color: #ffb547; /* amber: attention, not a hazard */
 }
+
+.quest {
+  padding: var(--space-3);
+}
+
+.quest summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.quest-steps {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  font-size: 12px;
+}
+
+.quest-steps li {
+  display: grid;
+  grid-template-columns: 3.4em 1fr;
+  gap: var(--space-2);
+}
+
+.quest-state {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quest-steps li[data-state='done'] .quest-state {
+  color: var(--nasa-blue-lift);
+}
+
+.quest-steps li[data-state='next'] {
+  font-weight: 700;
+}
+
+.quest-hint {
+  margin: var(--space-3) 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
