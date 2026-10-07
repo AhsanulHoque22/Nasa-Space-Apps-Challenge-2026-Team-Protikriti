@@ -4,6 +4,7 @@ import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
 import { profileFrequencies } from '../core/audio-profile'
+import { type PlanBundle, buildBundle } from '../core/bundle'
 import { describeNoRoute, describeRoute } from '../core/describe'
 import { HAZARD_RADIUS_M } from '../core/hazards'
 import {
@@ -47,7 +48,7 @@ export function renderRoutePanel(
   makeClient: (grid: Grid) => RouteClient,
   makeLayer: (grid: Grid) => RouteLayer,
   makeRange: (grid: Grid) => RangeLayer,
-): { currentPlan: () => string | null } {
+): { currentPlan: () => string | null; currentBundle: () => PlanBundle | null } {
   const names = sites.map((s) => s.name.split(' (')[0]).join(' or ')
   const idle = `Click the ${names} terrain to set a start point.`
   const outside = `That point is outside the mapped site terrain (${names}). Zoom to a site and pick a point there.`
@@ -155,6 +156,7 @@ export function renderRoutePanel(
 
   const sightButton = panel.querySelector('[data-act="sight"]') as HTMLButtonElement
   const sightNote = panel.querySelector('.sight-note') as HTMLElement
+  let bundle: (() => PlanBundle) | null = null // the plan on show as a file, when there is one
   let planLabel: string | null = null // one line about the route on show, to send to Ground
   let sightOn = false
   let sightRequest = 0
@@ -273,6 +275,7 @@ export function renderRoutePanel(
     const total = reply?.total
     result.hidden = !total || stopCount < 2
     planLabel = null
+    bundle = null
     if (!reply || !total) {
       if (active) tools(active).layer.setFail(null)
       return
@@ -283,6 +286,20 @@ export function renderRoutePanel(
       planLabel =
         `Route, ${stopCount - 1} stop${stopCount === 2 ? '' : 's'}, ${formatDistance(total.distanceM)}, ` +
         `${shown.card.verdict}${n ? `, ${n} hazard${n === 1 ? '' : 's'} marked` : ''}`
+      const site = active
+      if (site) {
+        bundle = () =>
+          buildBundle({
+            siteId: site.id,
+            grid: site.grid,
+            stops,
+            hazards: hazardsOf(site),
+            total,
+            evaMin: evaDurationMin(total.durationMin, stopCount),
+            card: shown.card,
+            limitDeg: shown.limitDeg,
+          })
+      }
     }
     field('eva').textContent = formatDuration(evaDurationMin(total.durationMin, stopCount))
     field('distance').textContent = formatDistance(total.distanceM)
@@ -513,5 +530,5 @@ export function renderRoutePanel(
     rangeButton.setAttribute('aria-pressed', String(rangeOn))
     void refreshRange()
   })
-  return { currentPlan: () => planLabel }
+  return { currentPlan: () => planLabel, currentBundle: () => bundle?.() ?? null }
 }

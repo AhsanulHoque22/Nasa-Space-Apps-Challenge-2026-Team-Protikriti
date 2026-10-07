@@ -1,4 +1,5 @@
 /** Simulated Crew-to-Ground link: what a time delay does to a shared plan. */
+import type { PlanBundle } from '../core/bundle'
 import { formatDuration } from '../core/format'
 import {
   type Delay,
@@ -30,7 +31,11 @@ type Sent = { id: number; label: string; createdMin: number }
 
 const at = (min: number | null) => (min === null ? '—' : `T+${formatDuration(min)}`)
 
-export function renderLinkPanel(parent: HTMLElement, currentPlan: () => string | null): void {
+export function renderLinkPanel(
+  parent: HTMLElement,
+  currentPlan: () => string | null,
+  currentBundle: () => PlanBundle | null,
+): void {
   const panel = document.createElement('details')
   panel.className = 'panel link'
   const summary = document.createElement('summary')
@@ -54,11 +59,18 @@ export function renderLinkPanel(parent: HTMLElement, currentPlan: () => string |
   const send = document.createElement('button')
   send.type = 'button'
   send.textContent = 'Send plan to Ground'
+  const download = document.createElement('button')
+  download.type = 'button'
+  download.className = 'quiet'
+  download.textContent = 'Download the plan as a file'
   const ground = document.createElement('p')
   ground.className = 'link-note'
   const table = document.createElement('table')
   table.className = 'link-table'
-  panel.append(intro, group, clock, send, ground, table)
+  const buttons = document.createElement('div')
+  buttons.className = 'route-actions'
+  buttons.append(send, download)
+  panel.append(intro, group, clock, buttons, ground, table)
   parent.append(panel)
 
   const started = performance.now()
@@ -88,8 +100,22 @@ export function renderLinkPanel(parent: HTMLElement, currentPlan: () => string |
     draw()
   })
 
+  download.addEventListener('click', () => {
+    const plan = currentBundle()
+    if (!plan) return
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' }),
+    )
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `martian-map-plan-${plan.createdUtc.slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  })
+
   const draw = () => {
     const now = nowMin()
+    download.disabled = currentBundle() === null
     clock.textContent = `Mission clock: T+${formatDuration(now)}`
     send.disabled = currentPlan() === null
     send.title = send.disabled ? 'Plan a route first' : ''

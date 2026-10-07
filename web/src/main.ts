@@ -145,7 +145,7 @@ async function main() {
     .then((r) => r.json())
     .then((doc) => renderBenchmarkCard(side, parseBenchmark(doc)))
     .catch((error: unknown) => console.warn('Benchmark card not shown:', error))
-  renderLinkPanel(side, routePanel.currentPlan)
+  renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle)
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch'

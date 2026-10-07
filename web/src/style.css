@@ -1485,6 +1485,10 @@ body.exploring #ui {
   cursor: pointer;
 }
 
+.link .quiet {
+  background: rgb(255 255 255 / 0.1);
+}
+
 .link button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
