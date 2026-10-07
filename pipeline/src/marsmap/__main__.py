@@ -15,6 +15,7 @@ from typing import Any
 from marsmap.activities import resolve_positions
 from marsmap.benchmark import run_benchmark
 from marsmap.dem import load_dem
+from marsmap.dust import build_dust
 from marsmap.export import export_grid, export_slope_overlay
 from marsmap.layers import (
     Feature,
@@ -107,6 +108,13 @@ def _stops(args: argparse.Namespace) -> None:
         stops = waypoint_stops(json.loads((args.raw / file).read_text()))
         (args.out / f"{rover}.json").write_text(json.dumps(stops, separators=(",", ":")))
         print(f"wrote {rover}: {len(stops)} stops")
+
+
+def _dust(args: argparse.Namespace) -> None:
+    sites = json.loads(args.config.read_text())["sites"]
+    out = build_dust(args.raw, sites, args.out)
+    years = {len(s["years"]) for s in out["sites"].values()}
+    print(f"wrote {args.out}: {len(out['sites'])} sites, {max(years)} Mars years")
 
 
 def _thermal(args: argparse.Namespace) -> None:
@@ -252,6 +260,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     act.add_argument("--samples", type=Path, required=True)
     act.add_argument("--waypoints", type=Path, required=True)
     act.add_argument("--out", type=Path, required=True)
+    dust = sub.add_parser("dust", help="site dust climatology from the Montabone scenarios")
+    dust.add_argument("--raw", type=Path, required=True, help="folder of dustscenario_MY*.nc")
+    dust.add_argument("--config", type=Path, required=True)
+    dust.add_argument("--out", type=Path, required=True)
     thermal = sub.add_parser("thermal", help="THEMIS thermal inertia window for each site")
     thermal.add_argument("--config", type=Path, required=True)
     thermal.add_argument("--out", type=Path, required=True)
@@ -277,6 +289,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "activities": _activities,
         "benchmark": _benchmark,
         "thermal": _thermal,
+        "dust": _dust,
         "build": _build,
         "layers": _layers,
         "weather": _weather,

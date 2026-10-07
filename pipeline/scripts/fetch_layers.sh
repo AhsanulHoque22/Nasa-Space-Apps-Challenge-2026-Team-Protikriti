@@ -14,3 +14,12 @@ fetch https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json M20_wa
 fetch https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json MSL_waypoints.json
 # NASA 3D Resources: official Perseverance rover model (glTF binary, ~5 MB), used in mission replay.
 fetch "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Mars%202020%20Perseverance%20Rover/Mars%202020%20Perseverance%20Rover.glb" perseverance.glb
+
+# Montabone et al. column dust optical depth, kriged daily maps, Mars years 24-36 (about 730 MB,
+# CC BY-SA 3.0). https://www-mars.lmd.jussieu.fr/mars/dust_climatology/
+mkdir -p "$RAW/dust"
+DUST=https://www-mars.lmd.jussieu.fr/mars/dust_climatology/dataset_v2
+for my in 24 25 26 27 28 29 30 31 32 33 34 35 36; do
+  case $my in 33) v=2-1 ;; 34 | 35 | 36) v=2-5 ;; *) v=2-0 ;; esac
+  fetch "$DUST/dustscenario_MY${my}_v${v}.nc" "dust/dustscenario_MY${my}_v${v}.nc"
+done

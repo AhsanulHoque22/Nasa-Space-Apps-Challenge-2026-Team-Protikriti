@@ -1603,3 +1603,83 @@ body.exploring #ui {
 .sun-note p {
   margin: var(--space-1) 0 0;
 }
+
+.dust {
+  padding: var(--space-3);
+}
+
+.dust summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dust-sites {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.dust-sites button {
+  font: 600 12px var(--font);
+  color: var(--text-muted);
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.dust-sites [aria-checked='true'] {
+  border-color: var(--nasa-blue-lift);
+  color: var(--text);
+}
+
+.dust-now,
+.dust-note {
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+.dust-now {
+  color: var(--text);
+}
+
+.dust-scroll {
+  overflow-x: auto;
+  margin-top: var(--space-2);
+}
+
+.dust-calendar {
+  border-collapse: separate;
+  border-spacing: 1px;
+  font-size: 10px;
+}
+
+.dust-calendar caption {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding-bottom: var(--space-1);
+}
+
+.dust-calendar th {
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: left;
+  white-space: nowrap;
+  padding-right: var(--space-1);
+}
+
+.dust-calendar td {
+  width: 6px;
+  height: 10px;
+  padding: 0;
+  border-radius: 1px;
+}
+
+.dust-calendar td.now {
+  outline: 1px solid var(--text);
+}

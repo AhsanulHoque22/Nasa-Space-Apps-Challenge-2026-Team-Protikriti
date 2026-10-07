@@ -48,6 +48,9 @@ import { positionAtSol } from './core/timeline'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
+import { renderDustPanel } from './ui/dust-panel'
+import { solarLongitudeDeg } from './core/mars-time'
+import { JulianDate } from 'cesium'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
 import { iceAt } from './core/site-report'
 
@@ -147,6 +150,9 @@ async function main() {
     .then((doc) => renderBenchmarkCard(side, parseBenchmark(doc)))
     .catch((error: unknown) => console.warn('Benchmark card not shown:', error))
   renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle)
+  renderDustPanel(side, sites, () =>
+    solarLongitudeDeg(JulianDate.toDate(viewer.clock.currentTime).getTime()),
+  )
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch'

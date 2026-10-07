@@ -127,3 +127,12 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 |---|---|
 | Thermal inertia | USGS Astrogeology, THEMIS Thermal Inertia Mosaic, Quantitative 32-bit, 100 m/px (Fergason, R.L., et al. 2006, *J. Geophys. Res.* 111, E12004, doi:10.1029/2006JE002735). Public domain; "please cite authors". Tiles `00N060E` (Jezero) and `30S120E` (Gale) are 2.4 GB ISIS cubes; `marsmap thermal` reads only each site's window over HTTP range requests. https://astrogeology.usgs.gov/search/map/themis_thermal_inertia_mosaic_quantitative_30s060e_100mpp |
 | Reading | Lower thermal inertia usually means finer, looser material (dust, sand); higher means coarser or cemented ground and rock. The app shows each value and its rank within the site ("firmer than N%"), a relative index, not a measured bearing strength or digging force. Absolute accuracy of the product is about 20%. |
+
+## Dust season panel
+
+| Item | Source and method |
+|---|---|
+| Column dust | Montabone et al. dust scenarios, kriged daily maps v2, Mars years 24-36 (LMD): Montabone et al. 2015, *Icarus* 251, 65-95, doi:10.1016/j.icarus.2014.12.034; MY34 onward Montabone et al. 2020, *JGR Planets*, doi:10.1029/2019JE006111. Variable `cdod610`: 9.3 um absorption column dust optical depth normalised to 610 Pa; x2.6 for an equivalent visible optical depth (the dataset's own factor). https://www-mars.lmd.jussieu.fr/mars/dust_climatology/ |
+| Licence | **CC BY-SA 3.0.** The derived `dust.json` (per-site means per 10 deg of Ls) carries the same licence, and the panel says so. |
+| Method | `marsmap dust` reads the 3 deg cell around each site from every daily map, places each sol in the Mars year with the Mars24 calendar (ported to Python and checked against the published starts of MY34-37), and averages per 10 deg of Ls. "Now" is the median across years for the app clock's season, ranked within the site's year (lowest, middle or highest third). |
+| Limits | Climatology, never a forecast. No dust devils, wind or temperature: the app has no hourly or wind record for these sites. One 3 deg cell (about 180 km) stands for a site about 11 km across. |
