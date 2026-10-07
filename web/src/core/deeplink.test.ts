@@ -25,6 +25,19 @@ describe('deep links', () => {
     expect(v?.lat).toBe(90)
   })
 
+  it('clamps a crafted altitude that would crash the camera', () => {
+    expect(decodeView('lon=77&lat=18&alt=1e300&heading=0&pitch=-35')?.altM).toBe(50_000_000)
+    expect(decodeView('lon=77&lat=18&alt=-1e9&heading=0&pitch=-35')?.altM).toBe(-20_000)
+  })
+
+  it('clamps pitch and wraps heading', () => {
+    const v = decodeView('lon=77&lat=18&alt=8000&heading=1e300&pitch=-1e9')
+    expect(v?.pitchDeg).toBe(-90)
+    expect(v?.headingDeg).toBeGreaterThanOrEqual(0)
+    expect(v?.headingDeg).toBeLessThan(360)
+    expect(decodeView('lon=77&lat=18&alt=8000&heading=-90&pitch=0')?.headingDeg).toBe(270)
+  })
+
   it('accepts a leading question mark', () => {
     expect(decodeView(`?${encodeView(view)}`)?.lat).toBeCloseTo(18.44463)
   })

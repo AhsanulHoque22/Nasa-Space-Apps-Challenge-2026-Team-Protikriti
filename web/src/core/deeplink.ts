@@ -10,6 +10,12 @@ export type ViewState = {
 }
 
 const DECIMALS = 5 // ~0.6 m on Mars: plenty for a shared view
+// Links are untrusted: an extreme altitude makes Cesium's camera throw and stop rendering.
+// Floor is below Hellas (−8.2 km) at 2x vertical exaggeration; ceiling frames the whole globe.
+const MIN_ALT_M = -20_000
+const MAX_ALT_M = 50_000_000
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 export function encodeView(v: ViewState): string {
   const params = new URLSearchParams({
@@ -35,10 +41,10 @@ export function decodeView(query: string): ViewState | null {
     return null
   const view: ViewState = {
     lon: lon >= -180 && lon <= 180 ? lon : ((((lon + 180) % 360) + 360) % 360) - 180,
-    lat: Math.max(-90, Math.min(90, lat)),
-    altM,
-    headingDeg,
-    pitchDeg,
+    lat: clamp(lat, -90, 90),
+    altM: clamp(altM, MIN_ALT_M, MAX_ALT_M),
+    headingDeg: ((headingDeg % 360) + 360) % 360,
+    pitchDeg: clamp(pitchDeg, -90, 90),
   }
   const layers = params.get('layers')
   if (layers) view.layers = layers.split(',').filter(Boolean)
