@@ -53,6 +53,7 @@ import { renderZonePanel } from './ui/zone-panel'
 import { renderDustPanel } from './ui/dust-panel'
 import { renderScenarioPanel } from './ui/scenario-panel'
 import { renderSyncPanel } from './ui/sync-panel'
+import { renderGeologyPanel } from './ui/geology-panel'
 import type { SiteId } from './core/surface-conditions'
 import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
@@ -317,6 +318,7 @@ async function main() {
     if (activity) openActivity(activity)
   }
   const sampleByNumber = (n: number) => samples.activities.find((a) => a.number === n)
+  renderGeologyPanel(side, (lon, lat) => flyToPlace(viewer, lon, lat, 2))
   renderDeltaCard(
     side,
     (n) => sampleByNumber(n)?.name.replace(/\s*_\(.*\)_/, '') ?? null,

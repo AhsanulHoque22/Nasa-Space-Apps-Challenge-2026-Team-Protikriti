@@ -1684,6 +1684,23 @@ body.exploring #ui {
   color: var(--text);
 }
 
+.geology-units {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.geology-units button {
+  margin-top: var(--space-1);
+}
+
+.gravity-formula {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color: var(--text);
+}
+
 .sync-heading {
   margin: var(--space-3) 0 0;
   font-size: 12px;

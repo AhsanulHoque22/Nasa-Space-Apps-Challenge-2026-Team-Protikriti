@@ -194,3 +194,10 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 |---|---|
 | Queue | While "offline", hazard marks and clears are queued in the browser's localStorage (key `martian-map:hazard-queue`), so they survive a reload; if storage is blocked the panel says so and the queue lives in memory. No network is involved: Ground's copy is simulated in the page. |
 | Merge | On reconnect the queue is applied in the order the edits were made. A mark Ground already has is not doubled ("already there"); a clear removes only what was there at that moment. Every edit is logged with its UTC time and outcome. |
+
+## Geology lens and Mars gravity
+
+| Item | Source and method |
+|---|---|
+| Rock units | USGS SIM 3464: Sun, V.Z., and Stack, K.M., 2020, *Geologic map of Jezero crater and the Nili Planum region, Mars*, scale 1:75,000, doi:10.3133/sim3464 (public domain). The panel condenses the map's Description of Map Units for units NHjf2, NHjf1, Njf and Nle and links each to its type locality; the "reading" lines stay within the map's own interpretation (pamphlet). |
+| Slope stability | Infinite-slope factor of safety for dry ground, FS = c / (rho g z sin b cos b) + tan phi / tan b, shown on screen. Mars g = 3.721 m/s^2 (GM 42,828 km^3/s^2 over 3,396 km, as in walk mode); Earth g = 9.80665 m/s^2 (standard gravity). The soil values (c 500 Pa, phi 30 deg, rho 1,500 kg/m^3, z 1 m) are illustrative team choices, not measurements. |
