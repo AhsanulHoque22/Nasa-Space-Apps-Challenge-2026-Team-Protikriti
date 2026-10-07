@@ -21,7 +21,9 @@ import {
 } from './map/viewer'
 import { loadWeather, type WeatherStation } from './map/weather-client'
 import { addStationPins, stationPositions } from './map/weather-stations'
+import { parseBenchmark } from './core/benchmark'
 import { renderActivityCard } from './ui/activity-card'
+import { renderBenchmarkCard } from './ui/benchmark-card'
 import { renderClock } from './ui/clock'
 import { openExplore } from './ui/explore-hud'
 import { renderHeader } from './ui/header'
@@ -122,6 +124,11 @@ async function main() {
   side.className = 'side'
   ui.append(side)
   renderRoutePanel(side, viewer, sites, createRouteClient, (g) => createRouteLayer(viewer, g))
+  // Optional validation card: a missing file must not take the planner down with it.
+  void fetchOk('data/benchmark.json')
+    .then((r) => r.json())
+    .then((doc) => renderBenchmarkCard(side, parseBenchmark(doc)))
+    .catch((error: unknown) => console.warn('Benchmark card not shown:', error))
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch'
