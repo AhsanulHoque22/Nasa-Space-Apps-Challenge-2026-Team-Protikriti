@@ -27,6 +27,7 @@ import { parseBenchmark } from './core/benchmark'
 import { renderActivityCard } from './ui/activity-card'
 import { renderBenchmarkCard } from './ui/benchmark-card'
 import { renderClock } from './ui/clock'
+import { renderConnectionBadge } from './ui/connection-badge'
 import { openExplore } from './ui/explore-hud'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
@@ -231,6 +232,13 @@ async function main() {
     if (c) void openReport(c.lon, c.lat)
   })
   renderClock(ui, viewer)
+  renderConnectionBadge(ui)
+  // Production only: a service worker in dev would serve stale files under hot reload.
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    navigator.serviceWorker
+      .register(new URL('sw.js', document.baseURI).href)
+      .catch((error: unknown) => console.warn('Offline cache unavailable:', error))
+  }
   const layerToggles = await addLayers(viewer, sites, hirise)
   // The globe is hidden behind Street View: stop redrawing it so the panorama gets the device.
   const showStreetView = (rover: Rover, index: number) => {

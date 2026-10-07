@@ -142,6 +142,10 @@ npx vercel deploy --prod --yes      # publishes https://martian-map.vercel.app
 
 `npx vercel login` first if the CLI isn't signed in; it prints a link you can approve from any device.
 
+### Offline demo
+
+The production build registers a service worker that saves what you look at: the app, its data, map tiles and NASA responses. Before a demo, open the deployed site once online, visit every place you will show (a site, a Street View stop, a weather panel), then turn wifi off and reload: it works from the saved copy. A **Live / Offline** badge at the top shows which you are looking at. Only places seen online are saved; anything new stays blank offline. The development server does not register the worker.
+
 ### Troubleshooting
 
 | Problem | Fix |
