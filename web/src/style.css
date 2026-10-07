@@ -476,6 +476,18 @@ body {
   font-size: 11px;
 }
 
+.eva-why,
+.route-tools {
+  margin-top: var(--space-2);
+  font-size: 12px;
+}
+
+.eva-why summary,
+.route-tools summary {
+  cursor: pointer;
+  color: var(--nasa-blue-lift);
+}
+
 .route-words {
   margin-top: var(--space-2);
   font-size: 12px;

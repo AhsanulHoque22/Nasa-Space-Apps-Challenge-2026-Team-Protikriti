@@ -71,11 +71,31 @@ export function renderRoutePanel(
   panel.innerHTML = `
     <h2 id="route-title">Marswalk route</h2>
     <p class="route-status" role="status" aria-live="polite">${idle}</p>
+    <div class="route-actions">
+      <button type="button" data-act="add">Add point at view centre</button>
+      <button type="button" data-act="undo" class="quiet">Undo stop</button>
+      <button type="button" data-act="clear" class="quiet">Clear</button>
+    </div>
+    <p class="route-note hazard-note" role="status" hidden></p>
+    <details class="route-tools">
+      <summary>Planning tools</summary>
+      <div class="route-actions">
+        <button type="button" data-act="range" class="quiet" aria-pressed="false">Walking range</button>
+        <button type="button" data-act="sight" class="quiet" aria-pressed="false">Line of sight</button>
+        <button type="button" data-act="hazard" class="quiet" aria-pressed="false">Mark hazard</button>
+        <button type="button" data-act="clear-hazards" class="quiet" hidden>Clear hazards</button>
+      </div>
+      <p class="route-note range-note" role="status" hidden></p>
+      <p class="route-note sight-note" role="status" hidden></p>
+    </details>
     <div class="route-result" hidden>
       <div class="eva-card" role="status">
         <p class="eva-verdict"><span class="eva-badge"></span><span class="eva-line"></span></p>
-        <p class="eva-detail"></p>
-        <p class="eva-detail eva-reliability"></p>
+        <details class="eva-why">
+          <summary>How this is checked</summary>
+          <p class="eva-detail"></p>
+          <p class="eva-detail eva-reliability"></p>
+        </details>
       </div>
       <dl class="route-summary">
         <div><dt>EVA time <span class="qualifier">incl. ${SCIENCE_STOP_MIN} min/stop</span></dt><dd data-k="eva"></dd></div>
@@ -86,19 +106,7 @@ export function renderRoutePanel(
       <ol class="route-legs" aria-label="Legs"></ol>
       <details class="route-words"><summary>Route in words</summary><p></p></details>
       <p class="route-note">Pace: Tobler's hiking function x ${DEFAULT_SUIT_FACTOR} suit factor, capped at ${MAX_SUIT_SPEED_KMH} km/h (team assumptions). Mars gravity is not modelled.</p>
-    </div>
-    <div class="route-actions">
-      <button type="button" data-act="add">Add point at view centre</button>
-      <button type="button" data-act="undo" class="quiet">Undo stop</button>
-      <button type="button" data-act="clear" class="quiet">Clear</button>
-      <button type="button" data-act="range" class="quiet" aria-pressed="false">Walking range</button>
-      <button type="button" data-act="sight" class="quiet" aria-pressed="false">Line of sight</button>
-      <button type="button" data-act="hazard" class="quiet" aria-pressed="false">Mark hazard</button>
-      <button type="button" data-act="clear-hazards" class="quiet" hidden>Clear hazards</button>
-    </div>
-    <p class="route-note hazard-note" role="status" hidden></p>
-    <p class="route-note range-note" role="status" hidden></p>
-    <p class="route-note sight-note" role="status" hidden></p>`
+    </div>`
   parent.append(panel)
   const status = panel.querySelector('.route-status') as HTMLElement
   const result = panel.querySelector('.route-result') as HTMLElement
