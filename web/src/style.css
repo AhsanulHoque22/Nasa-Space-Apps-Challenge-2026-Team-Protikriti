@@ -1401,7 +1401,7 @@ body.exploring #ui {
 
 .zone-weights label {
   display: grid;
-  grid-template-columns: 8.5em 1fr 1.5em;
+  grid-template-columns: 8.5em minmax(0, 1fr) minmax(1.5em, auto);
   align-items: center;
   gap: var(--space-2);
 }
@@ -1674,6 +1674,7 @@ body.exploring #ui {
 
 .dust-now,
 .dust-note {
+  overflow-wrap: anywhere; /* long dataset ids must wrap inside the panel */
   margin: var(--space-2) 0 0;
   font-size: 12px;
   color: var(--text-muted);
@@ -1682,6 +1683,14 @@ body.exploring #ui {
 
 .dust-now {
   color: var(--text);
+}
+
+.side > .panel {
+  min-width: 0; /* a wide child must not stretch the column past the side bar */
+}
+
+.zone-weights input {
+  min-width: 0;
 }
 
 .compare-caveat {
