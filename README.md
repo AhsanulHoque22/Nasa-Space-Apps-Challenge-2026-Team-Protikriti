@@ -98,14 +98,13 @@ git --version && node --version && uv --version && make --version | head -1
 
 ### 2. Get the code
 
-The repository is private, so a team owner must add you as a collaborator first. Then:
+The repository is public, so no invitation is needed. Then:
 
 ```bash
 git clone https://github.com/AhsanulHoque22/Nasa-Space-Apps-Challenge-2026-Team-Protikriti.git martian-map
 cd martian-map
 ```
 
-Git asks you to sign in. The easiest way is the [GitHub CLI](https://cli.github.com/): `gh auth login`, then clone.
 
 ### 3. Install, download the data, run
 
