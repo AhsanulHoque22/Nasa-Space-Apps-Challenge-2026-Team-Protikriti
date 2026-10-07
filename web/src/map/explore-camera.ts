@@ -15,6 +15,7 @@ import {
   type SiteId,
   surfaceConditions,
   underStorm,
+  withHaze,
 } from '../core/surface-conditions'
 import type { SolWeather } from '../core/weather'
 import { type DustDevil, createMarsAtmosphere } from './mars-atmosphere'
@@ -53,6 +54,8 @@ export type ExploreSession = {
   stop(): void
   /** Show the 2018 global dust storm at this moment instead of the actual conditions. */
   setStormReplay(on: boolean): void
+  /** Dust opacity set by hand for the look of the sky, or null for the actual conditions. */
+  setHaze(tau: number | null): void
 }
 
 export function startExplore(
@@ -112,6 +115,7 @@ export function startExplore(
   let frame = 0
 
   let stormReplay = false
+  let hazeTau: number | null = null
   const measure = (): { conditions: Conditions; sunElDeg: number; lmstHours: number } => {
     const utcMs = sceneTimeMs()
     const lmstHours = localMeanSolarTimeHours(utcMs, body.lon)
@@ -125,7 +129,11 @@ export function startExplore(
     return {
       lmstHours,
       sunElDeg: sunPosition(utcMs, body.lon, body.lat).elevationDeg,
-      conditions: stormReplay ? underStorm(actual, lmstHours) : actual,
+      conditions: stormReplay
+        ? underStorm(actual, lmstHours)
+        : hazeTau === null
+          ? actual
+          : withHaze(actual, hazeTau),
     }
   }
   let now = measure()
@@ -276,6 +284,10 @@ export function startExplore(
   const session: ExploreSession = {
     setStormReplay(on) {
       stormReplay = on
+      now = measure()
+    },
+    setHaze(tau) {
+      hazeTau = tau
       now = measure()
     },
     stop() {

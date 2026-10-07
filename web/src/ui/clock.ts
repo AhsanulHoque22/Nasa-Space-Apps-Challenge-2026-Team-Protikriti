@@ -20,7 +20,11 @@ const hhmm = (hours: number) => {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
-export function renderClock(parent: HTMLElement, viewer: Viewer): void {
+/** Returns `setTime`: jump the map clock (sun, lighting, tools) to a moment. */
+export function renderClock(
+  parent: HTMLElement,
+  viewer: Viewer,
+): { setTime: (utcMs: number) => void } {
   const el = document.createElement('section')
   el.className = 'panel clock'
   el.setAttribute('aria-label', 'Mars clock')
@@ -82,4 +86,10 @@ export function renderClock(parent: HTMLElement, viewer: Viewer): void {
   })
   window.setInterval(update, TICK_MS)
   update()
+  return {
+    setTime: (utcMs) => {
+      offsetMs = utcMs - Date.now()
+      update()
+    },
+  }
 }

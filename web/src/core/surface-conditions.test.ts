@@ -6,6 +6,7 @@ import {
   surfaceConditions,
   underStorm,
   visibilityKm,
+  withHaze,
   windMs,
 } from './surface-conditions'
 import type { SolWeather } from './weather'
@@ -123,5 +124,22 @@ describe('underStorm', () => {
     expect(storm.windMs).toBeGreaterThan(clear.windMs)
     expect(storm.sky).toMatch(/replay/i)
     expect(storm.airTempC).toBe(clear.airTempC)
+  })
+})
+
+describe('withHaze', () => {
+  it('sets the dust by hand and says so, leaving air and wind as measured', () => {
+    const actual = surfaceConditions({
+      utcMs: utc('2023-01-01T00:00:00Z'),
+      ls: 70,
+      lmstHours: 12,
+      site: 'jezero',
+      sols: [],
+    })
+    const hazy = withHaze(actual, 3)
+    expect(hazy.tau).toBe(3)
+    expect(hazy.visibilityKm).toBeCloseTo(visibilityKm(3))
+    expect(hazy.sky).toMatch(/by hand/i)
+    expect(hazy.airTempC).toBe(actual.airTempC)
   })
 })

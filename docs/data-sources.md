@@ -153,3 +153,13 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 |---|---|
 | Sky glow | Cesium's sky atmosphere, rebuilt on the Mars sphere with a 11.1 km scale height (NASA Mars Fact Sheet) and scattering tuned so red outscatters blue, lit by the Mars sun. Illustrative: not a radiative-transfer model. |
 | Scale bar | Ground distance between two screen points across the lower middle of the view, rounded to 1, 2 or 5 x 10^n m. The note beside it says when heights are drawn exaggerated (x2 in the map, true scale on foot). |
+
+## Season planner and haze by hand
+
+| Item | Source and method |
+|---|---|
+| Sun | NASA GISS Mars24 algorithm (Allison and McEwen 2000), already used by the clock. The chosen Ls is found as the next moment after the app clock when the sun reaches it; elevation is sampled every 15 min of local mean solar time at the site centre. |
+| Best hours | The EVA limit (8 h, team assumption in `eva-card.ts`) placed where the lowest sun elevation over the walk is highest, with a 10 deg floor (team assumption). No terrain shadowing in this estimate. |
+| Typical dust | The app's seasonal rover-sky climatology (visible opacity about 0.4 near aphelion, about 0.9 in the dusty season: Lemmon et al. 2015, *Icarus* 251; Lemmon et al. 2022, *GRL* 49), without named storms. Never a forecast. |
+| Dust devils | The peak-shaped rate already in walk mode (Newman et al. 2022, *Sci. Adv.* 8 at Jezero; Kahanpää et al. 2016 at Gale): hours at half the peak rate or more. |
+| Haze by hand | Walk-mode slider that sets the sky's dust opacity for the look only; the HUD labels it "set by hand (look only)". |

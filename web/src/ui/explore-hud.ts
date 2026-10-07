@@ -39,6 +39,8 @@ export function openExplore(
       <div><dt>Walked</dt><dd data-k="dist"></dd></div>
     </dl>
     <button type="button" class="xh-storm" aria-pressed="false">Replay the 2018 dust storm</button>
+    <label class="xh-haze"><span>Haze by hand (look only)</span><input type="range" min="0.2" max="5" step="0.1" value="0.5"/><output>actual</output></label>
+    <button type="button" class="quiet xh-haze-reset" hidden>Actual sky</button>
     <p class="xh-warn" role="status" aria-live="polite"></p>
     <p class="xh-help">W/S or ↑/↓ walk · Shift run · Space jump · A/D strafe · ←/→ turn · drag to look · the map clock sets the time · Mars gravity 3.72 m/s² · terrain from ${site.source.split(',')[0]} · ${COORDINATE_FRAME}</p>
     <p class="xh-help" data-k="source"></p>`
@@ -92,6 +94,24 @@ export function openExplore(
     storm.setAttribute('aria-pressed', String(on))
     storm.textContent = on ? 'Back to the actual sky' : 'Replay the 2018 dust storm'
     session.setStormReplay(on)
+  })
+  const haze = hud.querySelector('.xh-haze input') as HTMLInputElement
+  const hazeOut = hud.querySelector('.xh-haze output') as HTMLOutputElement
+  const hazeReset = hud.querySelector('.xh-haze-reset') as HTMLButtonElement
+  haze.setAttribute('aria-valuetext', 'actual sky')
+  haze.addEventListener('input', () => {
+    const tau = Number(haze.value)
+    hazeOut.textContent = `τ ${tau.toFixed(1)}`
+    haze.setAttribute('aria-valuetext', `dust opacity ${tau.toFixed(1)}, set by hand`)
+    hazeReset.hidden = false
+    session.setHaze(tau)
+  })
+  hazeReset.addEventListener('click', () => {
+    hazeOut.textContent = 'actual'
+    haze.setAttribute('aria-valuetext', 'actual sky')
+    hazeReset.hidden = true
+    session.setHaze(null)
+    haze.focus()
   })
   return session
 }

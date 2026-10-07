@@ -45,14 +45,18 @@ const EVENTS: ReadonlyArray<{
   },
 ]
 
+/** Typical visible column dust opacity for the season, without any named storm. */
+export function seasonalTau(ls: number): number {
+  return TAU_CLEAR + TAU_DUSTY_EXTRA * ((1 + Math.cos((ls - DUSTY_SEASON_LS) * DEG)) / 2) ** 2
+}
+
 /** Column dust opacity and the named event causing it, if any. */
 export function dustOpacity(
   utcMs: number,
   ls: number,
   site: SiteId = 'jezero',
 ): { tau: number; event: string | null } {
-  const season = ((1 + Math.cos((ls - DUSTY_SEASON_LS) * DEG)) / 2) ** 2
-  const tau = TAU_CLEAR + TAU_DUSTY_EXTRA * season
+  const tau = seasonalTau(ls)
   for (const e of EVENTS) {
     const [start, peak, end] = [e.start, e.peak, e.end].map(Date.parse) as [number, number, number]
     if (!e.sites.includes(site) || utcMs < start || utcMs > end) continue
@@ -168,5 +172,16 @@ export function underStorm(c: Conditions, lmstHours: number): Conditions {
     visibilityKm: visibilityKm(STORM_2018_TAU),
     windMs: windMs(lmstHours, STORM_2018_TAU),
     dustDevilsPerHour: 0, // storms shut down the convection that makes dust devils
+  }
+}
+
+/** The same moment with the dust set by hand: changes the look of the sky only. */
+export function withHaze(c: Conditions, tau: number): Conditions {
+  return {
+    ...c,
+    tau,
+    event: null,
+    sky: 'Haze set by hand (look only)',
+    visibilityKm: visibilityKm(tau),
   }
 }

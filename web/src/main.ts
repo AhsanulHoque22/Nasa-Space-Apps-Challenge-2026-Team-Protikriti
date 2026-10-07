@@ -51,6 +51,8 @@ import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
 import { renderDustPanel } from './ui/dust-panel'
+import { renderScenarioPanel } from './ui/scenario-panel'
+import type { SiteId } from './core/surface-conditions'
 import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
 import { solarLongitudeDeg } from './core/mars-time'
@@ -155,6 +157,18 @@ async function main() {
   renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle)
   renderDosePanel(side)
   renderDustPanel(side, sites, () => solarLongitudeDeg(sceneTimeMs()))
+  // The clock is drawn further down; until then a time jump has nothing to move.
+  const clockRef: { setTime: (utcMs: number) => void } = { setTime: () => {} }
+  renderScenarioPanel(
+    side,
+    sites.map((s) => ({
+      id: s.id as SiteId,
+      name: s.name.split(' (')[0] ?? s.name,
+      lon: (s.grid.west + s.grid.east) / 2,
+      lat: (s.grid.south + s.grid.north) / 2,
+    })),
+    { nowMs: sceneTimeMs, setTime: (t) => clockRef.setTime(t) },
+  )
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch'
@@ -247,7 +261,7 @@ async function main() {
     const c = viewCentre(viewer)
     if (c) void openReport(c.lon, c.lat)
   })
-  renderClock(ui, viewer)
+  Object.assign(clockRef, renderClock(ui, viewer))
   renderConnectionBadge(ui)
   installScaleBar(viewer, ui)
   // Production only: a service worker in dev would serve stale files under hot reload.
