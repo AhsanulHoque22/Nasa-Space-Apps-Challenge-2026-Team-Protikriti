@@ -25,7 +25,9 @@ export function describeRoute(d: RouteDescription): string {
   const verdict =
     d.card.verdict === 'GO'
       ? `GO: from every point you can still walk home in time, with ${margin} to spare at the tightest point.`
-      : `NO-GO: from ${formatDistance(d.failAlongM ?? 0)} along the route you cannot walk home in time, short by ${margin}.`
+      : Number.isFinite(d.card.tightestMarginMin)
+        ? `NO-GO: from ${formatDistance(d.failAlongM ?? 0)} along the route you cannot walk home in time, short by ${margin}.`
+        : `NO-GO: from ${formatDistance(d.failAlongM ?? 0)} along the route there is no safe way back to the start.`
   const legs = d.legs.map(
     (leg, i) =>
       `Leg ${i + 1}: ${i === 0 ? 'Start' : `Stop ${i}`} to Stop ${i + 1}, ` +

@@ -128,6 +128,8 @@ function search(
   speedFactor: number,
   direction: Direction,
   blocked?: Uint8Array,
+  /** Without a goal: stop once all of these cell indices are settled. */
+  targets?: readonly number[],
 ): { costS: Float64Array; cameFrom: Int32Array } {
   const { width, height } = g
   const startIndex = start.row * width + start.col
@@ -146,6 +148,7 @@ function search(
   if (!terrainOk[startIndex] || (goal && !terrainOk[goalIndex])) return { costS, cameFrom }
   if (blocked?.[startIndex] || (goal && blocked?.[goalIndex])) return { costS, cameFrom }
   const closed = new Uint8Array(width * height)
+  const wanted = targets ? new Set(targets) : null
   const open = new MinHeap(1024)
   costS[startIndex] = 0
   open.push(startIndex, heuristic(start.row, start.col))
@@ -155,6 +158,7 @@ function search(
     if (current === goalIndex) break
     if (closed[current]) continue
     closed[current] = 1
+    if (wanted?.delete(current) && wanted.size === 0) break
     const row = Math.floor(current / width)
     const col = current - row * width
     for (let k = 0; k < 8; k++) {
@@ -166,7 +170,12 @@ function search(
       if (k >= 4) {
         const vertical = nextRow * width + col
         const horizontal = row * width + nextCol
+        // Both cells beside a diagonal must be open ground, not just gentle steps.
         if (
+          !terrainOk[vertical] ||
+          !terrainOk[horizontal] ||
+          blocked?.[vertical] ||
+          blocked?.[horizontal] ||
           !isPassable(g, current, vertical, straightM, limit) ||
           !isPassable(g, current, horizontal, straightM, limit)
         )
@@ -213,8 +222,9 @@ export function travelTimesS(
   start: Cell,
   speedFactor = DEFAULT_SUIT_FACTOR,
   direction: Direction = 'out',
+  blocked?: Uint8Array,
 ): Float64Array {
-  return search(g, start, null, speedFactor, direction).costS
+  return search(g, start, null, speedFactor, direction, blocked).costS
 }
 
 function reconstruct(cameFrom: Int32Array, end: number, width: number): Cell[] {
@@ -278,4 +288,20 @@ class MinHeap {
     this.items = items
     this.priorities = priorities
   }
+}
+
+/**
+ * Seconds to walk home to `start` from each of `cells` by the fastest way, whatever way the crew
+ * came; Infinity where there is none. Stops searching once every cell is settled.
+ */
+export function timesHomeS(
+  g: Grid,
+  start: Cell,
+  cells: readonly Cell[],
+  speedFactor = DEFAULT_SUIT_FACTOR,
+  blocked?: Uint8Array,
+): number[] {
+  const index = cells.map((c) => c.row * g.width + c.col)
+  const { costS } = search(g, start, null, speedFactor, 'back', blocked, index)
+  return index.map((i) => costS[i] as number)
 }

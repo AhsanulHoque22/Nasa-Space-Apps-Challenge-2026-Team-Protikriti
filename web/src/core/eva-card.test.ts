@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EVA_LIMITS, evaCard } from './eva-card'
-import { suitedSpeedMs } from './route'
+import { suitedSpeedMs, timesHomeS } from './route'
 import { SCIENCE_STOP_MIN } from './summary'
 import { makeGrid } from './test-grids'
 
@@ -25,7 +25,7 @@ describe('evaCard', () => {
     const g = makeGrid([Array(11).fill(0)])
     const path = row([...Array(11).keys()])
     const limits = { ...EVA_LIMITS, maxEvaMin: 4, backupMin: 1 } // 3 min of usable time
-    const card = evaCard(g, path, [path[0]], limits)
+    const card = evaCard(g, path, [path[0]], { limits })
     // at point i: out i*t + back 1.2*i*t = 2.2*i*t; the first i over 3 min is the failure
     const firstOver = Math.floor(3 / (2.2 * FLAT_CELL_MIN)) + 1
     expect(card.verdict).toBe('NO-GO')
@@ -37,8 +37,8 @@ describe('evaCard', () => {
     const g = makeGrid([[0, 0, 0]])
     const path = row([0, 1, 2])
     const limits = { ...EVA_LIMITS, maxEvaMin: 22, backupMin: 1 } // 21 min usable
-    expect(evaCard(g, path, [path[0]], limits).verdict).toBe('GO')
-    const withStop = evaCard(g, path, [path[0], path[2]], limits)
+    expect(evaCard(g, path, [path[0]], { limits }).verdict).toBe('GO')
+    const withStop = evaCard(g, path, [path[0], path[2]], { limits })
     expect(withStop.verdict).toBe('NO-GO')
     expect(withStop.failIndex).toBe(2)
   })
@@ -66,5 +66,29 @@ describe('evaCard', () => {
         { row: 0, col: 2 },
       ]),
     ).toThrow(/not on the path/)
+  })
+})
+
+describe('evaCard with the shortest walk home', () => {
+  it('an out-and-back route that ends beside the start is GO, not judged by retracing it', () => {
+    const g = makeGrid([Array(400).fill(0)])
+    const out = row([...Array(400).keys()])
+    const back = row(Array.from({ length: 398 }, (_, i) => 398 - i)) // 398 .. 1
+    const path = [...out, ...back]
+    const stops = [path[0], path[399], path.at(-1)] as Array<{ row: number; col: number }>
+    const retraced = evaCard(g, path, stops)
+    expect(retraced.verdict).toBe('NO-GO') // the old, wrong reading
+    const homeS = timesHomeS(g, path[0] as { row: number; col: number }, path)
+    const card = evaCard(g, path, stops, { homeS })
+    expect(card.verdict).toBe('GO')
+    expect(card.walkbackMin).toBeCloseTo(FLAT_CELL_MIN) // one cell from home
+  })
+
+  it('treats a point with no way home as failing', () => {
+    const g = makeGrid([[0, 0, 0]])
+    const path = row([0, 1, 2])
+    const card = evaCard(g, path, [path[0]], { homeS: [0, 10, Infinity] })
+    expect(card.verdict).toBe('NO-GO')
+    expect(card.failIndex).toBe(2)
   })
 })

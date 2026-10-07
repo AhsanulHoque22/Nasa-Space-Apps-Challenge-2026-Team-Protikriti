@@ -8,6 +8,7 @@ import {
   stepTimeS,
   suitedSpeedMs,
   toblerSpeedMs,
+  timesHomeS,
   travelTimesS,
 } from './route'
 import { summarizeRoute } from './summary'
@@ -220,5 +221,62 @@ describe('findRoute with blocked cells', () => {
   it('returns null when blocked cells seal off the goal', () => {
     const blocked = blockCols([2], [0, 1, 2, 3, 4])
     expect(findRoute(open5, { row: 2, col: 0 }, { row: 2, col: 4 }, undefined, blocked)).toBeNull()
+  })
+})
+
+describe('diagonal steps between closed cells', () => {
+  const open3 = makeGrid(Array.from({ length: 3 }, () => [0, 0, 0]))
+
+  it('never squeeze between two hazard-blocked cells', () => {
+    const blocked = new Uint8Array(9)
+    blocked[1] = 1 // (0,1)
+    blocked[3] = 1 // (1,0)
+    expect(findRoute(open3, { row: 0, col: 0 }, { row: 1, col: 1 }, undefined, blocked)).toBeNull()
+  })
+
+  it('never cut past a single blocked cell either: both sides of a diagonal must be open', () => {
+    const blocked = new Uint8Array(9)
+    blocked[1] = 1 // (0,1)
+    const path = findRoute(open3, { row: 0, col: 0 }, { row: 1, col: 1 }, undefined, blocked)
+    expect(path).toEqual([
+      { row: 0, col: 0 },
+      { row: 1, col: 0 },
+      { row: 1, col: 1 },
+    ])
+  })
+})
+
+describe('timesHomeS', () => {
+  it('is the shortest walk home from each cell, not the way the route came', () => {
+    const g = makeGrid([Array(30).fill(0)])
+    const cells = [
+      { row: 0, col: 29 },
+      { row: 0, col: 1 },
+    ]
+    const home = timesHomeS(g, { row: 0, col: 0 }, cells)
+    const step = 20 / suitedSpeedMs(0)
+    expect(home[0]).toBeCloseTo(29 * step)
+    expect(home[1]).toBeCloseTo(step) // right next to the start, whatever the route did before
+  })
+
+  it('agrees with a full flood back to the start', () => {
+    const g = makeGrid(noiseRows(25))
+    const start = { row: 3, col: 4 }
+    const cells = [
+      { row: 20, col: 18 },
+      { row: 10, col: 2 },
+    ]
+    const flood = travelTimesS(g, start, undefined, 'back')
+    const home = timesHomeS(g, start, cells)
+    expect(home[0]).toBeCloseTo(flood[20 * 25 + 18] as number)
+    expect(home[1]).toBeCloseTo(flood[10 * 25 + 2] as number)
+  })
+
+  it('respects hazards: a keep-out that closes the way leaves the cell unreachable', () => {
+    const g = makeGrid([Array(10).fill(0)])
+    const blocked = new Uint8Array(10)
+    blocked[5] = 1
+    const home = timesHomeS(g, { row: 0, col: 0 }, [{ row: 0, col: 8 }], undefined, blocked)
+    expect(home[0]).toBe(Infinity)
   })
 })

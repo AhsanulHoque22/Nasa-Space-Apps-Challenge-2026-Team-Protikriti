@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RANGE_ALPHA_EDGE, homeLimitInMap, rangeRaster, walkRange } from './range'
+import { RANGE_ALPHA_EDGE, homeLimitInMap, rangeRaster, reachesAnywhere, walkRange } from './range'
 
 const MIN = 60
 const limits = { maxEvaMin: 240, backupMin: 60, walkbackPad: 0.2 } // 180 min usable
@@ -75,5 +75,12 @@ describe('rangeRaster', () => {
     expect(() => rangeRaster(4, 4, { ring: new Uint8Array(3), home: new Uint8Array(3) })).toThrow(
       /size/,
     )
+  })
+})
+
+describe('reachesAnywhere', () => {
+  it('is false when even the start is unreachable, as when it sits in a hazard keep-out', () => {
+    expect(reachesAnywhere(Float64Array.from([Infinity, Infinity]))).toBe(false)
+    expect(reachesAnywhere(Float64Array.from([0, Infinity]))).toBe(true)
   })
 })

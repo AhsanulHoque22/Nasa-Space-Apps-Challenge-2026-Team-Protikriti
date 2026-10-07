@@ -3,14 +3,14 @@ import type { Cell, Grid } from './grid'
 import { gentlestLimitDeg } from './blocker'
 import { hazardMask, touchesHazard } from './hazards'
 import { viewshed } from './viewshed'
-import { passableCells, travelTimesS } from './route'
+import { passableCells, timesHomeS, travelTimesS } from './route'
 import { type RouteSummary, summarizeRoute } from './summary'
 import { routeViaWaypoints } from './waypoints'
 
 export type RouteRequest =
   | { type: 'grid'; grid: Grid }
   | { type: 'route'; id: number; stops: Cell[]; speedFactor?: number; hazards?: Cell[] }
-  | { type: 'range'; id: number; start: Cell }
+  | { type: 'range'; id: number; start: Cell; hazards?: Cell[] }
   | { type: 'sight'; id: number; observer: Cell }
 
 export type RouteReply =
@@ -25,6 +25,8 @@ export type RouteReply =
       needsDeg?: number | null
       /** The route with no hazards, to compare against; null when no hazard is marked. */
       baseline: { path: Cell[]; total: RouteSummary; hitsHazard: boolean } | null
+      /** Seconds of the fastest walk home from each point of `path` (hazards respected). */
+      homeS: number[] | null
       ms: number
     }
   | { type: 'error'; id: number; message: string }
@@ -61,8 +63,9 @@ export function createRouteService(): (
       }
     }
     if (msg.type === 'range') {
-      const outS = travelTimesS(g, msg.start)
-      const backS = travelTimesS(g, msg.start, undefined, 'back')
+      const blocked = msg.hazards?.length ? hazardMask(g, msg.hazards) : undefined
+      const outS = travelTimesS(g, msg.start, undefined, 'out', blocked)
+      const backS = travelTimesS(g, msg.start, undefined, 'back', blocked)
       return { type: 'range', id: msg.id, outS, backS, ms: performance.now() - t0 }
     }
     const mask = msg.hazards?.length ? hazardMask(g, msg.hazards) : undefined
@@ -93,6 +96,7 @@ export function createRouteService(): (
         failedLeg: result.failedLeg,
         needsDeg,
         baseline,
+        homeS: null,
         ms,
       }
     }
@@ -103,6 +107,7 @@ export function createRouteService(): (
       total: summarizeRoute(g, result.path, msg.speedFactor),
       legs: result.legs.map((leg) => summarizeRoute(g, leg, msg.speedFactor)),
       baseline,
+      homeS: timesHomeS(g, msg.stops[0] as Cell, result.path, msg.speedFactor, mask),
       ms,
     }
   }

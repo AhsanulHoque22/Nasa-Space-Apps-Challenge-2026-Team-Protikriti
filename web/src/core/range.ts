@@ -38,6 +38,11 @@ export function walkRange(
   return { ring, home }
 }
 
+/** False when nothing at all can be reached, not even the start (it is in a hazard keep-out). */
+export function reachesAnywhere(outS: Float64Array): boolean {
+  return outS.some(Number.isFinite)
+}
+
 /** Whether the home limit crosses the map: some reachable ground is too far to get home from. */
 export function homeLimitInMap(range: WalkRange, outS: Float64Array): boolean {
   return outS.some((s, i) => Number.isFinite(s) && !range.home[i])

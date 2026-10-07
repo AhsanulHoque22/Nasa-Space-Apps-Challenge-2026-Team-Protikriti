@@ -62,6 +62,18 @@ describe('describeRoute', () => {
   })
 })
 
+describe('describeRoute when there is no way home', () => {
+  it('says so instead of printing an infinite margin', () => {
+    const text = describeRoute({
+      ...base,
+      card: { verdict: 'NO-GO', tightestMarginMin: -Infinity, failIndex: 3 },
+      failAlongM: 500,
+    })
+    expect(text).toContain('there is no safe way back')
+    expect(text).not.toMatch(/NaN|Infinity/)
+  })
+})
+
 describe('describeNoRoute', () => {
   it('names the slope the gentlest way needs', () => {
     expect(describeNoRoute(2, 17.4, 15)).toBe(

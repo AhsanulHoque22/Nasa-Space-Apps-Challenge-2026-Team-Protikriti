@@ -94,4 +94,30 @@ describe('route service (worker protocol)', () => {
     if (reply?.type !== 'sight') throw new Error('expected sight reply')
     expect(Array.from(reply.visible)).toEqual([1, 1, 1, 0]) // the ridge hides the last cell
   })
+
+  it('keeps the walking range out of hazard keep-outs, like the route', () => {
+    const open = makeGrid([Array(12).fill(0)]) // one row, 20 m cells
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: open })
+    const start = { row: 0, col: 0 }
+    const free = handle({ type: 'range', id: 1, start })
+    const blocked = handle({ type: 'range', id: 2, start, hazards: [{ row: 0, col: 6 }] })
+    if (free?.type !== 'range' || blocked?.type !== 'range')
+      throw new Error('expected range replies')
+    expect(Number.isFinite(free.outS[11])).toBe(true)
+    expect(blocked.outS[11]).toBe(Infinity) // the only way east runs through the hazard
+    expect(blocked.backS[11]).toBe(Infinity)
+    expect(blocked.outS[2]).toBe(free.outS[2]) // ground short of the keep-out is unchanged
+  })
+
+  it('sends the fastest walk home from every point of the route', () => {
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: makeGrid([Array(10).fill(0)]) })
+    const reply = handle({ type: 'route', id: 3, stops: stops(0, 8, 1) })
+    if (reply?.type !== 'route' || !reply.path) throw new Error('expected a route')
+    expect(reply.homeS).toHaveLength(reply.path.length)
+    expect(reply.homeS?.[0]).toBe(0)
+    const last = reply.homeS?.at(-1) as number
+    expect(last).toBeLessThan(reply.homeS?.[8] as number) // the last stop is next to home
+  })
 })

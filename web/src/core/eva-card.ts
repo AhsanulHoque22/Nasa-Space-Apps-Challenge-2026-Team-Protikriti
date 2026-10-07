@@ -40,12 +40,21 @@ function stopIndices(path: Cell[], stops: Cell[]): number[] {
   })
 }
 
+export type EvaOptions = {
+  limits?: EvaLimits
+  speedFactor?: number
+  /**
+   * Seconds of the fastest walk home from each path point (timesHomeS). Without it the walk home
+   * is timed back along the route itself, which overstates it when the route loops back.
+   */
+  homeS?: readonly number[]
+}
+
 export function evaCard(
   g: Grid,
   path: Cell[],
   stops: Cell[],
-  limits: EvaLimits = EVA_LIMITS,
-  speedFactor = DEFAULT_SUIT_FACTOR,
+  { limits = EVA_LIMITS, speedFactor = DEFAULT_SUIT_FACTOR, homeS }: EvaOptions = {},
 ): EvaCard {
   const budgetMin = limits.maxEvaMin - limits.backupMin
   const scienceAt = new Set(stopIndices(path, stops).slice(1)) // the start is not a science stop
@@ -61,6 +70,7 @@ export function evaCard(
     backMin[i] =
       (backMin[i - 1] as number) +
       stepTimeS(g, path[i] as Cell, path[i - 1] as Cell, speedFactor) / 60
+  if (homeS) for (let i = 0; i < path.length; i++) backMin[i] = (homeS[i] as number) / 60
 
   let sciencePassed = 0
   let tightestMarginMin = budgetMin
