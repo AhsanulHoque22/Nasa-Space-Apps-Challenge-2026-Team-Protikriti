@@ -338,6 +338,42 @@ body {
   max-width: 60ch;
 }
 
+.eva-card {
+  margin-top: var(--space-3);
+}
+
+.eva-verdict {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 600;
+}
+
+.eva-badge {
+  flex: none;
+  padding: 1px var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.eva-card[data-verdict='GO'] .eva-badge {
+  color: var(--nasa-blue-lift);
+}
+
+.eva-card[data-verdict='NO-GO'] .eva-badge {
+  color: #ff8a73; /* route red lifted for text contrast (6.6:1 on --surface) */
+}
+
+.eva-detail {
+  margin: var(--space-1) 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 .route-summary {
   margin: var(--space-3) 0 0;
   padding-top: var(--space-3);

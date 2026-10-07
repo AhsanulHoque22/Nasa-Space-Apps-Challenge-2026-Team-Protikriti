@@ -2,10 +2,11 @@
 import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer } from 'cesium'
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
+import { EVA_LIMITS, evaCard } from '../core/eva-card'
 import { type Cell, type Grid, lonLatToCell } from '../core/grid'
 import { EMPTY_PLAN, type Plan, pick } from '../core/planner'
 import type { RouteReply } from '../core/route-service'
-import { SCIENCE_STOP_MIN, evaDurationMin } from '../core/summary'
+import { SCIENCE_STOP_MIN, evaDurationMin, summarizeRoute } from '../core/summary'
 import { MARS_SPHERE } from '../map/mars'
 import type { RouteClient } from '../map/route-client'
 import type { RouteLayer } from '../map/route-layer'
@@ -51,6 +52,10 @@ export function renderRoutePanel(
     <h2 id="route-title">Marswalk route</h2>
     <p class="route-status" role="status" aria-live="polite">${idle}</p>
     <div class="route-result" hidden>
+      <div class="eva-card" role="status">
+        <p class="eva-verdict"><span class="eva-badge"></span><span class="eva-line"></span></p>
+        <p class="eva-detail"></p>
+      </div>
       <dl class="route-summary">
         <div><dt>EVA time <span class="qualifier">incl. ${SCIENCE_STOP_MIN} min/stop</span></dt><dd data-k="eva"></dd></div>
         <div><dt>Distance</dt><dd data-k="distance"></dd></div>
@@ -69,16 +74,48 @@ export function renderRoutePanel(
   const status = panel.querySelector('.route-status') as HTMLElement
   const result = panel.querySelector('.route-result') as HTMLElement
   const legsEl = panel.querySelector('.route-legs') as HTMLElement
+  const evaEl = panel.querySelector('.eva-card') as HTMLElement
+  const evaBadge = panel.querySelector('.eva-badge') as HTMLElement
+  const evaLine = panel.querySelector('.eva-line') as HTMLElement
+  const evaDetail = panel.querySelector('.eva-detail') as HTMLElement
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
 
   let plan: Plan = EMPTY_PLAN // last plan with a computed route
   let requested: Plan = EMPTY_PLAN // what the user has asked for, possibly still routing
   let latest = 0
 
-  const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stopCount = 0) => {
+  const showCard = (reply: Extract<RouteReply, { type: 'route' }>, stops: Cell[]) => {
+    if (!active || !reply.path) return
+    const g = active.grid
+    const card = evaCard(g, reply.path, stops)
+    const failCell = card.failIndex === null ? null : (reply.path[card.failIndex] ?? null)
+    tools(active).layer.setFail(failCell)
+    const go = card.verdict === 'GO'
+    evaEl.dataset.verdict = card.verdict
+    evaBadge.textContent = card.verdict
+    const margin = formatDuration(Math.abs(card.tightestMarginMin))
+    if (go) {
+      evaLine.textContent = `Back in time, with ${margin} to spare at the tightest point.`
+    } else {
+      const alongM = summarizeRoute(g, reply.path.slice(0, (card.failIndex ?? 0) + 1)).distanceM
+      evaLine.textContent = `Cannot get home in time from ${formatDistance(alongM)} along the route (short by ${margin}).`
+    }
+    const { maxEvaMin, backupMin, walkbackPad } = EVA_LIMITS
+    evaDetail.textContent =
+      `Walk home from the last stop: ${formatDuration(card.walkbackMin)}. Assumes ` +
+      `${formatDuration(maxEvaMin)} EVA, ${formatDuration(backupMin)} reserve, ` +
+      `+${Math.round(walkbackPad * 100)}% on the walk home.`
+  }
+
+  const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stops: Cell[] = []) => {
+    const stopCount = stops.length
     const total = reply?.total
     result.hidden = !total || stopCount < 2
-    if (!reply || !total) return
+    if (!reply || !total) {
+      if (active) tools(active).layer.setFail(null)
+      return
+    }
+    showCard(reply, stops)
     field('eva').textContent = formatDuration(evaDurationMin(total.durationMin, stopCount))
     field('distance').textContent = formatDistance(total.distanceM)
     field('relief').textContent =
@@ -115,7 +152,7 @@ export function renderRoutePanel(
     plan = next
     layer.setStops(plan.stops)
     layer.setPath(reply.path)
-    showResult(reply, plan.stops.length)
+    showResult(reply, plan.stops)
     status.textContent = MESSAGES.found
   }
 

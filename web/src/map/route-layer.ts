@@ -16,6 +16,8 @@ import { MARS_SPHERE } from './mars'
 export type RouteLayer = {
   setStops(stops: Cell[]): void
   setPath(path: Cell[] | null): void
+  /** Where the crew can no longer get home in time, or null when the route is safe. */
+  setFail(cell: Cell | null): void
 }
 
 export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
@@ -29,6 +31,7 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
   }
   let path: Cell[] | null = null
   let stops: Cell[] = []
+  let fail: Cell | null = null
   const redraw = () => {
     source.entities.removeAll()
     if (path && path.length > 1) {
@@ -69,6 +72,32 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
         },
       })
     })
+    if (fail) {
+      source.entities.add({
+        name: 'Fails here',
+        position: toCartesian(fail),
+        point: {
+          pixelSize: 16,
+          color: Color.WHITE,
+          outlineColor: red,
+          outlineWidth: 5,
+          heightReference: HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: 'Fails here: no way home in time',
+          font: '700 13px system-ui, sans-serif',
+          fillColor: Color.WHITE,
+          outlineColor: red,
+          outlineWidth: 4,
+          style: LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: VerticalOrigin.TOP,
+          pixelOffset: new Cartesian2(0, 14),
+          heightReference: HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      })
+    }
     viewer.scene.requestRender()
   }
   return {
@@ -78,6 +107,10 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
     },
     setPath(next) {
       path = next
+      redraw()
+    },
+    setFail(next) {
+      fail = next
       redraw()
     },
   }
