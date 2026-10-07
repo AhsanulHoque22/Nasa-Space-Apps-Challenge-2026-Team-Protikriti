@@ -50,6 +50,7 @@ import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
 import { renderDustPanel } from './ui/dust-panel'
 import { renderDosePanel } from './ui/dose-panel'
+import { renderDeltaCard } from './ui/delta-card'
 import { solarLongitudeDeg } from './core/mars-time'
 import { JulianDate } from 'cesium'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
@@ -287,6 +288,17 @@ async function main() {
     const activity = match ? samples.activities[Number(match[1])] : undefined
     if (activity) openActivity(activity)
   }
+  const sampleByNumber = (n: number) => samples.activities.find((a) => a.number === n)
+  renderDeltaCard(
+    side,
+    (n) => sampleByNumber(n)?.name.replace(/\s*_\(.*\)_/, '') ?? null,
+    (n) => {
+      const a = sampleByNumber(n)
+      if (!a) return
+      if (a.lon !== undefined && a.lat !== undefined) flyToPlace(viewer, a.lon, a.lat, 1)
+      openActivity(a)
+    },
+  )
   let thermalWasShown = false
   exploreHooks.push(layerToggles.hideForExplore, streetView.hideForExplore, (on) => {
     // like the other paint-on overlays, ground firmness would cover the walker's view
