@@ -1,5 +1,11 @@
 /** Marswalk planner: click a start, then science stops; see the safest timed EVA. */
-import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer } from 'cesium'
+import {
+  Cartesian2,
+  JulianDate,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
+  type Viewer,
+} from 'cesium'
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
@@ -32,6 +38,7 @@ import type { RouteClient } from '../map/route-client'
 import type { RangeLayer } from '../map/range-layer'
 import type { RouteLayer } from '../map/route-layer'
 import { type Playback, playTones } from './audio-player'
+import { mountSunTool } from './sun-tool'
 import { isExploring, isInteractiveClick } from '../map/picking'
 
 /** Tones in the height profile: enough to follow the shape, short enough to sit through. */
@@ -74,7 +81,13 @@ export function renderRoutePanel(
   // One routing worker and route layer per site, created on first use.
   const perSite = new Map<
     string,
-    { client: RouteClient; layer: RouteLayer; range: RangeLayer; sight: RangeLayer }
+    {
+      client: RouteClient
+      layer: RouteLayer
+      range: RangeLayer
+      sight: RangeLayer
+      sun: RangeLayer
+    }
   >()
   const tools = (site: Site) => {
     let t = perSite.get(site.id)
@@ -84,6 +97,7 @@ export function renderRoutePanel(
         layer: makeLayer(site.grid),
         range: makeRange(site.grid),
         sight: makeRange(site.grid),
+        sun: makeRange(site.grid),
       }
       perSite.set(site.id, t)
     }
@@ -449,6 +463,7 @@ export function renderRoutePanel(
       status.textContent = MESSAGES.start
       void refreshRange()
       void refreshSight()
+      sunTool.refresh() // follow the site being planned
       onEvent('start-set')
       return
     }
@@ -468,6 +483,20 @@ export function renderRoutePanel(
     }
     return null
   }
+  const sunTool = mountSunTool(
+    panel.querySelector('.route-tools .route-actions') as HTMLElement,
+    panel.querySelector('.route-tools') as HTMLElement,
+    {
+      siteNow: () => {
+        if (active) return active
+        const canvas = viewer.scene.canvas
+        return cellAt(new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2))?.site ?? null
+      },
+      client: (site) => tools(site).client,
+      overlay: (site) => tools(site).sun,
+      nowMs: () => JulianDate.toDate(viewer.clock.currentTime).getTime(),
+    },
+  )
   const clearLayer = (site: Site) => {
     const t = perSite.get(site.id)
     t?.layer.setStops([])

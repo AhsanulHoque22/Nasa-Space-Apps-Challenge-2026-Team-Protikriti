@@ -2,6 +2,8 @@
 import type { Cell, Grid } from './grid'
 import { gentlestLimitDeg } from './blocker'
 import { hazardMask, touchesHazard } from './hazards'
+import { cellToLonLat } from './grid'
+import { solarEnergyKwh } from './solar'
 import { viewshed } from './viewshed'
 import { passableCells, timesHomeS, travelTimesS } from './route'
 import { type RouteSummary, summarizeRoute } from './summary'
@@ -12,6 +14,7 @@ export type RouteRequest =
   | { type: 'route'; id: number; stops: Cell[]; speedFactor?: number; hazards?: Cell[] }
   | { type: 'range'; id: number; start: Cell; hazards?: Cell[] }
   | { type: 'sight'; id: number; observer: Cell }
+  | { type: 'solar'; id: number; utcMs: number }
 
 export type RouteReply =
   | {
@@ -32,6 +35,11 @@ export type RouteReply =
   | { type: 'error'; id: number; message: string }
 
 /** Seconds to walk out from `start` to every cell, and back from every cell to it. */
+/** Clear-sky sunlight per cell over the sol starting at utcMs, kWh/m². */
+export type SolarReply =
+  | { type: 'solar'; id: number; kwh: Float32Array; ms: number }
+  | { type: 'error'; id: number; message: string }
+
 /** 1 where the observer can see a standing person (geometric line of sight). */
 export type SightReply =
   | { type: 'sight'; id: number; visible: Uint8Array; ms: number }
@@ -43,7 +51,7 @@ export type RangeReply =
 
 export function createRouteService(): (
   msg: RouteRequest,
-) => RouteReply | RangeReply | SightReply | undefined {
+) => RouteReply | RangeReply | SightReply | SolarReply | undefined {
   let grid: Grid | undefined
   return (msg) => {
     if (msg.type === 'grid') {
@@ -54,6 +62,12 @@ export function createRouteService(): (
     if (!grid) return { type: 'error', id: msg.id, message: 'Terrain grid not loaded yet' }
     const g = grid
     const t0 = performance.now()
+    if (msg.type === 'solar') {
+      // One sun position serves the whole site: it is ~11 km across.
+      const [lon, lat] = cellToLonLat(g, { row: g.height >> 1, col: g.width >> 1 })
+      const kwh = solarEnergyKwh(g, msg.utcMs, lon, lat)
+      return { type: 'solar', id: msg.id, kwh, ms: performance.now() - t0 }
+    }
     if (msg.type === 'sight') {
       return {
         type: 'sight',

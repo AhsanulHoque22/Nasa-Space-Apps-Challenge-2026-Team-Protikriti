@@ -120,4 +120,19 @@ describe('route service (worker protocol)', () => {
     const last = reply.homeS?.at(-1) as number
     expect(last).toBeLessThan(reply.homeS?.[8] as number) // the last stop is next to home
   })
+
+  it('works out a sol of sunlight on the terrain', () => {
+    const handle = createRouteService()
+    handle({
+      type: 'grid',
+      grid: makeGrid([
+        [0, 0, 0],
+        [0, 0, 0],
+      ]),
+    })
+    const reply = handle({ type: 'solar', id: 12, utcMs: Date.UTC(2025, 5, 1) })
+    if (reply?.type !== 'solar') throw new Error('expected solar reply')
+    expect(reply.kwh).toHaveLength(6)
+    expect(reply.kwh[0]).toBeGreaterThan(0)
+  })
 })

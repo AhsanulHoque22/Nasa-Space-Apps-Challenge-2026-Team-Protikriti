@@ -111,3 +111,12 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Shallow ice | SWIM 2.0 combined consistency (Morgan et al. 2021), sampled at each zone centre (about 15 km cells; zones are about 200 km across). |
 | Latitude limit (±50°) | Summarised from the workshop criteria in our research notes; **still to be checked against LPI Contribution 1879**. |
 | Score | User-weighted share of the best value on each measure, min-max scaled over the 30 zones. A zone with no data for a measure scores 0 on it. Not an official ranking. |
+
+## Sunlight on the terrain (Planning tools, "Sunlight")
+
+| Item | Source and method |
+|---|---|
+| Sun position and Sun-Mars distance | Mars24 algorithm (Allison & McEwen 2000), as for the clock. |
+| Solar constant | 1361 W/m² at 1 AU (Kopp & Lean 2011, *Geophysical Research Letters* 38). |
+| Terrain | The site grid (CTX DEM): slope and aspect from the router's central differences; cast shadows by a sweep along the sun direction at 48 sun positions per sol. |
+| Limits | Top of the atmosphere: no dust, no air, no reflected light. A solar panel would receive less. Shadows are as fine as the 20-32 m terrain model. |

@@ -1,11 +1,12 @@
 /** Promise wrapper around the routing worker; replies are matched by request id. */
 import type { Cell, Grid } from '../core/grid'
-import type { RangeReply, RouteReply, SightReply } from '../core/route-service'
+import type { RangeReply, RouteReply, SightReply, SolarReply } from '../core/route-service'
 
 export type RouteClient = {
   route(stops: Cell[], hazards?: Cell[]): Promise<RouteReply>
   range(start: Cell, hazards?: Cell[]): Promise<RangeReply>
   sight(observer: Cell): Promise<SightReply>
+  solar(utcMs: number): Promise<SolarReply>
 }
 
 export function createRouteClient(grid: Grid): RouteClient {
@@ -13,8 +14,11 @@ export function createRouteClient(grid: Grid): RouteClient {
     type: 'module',
   })
   worker.postMessage({ type: 'grid', grid })
-  const pending = new Map<number, (reply: RouteReply | RangeReply | SightReply) => void>()
-  worker.onmessage = (event: MessageEvent<RouteReply | RangeReply | SightReply>) => {
+  const pending = new Map<
+    number,
+    (reply: RouteReply | RangeReply | SightReply | SolarReply) => void
+  >()
+  worker.onmessage = (event: MessageEvent<RouteReply | RangeReply | SightReply | SolarReply>) => {
     pending.get(event.data.id)?.(event.data)
     pending.delete(event.data.id)
   }
@@ -31,7 +35,9 @@ export function createRouteClient(grid: Grid): RouteClient {
   }
   worker.onmessageerror = () => failAll('Route planner sent a reply that could not be read.')
   let nextId = 0
-  const call = <T extends RouteReply | RangeReply | SightReply>(message: object): Promise<T> => {
+  const call = <T extends RouteReply | RangeReply | SightReply | SolarReply>(
+    message: object,
+  ): Promise<T> => {
     const id = ++nextId
     return new Promise((resolve) => {
       pending.set(id, (reply) => resolve(reply as T))
@@ -42,5 +48,6 @@ export function createRouteClient(grid: Grid): RouteClient {
     route: (stops, hazards) => call<RouteReply>({ type: 'route', stops, hazards }),
     range: (start, hazards) => call<RangeReply>({ type: 'range', start, hazards }),
     sight: (observer) => call<SightReply>({ type: 'sight', observer }),
+    solar: (utcMs) => call<SolarReply>({ type: 'solar', utcMs }),
   }
 }

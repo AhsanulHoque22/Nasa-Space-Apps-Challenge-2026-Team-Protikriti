@@ -1584,3 +1584,22 @@ body.exploring #ui {
   color: var(--text-muted);
   max-width: 60ch;
 }
+
+.ramp-legend {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.ramp-legend i {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.sun-note p {
+  margin: var(--space-1) 0 0;
+}
