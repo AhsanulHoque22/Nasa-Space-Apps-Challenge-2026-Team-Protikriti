@@ -188,7 +188,7 @@ You are planning the first human walk on Mars. Everything you see is real data f
 
 ## How it works
 
-- **Routing.** A* over the site's elevation grid, costed by walking time from Tobler's hiking function. Any cell steeper than 15° is impassable, so routes go around hazards rather than along their edges. It runs in a Web Worker; a 10 km route takes about 0.3 s.
+- **Routing.** A* over the site's elevation grid, costed by walking time: Tobler's hiking function times a 0.8 suit factor, capped at 3.3 km/h. Any cell steeper than 15° is impassable, so routes go around hazards rather than along their edges. It runs in a Web Worker; a 10 km route takes about 0.3 s.
 - **Street View.** From all Navcam frames at a stop, the viewer keeps the imaging sequence with the widest sweep and drops repeated shots. A worker then stitches them into one equirectangular sphere (`web/src/core/stitch.ts`):
   1. pinhole projection through the mast's pointing (sensor tiles are windows of one camera), turned to compass bearings with the rover's heading;
   2. lens-vignetting correction and Brown & Lowe gain compensation between frames;
@@ -272,7 +272,7 @@ Engineering standards: [CLAUDE.md](CLAUDE.md) · Product and design brief: [PROD
 
 Known and deliberate:
 
-- **Walking speed is an Earth model.** Tobler's function is not adjusted for spacesuits or Mars gravity; the `speedFactor` multiplier is ready to tune.
+- **Walking pace is a team assumption.** Tobler's function (an Earth model) times a 0.8 suit factor, capped at 3.3 km/h. None of the three numbers is yet tied to a NASA citation, and Mars gravity is not modelled. They are named constants in `web/src/core/route.ts`.
 - **Slope maps resolve 20–32 m.** Boulders and small scarps are not in the model, so a real EVA needs 1 m HiRISE DTM checks.
 - **Routes only inside the two high-resolution sites.** Elsewhere the terrain is global MOLA (about 15 km per pixel).
 - **Perseverance weather is archival.** MEDA's public feed stopped updating in April 2024; Curiosity's REMS is live.

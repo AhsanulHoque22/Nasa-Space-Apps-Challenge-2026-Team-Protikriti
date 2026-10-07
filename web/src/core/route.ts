@@ -10,6 +10,14 @@ const KMH_TO_MS = 1 / 3.6
 const ROW_STEPS = [-1, 1, 0, 0, -1, -1, 1, 1]
 const COL_STEPS = [0, 0, -1, 1, -1, 1, -1, 1]
 
+/**
+ * Suited-crew pace: team planning assumptions, not yet tied to a NASA citation (candidates: the
+ * 2026 Mars PLSS suit study, DRA 5.0). Tobler is scaled by the suit factor and cut at the cap.
+ */
+export const MAX_SUIT_SPEED_KMH = 3.3
+export const DEFAULT_SUIT_FACTOR = 0.8
+const MAX_SUIT_SPEED_MS = MAX_SUIT_SPEED_KMH * KMH_TO_MS
+
 /** Walking speed on a slope (Tobler's hiking function, Earth baseline), metres per second. */
 export function toblerSpeedMs(grade: number, speedFactor = 1): number {
   return (
@@ -18,6 +26,11 @@ export function toblerSpeedMs(grade: number, speedFactor = 1): number {
     KMH_TO_MS *
     speedFactor
   )
+}
+
+/** Pace of a suited crew on a slope, metres per second: Tobler x suit factor, capped. */
+export function suitedSpeedMs(grade: number, speedFactor = DEFAULT_SUIT_FACTOR): number {
+  return Math.min(toblerSpeedMs(grade, speedFactor), MAX_SUIT_SPEED_MS)
 }
 
 /** Seconds to walk from a to b (adjacent cells), or Infinity if unsafe, nodata or off-grid. */
@@ -47,7 +60,7 @@ function stepTimeByIndex(
 ): number {
   if (!isPassable(g, from, to, lengthM, limit)) return Infinity
   const grade = (g.elevationM[to] - g.elevationM[from]) / lengthM
-  return lengthM / toblerSpeedMs(grade, speedFactor)
+  return lengthM / suitedSpeedMs(grade, speedFactor)
 }
 
 const passableCache = new WeakMap<Grid, Uint8Array>()
@@ -87,15 +100,21 @@ export function passableCells(g: Grid): Uint8Array {
  * 8-connected; every cell on the path has terrain slope within the limit, every step's grade
  * is within the limit, and a diagonal needs both orthogonal neighbours open (no corner cutting).
  */
-export function findRoute(g: Grid, start: Cell, goal: Cell, speedFactor = 1): Cell[] | null {
+export function findRoute(
+  g: Grid,
+  start: Cell,
+  goal: Cell,
+  speedFactor = DEFAULT_SUIT_FACTOR,
+): Cell[] | null {
   const { width, height } = g
   const startIndex = start.row * width + start.col
   const goalIndex = goal.row * width + goal.col
-  // Admissible: straight-line distance at the fastest possible speed never overestimates.
+  // Admissible: straight-line distance at the fastest possible (capped) speed never overestimates.
   const straightM = g.pixelSizeM
   const diagonalM = g.pixelSizeM * Math.SQRT2
   const limit = maxGrade(g)
-  const secondsPerCell = g.pixelSizeM / (TOBLER_PEAK_KMH * KMH_TO_MS * speedFactor)
+  const fastestMs = Math.min(TOBLER_PEAK_KMH * KMH_TO_MS * speedFactor, MAX_SUIT_SPEED_MS)
+  const secondsPerCell = g.pixelSizeM / fastestMs
   const heuristic = (row: number, col: number) =>
     Math.hypot(row - goal.row, col - goal.col) * secondsPerCell
 

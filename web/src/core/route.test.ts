@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Cell, Grid } from './grid'
-import { findRoute, passableCells, stepTimeS } from './route'
+import {
+  DEFAULT_SUIT_FACTOR,
+  MAX_SUIT_SPEED_KMH,
+  findRoute,
+  passableCells,
+  stepTimeS,
+  suitedSpeedMs,
+  toblerSpeedMs,
+} from './route'
 import { WALL, makeGrid, noiseRows } from './test-grids'
 
 const W = WALL
@@ -12,10 +20,29 @@ function mustRoute(g: Grid, start: Cell, goal: Cell): Cell[] {
 
 const flat = makeGrid(Array.from({ length: 5 }, () => [0, 0, 0, 0, 0]))
 
+const CAP_MS = MAX_SUIT_SPEED_KMH / 3.6
+
+describe('suitedSpeedMs', () => {
+  it('never exceeds the suit speed cap, even at suit factor 1 on the fastest grade', () => {
+    for (const grade of [-0.3, -0.05, 0, 0.05, 0.2]) {
+      expect(suitedSpeedMs(grade, 1)).toBeLessThanOrEqual(CAP_MS)
+    }
+    expect(suitedSpeedMs(-0.05, 1)).toBeCloseTo(CAP_MS) // Tobler peak 6 km/h is cut to the cap
+  })
+
+  it('is Tobler times the suit factor where that is below the cap', () => {
+    expect(suitedSpeedMs(0.3)).toBe(toblerSpeedMs(0.3, DEFAULT_SUIT_FACTOR))
+    expect(suitedSpeedMs(0.3)).toBeLessThan(CAP_MS)
+  })
+
+  it('applies the default suit factor when none is given', () => {
+    expect(suitedSpeedMs(0.25)).toBe(suitedSpeedMs(0.25, DEFAULT_SUIT_FACTOR))
+  })
+})
+
 describe('stepTimeS', () => {
-  it('flat orthogonal step uses Tobler speed at tan=0', () => {
-    const speedMs = (6 * Math.exp(-3.5 * 0.05)) / 3.6
-    expect(stepTimeS(flat, { row: 0, col: 0 }, { row: 0, col: 1 }, 1)).toBeCloseTo(20 / speedMs)
+  it('flat orthogonal step runs at the capped suit speed', () => {
+    expect(stepTimeS(flat, { row: 0, col: 0 }, { row: 0, col: 1 }, 1)).toBeCloseTo(20 / CAP_MS)
   })
 
   it('is Infinity for a step steeper than the limit', () => {
@@ -28,10 +55,11 @@ describe('stepTimeS', () => {
     expect(stepTimeS(g, { row: 0, col: 0 }, { row: 0, col: 1 }, 1)).toBe(Infinity)
   })
 
-  it('faster speedFactor means less time', () => {
+  it('faster speedFactor means less time where the cap does not bind (a climb)', () => {
+    const climb = makeGrid([[0, 4]]) // grade 0.2: Tobler 2.5 km/h, below the cap
     const a = { row: 0, col: 0 }
     const b = { row: 0, col: 1 }
-    expect(stepTimeS(flat, a, b, 2)).toBeCloseTo(stepTimeS(flat, a, b, 1) / 2)
+    expect(stepTimeS(climb, a, b, 1.2)).toBeCloseTo(stepTimeS(climb, a, b, 1) / 1.2)
   })
 })
 

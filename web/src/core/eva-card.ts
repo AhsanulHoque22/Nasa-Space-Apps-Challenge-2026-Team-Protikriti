@@ -1,6 +1,6 @@
 /** EVA safety card: can the crew still walk home from every point on the planned route? */
 import type { Cell, Grid } from './grid'
-import { stepTimeS } from './route'
+import { DEFAULT_SUIT_FACTOR, stepTimeS } from './route'
 import { SCIENCE_STOP_MIN } from './summary'
 
 export interface EvaLimits {
@@ -45,7 +45,7 @@ export function evaCard(
   path: Cell[],
   stops: Cell[],
   limits: EvaLimits = EVA_LIMITS,
-  speedFactor = 1,
+  speedFactor = DEFAULT_SUIT_FACTOR,
 ): EvaCard {
   const budgetMin = limits.maxEvaMin - limits.backupMin
   const scienceAt = new Set(stopIndices(path, stops).slice(1)) // the start is not a science stop

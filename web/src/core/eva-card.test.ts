@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { EVA_LIMITS, evaCard } from './eva-card'
-import { toblerSpeedMs } from './route'
+import { suitedSpeedMs } from './route'
 import { SCIENCE_STOP_MIN } from './summary'
 import { makeGrid } from './test-grids'
 
 const row = (cols: number[]) => cols.map((col) => ({ row: 0, col }))
-const FLAT_CELL_MIN = 20 / toblerSpeedMs(0) / 60 // one 20 m step on flat ground
+const FLAT_CELL_MIN = 20 / suitedSpeedMs(0) / 60 // one 20 m step on flat ground
 
 describe('evaCard', () => {
   it('a short flat walk is GO with the whole budget minus the walkback as margin', () => {
@@ -26,9 +26,10 @@ describe('evaCard', () => {
     const path = row([...Array(11).keys()])
     const limits = { ...EVA_LIMITS, maxEvaMin: 4, backupMin: 1 } // 3 min of usable time
     const card = evaCard(g, path, [path[0]], limits)
-    // at point i: out i*t + back 1.2*i*t = 2.2*i*t; 5 steps need 2.62 min, 6 need 3.14
+    // at point i: out i*t + back 1.2*i*t = 2.2*i*t; the first i over 3 min is the failure
+    const firstOver = Math.floor(3 / (2.2 * FLAT_CELL_MIN)) + 1
     expect(card.verdict).toBe('NO-GO')
-    expect(card.failIndex).toBe(6)
+    expect(card.failIndex).toBe(firstOver)
     expect(card.tightestMarginMin).toBeLessThan(0)
   })
 

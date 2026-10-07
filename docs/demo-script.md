@@ -9,4 +9,4 @@
 | 22–26 s | Hover the terrain, readout updates | "Mars has no GPS, so we use the IAU Mars 2000 frame, the same one the data is in." | Validity |
 | 26–30 s | Toggle layers off and on | "Six datasets, one map, every source cited." | Presentation |
 
-Live Q&A backups: open `docs/data-sources.md`, explain Tobler and the Earth-pace limitation, show `make test`.
+Live Q&A backups: open `docs/data-sources.md`, explain the pace assumptions (Tobler, 0.8 suit factor, 3.3 km/h cap) and that they are not yet cited, show `make test`.

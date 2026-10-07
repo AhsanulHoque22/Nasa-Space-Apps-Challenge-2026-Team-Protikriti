@@ -4,6 +4,7 @@ import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
 import { type Cell, type Grid, lonLatToCell } from '../core/grid'
+import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH } from '../core/route'
 import { EMPTY_PLAN, type Plan, pick } from '../core/planner'
 import type { RouteReply } from '../core/route-service'
 import { SCIENCE_STOP_MIN, evaDurationMin, summarizeRoute } from '../core/summary'
@@ -63,7 +64,7 @@ export function renderRoutePanel(
         <div><dt>Steepest step</dt><dd data-k="slope"></dd></div>
       </dl>
       <ol class="route-legs" aria-label="Legs"></ol>
-      <p class="route-note">Walking pace uses Tobler's hiking function (Earth). Suit and gravity effects are not modelled yet.</p>
+      <p class="route-note">Pace: Tobler's hiking function x ${DEFAULT_SUIT_FACTOR} suit factor, capped at ${MAX_SUIT_SPEED_KMH} km/h (team assumptions). Mars gravity is not modelled.</p>
     </div>
     <div class="route-actions">
       <button type="button" data-act="add">Add point at view centre</button>

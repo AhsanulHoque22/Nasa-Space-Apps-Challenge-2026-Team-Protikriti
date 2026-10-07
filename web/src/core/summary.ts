@@ -1,6 +1,6 @@
 /** Mission numbers for a planned route. */
 import { type Cell, type Grid, elevationAt } from './grid'
-import { stepTimeS } from './route'
+import { DEFAULT_SUIT_FACTOR, stepTimeS } from './route'
 
 export interface RouteSummary {
   distanceM: number
@@ -10,7 +10,11 @@ export interface RouteSummary {
   durationMin: number
 }
 
-export function summarizeRoute(g: Grid, path: Cell[], speedFactor = 1): RouteSummary {
+export function summarizeRoute(
+  g: Grid,
+  path: Cell[],
+  speedFactor = DEFAULT_SUIT_FACTOR,
+): RouteSummary {
   const summary = { distanceM: 0, ascentM: 0, descentM: 0, maxSlopeDeg: 0, durationMin: 0 }
   for (let i = 1; i < path.length; i++) {
     const a = path[i - 1]
