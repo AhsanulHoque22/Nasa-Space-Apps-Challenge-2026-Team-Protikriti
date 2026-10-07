@@ -2,6 +2,7 @@
 import type { Cell, Grid } from './grid'
 import { gentlestLimitDeg } from './blocker'
 import { hazardMask, touchesHazard } from './hazards'
+import { viewshed } from './viewshed'
 import { passableCells, travelTimesS } from './route'
 import { type RouteSummary, summarizeRoute } from './summary'
 import { routeViaWaypoints } from './waypoints'
@@ -10,6 +11,7 @@ export type RouteRequest =
   | { type: 'grid'; grid: Grid }
   | { type: 'route'; id: number; stops: Cell[]; speedFactor?: number; hazards?: Cell[] }
   | { type: 'range'; id: number; start: Cell }
+  | { type: 'sight'; id: number; observer: Cell }
 
 export type RouteReply =
   | {
@@ -28,11 +30,18 @@ export type RouteReply =
   | { type: 'error'; id: number; message: string }
 
 /** Seconds to walk out from `start` to every cell, and back from every cell to it. */
+/** 1 where the observer can see a standing person (geometric line of sight). */
+export type SightReply =
+  | { type: 'sight'; id: number; visible: Uint8Array; ms: number }
+  | { type: 'error'; id: number; message: string }
+
 export type RangeReply =
   | { type: 'range'; id: number; outS: Float64Array; backS: Float64Array; ms: number }
   | { type: 'error'; id: number; message: string }
 
-export function createRouteService(): (msg: RouteRequest) => RouteReply | RangeReply | undefined {
+export function createRouteService(): (
+  msg: RouteRequest,
+) => RouteReply | RangeReply | SightReply | undefined {
   let grid: Grid | undefined
   return (msg) => {
     if (msg.type === 'grid') {
@@ -43,6 +52,14 @@ export function createRouteService(): (msg: RouteRequest) => RouteReply | RangeR
     if (!grid) return { type: 'error', id: msg.id, message: 'Terrain grid not loaded yet' }
     const g = grid
     const t0 = performance.now()
+    if (msg.type === 'sight') {
+      return {
+        type: 'sight',
+        id: msg.id,
+        visible: viewshed(g, msg.observer),
+        ms: performance.now() - t0,
+      }
+    }
     if (msg.type === 'range') {
       const outS = travelTimesS(g, msg.start)
       const backS = travelTimesS(g, msg.start, undefined, 'back')

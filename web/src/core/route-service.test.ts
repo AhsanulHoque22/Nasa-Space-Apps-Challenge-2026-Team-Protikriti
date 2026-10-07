@@ -86,4 +86,12 @@ describe('route service (worker protocol)', () => {
     expect(reply.path).toBeNull()
     expect(reply.needsDeg as number).toBeGreaterThan(16.6)
   })
+
+  it('works out what the observer can see', () => {
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: makeGrid([[0, 0, 12, 0]]) })
+    const reply = handle({ type: 'sight', id: 11, observer: { row: 0, col: 0 } })
+    if (reply?.type !== 'sight') throw new Error('expected sight reply')
+    expect(Array.from(reply.visible)).toEqual([1, 1, 1, 0]) // the ridge hides the last cell
+  })
 })

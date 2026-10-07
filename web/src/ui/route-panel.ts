@@ -17,6 +17,7 @@ import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH } from '../core/route'
 import { EMPTY_PLAN, type Plan, pick } from '../core/planner'
 import type { RouteReply } from '../core/route-service'
 import { SCIENCE_STOP_MIN, evaDurationMin, summarizeRoute } from '../core/summary'
+import { SIGHT_HEIGHT_M, outOfSightFraction, sightRaster } from '../core/viewshed'
 import { MARS_SPHERE } from '../map/mars'
 import type { RouteClient } from '../map/route-client'
 import type { RangeLayer } from '../map/range-layer'
@@ -46,7 +47,10 @@ export function renderRoutePanel(
   const idle = `Click the ${names} terrain to set a start point.`
   const outside = `That point is outside the mapped site terrain (${names}). Zoom to a site and pick a point there.`
   // One routing worker and route layer per site, created on first use.
-  const perSite = new Map<string, { client: RouteClient; layer: RouteLayer; range: RangeLayer }>()
+  const perSite = new Map<
+    string,
+    { client: RouteClient; layer: RouteLayer; range: RangeLayer; sight: RangeLayer }
+  >()
   const tools = (site: Site) => {
     let t = perSite.get(site.id)
     if (!t) {
@@ -54,6 +58,7 @@ export function renderRoutePanel(
         client: makeClient(site.grid),
         layer: makeLayer(site.grid),
         range: makeRange(site.grid),
+        sight: makeRange(site.grid),
       }
       perSite.set(site.id, t)
     }
@@ -87,11 +92,13 @@ export function renderRoutePanel(
       <button type="button" data-act="undo" class="quiet">Undo stop</button>
       <button type="button" data-act="clear" class="quiet">Clear</button>
       <button type="button" data-act="range" class="quiet" aria-pressed="false">Walking range</button>
+      <button type="button" data-act="sight" class="quiet" aria-pressed="false">Line of sight</button>
       <button type="button" data-act="hazard" class="quiet" aria-pressed="false">Mark hazard</button>
       <button type="button" data-act="clear-hazards" class="quiet" hidden>Clear hazards</button>
     </div>
     <p class="route-note hazard-note" role="status" hidden></p>
-    <p class="route-note range-note" role="status" hidden></p>`
+    <p class="route-note range-note" role="status" hidden></p>
+    <p class="route-note sight-note" role="status" hidden></p>`
   parent.append(panel)
   const status = panel.querySelector('.route-status') as HTMLElement
   const result = panel.querySelector('.route-result') as HTMLElement
@@ -122,6 +129,53 @@ export function renderRoutePanel(
         : '') +
       (n ? `${n} hazard${n === 1 ? '' : 's'} marked. ` : '') +
       detour
+  }
+
+  const sightButton = panel.querySelector('[data-act="sight"]') as HTMLButtonElement
+  const sightNote = panel.querySelector('.sight-note') as HTMLElement
+  let sightOn = false
+  let sightRequest = 0
+  let sightMask: Uint8Array | null = null // what the start can see, for the active site
+  let lastPath: Cell[] | null = null // the route on show, to say how much of it is out of sight
+
+  const updateSightNote = () => {
+    sightNote.hidden = !sightOn
+    if (!sightOn) return
+    if (!sightMask || !active) {
+      sightNote.textContent = 'Set a start point to see what it can see.'
+      return
+    }
+    const hidden = lastPath ? outOfSightFraction(active.grid, lastPath, sightMask) : null
+    sightNote.textContent =
+      `Shaded: ground where the start is out of sight of a standing person (${SIGHT_HEIGHT_M} m eye height; ` +
+      'terrain and the curve of Mars hide it). Approximate, and geometric line of sight only, not radio coverage.' +
+      (hidden === null
+        ? ''
+        : ` ${Math.round(hidden * 100)}% of this route is out of sight of the start.`)
+  }
+
+  /** What can be seen from the start; the start stands in for the lander. */
+  const refreshSight = async () => {
+    const id = ++sightRequest
+    const start = requested.stops[0]
+    sightMask = null
+    if (active) void tools(active).sight.setRaster(null)
+    if (!sightOn || !active || !start) {
+      updateSightNote()
+      return
+    }
+    const site = active
+    sightNote.hidden = false
+    sightNote.textContent = 'Working out what can be seen…'
+    const reply = await tools(site).client.sight(start)
+    if (id !== sightRequest) return // the start moved or the view was switched off
+    if (reply.type === 'error') {
+      sightNote.textContent = reply.message
+      return
+    }
+    sightMask = reply.visible
+    await tools(site).sight.setRaster(sightRaster(site.grid.width, site.grid.height, reply.visible))
+    updateSightNote()
   }
 
   const rangeButton = panel.querySelector('[data-act="range"]') as HTMLButtonElement
@@ -242,6 +296,8 @@ export function renderRoutePanel(
       // Fine without the hazards: they are what blocks it. Never leave the old route on show.
       layer.setPath(null)
       layer.setBaseline(null)
+      lastPath = null
+      updateSightNote()
       showResult(null)
       detour = 'No safe route: the hazards block the way. Clear them to continue. '
       updateHazardNote()
@@ -262,6 +318,8 @@ export function renderRoutePanel(
     layer.setStops(plan.stops)
     layer.setPath(reply.path)
     layer.setBaseline(reply.baseline?.hitsHazard ? reply.baseline.path : null)
+    lastPath = reply.path
+    updateSightNote()
     const extraM = (reply.total?.distanceM ?? 0) - (reply.baseline?.total.distanceM ?? 0)
     const extraMin = (reply.total?.durationMin ?? 0) - (reply.baseline?.total.durationMin ?? 0)
     detour = !reply.baseline
@@ -297,10 +355,12 @@ export function renderRoutePanel(
       layer.setPath(null)
       layer.setBaseline(null)
       detour = ''
+      lastPath = null
       updateHazardNote()
       showResult(null)
       status.textContent = MESSAGES.start
       void refreshRange()
+      void refreshSight()
       return
     }
     void replan(next)
@@ -325,6 +385,7 @@ export function renderRoutePanel(
     t?.layer.setPath(null)
     t?.layer.setBaseline(null)
     void t?.range.setRaster(null)
+    void t?.sight.setRaster(null)
   }
 
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
@@ -356,9 +417,11 @@ export function renderRoutePanel(
     plan = EMPTY_PLAN
     requested = EMPTY_PLAN
     if (active) clearLayer(active)
+    lastPath = null
     showResult(null)
     status.textContent = idle
     void refreshRange()
+    void refreshSight()
   }
   panel.querySelector('[data-act="add"]')?.addEventListener('click', () => {
     const canvas = viewer.scene.canvas
@@ -385,6 +448,11 @@ export function renderRoutePanel(
     detour = ''
     updateHazardNote()
     if (active && requested.stops.length >= 2) void replan(requested)
+  })
+  sightButton.addEventListener('click', () => {
+    sightOn = !sightOn
+    sightButton.setAttribute('aria-pressed', String(sightOn))
+    void refreshSight()
   })
   rangeButton.addEventListener('click', () => {
     rangeOn = !rangeOn

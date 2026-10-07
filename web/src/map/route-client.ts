@@ -1,10 +1,11 @@
 /** Promise wrapper around the routing worker; replies are matched by request id. */
 import type { Cell, Grid } from '../core/grid'
-import type { RangeReply, RouteReply } from '../core/route-service'
+import type { RangeReply, RouteReply, SightReply } from '../core/route-service'
 
 export type RouteClient = {
   route(stops: Cell[], hazards?: Cell[]): Promise<RouteReply>
   range(start: Cell): Promise<RangeReply>
+  sight(observer: Cell): Promise<SightReply>
 }
 
 export function createRouteClient(grid: Grid): RouteClient {
@@ -12,13 +13,13 @@ export function createRouteClient(grid: Grid): RouteClient {
     type: 'module',
   })
   worker.postMessage({ type: 'grid', grid })
-  const pending = new Map<number, (reply: RouteReply | RangeReply) => void>()
-  worker.onmessage = (event: MessageEvent<RouteReply | RangeReply>) => {
+  const pending = new Map<number, (reply: RouteReply | RangeReply | SightReply) => void>()
+  worker.onmessage = (event: MessageEvent<RouteReply | RangeReply | SightReply>) => {
     pending.get(event.data.id)?.(event.data)
     pending.delete(event.data.id)
   }
   let nextId = 0
-  const call = <T extends RouteReply | RangeReply>(message: object): Promise<T> => {
+  const call = <T extends RouteReply | RangeReply | SightReply>(message: object): Promise<T> => {
     const id = ++nextId
     return new Promise((resolve) => {
       pending.set(id, (reply) => resolve(reply as T))
@@ -28,5 +29,6 @@ export function createRouteClient(grid: Grid): RouteClient {
   return {
     route: (stops, hazards) => call<RouteReply>({ type: 'route', stops, hazards }),
     range: (start) => call<RangeReply>({ type: 'range', start }),
+    sight: (observer) => call<SightReply>({ type: 'sight', observer }),
   }
 }
