@@ -252,7 +252,12 @@ Engineering standards: [CLAUDE.md](CLAUDE.md) · Product and design brief: [PROD
 
 | Name | Role |
 |---|---|
-| _add team member_ | _role_ |
+| Shaeakh Ahmed Chowdhury | _role_ |
+| Ahsanul Hoque | _role_ |
+| Muntaha Monir | _role_ |
+| Anika Tahsin Orthi | _role_ |
+| Most. Zannatun Nesa Prima | _role_ |
+| Mohaiminul Islam Musa | _role_ |
 
 ## Contributing (team workflow)
 
