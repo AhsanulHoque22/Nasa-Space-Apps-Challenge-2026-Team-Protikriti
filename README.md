@@ -39,7 +39,7 @@ Martian Map puts a 3D globe, rover Street View, live weather, walkable terrain a
 |---|---|---|
 | 🌍 | **Whole-planet 3D globe** | Spin around all of Mars on MOLA topography, with high-resolution terrain at Jezero (20 m) and Gale (32 m). Search 2,052 IAU-named places, 16 lander sites and 30 candidate human Exploration Zones. Every view has a shareable link. |
 | 📷 | **Rover Street View** | Stand at any of 2,087 rover stops (703 Perseverance, 1,384 Curiosity) and look around a panorama stitched live from NASA's raw Navcam images. Walk arrows take you to the next stop. |
-| 🥾 | **Safe Marswalk planner** | Click a start and science stops. Each leg is the fastest route that never crosses ground steeper than 15°, with distance, climb, steepest step and EVA time. |
+| 🥾 | **Safe Marswalk planner** | Click a start and science stops. Each leg is the fastest route that never crosses ground steeper than 15°, with distance, climb, steepest step and EVA time. An EVA safety card says GO or NO-GO by checking at every point that the crew can still walk home within the EVA limits, and marks where it fails. A *Walking range* toggle draws 1, 2 and 4 hour rings and a dashed line for the farthest point you can still get home from. A benchmark card replays Perseverance's real drive against the slope map. |
 | 🎮 | **Explore on foot** | Descend onto the real terrain and walk it at true scale, starting where the rover is today. Mars gravity (jumps hang ~1.5 s), loping runs, a dusty butterscotch sky that turns blue around the setting Sun, stars at night, dust haze, drifting dust devils at midday, and air temperature, wind and dust for the moment on the map clock. Replay the 2018 global dust storm with one button. |
 | 🌡️ | **Live Mars weather** | Curiosity's REMS station (live) and Perseverance's MEDA (latest archive): temperatures, pressure, UV, sunrise and sunset, and a Mars-year chart. |
 | ⏱️ | **Mission replay and samples** | Play both rovers' journeys sol by sol with a 3D Perseverance, and open all 30 Perseverance rock-sample cores where they were sealed. |
@@ -188,7 +188,7 @@ You are planning the first human walk on Mars. Everything you see is real data f
 
 ## How it works
 
-- **Routing.** A* over the site's elevation grid, costed by walking time: Tobler's hiking function times a 0.8 suit factor, capped at 3.3 km/h. Any cell steeper than 15° is impassable, so routes go around hazards rather than along their edges. It runs in a Web Worker; a 10 km route takes about 0.3 s.
+- **Routing.** A* over the site's elevation grid, costed by walking time: Tobler's hiking function times a 0.8 suit factor, capped at 3.3 km/h. Any cell steeper than 15° is impassable, so routes go around hazards rather than along their edges. The walking-range overlay floods the same search over the whole grid, out and back, so it cannot disagree with the router. It runs in a Web Worker; a 10 km route takes about 0.3 s.
 - **Street View.** From all Navcam frames at a stop, the viewer keeps the imaging sequence with the widest sweep and drops repeated shots. A worker then stitches them into one equirectangular sphere (`web/src/core/stitch.ts`):
   1. pinhole projection through the mast's pointing (sensor tiles are windows of one camera), turned to compass bearings with the rover's heading;
   2. lens-vignetting correction and Brown & Lowe gain compensation between frames;

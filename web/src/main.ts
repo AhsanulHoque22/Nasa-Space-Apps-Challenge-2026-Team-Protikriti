@@ -6,6 +6,7 @@ import { createRouteClient } from './map/route-client'
 import { type Activity, addActivities } from './map/activities-layer'
 import { createReplay } from './map/replay'
 import { addStreetViewStops } from './map/streetview-layer'
+import { createRangeLayer } from './map/range-layer'
 import { createRouteLayer } from './map/route-layer'
 import { createTerrain, keepCameraAboveGround } from './map/terrain'
 import { installWheelZoom } from './map/wheel-zoom'
@@ -123,7 +124,14 @@ async function main() {
   const side = document.createElement('div')
   side.className = 'side'
   ui.append(side)
-  renderRoutePanel(side, viewer, sites, createRouteClient, (g) => createRouteLayer(viewer, g))
+  renderRoutePanel(
+    side,
+    viewer,
+    sites,
+    createRouteClient,
+    (g) => createRouteLayer(viewer, g),
+    (g) => createRangeLayer(viewer, g),
+  )
   // Optional validation card: a missing file must not take the planner down with it.
   void fetchOk('data/benchmark.json')
     .then((r) => r.json())

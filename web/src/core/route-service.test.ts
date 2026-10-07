@@ -28,4 +28,21 @@ describe('route service (worker protocol)', () => {
     const reply = handle({ type: 'route', id: 2, stops: stops(0, 1, 4) })
     expect(reply).toMatchObject({ type: 'route', id: 2, path: null, total: null, failedLeg: 1 })
   })
+
+  it('floods the walking times out from a start and back to it', () => {
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: flat })
+    const reply = handle({ type: 'range', id: 4, start: { row: 0, col: 0 } })
+    if (reply?.type !== 'range') throw new Error('expected range reply')
+    expect(reply.id).toBe(4)
+    expect(reply.outS).toHaveLength(9)
+    expect(reply.backS).toHaveLength(9)
+    expect(reply.outS[0]).toBe(0)
+    expect(reply.outS[2]).toBeGreaterThan(0)
+  })
+
+  it('rejects a range request before a grid is loaded', () => {
+    const reply = createRouteService()({ type: 'range', id: 5, start: { row: 0, col: 0 } })
+    expect(reply).toMatchObject({ type: 'error', id: 5 })
+  })
 })

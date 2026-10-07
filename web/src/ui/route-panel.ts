@@ -3,6 +3,7 @@ import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer 
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
+import { RANGE_RINGS_MIN, homeLimitInMap, rangeRaster, walkRange } from '../core/range'
 import { type Cell, type Grid, lonLatToCell } from '../core/grid'
 import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH } from '../core/route'
 import { EMPTY_PLAN, type Plan, pick } from '../core/planner'
@@ -10,6 +11,7 @@ import type { RouteReply } from '../core/route-service'
 import { SCIENCE_STOP_MIN, evaDurationMin, summarizeRoute } from '../core/summary'
 import { MARS_SPHERE } from '../map/mars'
 import type { RouteClient } from '../map/route-client'
+import type { RangeLayer } from '../map/range-layer'
 import type { RouteLayer } from '../map/route-layer'
 import { isExploring, isInteractiveClick } from '../map/picking'
 
@@ -31,16 +33,21 @@ export function renderRoutePanel(
   sites: readonly Site[],
   makeClient: (grid: Grid) => RouteClient,
   makeLayer: (grid: Grid) => RouteLayer,
+  makeRange: (grid: Grid) => RangeLayer,
 ): void {
   const names = sites.map((s) => s.name.split(' (')[0]).join(' or ')
   const idle = `Click the ${names} terrain to set a start point.`
   const outside = `That point is outside the mapped site terrain (${names}). Zoom to a site and pick a point there.`
   // One routing worker and route layer per site, created on first use.
-  const perSite = new Map<string, { client: RouteClient; layer: RouteLayer }>()
+  const perSite = new Map<string, { client: RouteClient; layer: RouteLayer; range: RangeLayer }>()
   const tools = (site: Site) => {
     let t = perSite.get(site.id)
     if (!t) {
-      t = { client: makeClient(site.grid), layer: makeLayer(site.grid) }
+      t = {
+        client: makeClient(site.grid),
+        layer: makeLayer(site.grid),
+        range: makeRange(site.grid),
+      }
       perSite.set(site.id, t)
     }
     return t
@@ -70,7 +77,9 @@ export function renderRoutePanel(
       <button type="button" data-act="add">Add point at view centre</button>
       <button type="button" data-act="undo" class="quiet">Undo stop</button>
       <button type="button" data-act="clear" class="quiet">Clear</button>
-    </div>`
+      <button type="button" data-act="range" class="quiet" aria-pressed="false">Walking range</button>
+    </div>
+    <p class="route-note range-note" role="status" hidden></p>`
   parent.append(panel)
   const status = panel.querySelector('.route-status') as HTMLElement
   const result = panel.querySelector('.route-result') as HTMLElement
@@ -80,6 +89,39 @@ export function renderRoutePanel(
   const evaLine = panel.querySelector('.eva-line') as HTMLElement
   const evaDetail = panel.querySelector('.eva-detail') as HTMLElement
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
+
+  const rangeButton = panel.querySelector('[data-act="range"]') as HTMLButtonElement
+  const rangeNote = panel.querySelector('.range-note') as HTMLElement
+  let rangeOn = false
+  let rangeRequest = 0
+
+  /** Rings and the can-still-get-home limit around the start, over the real terrain. */
+  const refreshRange = async () => {
+    const id = ++rangeRequest
+    rangeNote.hidden = !rangeOn
+    const start = requested.stops[0]
+    if (!rangeOn || !active || !start) {
+      if (active) void tools(active).range.setRaster(null)
+      rangeNote.textContent = 'Set a start point to see how far you can walk from it.'
+      return
+    }
+    const site = active
+    rangeNote.textContent = 'Working out how far you can walk…'
+    const reply = await tools(site).client.range(start)
+    if (id !== rangeRequest) return // the start moved or the range was switched off
+    if (reply.type === 'error') {
+      rangeNote.textContent = reply.message
+      return
+    }
+    const range = walkRange(reply.outS, reply.backS)
+    await tools(site).range.setRaster(rangeRaster(site.grid.width, site.grid.height, range))
+    const rings = RANGE_RINGS_MIN.map(formatDuration).join(', ')
+    rangeNote.textContent =
+      `Blue rings: ${rings} of walking from the start. ` +
+      (homeLimitInMap(range, reply.outS)
+        ? 'Dashed white line: the farthest you can go and still be home in time, with the EVA limits above.'
+        : 'Everything you can reach on this map is close enough to get home in time, so there is no dashed limit line.')
+  }
 
   let plan: Plan = EMPTY_PLAN // last plan with a computed route
   let requested: Plan = EMPTY_PLAN // what the user has asked for, possibly still routing
@@ -178,6 +220,7 @@ export function renderRoutePanel(
       layer.setPath(null)
       showResult(null)
       status.textContent = MESSAGES.start
+      void refreshRange()
       return
     }
     void replan(next)
@@ -200,6 +243,7 @@ export function renderRoutePanel(
     const t = perSite.get(site.id)
     t?.layer.setStops([])
     t?.layer.setPath(null)
+    void t?.range.setRaster(null)
   }
 
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
@@ -217,6 +261,7 @@ export function renderRoutePanel(
     if (active) clearLayer(active)
     showResult(null)
     status.textContent = idle
+    void refreshRange()
   }
   panel.querySelector('[data-act="add"]')?.addEventListener('click', () => {
     const canvas = viewer.scene.canvas
@@ -230,4 +275,9 @@ export function renderRoutePanel(
     else void replan({ stops })
   })
   panel.querySelector('[data-act="clear"]')?.addEventListener('click', clear)
+  rangeButton.addEventListener('click', () => {
+    rangeOn = !rangeOn
+    rangeButton.setAttribute('aria-pressed', String(rangeOn))
+    void refreshRange()
+  })
 }

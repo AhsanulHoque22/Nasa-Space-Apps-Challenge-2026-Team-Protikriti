@@ -8,7 +8,9 @@ import {
   stepTimeS,
   suitedSpeedMs,
   toblerSpeedMs,
+  travelTimesS,
 } from './route'
+import { summarizeRoute } from './summary'
 import { WALL, makeGrid, noiseRows } from './test-grids'
 
 const W = WALL
@@ -143,5 +145,53 @@ describe('findRoute', () => {
   it('routes corner to corner on a 600x600 grid (timing lives in route.bench.ts)', () => {
     const big = makeGrid(noiseRows(600))
     expect(findRoute(big, { row: 0, col: 0 }, { row: 599, col: 599 })).not.toBeNull()
+  })
+})
+
+describe('travelTimesS', () => {
+  const cell = (row: number, col: number) => ({ row, col })
+  const index = (g: Grid, row: number, col: number) => row * g.width + col
+
+  it('grows by one flat step time per cell along a flat row', () => {
+    const g = makeGrid([[0, 0, 0, 0]])
+    const t = travelTimesS(g, cell(0, 0))
+    const step = 20 / suitedSpeedMs(0)
+    expect(t[0]).toBe(0)
+    expect(t[3]).toBeCloseTo(3 * step)
+  })
+
+  it('is Infinity behind a steep wall and on nodata', () => {
+    const g = makeGrid([[0, 0, W, 0, 0, NaN]])
+    const t = travelTimesS(g, cell(0, 0))
+    expect(t[1]).toBeGreaterThan(0)
+    expect([t[3], t[4], t[5]]).toEqual([Infinity, Infinity, Infinity])
+  })
+
+  it('reaches nothing from a start on ground steeper than the limit', () => {
+    const g = makeGrid([[0, W, W]])
+    expect(Array.from(travelTimesS(g, cell(0, 1)))).toEqual([Infinity, Infinity, Infinity])
+  })
+
+  it('agrees with the router: the time to the goal is the walking time of the routed path', () => {
+    const g = makeGrid(noiseRows(30))
+    const goal = cell(27, 22)
+    const path = mustRoute(g, cell(2, 3), goal)
+    const routed = summarizeRoute(g, path).durationMin * 60
+    expect(travelTimesS(g, cell(2, 3))[index(g, goal.row, goal.col)]).toBeCloseTo(routed)
+  })
+
+  it('walking back is timed in the other direction, so a climb out costs more than the way down', () => {
+    const g = makeGrid([[0, 3, 6, 9, 12]]) // a steady 0.15 grade up from the start
+    const out = travelTimesS(g, cell(0, 0))[4]
+    const back = travelTimesS(g, cell(0, 0), undefined, 'back')[4]
+    let up = 0
+    let down = 0
+    for (let c = 0; c < 4; c++) {
+      up += stepTimeS(g, cell(0, c), cell(0, c + 1), DEFAULT_SUIT_FACTOR)
+      down += stepTimeS(g, cell(0, c + 1), cell(0, c), DEFAULT_SUIT_FACTOR)
+    }
+    expect(out).toBeCloseTo(up)
+    expect(back).toBeCloseTo(down)
+    expect(out).toBeGreaterThan(back) // going up is slower than coming down
   })
 })

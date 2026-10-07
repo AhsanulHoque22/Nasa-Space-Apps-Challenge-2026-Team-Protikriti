@@ -95,33 +95,39 @@ export function passableCells(g: Grid): Uint8Array {
   return passable
 }
 
+/** Which way steps are timed: `out` from the start, or `back` toward it (home). */
+export type Direction = 'out' | 'back'
+
 /**
- * Fastest route from start to goal, both ends included; null if no safe route exists.
- * 8-connected; every cell on the path has terrain slope within the limit, every step's grade
- * is within the limit, and a diagonal needs both orthogonal neighbours open (no corner cutting).
+ * Dijkstra/A* over the grid, shared by routing and the walking-range map so they cannot
+ * disagree. 8-connected; every cell on a path has terrain slope within the limit, every step's
+ * grade is within the limit, and a diagonal needs both orthogonal neighbours open (no corner
+ * cutting). With a goal it stops there, guided by the straight-line time at the fastest possible
+ * speed (admissible); without one it floods the whole grid. `back` times each step as the walk
+ * from the new cell to the one it was reached from, so costs are the time to get home.
  */
-export function findRoute(
+function search(
   g: Grid,
   start: Cell,
-  goal: Cell,
-  speedFactor = DEFAULT_SUIT_FACTOR,
-): Cell[] | null {
+  goal: Cell | null,
+  speedFactor: number,
+  direction: Direction,
+): { costS: Float64Array; cameFrom: Int32Array } {
   const { width, height } = g
   const startIndex = start.row * width + start.col
-  const goalIndex = goal.row * width + goal.col
-  // Admissible: straight-line distance at the fastest possible (capped) speed never overestimates.
+  const goalIndex = goal ? goal.row * width + goal.col : -1
   const straightM = g.pixelSizeM
   const diagonalM = g.pixelSizeM * Math.SQRT2
   const limit = maxGrade(g)
   const fastestMs = Math.min(TOBLER_PEAK_KMH * KMH_TO_MS * speedFactor, MAX_SUIT_SPEED_MS)
   const secondsPerCell = g.pixelSizeM / fastestMs
   const heuristic = (row: number, col: number) =>
-    Math.hypot(row - goal.row, col - goal.col) * secondsPerCell
+    goal ? Math.hypot(row - goal.row, col - goal.col) * secondsPerCell : 0
 
-  const terrainOk = passableCells(g)
-  if (!terrainOk[startIndex] || !terrainOk[goalIndex]) return null
   const costS = new Float64Array(width * height).fill(Infinity)
   const cameFrom = new Int32Array(width * height).fill(-1)
+  const terrainOk = passableCells(g)
+  if (!terrainOk[startIndex] || (goal && !terrainOk[goalIndex])) return { costS, cameFrom }
   const closed = new Uint8Array(width * height)
   const open = new MinHeap(1024)
   costS[startIndex] = 0
@@ -129,7 +135,7 @@ export function findRoute(
 
   while (open.size > 0) {
     const current = open.pop()
-    if (current === goalIndex) return reconstruct(cameFrom, current, width)
+    if (current === goalIndex) break
     if (closed[current]) continue
     closed[current] = 1
     const row = Math.floor(current / width)
@@ -150,7 +156,10 @@ export function findRoute(
           continue
       }
       const lengthM = k >= 4 ? diagonalM : straightM
-      const stepS = stepTimeByIndex(g, current, next, lengthM, limit, speedFactor)
+      const stepS =
+        direction === 'out'
+          ? stepTimeByIndex(g, current, next, lengthM, limit, speedFactor)
+          : stepTimeByIndex(g, next, current, lengthM, limit, speedFactor)
       const tentative = costS[current] + stepS
       if (tentative < costS[next]) {
         costS[next] = tentative
@@ -159,7 +168,32 @@ export function findRoute(
       }
     }
   }
-  return null
+  return { costS, cameFrom }
+}
+
+/** Fastest route from start to goal, both ends included; null if no safe route exists. */
+export function findRoute(
+  g: Grid,
+  start: Cell,
+  goal: Cell,
+  speedFactor = DEFAULT_SUIT_FACTOR,
+): Cell[] | null {
+  const { costS, cameFrom } = search(g, start, goal, speedFactor, 'out')
+  const goalIndex = goal.row * g.width + goal.col
+  return costS[goalIndex] === Infinity ? null : reconstruct(cameFrom, goalIndex, g.width)
+}
+
+/**
+ * Seconds to reach every cell from `start` (`out`), or to walk from every cell back to it
+ * (`back`); Infinity where unreachable. Row-major like the grid.
+ */
+export function travelTimesS(
+  g: Grid,
+  start: Cell,
+  speedFactor = DEFAULT_SUIT_FACTOR,
+  direction: Direction = 'out',
+): Float64Array {
+  return search(g, start, null, speedFactor, direction).costS
 }
 
 function reconstruct(cameFrom: Int32Array, end: number, width: number): Cell[] {
