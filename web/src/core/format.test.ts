@@ -7,6 +7,12 @@ describe('formatDistance', () => {
     expect(formatDistance(849.6)).toBe('850 m')
     expect(formatDistance(3421)).toBe('3.42 km')
   })
+
+  it('whole kilometres from 100 km, with a thousands separator', () => {
+    expect(formatDistance(99_994)).toBe('99.99 km')
+    expect(formatDistance(608_920)).toBe('609 km')
+    expect(formatDistance(1_407_400)).toBe('1,407 km')
+  })
 })
 
 describe('formatDuration', () => {

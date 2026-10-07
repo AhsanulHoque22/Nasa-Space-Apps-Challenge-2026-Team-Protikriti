@@ -1,7 +1,10 @@
 /** Human-readable mission numbers. */
 
 export function formatDistance(metres: number): string {
-  return metres < 999.5 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(2)} km`
+  if (metres < 999.5) return `${Math.round(metres)} m`
+  // Hundredths of a kilometre matter on a walk, not across a planet.
+  if (metres < 99_995) return `${(metres / 1000).toFixed(2)} km`
+  return `${Math.round(metres / 1000).toLocaleString('en-US')} km`
 }
 
 export function formatDuration(minutes: number): string {
