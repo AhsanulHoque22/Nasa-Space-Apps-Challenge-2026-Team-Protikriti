@@ -110,7 +110,7 @@ export function renderLinkPanel(
     a.href = url
     a.download = `martian-map-plan-${plan.createdUtc.slice(0, 10)}.json`
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 1000) // revoking at once can cancel the download
   })
 
   const draw = () => {

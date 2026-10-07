@@ -14,9 +14,15 @@ import {
   RELIABILITY_TRIALS,
   routeReliability,
 } from '../core/reliability'
-import { RANGE_RINGS_MIN, homeLimitInMap, rangeRaster, walkRange } from '../core/range'
+import {
+  RANGE_RINGS_MIN,
+  homeLimitInMap,
+  rangeRaster,
+  reachesAnywhere,
+  walkRange,
+} from '../core/range'
 import { type Cell, type Grid, lonLatToCell } from '../core/grid'
-import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH } from '../core/route'
+import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH, passableCells } from '../core/route'
 import { EMPTY_PLAN, type Plan, pick } from '../core/planner'
 import type { RouteReply } from '../core/route-service'
 import { SCIENCE_STOP_MIN, evaDurationMin, summarizeRoute } from '../core/summary'
@@ -31,12 +37,18 @@ import { isExploring, isInteractiveClick } from '../map/picking'
 /** Tones in the height profile: enough to follow the shape, short enough to sit through. */
 const AUDIO_TONES = 48
 
+/** A change with its sign: "+120 m", "−120 m". */
+const signed = (value: number, format: (v: number) => string) =>
+  `${value < 0 ? '−' : '+'}${format(Math.abs(value))}`
+
 const MESSAGES = {
   start: 'Start set. Click to add science stops along your Marswalk.',
   routing: 'Finding the safest route…',
   otherSite: 'Routes stay within one site. Clear the route to plan in another site.',
   found: 'Click to add another stop, or Clear to start over.',
   samePoint: 'That stop is where you already are. Click somewhere else.',
+  steepStart:
+    'That spot is steeper than the slope limit or has no terrain data, so a walk cannot start there. Pick gentler ground.',
 } as const
 
 const noRouteMessage = (leg: number, needsDeg: number | null | undefined, limitDeg: number) =>
@@ -142,6 +154,7 @@ export function renderRoutePanel(
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
 
   const hazardButton = panel.querySelector('[data-act="hazard"]') as HTMLButtonElement
+  const addButton = panel.querySelector('[data-act="add"]') as HTMLButtonElement
   const clearHazardsButton = panel.querySelector('[data-act="clear-hazards"]') as HTMLButtonElement
   const hazardNote = panel.querySelector('.hazard-note') as HTMLElement
   const hazardsBySite = new Map<string, Cell[]>()
@@ -163,6 +176,7 @@ export function renderRoutePanel(
 
   const sightButton = panel.querySelector('[data-act="sight"]') as HTMLButtonElement
   const sightNote = panel.querySelector('.sight-note') as HTMLElement
+  let routedHazards: Cell[] = [] // hazards the route on show was planned around
   let bundle: (() => PlanBundle) | null = null // the plan on show as a file, when there is one
   let planLabel: string | null = null // one line about the route on show, to send to Ground
   let sightOn = false
@@ -207,6 +221,7 @@ export function renderRoutePanel(
     }
     sightMask = reply.visible
     await tools(site).sight.setRaster(sightRaster(site.grid.width, site.grid.height, reply.visible))
+    if (id !== sightRequest) return // superseded while the overlay was loading
     updateSightNote()
   }
 
@@ -227,14 +242,22 @@ export function renderRoutePanel(
     }
     const site = active
     rangeNote.textContent = 'Working out how far you can walk…'
-    const reply = await tools(site).client.range(start)
+    const reply = await tools(site).client.range(start, hazardsOf(site))
     if (id !== rangeRequest) return // the start moved or the range was switched off
     if (reply.type === 'error') {
       rangeNote.textContent = reply.message
       return
     }
+    if (!reachesAnywhere(reply.outS)) {
+      await tools(site).range.setRaster(null)
+      if (id !== rangeRequest) return
+      rangeNote.textContent =
+        'The start is inside a hazard keep-out, so there is nowhere safe to walk from it.'
+      return
+    }
     const range = walkRange(reply.outS, reply.backS)
     await tools(site).range.setRaster(rangeRaster(site.grid.width, site.grid.height, range))
+    if (id !== rangeRequest) return // superseded while the overlay was loading
     const rings = RANGE_RINGS_MIN.map(formatDuration).join(', ')
     rangeNote.textContent =
       `Blue rings: ${rings} of walking from the start. ` +
@@ -250,13 +273,15 @@ export function renderRoutePanel(
   const showCard = (reply: Extract<RouteReply, { type: 'route' }>, stops: Cell[]) => {
     if (!active || !reply.path) return null
     const g = active.grid
-    const card = evaCard(g, reply.path, stops)
+    const card = evaCard(g, reply.path, stops, { homeS: reply.homeS ?? undefined })
     const failCell = card.failIndex === null ? null : (reply.path[card.failIndex] ?? null)
     tools(active).layer.setFail(failCell)
     const go = card.verdict === 'GO'
     evaEl.dataset.verdict = card.verdict
     evaBadge.textContent = card.verdict
-    const margin = formatDuration(Math.abs(card.tightestMarginMin))
+    const margin = Number.isFinite(card.tightestMarginMin)
+      ? formatDuration(Math.abs(card.tightestMarginMin))
+      : 'no safe way back at all'
     let failAlongM: number | undefined
     if (go) {
       evaLine.textContent = `Back in time, with ${margin} to spare at the tightest point.`
@@ -278,6 +303,7 @@ export function renderRoutePanel(
   }
 
   const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stops: Cell[] = []) => {
+    stopAudio() // the sound belongs to the route that was on show
     const stopCount = stops.length
     const total = reply?.total
     result.hidden = !total || stopCount < 2
@@ -289,7 +315,7 @@ export function renderRoutePanel(
     }
     const shown = showCard(reply, stops)
     if (shown && stopCount >= 2) {
-      const n = hazardCount()
+      const n = routedHazards.length
       planLabel =
         `Route, ${stopCount - 1} stop${stopCount === 2 ? '' : 's'}, ${formatDistance(total.distanceM)}, ` +
         `${shown.card.verdict}${n ? `, ${n} hazard${n === 1 ? '' : 's'} marked` : ''}`
@@ -300,7 +326,7 @@ export function renderRoutePanel(
             siteId: site.id,
             grid: site.grid,
             stops,
-            hazards: hazardsOf(site),
+            hazards: routedHazards,
             total,
             evaMin: evaDurationMin(total.durationMin, stopCount),
             card: shown.card,
@@ -339,7 +365,8 @@ export function renderRoutePanel(
     status.textContent = MESSAGES.routing
     if (!active) return
     const { client, layer } = tools(active)
-    const reply = await client.route(next.stops, hazardsOf(active))
+    const hazards = hazardsOf(active) // what this route is planned around, for its label and file
+    const reply = await client.route(next.stops, hazards)
     if (id !== latest) return // superseded by a newer request
     if (reply.type === 'error') {
       requested = plan
@@ -383,8 +410,9 @@ export function renderRoutePanel(
         ? 'The route already keeps clear of them. '
         : Math.round(extraM) === 0 && Math.round(extraMin) === 0
           ? 'A small sidestep keeps you clear, with no measurable extra distance or time (dashed: direct route). '
-          : `Detour: +${formatDistance(extraM)}, +${formatDuration(extraMin)} versus the direct route (dashed). `
+          : `Detour: ${signed(extraM, formatDistance)}, ${signed(extraMin, formatDuration)} versus the direct route (dashed). `
     updateHazardNote()
+    routedHazards = hazards
     showResult(reply, plan.stops)
     status.textContent = MESSAGES.found
     onEvent('route-found')
@@ -401,6 +429,10 @@ export function renderRoutePanel(
       return
     }
     if (event === 'start-set' && hit) {
+      if (!passableCells(hit.site.grid)[hit.cell.row * hit.site.grid.width + hit.cell.col]) {
+        status.textContent = MESSAGES.steepStart
+        return
+      }
       latest++
       if (active && active.id !== hit.site.id) clearLayer(active)
       active = hit.site
@@ -463,7 +495,10 @@ export function renderRoutePanel(
     tools(hit.site).layer.setHazards(hazardsOf(hit.site))
     detour = ''
     updateHazardNote()
-    if (active && hit.site.id === active.id && requested.stops.length >= 2) void replan(requested)
+    if (active && hit.site.id === active.id) {
+      void refreshRange() // the range must avoid the hazard too
+      if (requested.stops.length >= 2) void replan(requested)
+    }
   }
   const place = (hit: { site: Site; cell: Cell } | null) =>
     hazardMode ? placeHazard(hit) : apply(hit)
@@ -497,6 +532,7 @@ export function renderRoutePanel(
   hazardButton.addEventListener('click', () => {
     hazardMode = !hazardMode
     hazardButton.setAttribute('aria-pressed', String(hazardMode))
+    addButton.textContent = hazardMode ? 'Mark hazard at view centre' : 'Add point at view centre'
     updateHazardNote()
   })
   clearHazardsButton.addEventListener('click', () => {
@@ -506,6 +542,7 @@ export function renderRoutePanel(
     hazardsBySite.clear()
     detour = ''
     updateHazardNote()
+    void refreshRange()
     if (active && requested.stops.length >= 2) void replan(requested)
   })
   sightButton.addEventListener('click', () => {

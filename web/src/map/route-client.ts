@@ -4,7 +4,7 @@ import type { RangeReply, RouteReply, SightReply } from '../core/route-service'
 
 export type RouteClient = {
   route(stops: Cell[], hazards?: Cell[]): Promise<RouteReply>
-  range(start: Cell): Promise<RangeReply>
+  range(start: Cell, hazards?: Cell[]): Promise<RangeReply>
   sight(observer: Cell): Promise<SightReply>
 }
 
@@ -18,6 +18,18 @@ export function createRouteClient(grid: Grid): RouteClient {
     pending.get(event.data.id)?.(event.data)
     pending.delete(event.data.id)
   }
+  // A crashed worker must not leave the panel stuck on "Finding the safest route…".
+  const failAll = (message: string) => {
+    for (const [id, resolve] of pending) resolve({ type: 'error', id, message })
+    pending.clear()
+  }
+  worker.onerror = (event) => {
+    event.preventDefault()
+    failAll(
+      `Route planner stopped unexpectedly: ${event.message || 'unknown error'}. Reload to try again.`,
+    )
+  }
+  worker.onmessageerror = () => failAll('Route planner sent a reply that could not be read.')
   let nextId = 0
   const call = <T extends RouteReply | RangeReply | SightReply>(message: object): Promise<T> => {
     const id = ++nextId
@@ -28,7 +40,7 @@ export function createRouteClient(grid: Grid): RouteClient {
   }
   return {
     route: (stops, hazards) => call<RouteReply>({ type: 'route', stops, hazards }),
-    range: (start) => call<RangeReply>({ type: 'range', start }),
+    range: (start, hazards) => call<RangeReply>({ type: 'range', start, hazards }),
     sight: (observer) => call<SightReply>({ type: 'sight', observer }),
   }
 }
