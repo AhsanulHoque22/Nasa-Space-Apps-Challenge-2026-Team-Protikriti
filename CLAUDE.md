@@ -68,3 +68,15 @@ Plan: `docs/superpowers/plans/2026-09-28-martian-map.md`. Every rule below appli
 - Judging (verify current criteria on spaceappschallenge.org): impact, creativity, validity (real NASA data used correctly), relevance to the challenge, and presentation.
 
 Sources: Google eng-practices (code review), 12factor.net, OGC COG standard and geostandards-ch COG best practices, web.dev Core Web Vitals, WCAG 2.2, NASA Trek API, USGS Astrogeology Jezero products.
+
+## 9. Build Guide (Space Apps 2026 Bangladesh)
+
+Applies to everything we build. Source: https://claude.ai/artifact/PUnJNpKuEXRbvKafSgU6fA. Where it conflicts with sections 1-8, sections 1-8 win (e.g. we keep `pipeline/` + `web/`, not `src/compute`).
+
+- **Offline-first:** the demo runs with wifi off. Cache data locally, commit the minimum demo bytes, show a cache/live badge, rehearse offline before 12 Nov.
+- **Deterministic science:** slope, energy, routing live in tested pure code. Any language model only explains and never computes or invents a number.
+- **Evidence:** every number traces to a dataset id and source URL. Name datasets in the UI and on camera. Keep a provenance view of the raw values behind each figure.
+- **Challenge 11 spec:** rover assumptions (mass, power, slope limit) visible in the UI. A failed route names the failing segment and by how much, then offers a least-cost contingency route. Cite Mars Trek and PDS.
+- **Submission:** public repo with an OSI license (Apache-2.0), `docs/AI_USE.md` naming every AI tool, prompts and our own work (keep current as we build), no under-18 likeness in videos, challenge category named, project page submitted.
+- **Score sheet:** Impact, Creativity, Validity, Relevance, Presentation 1-20 each. Teamwork, UX, NASA data usage 1-5 each. Videos: 240 s local judging (Day 1, 18:30), 30 s global with English subtitles. Freeze features Day 2 noon.
+- **Cut order when behind:** automatic pathfinding, then the contingency route, then a fixed demo route. Never cut the killer demo.
