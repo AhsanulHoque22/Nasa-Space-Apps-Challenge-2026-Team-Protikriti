@@ -5,6 +5,6 @@ URL="https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX
 OUT="$(dirname "$0")/../../data/raw/jezero_ctx_dem.tif"
 mkdir -p "$(dirname "$OUT")"
 if [ -s "$OUT" ]; then echo "exists: $OUT"; exit 0; fi
-curl -fL --retry 3 -o "$OUT.part" "$URL"
+curl -fL --retry 3 --retry-all-errors -o "$OUT.part" "$URL"
 mv "$OUT.part" "$OUT"
 echo "downloaded: $OUT"

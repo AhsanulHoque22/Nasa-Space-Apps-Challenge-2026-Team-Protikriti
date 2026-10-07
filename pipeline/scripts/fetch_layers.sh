@@ -5,7 +5,7 @@ RAW="$(dirname "$0")/../../data/raw"
 mkdir -p "$RAW"
 fetch() {  # url filename
   if [ -s "$RAW/$2" ]; then echo "exists: $2"; return; fi
-  curl -fL --retry 3 -o "$RAW/$2.part" "$1" && mv "$RAW/$2.part" "$RAW/$2" && echo "downloaded: $2"
+  curl -fL --retry 3 --retry-all-errors -o "$RAW/$2.part" "$1" && mv "$RAW/$2.part" "$RAW/$2" && echo "downloaded: $2"
 }
 fetch https://asc-planetarynames-data.s3.us-west-2.amazonaws.com/MARS_nomenclature_center_pts.kmz MARS_nomenclature_center_pts.kmz
 fetch https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_traverse.json M20_traverse.json
