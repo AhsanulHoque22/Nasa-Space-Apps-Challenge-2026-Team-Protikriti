@@ -21,6 +21,7 @@ data:
 	cd pipeline && uv run python -m marsmap layers --raw ../data/raw --curated data --out ../web/public/data/layers
 	cd pipeline && uv run python -m marsmap weather --out ../web/public/data/weather
 	cd pipeline && uv run python -m marsmap stops --raw ../data/raw --out ../web/public/data/stops
+	cd pipeline && uv run python -m marsmap benchmark --traverse ../data/raw/M20_traverse.json --waypoints ../data/raw/M20_waypoints.json --grid ../web/public/data/sites/jezero --out ../web/public/data/benchmark.json
 	cd pipeline && uv run python -m marsmap activities --samples data/m20_samples.json --waypoints ../data/raw/M20_waypoints.json --out ../web/public/data/activities.json
 
 dev:

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from marsmap.activities import resolve_positions
+from marsmap.benchmark import run_benchmark
 from marsmap.dem import load_dem
 from marsmap.export import export_grid, export_slope_overlay
 from marsmap.layers import (
@@ -105,6 +106,14 @@ def _stops(args: argparse.Namespace) -> None:
         stops = waypoint_stops(json.loads((args.raw / file).read_text()))
         (args.out / f"{rover}.json").write_text(json.dumps(stops, separators=(",", ":")))
         print(f"wrote {rover}: {len(stops)} stops")
+
+
+def _benchmark(args: argparse.Namespace) -> None:
+    out = run_benchmark(args.traverse, args.waypoints, args.grid)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(out, indent=2))
+    r = out["result"]
+    print(f"wrote {args.out}: {r['legs_allowed']} of {r['legs_total']} legs allowed in-map")
 
 
 def _activities(args: argparse.Namespace) -> None:
@@ -235,6 +244,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     act.add_argument("--samples", type=Path, required=True)
     act.add_argument("--waypoints", type=Path, required=True)
     act.add_argument("--out", type=Path, required=True)
+    bench = sub.add_parser("benchmark", help="replay Perseverance's real path against the map")
+    bench.add_argument("--traverse", type=Path, required=True)
+    bench.add_argument("--waypoints", type=Path, required=True)
+    bench.add_argument("--grid", type=Path, required=True, help="a site folder from `sites`")
+    bench.add_argument("--out", type=Path, required=True)
     sites = sub.add_parser("sites", help="terrain grids + hazard overlays for every site")
     sites.add_argument("--config", type=Path, required=True)
     sites.add_argument("--out", type=Path, required=True)
@@ -250,6 +264,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = {
         "swim": _swim,
         "activities": _activities,
+        "benchmark": _benchmark,
         "build": _build,
         "layers": _layers,
         "weather": _weather,

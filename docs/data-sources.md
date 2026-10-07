@@ -90,3 +90,13 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Surface radiation | MSL RAD mean surface dose-equivalent rate at Gale ≈ 0.67 mSv/sol (Hassler et al. 2014, *Science* 343). Labelled as the Gale measurement; it varies with altitude and the solar cycle. |
 | Daylight, season | Mars24 sun model for the chosen point and sol |
 | Nearest places | IAU gazetteer, landing sites and exploration zones, great-circle distance on the Mars sphere |
+
+## Replay benchmark ("Checked against Perseverance's real drive")
+
+| Item | Source and method |
+|---|---|
+| Real drive legs (556) | NASA/JPL MMGIS `M20_traverse.json`, sols 14–1980. The file is tagged CRS84 but holds Mars lon/lat; only the numbers are used. |
+| Rover tilt | `tilt` at each localized waypoint in `M20_waypoints.json` (the rover's own attitude measurement). |
+| Terrain | The Jezero CTX grid the planner uses (20 m pixels, 15° limit). Slope is computed exactly as the hazard overlay does. |
+| Method | `marsmap benchmark`. A leg is blocked if any mapped point on it is steeper than the limit or has no data. A false pass is a waypoint where the rover's tilt exceeded the limit but the map's slope did not. Legs and waypoints off the map are not judged. |
+| Limits | A rover that drove a slope does not prove a suited crew can. Rover tilt is measured at wheel scale, so it is finer than any 20 m map. Only 9 mapped waypoints exceed 15°, so the false-pass rate is a small sample. No 1 m HiRISE DTM is used yet, so the 20 m vs 1 m comparison is not made. |
