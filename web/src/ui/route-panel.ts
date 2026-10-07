@@ -24,6 +24,7 @@ import {
 import { type Cell, type Grid, cellToLonLat, lonLatToCell } from '../core/grid'
 import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH, passableCells } from '../core/route'
 import { EMPTY_PLAN, type Plan, pick } from '../core/planner'
+import { ROUTE_PURPOSES, type RoutePurpose } from '../core/objective'
 import type { RouteReply } from '../core/route-service'
 import { SCIENCE_STOP_MIN, evaDurationMin, summarizeRoute } from '../core/summary'
 import { SIGHT_HEIGHT_M, outOfSightFraction, sightRaster } from '../core/viewshed'
@@ -111,6 +112,10 @@ export function renderRoutePanel(
       <button type="button" data-act="undo" class="quiet">Undo stop</button>
       <button type="button" data-act="clear" class="quiet">Clear</button>
     </div>
+    <div class="dust-sites route-purpose" role="radiogroup" aria-label="Purpose of the walk">
+      <button type="button" role="radio" aria-checked="true" data-purpose="explore">Explore</button>
+      <button type="button" role="radio" aria-checked="false" data-purpose="emergency">Emergency</button>
+    </div>
     <p class="route-note hazard-note" role="status" hidden></p>
     <details class="route-tools">
       <summary>Planning tools</summary>
@@ -133,7 +138,7 @@ export function renderRoutePanel(
         </details>
       </div>
       <dl class="route-summary">
-        <div><dt>EVA time <span class="qualifier">incl. ${SCIENCE_STOP_MIN} min/stop</span></dt><dd data-k="eva"></dd></div>
+        <div><dt>EVA time <span class="qualifier" data-k="stop-time">incl. ${SCIENCE_STOP_MIN} min/stop</span></dt><dd data-k="eva"></dd></div>
         <div><dt>Distance</dt><dd data-k="distance"></dd></div>
         <div><dt>Climb / descent</dt><dd data-k="relief"></dd></div>
         <div><dt>Steepest step</dt><dd data-k="slope"></dd></div>
@@ -162,6 +167,8 @@ export function renderRoutePanel(
     playback = null
   }
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
+  let purpose: RoutePurpose = 'explore'
+  const stopMin = () => ROUTE_PURPOSES[purpose].stopMin
 
   const hazardButton = panel.querySelector('[data-act="hazard"]') as HTMLButtonElement
   const addButton = panel.querySelector('[data-act="add"]') as HTMLButtonElement
@@ -284,7 +291,10 @@ export function renderRoutePanel(
   const showCard = (reply: Extract<RouteReply, { type: 'route' }>, stops: Cell[]) => {
     if (!active || !reply.path) return null
     const g = active.grid
-    const card = evaCard(g, reply.path, stops, { homeS: reply.homeS ?? undefined })
+    const card = evaCard(g, reply.path, stops, {
+      homeS: reply.homeS ?? undefined,
+      stopMin: stopMin(),
+    })
     lastHomeS = reply.homeS ?? null
     const failCell = card.failIndex === null ? null : (reply.path[card.failIndex] ?? null)
     tools(active).layer.setFail(failCell)
@@ -342,13 +352,16 @@ export function renderRoutePanel(
             stops,
             hazards: routedHazards,
             total,
-            evaMin: evaDurationMin(total.durationMin, stopCount),
+            evaMin: evaDurationMin(total.durationMin, stopCount, stopMin()),
             card: shown.card,
             limitDeg: shown.limitDeg,
+            stopMin: stopMin(),
           })
       }
     }
-    field('eva').textContent = formatDuration(evaDurationMin(total.durationMin, stopCount))
+    field('eva').textContent = formatDuration(
+      evaDurationMin(total.durationMin, stopCount, stopMin()),
+    )
     field('distance').textContent = formatDistance(total.distanceM)
     field('relief').textContent =
       `+${Math.round(total.ascentM)} m / −${Math.round(total.descentM)} m`
@@ -358,7 +371,7 @@ export function renderRoutePanel(
         total,
         legs: reply.legs,
         stopCount,
-        evaMin: evaDurationMin(total.durationMin, stopCount),
+        evaMin: evaDurationMin(total.durationMin, stopCount, stopMin()),
         limitDeg: shown.limitDeg,
         card: shown.card,
         failAlongM: shown.failAlongM,
@@ -587,6 +600,17 @@ export function renderRoutePanel(
     else void replan({ stops })
   })
   panel.querySelector('[data-act="clear"]')?.addEventListener('click', clear)
+  const purposeButtons = panel.querySelectorAll<HTMLButtonElement>('[data-purpose]')
+  for (const b of purposeButtons) {
+    b.addEventListener('click', () => {
+      purpose = b.dataset.purpose as RoutePurpose
+      for (const other of purposeButtons) other.setAttribute('aria-checked', String(other === b))
+      ;(panel.querySelector('[data-k="stop-time"]') as HTMLElement).textContent =
+        stopMin() === 0 ? 'no time at stops' : `incl. ${stopMin()} min/stop`
+      status.textContent = `${ROUTE_PURPOSES[purpose].label}: ${ROUTE_PURPOSES[purpose].why}`
+      if (requested.stops.length >= 2) void replan(requested) // re-time the route on show
+    })
+  }
   hazardButton.addEventListener('click', () => {
     hazardMode = !hazardMode
     hazardButton.setAttribute('aria-pressed', String(hazardMode))

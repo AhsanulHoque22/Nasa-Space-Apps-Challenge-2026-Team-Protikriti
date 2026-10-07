@@ -1,11 +1,10 @@
 /** Rank the candidate Exploration Zones with weights the user sets. */
+import { ZONE_PURPOSES, type ZonePurpose, applyPurpose } from '../core/objective'
 import {
   LATITUDE_LIMIT_DEG,
-  type Ranked,
   type Weights,
   type ZoneRow,
   iceVersusLatitude,
-  rankZones,
 } from '../core/zone-rank'
 
 const CRITERIA: Array<{ key: keyof Weights; label: string }> = [
@@ -33,8 +32,13 @@ export function renderZonePanel(
   panel.append(body)
   parent.append(panel)
 
-  const weights: Weights = { ice: 1, lowElevation: 1, nearEquator: 1 }
+  let purpose: ZonePurpose = 'explore'
+  const weights: Weights = { ...ZONE_PURPOSES.explore.weights }
   let rows: ZoneRow[] | null = null
+  const purposeNote = document.createElement('p')
+  purposeNote.className = 'zone-note'
+  const excludedNote = document.createElement('p')
+  excludedNote.className = 'zone-note'
   const table = document.createElement('table')
   table.className = 'zone-table'
   const note = document.createElement('p')
@@ -42,7 +46,13 @@ export function renderZonePanel(
 
   const draw = () => {
     if (!rows) return
-    const ranked: Ranked[] = rankZones(rows, weights)
+    const { ranked, excluded } = applyPurpose(rows, purpose, weights)
+    purposeNote.textContent = `${ZONE_PURPOSES[purpose].label}: ${ZONE_PURPOSES[purpose].why}`
+    excludedNote.textContent = excluded.length
+      ? `Ruled out (${excluded.length}): ` +
+        excluded.map((e) => `${e.zone.name} (${e.reason})`).join('; ') +
+        '.'
+      : ''
     const head =
       '<thead><tr><th scope="col">Zone</th><th scope="col">Score</th><th scope="col">Lat</th><th scope="col">Ice</th><th scope="col">Elev</th></tr></thead>'
     table.innerHTML = head
@@ -88,8 +98,33 @@ export function renderZonePanel(
       'A zone with no data for a measure scores 0 on it.'
   }
 
+  const purposes = document.createElement('div')
+  purposes.className = 'dust-sites'
+  purposes.setAttribute('role', 'radiogroup')
+  purposes.setAttribute('aria-label', 'Mission purpose')
   const controls = document.createElement('div')
   controls.className = 'zone-weights'
+  const sliders: Array<{ key: keyof Weights; input: HTMLInputElement; out: HTMLOutputElement }> = []
+  for (const [id, spec] of Object.entries(ZONE_PURPOSES) as Array<
+    [ZonePurpose, (typeof ZONE_PURPOSES)[ZonePurpose]]
+  >) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.setAttribute('role', 'radio')
+    b.setAttribute('aria-checked', String(id === purpose))
+    b.textContent = spec.label
+    b.addEventListener('click', () => {
+      purpose = id
+      Object.assign(weights, spec.weights)
+      for (const s of sliders) {
+        s.input.value = String(weights[s.key])
+        s.out.textContent = s.input.value
+      }
+      for (const other of purposes.children) other.setAttribute('aria-checked', String(other === b))
+      draw()
+    })
+    purposes.append(b)
+  }
   for (const { key, label } of CRITERIA) {
     const wrap = document.createElement('label')
     const text = document.createElement('span')
@@ -109,11 +144,12 @@ export function renderZonePanel(
     })
     wrap.append(text, input, out)
     controls.append(wrap)
+    sliders.push({ key, input, out })
   }
   const scroller = document.createElement('div')
   scroller.className = 'zone-scroll'
   scroller.append(table)
-  body.append(controls, scroller, note)
+  body.append(purposes, purposeNote, controls, scroller, excludedNote, note)
 
   panel.addEventListener('toggle', () => {
     if (!panel.open || rows) return

@@ -180,3 +180,10 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Habitat | The route start stands for the habitat. The walk home is the router's fastest walk from the route point farthest (in time) from home (`timesHomeS`), plus the EVA card's 20% for a tired crew. |
 | Nearest cave | The nearest USGS cave candidate (see above) to that point. Its walk is a floor: straight-line distance at the 3.3 km/h suit top pace; real ground is only slower. The cave is far outside the site grid, so no terrain route is run to it. |
 | Warning time | Entered by the user as a scenario. The app makes no claim about how much warning a solar particle event gives, nor how well any cave shields. |
+
+## Mission purpose (objective selector)
+
+| Item | Method |
+|---|---|
+| Choosing a zone | Purposes act on the Exploration Zone ranking, because SWIM ice (about 15 km cells) and latitude only differ between zones, not inside an 11 km site. Water (ISRU): drops zones whose SWIM 2.0 consistency is missing or not above 0, ice weighted x3. Habitat: drops zones beyond the +/-50 deg latitude limit, low elevation x2 (more air overhead, less radiation). Logistics: same latitude rule, low elevation x3 (more air to slow a landing), near-equator x2. Explore: no rule, equal weights. Weights are team choices; every ruled-out zone is listed with its reason. |
+| Walking a route | Explore spends the science-stop time (20 min, team assumption) at every stop after the start; Emergency spends none, so the EVA time and the walk-home check change with the purpose. The route itself is the same minimum-time path. |

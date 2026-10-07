@@ -15,6 +15,8 @@ export type BundleInput = {
   evaMin: number
   card: Pick<EvaCard, 'verdict' | 'tightestMarginMin' | 'failIndex'>
   limitDeg: number
+  /** Minutes at each stop after the start; Emergency plans spend none. */
+  stopMin?: number
   now?: Date
 }
 
@@ -53,7 +55,7 @@ export function buildBundle(b: BundleInput) {
       paceModel: "Tobler's hiking function x suit factor, capped",
       suitFactor: DEFAULT_SUIT_FACTOR,
       maxSpeedKmh: MAX_SUIT_SPEED_KMH,
-      stopMin: SCIENCE_STOP_MIN,
+      stopMin: b.stopMin ?? SCIENCE_STOP_MIN,
     },
     note:
       'Planning aid from the Martian Map demo. The pace, EVA limits and terrain error are team ' +

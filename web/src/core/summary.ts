@@ -35,6 +35,10 @@ export function summarizeRoute(
 export const SCIENCE_STOP_MIN = 20
 
 /** Total EVA time: walking plus science time at every stop after the start. */
-export function evaDurationMin(walkingMin: number, stopCount: number): number {
-  return walkingMin + Math.max(0, stopCount - 1) * SCIENCE_STOP_MIN
+export function evaDurationMin(
+  walkingMin: number,
+  stopCount: number,
+  stopMin = SCIENCE_STOP_MIN,
+): number {
+  return walkingMin + Math.max(0, stopCount - 1) * stopMin
 }

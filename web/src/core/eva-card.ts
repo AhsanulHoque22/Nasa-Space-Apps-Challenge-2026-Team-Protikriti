@@ -48,13 +48,20 @@ export type EvaOptions = {
    * is timed back along the route itself, which overstates it when the route loops back.
    */
   homeS?: readonly number[]
+  /** Minutes spent at each stop after the start (the purpose sets it). */
+  stopMin?: number
 }
 
 export function evaCard(
   g: Grid,
   path: Cell[],
   stops: Cell[],
-  { limits = EVA_LIMITS, speedFactor = DEFAULT_SUIT_FACTOR, homeS }: EvaOptions = {},
+  {
+    limits = EVA_LIMITS,
+    speedFactor = DEFAULT_SUIT_FACTOR,
+    homeS,
+    stopMin = SCIENCE_STOP_MIN,
+  }: EvaOptions = {},
 ): EvaCard {
   const budgetMin = limits.maxEvaMin - limits.backupMin
   const scienceAt = new Set(stopIndices(path, stops).slice(1)) // the start is not a science stop
@@ -77,7 +84,7 @@ export function evaCard(
   let failIndex: number | null = null
   for (let i = 0; i < path.length; i++) {
     if (scienceAt.has(i)) sciencePassed++
-    const away = (outMin[i] as number) + sciencePassed * SCIENCE_STOP_MIN
+    const away = (outMin[i] as number) + sciencePassed * stopMin
     const margin = budgetMin - away - (backMin[i] as number) * (1 + limits.walkbackPad)
     tightestMarginMin = Math.min(tightestMarginMin, margin)
     if (margin < 0 && failIndex === null) failIndex = i
@@ -88,6 +95,6 @@ export function evaCard(
     tightestMarginMin,
     failIndex,
     walkbackMin: backMin.at(-1) ?? 0,
-    evaMin: (outMin.at(-1) ?? 0) + sciencePassed * SCIENCE_STOP_MIN,
+    evaMin: (outMin.at(-1) ?? 0) + sciencePassed * stopMin,
   }
 }
