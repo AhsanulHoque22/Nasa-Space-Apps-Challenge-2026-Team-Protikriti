@@ -1,5 +1,6 @@
 /** Place search: an ARIA combobox over IAU names, landing sites, zones and HiRISE mosaics. */
 import { HIRISE_MOSAICS, mosaicSizeKm } from '../core/hirise'
+import { placeNote } from '../core/place-notes'
 import { type Place, type SearchIndex, buildIndex, search } from '../core/search'
 
 type Collection = {
@@ -42,7 +43,12 @@ export async function loadPlaces(): Promise<Place[]> {
       ...point(f),
       name: String(f.properties.name),
       kind: 'feature',
-      detail: `${String(f.properties.type)}${f.properties.diameter_km ? ` · ${Math.round(Number(f.properties.diameter_km))} km` : ''}`,
+      detail: [
+        `${String(f.properties.type)}${f.properties.diameter_km ? ` · ${Math.round(Number(f.properties.diameter_km))} km` : ''}`,
+        placeNote(String(f.properties.name)),
+      ]
+        .filter(Boolean)
+        .join(' · '),
       sizeKm: Number(f.properties.diameter_km) || 0,
     })),
     ...landing.features.map((f): Place => ({
