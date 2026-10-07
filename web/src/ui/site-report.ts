@@ -5,14 +5,8 @@ import type { Grid } from '../core/grid'
 import { season, solarLongitudeDeg } from '../core/mars-time'
 import type { Place } from '../core/search'
 import { type ThermalGrid, firmerThanPct, thermalAt } from '../core/thermal'
-import {
-  RAD_GALE_MSV_PER_SOL,
-  type SwimGrid,
-  daylightHours,
-  iceAt,
-  iceVerdict,
-  nearest,
-} from '../core/site-report'
+import { surfaceMsvPerSol } from '../core/dose'
+import { type SwimGrid, daylightHours, iceAt, iceVerdict, nearest } from '../core/site-report'
 
 export type ReportContext = {
   sites: readonly Site[]
@@ -91,7 +85,7 @@ export function renderSiteReport(
     ],
     [
       'Surface radiation',
-      `≈ ${RAD_GALE_MSV_PER_SOL} mSv per sol (Gale measurement)`,
+      `≈ ${surfaceMsvPerSol().toFixed(2)} mSv per sol (Gale measurement)`,
       'MSL RAD (Hassler et al. 2014); varies with altitude and solar cycle',
     ],
     ['Nearest named feature', near('feature'), 'IAU gazetteer'],

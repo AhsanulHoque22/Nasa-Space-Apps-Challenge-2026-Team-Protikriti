@@ -68,6 +68,3 @@ export function iceVerdict(consistency: number | null): string {
   if (consistency > 0) return 'Weakly consistent with shallow ice'
   return 'Not consistent with shallow ice'
 }
-
-/** MSL RAD mean surface dose equivalent rate at Gale (Hassler et al. 2014, Science 343). */
-export const RAD_GALE_MSV_PER_SOL = 0.67

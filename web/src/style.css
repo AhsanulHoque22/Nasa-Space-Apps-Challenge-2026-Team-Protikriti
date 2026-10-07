@@ -1683,3 +1683,26 @@ body.exploring #ui {
 .dust-calendar td.now {
   outline: 1px solid var(--text);
 }
+
+.dose {
+  padding: var(--space-3);
+}
+
+.dose summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dose caption {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding-bottom: var(--space-1);
+}
+
+.dose-source {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+}

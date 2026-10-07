@@ -49,6 +49,7 @@ import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
 import { renderDustPanel } from './ui/dust-panel'
+import { renderDosePanel } from './ui/dose-panel'
 import { solarLongitudeDeg } from './core/mars-time'
 import { JulianDate } from 'cesium'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
@@ -150,6 +151,7 @@ async function main() {
     .then((doc) => renderBenchmarkCard(side, parseBenchmark(doc)))
     .catch((error: unknown) => console.warn('Benchmark card not shown:', error))
   renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle)
+  renderDosePanel(side)
   renderDustPanel(side, sites, () =>
     solarLongitudeDeg(JulianDate.toDate(viewer.clock.currentTime).getTime()),
   )

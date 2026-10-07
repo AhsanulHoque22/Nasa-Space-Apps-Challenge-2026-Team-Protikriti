@@ -136,3 +136,13 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Licence | **CC BY-SA 3.0.** The derived `dust.json` (per-site means per 10 deg of Ls) carries the same licence, and the panel says so. |
 | Method | `marsmap dust` reads the 3 deg cell around each site from every daily map, places each sol in the Mars year with the Mars24 calendar (ported to Python and checked against the published starts of MY34-37), and averages per 10 deg of Ls. "Now" is the median across years for the app clock's season, ranked within the site's year (lowest, middle or highest third). |
 | Limits | Climatology, never a forecast. No dust devils, wind or temperature: the app has no hourly or wind record for these sites. One 3 deg cell (about 180 km) stands for a site about 11 km across. |
+
+## Radiation, compared
+
+| Row | Source |
+|---|---|
+| Earth natural background | UNSCEAR 2000: world average 2.4 mSv a year. |
+| Mars surface, Gale | Curiosity RAD: 0.64 +/- 0.12 mSv a day (Hassler et al. 2014, *Science* 343, 1244797). The site report gives the same rate per sol (x 1.0275 = 0.66 mSv). |
+| Cruise to Mars | Curiosity RAD inside the spacecraft: 1.84 +/- 0.30 mSv a day (Zeitlin et al. 2013, *Science* 340, 1080). |
+| Cave, pit or lava tube | Not measured; shown as unknown. |
+| Career limit | NASA-STD-3001 Vol. 1 (2022 update): 600 mSv effective dose over a career. "Days to the limit" is 600 divided by the daily rate. |
