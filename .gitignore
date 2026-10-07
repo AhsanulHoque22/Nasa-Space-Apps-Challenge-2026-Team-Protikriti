@@ -19,6 +19,7 @@ web/public/data/activities.json
 web/public/data/benchmark.json
 web/public/data/dust.json
 web/public/data/caves.json
+web/public/data/compare/
 web/public/models/
 web/public/data/sites/
 web/public/data/sites.json

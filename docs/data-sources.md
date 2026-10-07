@@ -201,3 +201,11 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 |---|---|
 | Rock units | USGS SIM 3464: Sun, V.Z., and Stack, K.M., 2020, *Geologic map of Jezero crater and the Nili Planum region, Mars*, scale 1:75,000, doi:10.3133/sim3464 (public domain). The panel condenses the map's Description of Map Units for units NHjf2, NHjf1, Njf and Nle and links each to its type locality; the "reading" lines stay within the map's own interpretation (pamphlet). |
 | Slope stability | Infinite-slope factor of safety for dry ground, FS = c / (rho g z sin b cos b) + tan phi / tan b, shown on screen. Mars g = 3.721 m/s^2 (GM 42,828 km^3/s^2 over 3,396 km, as in walk mode); Earth g = 9.80665 m/s^2 (standard gravity). The soil values (c 500 Pa, phi 30 deg, rho 1,500 kg/m^3, z 1 m) are illustrative team choices, not measurements. |
+
+## Jezero and the Jamuna, same scale
+
+| Item | Source and method |
+|---|---|
+| Mars | NASA Trek WMTS mosaic `NES_JEZ_MID_Visible_Mosaic_HiRISE_CTX_HRSC_GCS_MARS_07-10-2018` (HiRISE, CTX, HRSC), level 11 tiles stitched and resampled to 640 px over a 20 x 20 km box centred on the western delta (77.38 E, 18.50 N) on the Mars 2000 sphere (R 3,396.19 km). |
+| Earth | NASA GIBS WMS (EPSG:4326), 20 x 20 km box on the Jamuna braid belt near Sirajganj (89.74 E, 24.45 N; R 6,371.0088 km). Scenes: Landsat WELD annual true-colour composites for 1989 and 1999; HLS L30 (Landsat) 2 Feb 2020; HLS S30 (Sentinel-2) 9 Mar 2024. Dry-season dates were picked by eye from a scan of GIBS dates for full coverage and no cloud. |
+| Caveat | The Jamuna (Brahmaputra) is not a recognised Mars analog; the panel says so first, above the images. Recognised analogs for Jezero's delta include the Wax Lake Delta. Shown only to compare shapes and to show channels moving over 35 years. |

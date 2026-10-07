@@ -15,6 +15,7 @@ from typing import Any
 from marsmap.activities import resolve_positions
 from marsmap.benchmark import run_benchmark
 from marsmap.caves import build_caves
+from marsmap.compare import build_compare
 from marsmap.dem import load_dem
 from marsmap.dust import build_dust
 from marsmap.export import export_grid, export_slope_overlay
@@ -121,6 +122,12 @@ def _dust(args: argparse.Namespace) -> None:
 def _caves(args: argparse.Namespace) -> None:
     count = build_caves(args.csv, args.out)
     print(f"wrote {args.out}: {count} cave candidates")
+
+
+def _compare(args: argparse.Namespace) -> None:
+    manifest = build_compare(args.out, fetch=_download_bytes)
+    years = ", ".join(str(s["year"]) for s in manifest["jamuna"]["scenes"])
+    print(f"wrote {args.out}: Jezero and the Jamuna ({years}) at {manifest['boxKm']} km")
 
 
 def _thermal(args: argparse.Namespace) -> None:
@@ -270,6 +277,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     dust.add_argument("--raw", type=Path, required=True, help="folder of dustscenario_MY*.nc")
     dust.add_argument("--config", type=Path, required=True)
     dust.add_argument("--out", type=Path, required=True)
+    compare = sub.add_parser("compare", help="Jezero vs Jamuna images at the same scale")
+    compare.add_argument("--out", type=Path, required=True)
     caves = sub.add_parser("caves", help="USGS Mars cave candidate catalogue -> caves.json")
     caves.add_argument("--csv", type=Path, required=True)
     caves.add_argument("--out", type=Path, required=True)
@@ -299,6 +308,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "benchmark": _benchmark,
         "thermal": _thermal,
         "caves": _caves,
+        "compare": _compare,
         "dust": _dust,
         "build": _build,
         "layers": _layers,
