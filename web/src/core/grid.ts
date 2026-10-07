@@ -52,6 +52,7 @@ export function elevationAt(g: Grid, c: Cell): number {
 
 /** Cell containing (lon, lat), or null if outside the AOI or on nodata. */
 export function lonLatToCell(g: Grid, lon: number, lat: number): Cell | null {
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null
   const col = Math.floor(((lon - g.west) / (g.east - g.west)) * g.width)
   const row = Math.floor(((g.north - lat) / (g.north - g.south)) * g.height)
   if (col < 0 || col >= g.width || row < 0 || row >= g.height) return null

@@ -59,6 +59,11 @@ describe('coordinates', () => {
     expect(lonLatToCell(g, 77.44, 18.49)).toBeNull() // east edge is exclusive
   })
 
+  it('returns null for non-finite coordinates instead of a NaN cell', () => {
+    expect(lonLatToCell(g, NaN, 18.49)).toBeNull()
+    expect(lonLatToCell(g, 77.42, Infinity)).toBeNull()
+  })
+
   it('returns null on a nodata cell', () => {
     const [lon, lat] = cellToLonLat(g, { row: 1, col: 2 })
     expect(lonLatToCell(g, lon, lat)).toBeNull()
