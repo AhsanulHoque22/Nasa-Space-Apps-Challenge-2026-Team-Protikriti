@@ -1,5 +1,6 @@
 /** Message protocol for the routing Web Worker, kept pure so it can be unit-tested. */
 import type { Cell, Grid } from './grid'
+import { gentlestLimitDeg } from './blocker'
 import { hazardMask, touchesHazard } from './hazards'
 import { passableCells, travelTimesS } from './route'
 import { type RouteSummary, summarizeRoute } from './summary'
@@ -18,6 +19,8 @@ export type RouteReply =
       total: RouteSummary | null
       legs: RouteSummary[]
       failedLeg?: number
+      /** For a failed leg without hazards: the slope limit that would open a route, or null. */
+      needsDeg?: number | null
       /** The route with no hazards, to compare against; null when no hazard is marked. */
       baseline: { path: Cell[]; total: RouteSummary; hitsHazard: boolean } | null
       ms: number
@@ -60,6 +63,10 @@ export function createRouteService(): (msg: RouteRequest) => RouteReply | RangeR
     }
     const ms = performance.now() - t0
     if (result.path === null) {
+      const from = msg.stops[result.failedLeg]
+      const to = msg.stops[result.failedLeg + 1]
+      const terrainBlocked = !baseline && from && to
+      const needsDeg = terrainBlocked ? gentlestLimitDeg(g, from, to, msg.speedFactor) : undefined
       return {
         type: 'route',
         id: msg.id,
@@ -67,6 +74,7 @@ export function createRouteService(): (msg: RouteRequest) => RouteReply | RangeR
         total: null,
         legs: [],
         failedLeg: result.failedLeg,
+        needsDeg,
         baseline,
         ms,
       }

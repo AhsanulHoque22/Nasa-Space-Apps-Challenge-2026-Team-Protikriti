@@ -3,6 +3,7 @@ import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer 
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
+import { describeNoRoute, describeRoute } from '../core/describe'
 import { HAZARD_RADIUS_M } from '../core/hazards'
 import {
   DEM_SIGMA_M,
@@ -30,9 +31,8 @@ const MESSAGES = {
   samePoint: 'That stop is where you already are. Click somewhere else.',
 } as const
 
-const noRouteMessage = (leg: number) =>
-  `No safe route to stop ${leg + 1}: every path crosses slopes steeper than 15°. ` +
-  'That stop was not added — pick another spot.'
+const noRouteMessage = (leg: number, needsDeg: number | null | undefined, limitDeg: number) =>
+  `${describeNoRoute(leg, needsDeg, limitDeg)} That stop was not added: pick another spot.`
 
 export function renderRoutePanel(
   parent: HTMLElement,
@@ -79,6 +79,7 @@ export function renderRoutePanel(
         <div><dt>Steepest step</dt><dd data-k="slope"></dd></div>
       </dl>
       <ol class="route-legs" aria-label="Legs"></ol>
+      <details class="route-words"><summary>Route in words</summary><p></p></details>
       <p class="route-note">Pace: Tobler's hiking function x ${DEFAULT_SUIT_FACTOR} suit factor, capped at ${MAX_SUIT_SPEED_KMH} km/h (team assumptions). Mars gravity is not modelled.</p>
     </div>
     <div class="route-actions">
@@ -100,6 +101,7 @@ export function renderRoutePanel(
   const evaLine = panel.querySelector('.eva-line') as HTMLElement
   const evaDetail = panel.querySelector('.eva-detail') as HTMLElement
   const evaReliability = panel.querySelector('.eva-reliability') as HTMLElement
+  const wordsEl = panel.querySelector('.route-words p') as HTMLElement
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
 
   const hazardButton = panel.querySelector('[data-act="hazard"]') as HTMLButtonElement
@@ -160,7 +162,7 @@ export function renderRoutePanel(
   let latest = 0
 
   const showCard = (reply: Extract<RouteReply, { type: 'route' }>, stops: Cell[]) => {
-    if (!active || !reply.path) return
+    if (!active || !reply.path) return null
     const g = active.grid
     const card = evaCard(g, reply.path, stops)
     const failCell = card.failIndex === null ? null : (reply.path[card.failIndex] ?? null)
@@ -169,11 +171,12 @@ export function renderRoutePanel(
     evaEl.dataset.verdict = card.verdict
     evaBadge.textContent = card.verdict
     const margin = formatDuration(Math.abs(card.tightestMarginMin))
+    let failAlongM: number | undefined
     if (go) {
       evaLine.textContent = `Back in time, with ${margin} to spare at the tightest point.`
     } else {
-      const alongM = summarizeRoute(g, reply.path.slice(0, (card.failIndex ?? 0) + 1)).distanceM
-      evaLine.textContent = `Cannot get home in time from ${formatDistance(alongM)} along the route (short by ${margin}).`
+      failAlongM = summarizeRoute(g, reply.path.slice(0, (card.failIndex ?? 0) + 1)).distanceM
+      evaLine.textContent = `Cannot get home in time from ${formatDistance(failAlongM)} along the route (short by ${margin}).`
     }
     const { maxEvaMin, backupMin, walkbackPad } = EVA_LIMITS
     evaDetail.textContent =
@@ -185,6 +188,7 @@ export function renderRoutePanel(
       `Terrain check: the route stays within ${g.maxSafeSlopeDeg}° in ${Math.round(held * 100)}% of ` +
       `${RELIABILITY_TRIALS} simulated terrain errors (±${DEM_SIGMA_M} m, smooth over ` +
       `${ERROR_CORRELATION_CELLS * g.pixelSizeM} m: a team assumption, not a measured error).`
+    return { card, failAlongM, limitDeg: g.maxSafeSlopeDeg }
   }
 
   const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stops: Cell[] = []) => {
@@ -195,12 +199,23 @@ export function renderRoutePanel(
       if (active) tools(active).layer.setFail(null)
       return
     }
-    showCard(reply, stops)
+    const shown = showCard(reply, stops)
     field('eva').textContent = formatDuration(evaDurationMin(total.durationMin, stopCount))
     field('distance').textContent = formatDistance(total.distanceM)
     field('relief').textContent =
       `+${Math.round(total.ascentM)} m / −${Math.round(total.descentM)} m`
     field('slope').textContent = `${total.maxSlopeDeg.toFixed(1)}°`
+    if (shown) {
+      wordsEl.textContent = describeRoute({
+        total,
+        legs: reply.legs,
+        stopCount,
+        evaMin: evaDurationMin(total.durationMin, stopCount),
+        limitDeg: shown.limitDeg,
+        card: shown.card,
+        failAlongM: shown.failAlongM,
+      })
+    }
     legsEl.innerHTML = reply.legs
       .map(
         (leg, i) =>
@@ -236,7 +251,11 @@ export function renderRoutePanel(
     if (reply.path === null) {
       // Keep the last good plan; the unreachable stop is not added.
       requested = plan
-      status.textContent = noRouteMessage(reply.failedLeg ?? next.stops.length - 2)
+      status.textContent = noRouteMessage(
+        reply.failedLeg ?? next.stops.length - 2,
+        reply.needsDeg,
+        active.grid.maxSafeSlopeDeg,
+      )
       return
     }
     plan = next

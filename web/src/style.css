@@ -476,6 +476,22 @@ body {
   font-size: 11px;
 }
 
+.route-words {
+  margin-top: var(--space-2);
+  font-size: 12px;
+}
+
+.route-words summary {
+  cursor: pointer;
+  color: var(--nasa-blue-lift);
+}
+
+.route-words p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
 .route-note {
   margin: var(--space-2) 0 0;
   font-size: 11px;
@@ -1328,4 +1344,9 @@ body.exploring #ui {
   * {
     transition: none !important;
   }
+}
+
+#globe canvas:focus-visible {
+  outline: 2px solid var(--nasa-blue-lift);
+  outline-offset: -2px;
 }

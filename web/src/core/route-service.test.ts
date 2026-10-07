@@ -77,4 +77,13 @@ describe('route service (worker protocol)', () => {
     if (reply?.type !== 'route' || !reply.baseline) throw new Error('expected a baseline')
     expect(reply.baseline.hitsHazard).toBe(false)
   })
+
+  it('says what slope limit would open a route when a leg has none', () => {
+    const handle = createRouteService()
+    handle({ type: 'grid', grid: makeGrid([[0, 0, 6, 6, 6]]) })
+    const reply = handle({ type: 'route', id: 9, stops: stops(0, 4) })
+    if (reply?.type !== 'route') throw new Error('expected route reply')
+    expect(reply.path).toBeNull()
+    expect(reply.needsDeg as number).toBeGreaterThan(16.6)
+  })
 })

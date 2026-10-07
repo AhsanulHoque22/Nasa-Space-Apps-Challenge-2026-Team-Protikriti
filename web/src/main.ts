@@ -9,6 +9,7 @@ import { addStreetViewStops } from './map/streetview-layer'
 import { createRangeLayer } from './map/range-layer'
 import { createRouteLayer } from './map/route-layer'
 import { createTerrain, keepCameraAboveGround } from './map/terrain'
+import { installKeyboardCamera } from './map/keyboard-camera'
 import { installWheelZoom } from './map/wheel-zoom'
 import { decodeView, encodeView } from './core/deeplink'
 import {
@@ -106,6 +107,9 @@ async function main() {
   const surfaceM = (lon: number, lat: number) =>
     (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration
   installWheelZoom(viewer, surfaceM)
+  installKeyboardCamera(viewer, () =>
+    document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),
+  )
   viewer.terrainProvider = createTerrain(groundM)
   keepCameraAboveGround(viewer, groundM)
   const shared = decodeView(window.location.search)
