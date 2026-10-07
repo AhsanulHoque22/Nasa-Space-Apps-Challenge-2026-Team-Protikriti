@@ -3,6 +3,7 @@ import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer 
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
 import { EVA_LIMITS, evaCard } from '../core/eva-card'
+import { profileFrequencies } from '../core/audio-profile'
 import { describeNoRoute, describeRoute } from '../core/describe'
 import { HAZARD_RADIUS_M } from '../core/hazards'
 import {
@@ -22,7 +23,11 @@ import { MARS_SPHERE } from '../map/mars'
 import type { RouteClient } from '../map/route-client'
 import type { RangeLayer } from '../map/range-layer'
 import type { RouteLayer } from '../map/route-layer'
+import { type Playback, playTones } from './audio-player'
 import { isExploring, isInteractiveClick } from '../map/picking'
+
+/** Tones in the height profile: enough to follow the shape, short enough to sit through. */
+const AUDIO_TONES = 48
 
 const MESSAGES = {
   start: 'Start set. Click to add science stops along your Marswalk.',
@@ -105,6 +110,8 @@ export function renderRoutePanel(
       </dl>
       <ol class="route-legs" aria-label="Legs"></ol>
       <details class="route-words"><summary>Route in words</summary><p></p></details>
+      <button type="button" class="quiet route-audio" data-act="audio" aria-pressed="false">Hear the route's height</button>
+      <p class="route-note audio-note" role="status" hidden></p>
       <p class="route-note">Pace: Tobler's hiking function x ${DEFAULT_SUIT_FACTOR} suit factor, capped at ${MAX_SUIT_SPEED_KMH} km/h (team assumptions). Mars gravity is not modelled.</p>
     </div>`
   parent.append(panel)
@@ -117,6 +124,13 @@ export function renderRoutePanel(
   const evaDetail = panel.querySelector('.eva-detail') as HTMLElement
   const evaReliability = panel.querySelector('.eva-reliability') as HTMLElement
   const wordsEl = panel.querySelector('.route-words p') as HTMLElement
+  const audioButton = panel.querySelector('[data-act="audio"]') as HTMLButtonElement
+  const audioNote = panel.querySelector('.audio-note') as HTMLElement
+  let playback: Playback | null = null
+  const stopAudio = () => {
+    playback?.stop()
+    playback = null
+  }
   const field = (k: string) => panel.querySelector(`dd[data-k="${k}"]`) as HTMLElement
 
   const hazardButton = panel.querySelector('[data-act="hazard"]') as HTMLButtonElement
@@ -419,6 +433,7 @@ export function renderRoutePanel(
     hazardMode ? placeHazard(hit) : apply(hit)
 
   const clear = () => {
+    stopAudio()
     latest++
     detour = ''
     updateHazardNote()
@@ -461,6 +476,29 @@ export function renderRoutePanel(
     sightOn = !sightOn
     sightButton.setAttribute('aria-pressed', String(sightOn))
     void refreshSight()
+  })
+  audioButton.addEventListener('click', () => {
+    if (playback) {
+      stopAudio()
+      return
+    }
+    if (!active || !lastPath) return
+    const g = active.grid
+    const tones = profileFrequencies(
+      lastPath.map((c) => g.elevationM[c.row * g.width + c.col] as number),
+      AUDIO_TONES,
+    )
+    audioButton.setAttribute('aria-pressed', 'true')
+    audioButton.textContent = 'Stop'
+    audioNote.hidden = false
+    audioNote.textContent =
+      'Playing the route from start to end: higher pitch is higher ground, lower pitch is lower.'
+    playback = playTones(tones, () => {
+      playback = null
+      audioButton.setAttribute('aria-pressed', 'false')
+      audioButton.textContent = "Hear the route's height"
+      audioNote.textContent = 'Finished.'
+    })
   })
   rangeButton.addEventListener('click', () => {
     rangeOn = !rangeOn
