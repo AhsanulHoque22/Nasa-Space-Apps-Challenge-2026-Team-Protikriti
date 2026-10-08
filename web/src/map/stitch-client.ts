@@ -1,6 +1,6 @@
 /** Stitch a stop's panorama in a worker; frames are fetched through the same-origin NASA proxy. */
 import { type StopPose, sunAt } from '../core/panorama'
-import { type Frame, exposureId, isRightNavcam } from '../core/streetview'
+import { type Frame, exposureId, isRightNavcam, sensorTan } from '../core/streetview'
 import type { StitchReply, StitchRequest } from './stitch.worker'
 
 // ~11 px per degree, about the Navcam browse images' own resolution. Devices reporting under 8 GB
@@ -24,20 +24,6 @@ export const proxied = (url: string) =>
   NASA_HOST.test(url)
     ? new URL(`nasa-raw${url.replace(NASA_HOST, '')}`, document.baseURI).href
     : url
-
-/** The frame's place on the full sensor in tangent units (see core/stitch Source.sensorTan). */
-function sensorTan(f: Frame): [number, number, number, number] {
-  const [x, y, w, h] = f.subframe
-  const [sw, sh] = f.sensor
-  const tw = Math.tan((f.fovDeg[0] * Math.PI) / 360)
-  const th = Math.tan((f.fovDeg[1] * Math.PI) / 360)
-  return [
-    ((x - 1 + w / 2) / sw - 0.5) * 2 * tw,
-    -((y - 1 + h / 2) / sh - 0.5) * 2 * th, // sensor rows run down; tangent y runs up
-    (w / sw) * tw,
-    (h / sh) * th,
-  ]
-}
 
 export type Stitched = { pixels: Uint8ClampedArray; width: number; height: number; used: number }
 

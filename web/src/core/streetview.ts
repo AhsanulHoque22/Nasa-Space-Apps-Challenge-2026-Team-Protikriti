@@ -118,3 +118,19 @@ export function exposureId(url: string): string {
 export function isRightNavcam(url: string): boolean {
   return /^NR/.test(url.split('/').pop() ?? '')
 }
+
+/** The frame's place on the full sensor in tangent units (see core/pinhole Source.sensorTan). */
+export function sensorTan(
+  f: Pick<Frame, 'subframe' | 'sensor' | 'fovDeg'>,
+): [number, number, number, number] {
+  const [x, y, w, h] = f.subframe
+  const [sw, sh] = f.sensor
+  const tw = Math.tan((f.fovDeg[0] * Math.PI) / 360)
+  const th = Math.tan((f.fovDeg[1] * Math.PI) / 360)
+  return [
+    ((x - 1 + w / 2) / sw - 0.5) * 2 * tw,
+    -((y - 1 + h / 2) / sh - 0.5) * 2 * th, // sensor rows run down; tangent y runs up
+    (w / sw) * tw,
+    (h / sh) * th,
+  ]
+}
