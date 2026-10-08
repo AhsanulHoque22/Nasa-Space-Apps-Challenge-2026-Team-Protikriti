@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { sampleGrid } from '../core/elevation'
 import { makeGrid } from '../core/test-grids'
-import { lowestCameraHeightM, sampleHeights } from './terrain'
+import { MAX_TERRAIN_LEVEL, createTerrain, lowestCameraHeightM, sampleHeights } from './terrain'
 
 // makeGrid spans lon 0..1, lat 0..1. 2x2 cells -> cell centres at 0.25 / 0.75.
 const g = makeGrid([
@@ -52,5 +52,22 @@ describe('lowestCameraHeightM', () => {
 
   it('treats nodata as the datum', () => {
     expect(lowestCameraHeightM(NaN, undefined, 2)).toBe(5)
+  })
+})
+
+describe('createTerrain', () => {
+  it('stops refining at the level that already resolves the 2 m walk terrain', () => {
+    const t = createTerrain(() => 0)
+    const deep = t.getLevelMaximumGeometricError(MAX_TERRAIN_LEVEL)
+    expect(t.getLevelMaximumGeometricError(MAX_TERRAIN_LEVEL - 1)).toBeGreaterThan(0.1)
+    // Too small to show at the walker's feet: 1 mm at 0.3 m is under 3 px on a 900 px view.
+    expect(deep).toBeLessThan(0.002)
+    expect(t.getLevelMaximumGeometricError(MAX_TERRAIN_LEVEL + 3)).toBe(deep)
+  })
+
+  it('keeps the error above zero: Cesium picks imagery levels from it, and 0 gave level 0', () => {
+    expect(createTerrain(() => 0).getLevelMaximumGeometricError(MAX_TERRAIN_LEVEL)).toBeGreaterThan(
+      0,
+    )
   })
 })

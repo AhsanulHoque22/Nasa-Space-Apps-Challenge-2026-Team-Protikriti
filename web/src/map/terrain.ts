@@ -9,6 +9,13 @@ import {
 import { MARS_SPHERE } from './mars'
 
 const HEIGHTMAP_SIZE = 32 // samples per tile edge
+/**
+ * Deepest terrain level worth building: a level-18 tile is ~41 m across, so 32 samples are
+ * ~1.3 m apart, finer than the 2 m walk terrain. Without a cap Cesium kept splitting the ground
+ * at the walker's feet to level 24 (0.6 m tiles), hundreds of tiles of detail that isn't there.
+ */
+export const MAX_TERRAIN_LEVEL = 18
+const DEEPEST_TILE_ERROR_M = 0.001
 
 export type DegreeRect = { west: number; south: number; east: number; north: number }
 export type HeightFn = (lon: number, lat: number) => number
@@ -30,7 +37,7 @@ export function sampleHeights(height: HeightFn, rect: DegreeRect, size: number):
 export function createTerrain(height: HeightFn): CustomHeightmapTerrainProvider {
   const tilingScheme = new GeographicTilingScheme({ ellipsoid: MARS_SPHERE })
   const toDeg = 180 / Math.PI
-  return new CustomHeightmapTerrainProvider({
+  const provider = new CustomHeightmapTerrainProvider({
     width: HEIGHTMAP_SIZE,
     height: HEIGHTMAP_SIZE,
     tilingScheme,
@@ -48,6 +55,12 @@ export function createTerrain(height: HeightFn): CustomHeightmapTerrainProvider 
       )
     },
   })
+  // Cesium refines a tile while its geometric error shows on screen; a 1 mm error never does.
+  // Not 0: Cesium also picks each tile's imagery level from this error, and 0 became level 0.
+  const error = provider.getLevelMaximumGeometricError.bind(provider)
+  provider.getLevelMaximumGeometricError = (level) =>
+    level >= MAX_TERRAIN_LEVEL ? DEEPEST_TILE_ERROR_M : error(level)
+  return provider
 }
 
 // Closest the camera may get to the ground. Cesium's own collision test only runs below
