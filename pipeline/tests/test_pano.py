@@ -63,7 +63,7 @@ def _ring(world: NDArray[np.uint8], perturb_deg: float) -> tuple[list[View], lis
     for k, az in enumerate(range(0, 360, 45)):
         true = _rotation(az, 5)
         noise, _ = cv2.Rodrigues(rng.normal(0, math.radians(perturb_deg), 3))
-        views.append(View(_shoot(world, true), MODEL, noise @ true, group=str(k)))
+        views.append(View.of(_shoot(world, true), MODEL, noise @ true, group=str(k)))
         truth.append(true)
     return views, truth
 
@@ -92,7 +92,9 @@ def test_refinement_recovers_the_true_relative_pointing() -> None:
 
 def test_frames_without_overlap_keep_their_pointing() -> None:
     world = _world()
-    lone = [View(_shoot(world, _rotation(a, 0)), MODEL, _rotation(a, 0), str(a)) for a in (0, 180)]
+    lone = [
+        View.of(_shoot(world, _rotation(a, 0)), MODEL, _rotation(a, 0), str(a)) for a in (0, 180)
+    ]
     rotations, report = refine_rotations(lone)
     assert report.pairs == 0
     for v, r in zip(lone, rotations, strict=True):
@@ -130,7 +132,7 @@ def test_render_evens_out_frames_exposed_differently() -> None:
     world = _world()
     views, truth = _ring(world, perturb_deg=0.0)
     dim = views[3]
-    views[3] = View((dim.image * 0.45).astype(np.uint8), dim.model, dim.rotation, dim.group)
+    views[3] = View.of((dim.load() * 0.45).astype(np.uint8), dim.model, dim.rotation, dim.group)
     pano, _ = render(views, truth, width=WORLD_W)
     band = slice(WORLD_W // 4 - 60, WORLD_W // 4 + 60)
     # The overall level is a choice (render keeps the frames' mean), so compare after removing it.
@@ -145,9 +147,9 @@ def test_sky_only_frames_are_recognised() -> None:
 
     blank = np.zeros((FRAME_H, FRAME_W, 3), np.uint8)
     # ~90 degrees across: a frame aimed 60 degrees up never reaches the horizon.
-    assert not shows_ground(View(blank, MODEL, _rotation(0, 60), "a"))
-    assert shows_ground(View(blank, MODEL, _rotation(0, 30), "b"))
-    assert shows_ground(View(blank, MODEL, _rotation(0, -40), "c"))
+    assert not shows_ground(View.of(blank, MODEL, _rotation(0, 60), "a"))
+    assert shows_ground(View.of(blank, MODEL, _rotation(0, 30), "b"))
+    assert shows_ground(View.of(blank, MODEL, _rotation(0, -40), "c"))
 
 
 def test_covering_shots_skip_repeats_and_keep_the_ring() -> None:
@@ -168,3 +170,30 @@ def test_photos_stop_short_of_the_high_sky() -> None:
     rows = np.flatnonzero(covered.any(axis=1))
     top_el = 90 - (rows.min() + 0.5) / 256 * 180
     assert top_el <= MAX_PHOTO_EL_DEG + 1
+
+
+def test_tone_brings_washed_out_panoramas_to_a_natural_level() -> None:
+    from marsmap.pano import TONE_MEDIAN, tone
+
+    rng = np.random.default_rng(3)
+    washed = rng.integers(110, 246, (64, 128, 3)).astype(np.uint8)  # like sol 565: median ~176
+    washed[0, 1] = 255
+    washed[0, 0] = 0
+    seen = np.ones((64, 128), bool)
+    out = tone(washed, seen)
+    lum = cv2.cvtColor(out, cv2.COLOR_BGR2GRAY)
+    assert abs(float(np.median(lum)) - TONE_MEDIAN) < 6
+    assert out[0, 0].tolist() == [0, 0, 0]  # black stays black
+    assert out.max() == 255  # white stays white
+    # Rank order survives: brighter in stays brighter out.
+    order = np.argsort(washed[..., 1].ravel(), kind="stable")
+    assert np.all(np.diff(out[..., 1].ravel()[order].astype(int)) >= 0)
+
+
+def test_covering_counts_what_is_already_seen() -> None:
+    from marsmap.pano import pick_covering
+
+    colour = [(MODEL, _rotation(az, 5), FRAME_W, FRAME_H) for az in range(0, 180, 45)]
+    grey = [(MODEL, _rotation(az, 5), FRAME_W, FRAME_H) for az in (0, 90, 225, 270)]
+    # Only the grey shots looking where no colour shot does are worth adding.
+    assert sorted(pick_covering(grey, 10, colour)) == [2, 3]
