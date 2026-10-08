@@ -780,27 +780,22 @@ body {
   display: none;
 }
 
-/* Fallback when stitching is unavailable: frames as positioned photos. */
+/* Fallback when stitching is unavailable: frames as sub-tiled positioned divs.
+   No mask: sub-tiles within a frame are perfectly flush, and removing the mask prevents
+   the semi-transparent polygon ("football") look that 14% edge fades caused on wide frames. */
 .sv-tile {
   position: absolute;
   left: 0;
   top: 0;
   backface-visibility: hidden;
   user-select: none;
-  /* Fade all four edges so adjacent tiles blend instead of showing hard seams */
-  -webkit-mask-image:
-    linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
-  -webkit-mask-composite: destination-in;
-  mask-image:
-    linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%),
-    linear-gradient(to bottom, transparent 0%, black 14%, black 86%, transparent 100%);
-  mask-composite: intersect;
+  background-repeat: no-repeat;
 }
 
-/* Mars sky behind the frames when photo tiles are shown (WebGL stitcher unavailable) */
-.sv-sphere:has(.sv-tile) {
-  background: radial-gradient(ellipse at 50% 30%, #3a2a12 0%, #1c1508 45%, #09070300 100%);
+/* Mars sky behind and between frames. .sv-sphere has no dimensions so its background is
+   never rendered; apply to .sv-view (the clipping container) instead. */
+.sv-view:has(.sv-tile) {
+  background: linear-gradient(to bottom, #c4944a 0%, #b07828 38%, #7a4814 58%, #3a1c08 100%);
 }
 
 /* Walk arrows lie on the ground toward the neighbouring stops, like Street View chevrons. */

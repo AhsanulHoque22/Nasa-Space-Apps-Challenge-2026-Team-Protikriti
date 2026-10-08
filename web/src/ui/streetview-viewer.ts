@@ -36,6 +36,10 @@ const FULL_CIRCLE_DEG = 359.5
 const GOOD_COVERAGE_DEG = 90 // a sweep this wide reads as a place, not a close-up
 const ARROW_EL_DEG = -28 // walk arrows sit on the ground ahead, like Street View chevrons
 const LABEL_PANO_WIDTH = 1024 // labels are 128 px per frame: finer would add nothing
+// Sub-tile wide frames so each piece is ≤20° — CSS 3D perspective distorts narrow tiles far less
+// than the raw 45°–96° Navcam FOV. background-image/size/position shows each sub-region without
+// needing CORS, so the fallback works even when the stitcher proxy is blocked.
+const SUBTILE_MAX_DEG = 20
 
 type State = { yaw: number; pitch: number; fov: number }
 
@@ -212,23 +216,40 @@ export function openStreetView(
       return [button]
     })
 
-  const photoTiles = (frames: Frame[], yawDeg: number) =>
+  const photoTiles = (frames: Frame[], yawDeg: number): HTMLElement[] =>
     frames
       .filter((f) => {
         const g = frameGeometry(f)
         return g.elDeg + g.heightDeg / 2 <= 75 // skip sky-only frames — they appear as blank tiles
       })
-      .map((f) => {
-        const img = document.createElement('img')
-        img.className = 'sv-tile'
-        img.src = f.url // <img> can load cross-origin images without CORS; proxy is only needed for fetch()
-        img.alt = f.caption
-        img.decoding = 'async'
-        img.referrerPolicy = 'no-referrer'
-        img.draggable = false
+      .flatMap((f) => {
         const g = frameGeometry(f)
-        img.dataset.geom = JSON.stringify({ ...g, azDeg: g.azDeg + yawDeg })
-        return img
+        // Split each frame into sub-tiles so each is ≤SUBTILE_MAX_DEG wide/tall.
+        // CSS background-image shows the correct sub-region without needing CORS.
+        const cols = Math.ceil(g.widthDeg / SUBTILE_MAX_DEG)
+        const rows = Math.ceil(g.heightDeg / SUBTILE_MAX_DEG)
+        const subW = g.widthDeg / cols
+        const subH = g.heightDeg / rows
+        const tiles: HTMLElement[] = []
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const subAz = g.azDeg + (col - (cols - 1) / 2) * subW
+            const subEl = g.elDeg + ((rows - 1) / 2 - row) * subH
+            const div = document.createElement('div')
+            div.className = 'sv-tile'
+            div.style.backgroundImage = `url(${JSON.stringify(f.url)})`
+            div.style.backgroundSize = `${cols * 100}% ${rows * 100}%`
+            div.style.backgroundPosition = `${cols > 1 ? (col / (cols - 1)) * 100 : 50}% ${rows > 1 ? (row / (rows - 1)) * 100 : 50}%`
+            div.dataset.geom = JSON.stringify({
+              azDeg: subAz + yawDeg,
+              elDeg: subEl,
+              widthDeg: subW,
+              heightDeg: subH,
+            })
+            tiles.push(div)
+          }
+        }
+        return tiles
       })
 
   const show = async (stop: Stop, found: Frame[], id: number, borrowedStops = 0) => {
