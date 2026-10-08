@@ -1,5 +1,5 @@
 /** Google Street View-style EVA walk player: step through planned stops with map-following. */
-import { Cartesian3, Color, type Viewer } from 'cesium'
+import { Cartesian3, Color, HeightReference, Math as CesiumMath, type Viewer } from 'cesium'
 import type { EvaCard } from '../core/eva-card'
 import { formatDistance, formatDuration } from '../core/format'
 import { type Cell, type Grid, cellToLonLat } from '../core/grid'
@@ -30,10 +30,30 @@ export function openWalkPlayer(
   })
   const totalEvaMin = legs.reduce((s, l) => s + l.durationMin, 0) + (stops.length - 1) * stopMin
 
-  // Cesium avatar dot — assigned via any because Cesium's TS types require PositionProperty
+  // Route line connecting the planned stops, clamped to terrain
+  const stopPositions = stops.map((stop) => {
+    const [lon, lat] = cellToLonLat(grid, stop)
+    return Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE)
+  })
+  const routeLine = viewer.entities.add({
+    polyline: {
+      positions: stopPositions as any,
+      width: 4,
+      material: Color.fromCssColorString('#5b8def').withAlpha(0.9),
+      clampToGround: true,
+    },
+  })
+
+  // Astronaut avatar — CLAMP_TO_GROUND so Cesium places it exactly on the terrain surface
   const avatar = viewer.entities.add({
-    position: Cartesian3.fromDegrees(0, 0, 5, MARS_SPHERE) as any,
-    point: { pixelSize: 18, color: Color.fromCssColorString('#fc7a3c'), outlineColor: Color.WHITE, outlineWidth: 3 },
+    position: stopPositions[0] as any,
+    point: {
+      pixelSize: 20,
+      color: Color.fromCssColorString('#fc7a3c'),
+      outlineColor: Color.WHITE,
+      outlineWidth: 3,
+      heightReference: HeightReference.CLAMP_TO_GROUND,
+    },
   })
 
   const overlay = document.createElement('div')
@@ -45,6 +65,21 @@ export function openWalkPlayer(
   const flyTo = (lon: number, lat: number) =>
     viewer.camera.flyTo({ destination: Cartesian3.fromDegrees(lon, lat, 3000, MARS_SPHERE), duration: 1.2 })
 
+  // Zoom by changing altitude via flyTo — avoids the 500m floor from camera.zoomIn
+  const zoomTo = (factor: number) => {
+    const cam = viewer.camera.positionCartographic
+    const newH = Math.max(50, cam.height * factor)
+    viewer.camera.flyTo({
+      destination: Cartesian3.fromDegrees(
+        CesiumMath.toDegrees(cam.longitude),
+        CesiumMath.toDegrees(cam.latitude),
+        newH,
+        MARS_SPHERE,
+      ),
+      duration: 0.4,
+    })
+  }
+
   const render = () => {
     const stop = stops[current]
     if (!stop) return
@@ -54,14 +89,15 @@ export function openWalkPlayer(
       ? '—'
       : `${Math.round(elev).toLocaleString('en-US').replace('-', '−')} m`
 
-    ;(avatar as any).position = Cartesian3.fromDegrees(lon, lat, Number.isNaN(elev) ? 5 : elev + 5, MARS_SPHERE)
+    // Update avatar position — height=0 because CLAMP_TO_GROUND handles the surface offset
+    ;(avatar as any).position = Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE)
 
     const evaMin = cumArriveMin[current] ?? 0
     const remainMin = totalEvaMin - evaMin
     const isGo = card.verdict === 'GO'
     const margin = card.tightestMarginMin
     const marginStr = Number.isFinite(margin)
-      ? (margin >= 0 ? `+${formatDuration(margin)}` : `−${formatDuration(Math.abs(margin))}`)
+      ? margin >= 0 ? `+${formatDuration(margin)}` : `−${formatDuration(Math.abs(margin))}`
       : '—'
     const stopName = current === 0 ? 'Start' : `Stop ${current}`
 
@@ -96,17 +132,14 @@ export function openWalkPlayer(
     })
     overlay.querySelector('[data-act="sv"]')?.addEventListener('click', () => onStreetView(lon, lat))
     overlay.querySelector('[data-act="rc"]')?.addEventListener('click', () => flyTo(lon, lat))
-    overlay.querySelector('[data-act="zi"]')?.addEventListener('click', () => {
-      viewer.camera.zoomIn(viewer.camera.positionCartographic.height * 0.4)
-    })
-    overlay.querySelector('[data-act="zo"]')?.addEventListener('click', () => {
-      viewer.camera.zoomOut(viewer.camera.positionCartographic.height * 0.6)
-    })
+    overlay.querySelector('[data-act="zi"]')?.addEventListener('click', () => zoomTo(0.5))
+    overlay.querySelector('[data-act="zo"]')?.addEventListener('click', () => zoomTo(2))
     overlay.querySelector('[data-act="close"]')?.addEventListener('click', close)
   }
 
   const close = () => {
     viewer.entities.remove(avatar)
+    viewer.entities.remove(routeLine)
     overlay.remove()
   }
 
