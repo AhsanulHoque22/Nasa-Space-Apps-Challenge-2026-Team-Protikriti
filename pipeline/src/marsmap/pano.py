@@ -243,6 +243,14 @@ def refine_rotations(views: list[View]) -> tuple[list[Array], RefineReport]:
     return rotations, report
 
 
+def shows_ground(v: View) -> bool:
+    """Whether any of the frame's lower edge looks below the horizon; sky-only shots, taken at
+    other hours, bring glare and exposure seams and nothing the sky fill could not paint."""
+    h, w = v.image.shape[:2]
+    bottom = np.stack([np.linspace(0, w - 1, 16), np.full(16, h - 1.0)], 1)
+    return bool(((v.model.backproject(bottom) @ v.rotation.T)[:, 1] < 0).any())
+
+
 @dataclass(frozen=True)
 class _Patch:
     view: int

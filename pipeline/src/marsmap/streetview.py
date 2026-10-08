@@ -22,7 +22,7 @@ from marsmap.navcam import (
     read_image,
     select_frames,
 )
-from marsmap.pano import View, refine_rotations, render
+from marsmap.pano import View, refine_rotations, render, shows_ground
 
 LATEST_STOP_SOLS = 30  # the latest stop has no successor: search this far ahead (as the web app)
 # Navcam's Sun shots for dust opacity are exposed so short the scene is black around the Sun.
@@ -74,11 +74,13 @@ def build_panorama(
     # ones: use them only at stops with no colour shots.
     colour = {k: v for k, v in built.items() if not _greyscale(v[0])}
     chosen = colour or built
-    views = [
-        View(image, model, tiles[0].rotation, shot, M20_VIGNETTE_EXP, M20_IMAGE_CIRCLE_DEG)
+    every = {
+        shot: View(image, model, tiles[0].rotation, shot, M20_VIGNETTE_EXP, M20_IMAGE_CIRCLE_DEG)
         for shot, (image, model, tiles) in chosen.items()
-    ]
-    used = [f for _, _, tiles in chosen.values() for f in tiles]
+    }
+    kept = [shot for shot, view in every.items() if shows_ground(view)]
+    views = [every[shot] for shot in kept]
+    used = [f for shot in kept for f in chosen[shot][2]]
     rotations, report = refine_rotations(views)
     pano, covered = render(views, rotations, width)
     out.mkdir(parents=True, exist_ok=True)

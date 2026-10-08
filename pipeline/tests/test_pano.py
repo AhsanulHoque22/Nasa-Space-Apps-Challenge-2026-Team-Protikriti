@@ -138,3 +138,13 @@ def test_render_evens_out_frames_exposed_differently() -> None:
     # Frame 3 looks at 135 degrees: its stretch of the horizon must match the world again.
     cols = slice(int(120 / 360 * WORLD_W), int(150 / 360 * WORLD_W))
     assert np.abs(pano[band, cols] * level - world[band, cols]).mean() < 8
+
+
+def test_sky_only_frames_are_recognised() -> None:
+    from marsmap.pano import shows_ground
+
+    blank = np.zeros((FRAME_H, FRAME_W, 3), np.uint8)
+    # ~90 degrees across: a frame aimed 60 degrees up never reaches the horizon.
+    assert not shows_ground(View(blank, MODEL, _rotation(0, 60), "a"))
+    assert shows_ground(View(blank, MODEL, _rotation(0, 30), "b"))
+    assert shows_ground(View(blank, MODEL, _rotation(0, -40), "c"))
