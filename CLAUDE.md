@@ -56,7 +56,7 @@ Plan: `docs/superpowers/plans/2026-09-28-martian-map.md`. Every rule below appli
 
 ## 7. Workflow
 
-- **Git:** small commits with one logical change each. Conventional Commit messages (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`). Never commit data files or secrets.
+- **Git:** small commits with one logical change each. Conventional Commit messages (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`). Never commit raw data or secrets. Generated web data in `web/public/data/` is the exception: it is committed so every push deploys the complete site.
 - **Definition of done:** tests pass, lint and type checks are clean, docs are updated if behavior changed, and it was verified by running it (superpowers:verification-before-completion). Evidence comes before any claim.
 - **Review checklist (Google eng-practices):** design, functionality, complexity (no over-engineering), tests, naming, comments explain *why*, docs, and every line read.
 - **Don't degrade code health.** Every change leaves the code at least as clean as it was.

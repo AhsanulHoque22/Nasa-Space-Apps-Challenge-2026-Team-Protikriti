@@ -128,18 +128,7 @@ cd web && npm run preview   # serve that build at http://localhost:4173
 
 ### Deploy to Vercel
 
-Deploys are manual; CI only runs lint and tests.
-
-```bash
-make build                          # web/dist, including the map data and vercel.json
-cd web/dist
-npx vercel link --yes --project atlas-mars
-npx vercel deploy --prod --yes      # publishes https://atlas-mars.vercel.app
-```
-
-`npx vercel login` first if the CLI isn't signed in; it prints a link you can approve from any device.
-
-The `atlas-mars` project is also connected to GitHub: a push to `main` starts a production build from the repository, which has none of the git-ignored map data. Redeploy the prebuilt `web/dist` as above after every push.
+Every push to `main` deploys https://atlas-mars.vercel.app: the Vercel project `atlas-mars` is connected to this repository and builds it with the root `vercel.json` (`npm run build` in `web/`, serving `web/dist`). The generated map data in `web/public/data/` is committed, so the build needs nothing else. After changing data, run `make data` and commit what it writes.
 
 ### Offline demo
 
@@ -240,7 +229,7 @@ curated JSON           ─┘                              └─ weather/ snaps
 | `web/src/ui/` | Panels and dialogs: search, layers, route, weather, clock, Street View, explore, site report |
 | `docs/` | Data sources, feature list PDF, demo script, design spec and plans |
 
-There is no backend: the app is static files plus live calls to NASA's open APIs. Street View stitching reads NASA image pixels through a same-origin `/nasa-raw` → `https://mars.nasa.gov` proxy (built into `npm run dev` and `npm run preview`). The live site runs on Vercel, where `web/public/vercel.json` provides the same rewrite. A static host without it falls back to unstitched photos.
+There is no backend: the app is static files plus live calls to NASA's open APIs. Street View stitching reads NASA image pixels through a same-origin `/nasa-raw` → `https://mars.nasa.gov` proxy (built into `npm run dev` and `npm run preview`). The live site runs on Vercel, where the root `vercel.json` provides the same rewrite. A static host without it falls back to unstitched photos.
 
 ## Quality
 
