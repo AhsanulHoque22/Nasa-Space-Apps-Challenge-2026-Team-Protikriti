@@ -108,7 +108,7 @@ export function renderLinkPanel(
     )
     const a = document.createElement('a')
     a.href = url
-    a.download = `martian-map-plan-${plan.createdUtc.slice(0, 10)}.json`
+    a.download = `atlas-plan-${plan.createdUtc.slice(0, 10)}.json`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000) // revoking at once can cancel the download
   })
