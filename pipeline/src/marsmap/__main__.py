@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from marsmap.activities import resolve_positions
+from marsmap.ai4mars import AI4MARS_URL, build_labels
 from marsmap.benchmark import run_benchmark
 from marsmap.caves import build_caves
 from marsmap.compare import build_compare
@@ -123,6 +124,11 @@ def _dust(args: argparse.Namespace) -> None:
 def _caves(args: argparse.Namespace) -> None:
     count = build_caves(args.csv, args.out)
     print(f"wrote {args.out}: {count} cave candidates")
+
+
+def _ai4mars(args: argparse.Namespace) -> None:
+    index = build_labels(args.source, args.out)
+    print(f"wrote {args.out}: AI4Mars labels {index['counts']}")
 
 
 def _walk(args: argparse.Namespace) -> None:
@@ -286,6 +292,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     dust.add_argument("--raw", type=Path, required=True, help="folder of dustscenario_MY*.nc")
     dust.add_argument("--config", type=Path, required=True)
     dust.add_argument("--out", type=Path, required=True)
+    labels = sub.add_parser("ai4mars", help="AI4Mars human terrain labels for Street View")
+    labels.add_argument("--source", default=AI4MARS_URL, help="zip URL or local path")
+    labels.add_argument("--out", type=Path, required=True)
     walk = sub.add_parser("walk", help="high-resolution ground for exploring on foot")
     walk.add_argument("--config", type=Path, required=True)
     walk.add_argument("--out", type=Path, required=True)
@@ -322,6 +331,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "caves": _caves,
         "compare": _compare,
         "walk": _walk,
+        "ai4mars": _ai4mars,
         "dust": _dust,
         "build": _build,
         "layers": _layers,
