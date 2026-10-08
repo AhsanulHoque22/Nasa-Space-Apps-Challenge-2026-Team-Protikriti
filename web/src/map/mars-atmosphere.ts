@@ -2,7 +2,8 @@
  * Ground-level Mars atmosphere for walk mode, as one post-process pass over Cesium's colour and
  * depth: a dusty butterscotch sky with a blue sunset aureole and stars at night, sunlight dimmed
  * by the dust column and shading the real terrain slope, natural surface colour for greyscale
- * HiRISE, distance haze, blowing dust and dust devils.
+ * HiRISE, distance haze, blowing dust and dust devils. No invented ground detail: every rock and
+ * ripple on screen is in the HiRISE image.
  *
  * Colours: Pathfinder, MER and Mastcam-Z sky imaging (e.g. Lemmon et al. 2004, Science 306):
  * a pinkish-butterscotch daytime sky, blue forward-scattered light around a low Sun.
@@ -45,7 +46,6 @@ uniform sampler2D depthTexture;
 uniform vec3 u_eastWC;
 uniform vec3 u_northWC;
 uniform vec3 u_upWC;
-uniform vec3 u_camLocal;
 uniform float u_tau;
 uniform float u_visM;
 uniform float u_time;
@@ -153,35 +153,18 @@ void main() {
     float lum = dot(col, vec3(0.299, 0.587, 0.114));
     float sat = max(col.r, max(col.g, col.b)) - min(col.r, min(col.g, col.b));
     col = mix(col, lum * vec3(1.32, 0.97, 0.70), 1.0 - smoothstep(0.02, 0.08, sat));
-    // World-locked grain up close: the orbital image can't resolve pebbles.
-    vec3 p = toLocal(posEC.xyz) + u_camLocal;
-    float grain = fbm(p.xy * 5.0) * 0.6 + noise(p.xy * 22.0) * 0.4;
-    col *= mix(1.0, 0.8 + 0.4 * grain, (1.0 - smoothstep(2.0, 35.0, dist)) * 0.8);
     float direct = exp(-u_tau / max(sinEl, 0.03)) * step(0.0, sinEl); // sunlight through dust
-    // Scattered pebbles, 2-10 cm: irregular, mixed tones, lit on the Sun's side, casting shadows.
-    vec2 cell = floor(p.xy * 8.0);
-    vec2 f = fract(p.xy * 8.0) - 0.5;
-    float h = hash(cell);
-    if (h > 0.9) {
-      vec2 q = f - (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.5;
-      float r = 0.07 + 0.2 * pow(hash(cell + 1.9), 2.0); // mostly small
-      float rr = r * (0.7 + 0.45 * noise(vec2(atan(q.y, q.x) * 1.6, h * 97.0)));
-      float inside = 1.0 - smoothstep(rr * 0.75, rr, length(q));
-      vec2 toSun = normalize(sun.xy + 1e-4);
-      float facing = dot(q / max(length(q), 1e-4), toSun) * (length(q) / rr);
-      float tone = mix(0.62, 1.1, hash(cell + 5.3)) * (0.9 + 0.2 * facing);
-      vec2 sq = q + toSun * rr * 0.7 / max(sinEl, 0.25);
-      float shade = (1.0 - smoothstep(rr * 0.75, rr, length(sq))) * (1.0 - inside) * step(0.0, sinEl);
-      float near = 1.0 - smoothstep(4.0, 14.0, dist);
-      col *= mix(1.0, tone, inside * near);
-      col *= mix(1.0, 0.72, shade * near * direct);
-    }
     // Sunlight through the dust, shading the real slope (normal from the depth buffer).
     vec3 upEC = czm_viewRotation * u_upWC;
-    vec3 n = normalize(cross(dFdx(posEC.xyz), dFdy(posEC.xyz)));
+    vec3 ddx = dFdx(posEC.xyz);
+    vec3 ddy = dFdy(posEC.xyz);
+    vec3 n = normalize(cross(ddx, ddy));
     if (dot(n, dirEC) > 0.0) n = -n;
-    // Across tile seams and silhouettes the derivative normal is garbage: fall back to up.
-    if (!(dot(n, upEC) > 0.25)) n = upEC;
+    // Across tile seams and silhouettes the depth jumps and the derivative normal is garbage
+    // (it drew dotted dark lines along tile edges): fall back to up there. A pixel's footprint
+    // on the ground is under ~2% of its distance except at the horizon, where shading is moot.
+    bool jump = max(length(ddx), length(ddy)) > 0.02 * dist + 0.05;
+    if (jump || !(dot(n, upEC) > 0.25)) n = upEC;
     float lambert = max(dot(n, normalize(czm_lightDirectionEC)), 0.0);
     float diffuse = (1.0 - exp(-u_tau / max(sinEl, 0.03))) * 0.55 * daylight(sinEl);
     float light = (direct * lambert + diffuse) / 0.75 + 0.03; // starlight and Phobos
@@ -246,10 +229,6 @@ export function createMarsAtmosphere(viewer: Viewer, initial: AtmosphereState) {
       u_eastWC: () => east,
       u_northWC: () => north,
       u_upWC: () => up,
-      u_camLocal: () => {
-        const c = cameraLocal()
-        return new Cartesian3(c.x, c.y, 0) // grain is on the ground plane
-      },
       u_logDepth: () => (viewer.scene.logarithmicDepthBuffer ? 1 : 0),
       u_tau: () => state.tau,
       u_visM: () => state.visibilityKm * 1000,
