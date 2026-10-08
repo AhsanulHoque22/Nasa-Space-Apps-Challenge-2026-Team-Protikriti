@@ -1,6 +1,6 @@
 /**
  * Panoramas stitched ahead of time by the pipeline (pipeline/src/marsmap/streetview.py): aligned
- * by JPL's camera models and SIFT bundle adjustment, and available offline.
+ * by JPL's camera models and SIFT bundle adjustment, with every usable frame at the stop.
  */
 import type { Stop } from './streetview'
 
@@ -10,7 +10,9 @@ export type PrestitchedPano = {
   sol: number
   coveredFraction: number
   alignment: { pairs: number; matches: number; rmsBeforeDeg: number; rmsAfterDeg: number }
-  frames: Array<{ id: string; sol: number; link: string }>
+  frameCount: number
+  link: string // NASA's page for one of the source frames
+  provenance: string // per-stop file listing every source frame (id, sol, NASA link)
 }
 
 /** index.json: "site_drive" -> panorama. */

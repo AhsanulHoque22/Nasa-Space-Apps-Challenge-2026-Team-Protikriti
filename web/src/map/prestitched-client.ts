@@ -3,6 +3,10 @@ import { type PrestitchedIndex, type PrestitchedPano, prestitchedFor } from '../
 import type { Stop } from '../core/streetview'
 import type { Rover } from './raw-images'
 
+// VITE_PANO_CDN: laptop CDN URL (e.g. https://xyz.trycloudflare.com). Falls back to Vercel-hosted
+// demo stops when unset or unreachable.
+const CDN = (import.meta.env.VITE_PANO_CDN as string | undefined)?.replace(/\/$/, '')
+
 const indexes = new Map<Rover, Promise<PrestitchedIndex | null>>()
 
 export type Prestitched = {
@@ -12,6 +16,14 @@ export type Prestitched = {
   height: number
 }
 
+async function fetchFirst(...urls: string[]): Promise<Response | null> {
+  for (const url of urls) {
+    const r = await fetch(url).catch(() => null)
+    if (r?.ok) return r
+  }
+  return null
+}
+
 /**
  * The stop's pre-stitched panorama, or null when the pipeline did not stitch it (Street View then
  * stitches live). Throws if the index lists a panorama that will not load.
@@ -19,15 +31,22 @@ export type Prestitched = {
 export async function prestitched(rover: Rover, stop: Stop): Promise<Prestitched | null> {
   let index = indexes.get(rover)
   if (!index) {
-    index = fetch(`data/pano/${rover}/index.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<PrestitchedIndex>) : null))
-      .catch(() => null) // no pre-stitched panoramas built: the live stitcher covers every stop
+    // CDN has all stitched stops; Vercel has only the committed demo set — try CDN first
+    const urls = CDN
+      ? [`${CDN}/${rover}/index.json`, `data/pano/${rover}/index.json`]
+      : [`data/pano/${rover}/index.json`]
+    index = fetchFirst(...urls)
+      .then((r) => (r ? (r.json() as Promise<PrestitchedIndex>) : null))
+      .catch(() => null)
     indexes.set(rover, index)
   }
   const pano = prestitchedFor(await index, stop)
   if (!pano) return null
-  const response = await fetch(`data/pano/${rover}/${pano.file}`)
-  if (!response.ok) throw new Error(`pre-stitched panorama ${pano.file}: HTTP ${response.status}`)
+  const urls = CDN
+    ? [`${CDN}/${rover}/${pano.file}`, `data/pano/${rover}/${pano.file}`]
+    : [`data/pano/${rover}/${pano.file}`]
+  const response = await fetchFirst(...urls)
+  if (!response) throw new Error(`pre-stitched panorama ${pano.file}: not found on CDN or Vercel`)
   const bitmap = await createImageBitmap(await response.blob())
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
   const ctx = canvas.getContext('2d')

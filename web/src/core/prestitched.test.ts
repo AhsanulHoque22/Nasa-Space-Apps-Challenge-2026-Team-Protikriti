@@ -8,7 +8,9 @@ const index: PrestitchedIndex = {
     sol: 14,
     coveredFraction: 0.43,
     alignment: { pairs: 3, matches: 900, rmsBeforeDeg: 0.72, rmsAfterDeg: 0.07 },
-    frames: [{ id: 'NLF_0014_0668192052', sol: 14, link: 'https://mars.nasa.gov/x' }],
+    frameCount: 12,
+    link: 'https://mars.nasa.gov/x',
+    provenance: '3_110.json',
   },
 }
 

@@ -402,12 +402,12 @@ export function openStreetView(
     hasImage = true
     canvas.hidden = false
     detail.textContent +=
-      ` · 360° panorama of ${pano.frames.length} Navcam frames, sol ${pano.sol}, ` +
+      ` · 360° panorama of ${pano.frameCount} Navcam frames, sol ${pano.sol}, ` +
       `stitched with JPL camera models (aligned to ${pano.alignment.rmsAfterDeg}°)`
     sphere.replaceChildren(...walkArrows())
     state.yaw = stop.yawDeg ?? 0 // open looking where the rover faces
     state.pitch = 0
-    credit.href = pano.frames[0]?.link ?? credit.href
+    credit.href = pano.link || credit.href
     status.hidden = true
     layout()
     // Terrain labels still come from the live frame list, when NASA answers.
