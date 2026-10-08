@@ -19,6 +19,7 @@ import { CLASSES, CLASS_COLOURS, NONE, classShares } from '../core/ai4mars'
 import { type LabelSource, classAt, overlayPixels, projectLabels } from '../core/label-pano'
 import { labelSource, labelsFor } from '../map/ai4mars-client'
 import { type PanoRenderer, createPanoRenderer } from '../map/pano-gl'
+import { type Prestitched, prestitched } from '../map/prestitched-client'
 import { type Rover, framesForStop } from '../map/raw-images'
 import { stitchPanorama } from '../map/stitch-client'
 
@@ -390,6 +391,38 @@ export function openStreetView(
     return fillGaps({ frames: own, yawDeg: here.yawDeg }, posed)
   }
 
+  /** A panorama the pipeline stitched ahead of time: no NASA request needed to show it. */
+  const showPrestitched = (
+    stop: Stop,
+    { pano, pixels, width, height }: Prestitched,
+    id: number,
+  ) => {
+    stitching?.abort()
+    renderer.setImage(pixels, width, height)
+    hasImage = true
+    canvas.hidden = false
+    detail.textContent +=
+      ` · 360° panorama of ${pano.frames.length} Navcam frames, sol ${pano.sol}, ` +
+      `stitched with JPL camera models (aligned to ${pano.alignment.rmsAfterDeg}°)`
+    sphere.replaceChildren(...walkArrows())
+    state.yaw = stop.yawDeg ?? 0 // open looking where the rover faces
+    state.pitch = 0
+    credit.href = pano.frames[0]?.link ?? credit.href
+    status.hidden = true
+    layout()
+    // Terrain labels still come from the live frame list, when NASA answers.
+    if (stop.yawDeg === null) return
+    void framesAt(index, stop)
+      .then((frames) => labelsFor(rover, selectPanorama(frames, stop).frames, stop.yawDeg ?? 0))
+      .then((labelled) => {
+        if (id !== request) return
+        labelSources = labelled
+        labelGrid = null
+        void updateLabels()
+      })
+      .catch(() => undefined) // offline: the panorama shows without labels
+  }
+
   const load = async (target: number) => {
     const id = ++request
     index = target
@@ -406,6 +439,12 @@ export function openStreetView(
     canvas.hidden = true // hide the previous stop while loading
     status.hidden = false
     status.textContent = 'Loading NASA Navcam panorama…'
+    const ready = await prestitched(rover, stop).catch((error: unknown) => {
+      console.error('[sv] pre-stitched panorama failed, stitching live:', error)
+      return null
+    })
+    if (id !== request) return
+    if (ready) return showPrestitched(stop, ready, id)
     try {
       // This stop first, then outward: take the first wide sweep, else the widest seen.
       let best: { at: number; frames: Frame[]; coverage: number } | undefined
