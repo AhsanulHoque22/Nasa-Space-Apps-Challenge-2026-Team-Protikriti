@@ -56,7 +56,7 @@ const SIGMA_G = 0.3 // prior spread of the gains around 1 (Navcam auto-exposure 
 // (log units, ~±40%) show a change in the scene, not in exposure, and are left out of the fit.
 const OUTLIER_LOG_RATIO = 0.35
 const PAIR_PHOTOS_PER_CELL = 8
-const JOIN_SHARPNESS = 4 // bilinear label weights to this power: joins blend over ~0.3 of a cell
+const JOIN_SHARPNESS = 2 // bilinear label weights to this power: wider, softer seam blend
 // Blend weight at which a pixel counts as fully imaged; below it, imagery fades into the fill.
 const FULL_WEIGHT = 0.02
 

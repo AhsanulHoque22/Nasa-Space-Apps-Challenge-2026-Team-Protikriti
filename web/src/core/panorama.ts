@@ -1,6 +1,6 @@
 /** Street View's panorama at a stop: which frames to stitch and how much azimuth they cover. */
 import { sunPosition } from './mars-time'
-import { type Frame, frameGeometry } from './streetview'
+import { type Frame, frameGeometry, isRightNavcam } from './streetview'
 
 const mod = (x: number, m: number) => ((x % m) + m) % m
 
@@ -100,13 +100,35 @@ export function fillGaps(
 }
 
 /**
+ * Remove right-eye frames where a left-eye frame already covers the same azimuth.
+ * The right Navcam sits 42 cm from the left; nearby objects appear twice (~12° apart at 2 m).
+ * Keep right-eye only where the left-eye sweep has a gap.
+ */
+function deduplicateRight(frames: Frame[]): Frame[] {
+  const lefts = frames.filter((f) => !isRightNavcam(f.url))
+  const rights = frames.filter((f) => isRightNavcam(f.url))
+  if (rights.length === 0) return frames
+  const gapFillers = rights.filter((r) => {
+    const rg = frameGeometry(r)
+    return !lefts.some((l) => {
+      const lg = frameGeometry(l)
+      const dAz = Math.abs(((rg.azDeg - lg.azDeg + 540) % 360) - 180)
+      return dAz < (lg.widthDeg + rg.widthDeg) / 2
+    })
+  })
+  return [...lefts, ...gapFillers]
+}
+
+/**
  * Every frame NASA took at the stop, whatever sequence, sol or pointing: repeats and extra shots
  * still add detail, exposure information and sky. Only shots aimed at the Sun are left out.
+ * Right-eye frames are removed where a left-eye frame covers the same direction.
  */
 export function selectPanorama(
   frames: readonly Frame[],
   stop?: StopPose,
 ): { frames: Frame[]; coverageDeg: number } {
-  const usable = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
+  const noSun = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
+  const usable = deduplicateRight(noSun)
   return { frames: usable, coverageDeg: azimuthCoverageDeg(usable) }
 }

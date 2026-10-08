@@ -20,7 +20,7 @@ import { type LabelSource, classAt, overlayPixels, projectLabels } from '../core
 import { labelSource, labelsFor } from '../map/ai4mars-client'
 import { type PanoRenderer, createPanoRenderer } from '../map/pano-gl'
 import { type Rover, framesForStop } from '../map/raw-images'
-import { stitchPanorama } from '../map/stitch-client'
+import { proxied, stitchPanorama } from '../map/stitch-client'
 
 const ROVER_NAME: Record<Rover, string> = { m20: 'Perseverance', msl: 'Curiosity' }
 const FOV = { ...FOV_RANGE, start: 70 }
@@ -213,18 +213,23 @@ export function openStreetView(
     })
 
   const photoTiles = (frames: Frame[], yawDeg: number) =>
-    frames.map((f) => {
-      const img = document.createElement('img')
-      img.className = 'sv-tile'
-      img.src = f.url
-      img.alt = f.caption
-      img.decoding = 'async'
-      img.referrerPolicy = 'no-referrer'
-      img.draggable = false
-      const g = frameGeometry(f)
-      img.dataset.geom = JSON.stringify({ ...g, azDeg: g.azDeg + yawDeg })
-      return img
-    })
+    frames
+      .filter((f) => {
+        const g = frameGeometry(f)
+        return g.elDeg + g.heightDeg / 2 <= 75 // skip sky-only frames — they appear as blank tiles
+      })
+      .map((f) => {
+        const img = document.createElement('img')
+        img.className = 'sv-tile'
+        img.src = proxied(f.url) // proxy through same-origin to avoid CORS blocking
+        img.alt = f.caption
+        img.decoding = 'async'
+        img.referrerPolicy = 'no-referrer'
+        img.draggable = false
+        const g = frameGeometry(f)
+        img.dataset.geom = JSON.stringify({ ...g, azDeg: g.azDeg + yawDeg })
+        return img
+      })
 
   const show = async (stop: Stop, found: Frame[], id: number, borrowedStops = 0) => {
     const pano = selectPanorama(found, stop)
@@ -313,7 +318,9 @@ export function openStreetView(
   /** Real frames from nearby stops that look where this stop's own sweep does not. */
   const filled = async (at: number, own: Frame[], id: number) => {
     const here = stops[at]
-    if (!here || selectPanorama(own, here).coverageDeg >= FULL_CIRCLE_DEG) return null
+    // Can't rotate borrowed frames into the correct compass frame without a known heading.
+    if (!here || here.yawDeg === null || selectPanorama(own, here).coverageDeg >= FULL_CIRCLE_DEG)
+      return null
     const near = [...Array(2 * FILL_MAX_STOPS).keys()]
       .map((k) => at + (k % 2 ? -1 : 1) * (Math.floor(k / 2) + 1))
       .flatMap((i) => {
@@ -329,13 +336,14 @@ export function openStreetView(
       const batch = near.slice(k, k + FILL_BATCH)
       const frames = await Promise.all(batch.map(({ i, s }) => framesAt(i, s).catch(() => [])))
       if (id !== request) return null
-      batch.forEach(({ s }, j) =>
-        posed.push({ frames: selectPanorama(frames[j] ?? [], s).frames, yawDeg: s.yawDeg ?? 0 }),
-      )
-      const soFar = fillGaps({ frames: own, yawDeg: here.yawDeg ?? 0 }, posed)
+      batch.forEach(({ s }, j) => {
+        if (s.yawDeg === null) return // unknown heading — can't rotate frames to our compass frame
+        posed.push({ frames: selectPanorama(frames[j] ?? [], s).frames, yawDeg: s.yawDeg })
+      })
+      const soFar = fillGaps({ frames: own, yawDeg: here.yawDeg }, posed)
       if (selectPanorama(soFar.frames).coverageDeg >= FULL_CIRCLE_DEG) return soFar
     }
-    return fillGaps({ frames: own, yawDeg: here.yawDeg ?? 0 }, posed)
+    return fillGaps({ frames: own, yawDeg: here.yawDeg }, posed)
   }
 
   const load = async (target: number) => {
