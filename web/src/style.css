@@ -780,22 +780,17 @@ body {
   display: none;
 }
 
-/* Fallback when stitching is unavailable: frames as sub-tiled positioned divs.
-   No mask: sub-tiles within a frame are perfectly flush, and removing the mask prevents
-   the semi-transparent polygon ("football") look that 14% edge fades caused on wide frames. */
-.sv-tile {
+/* Flat equirectangular fallback: canvas is redrawn on every pan with correct az/el projection. */
+.sv-flat-wrap {
   position: absolute;
-  left: 0;
-  top: 0;
-  backface-visibility: hidden;
-  user-select: none;
-  background-repeat: no-repeat;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none; /* let drag events pass through to sv-view */
 }
-
-/* Mars sky behind and between frames. .sv-sphere has no dimensions so its background is
-   never rendered; apply to .sv-view (the clipping container) instead. */
-.sv-view:has(.sv-tile) {
-  background: linear-gradient(to bottom, #c4944a 0%, #b07828 38%, #7a4814 58%, #3a1c08 100%);
+.sv-flat {
+  position: absolute;
+  inset: 0;
+  display: block;
 }
 
 /* Walk arrows lie on the ground toward the neighbouring stops, like Street View chevrons. */

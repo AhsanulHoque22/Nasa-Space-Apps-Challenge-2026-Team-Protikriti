@@ -36,10 +36,6 @@ const FULL_CIRCLE_DEG = 359.5
 const GOOD_COVERAGE_DEG = 90 // a sweep this wide reads as a place, not a close-up
 const ARROW_EL_DEG = -28 // walk arrows sit on the ground ahead, like Street View chevrons
 const LABEL_PANO_WIDTH = 1024 // labels are 128 px per frame: finer would add nothing
-// Sub-tile wide frames so each piece is ≤20° — CSS 3D perspective distorts narrow tiles far less
-// than the raw 45°–96° Navcam FOV. background-image/size/position shows each sub-region without
-// needing CORS, so the fallback works even when the stitcher proxy is blocked.
-const SUBTILE_MAX_DEG = 20
 
 type State = { yaw: number; pitch: number; fov: number }
 
@@ -105,6 +101,8 @@ export function openStreetView(
   }
   let stitching: AbortController | undefined
   let hasImage = false
+  // Canvas redraw function for the flat equirectangular fallback; null when no fallback is shown.
+  let flatRedraw: (() => void) | null = null
 
   // AI4Mars terrain labels: people's labels on this stop's frames, drawn over the sphere.
   let labelSources: LabelSource[] = []
@@ -124,12 +122,7 @@ export function openStreetView(
     view.style.perspective = `${f}px`
     sphere.style.transform = `translateZ(${f}px) rotateX(${state.pitch}deg) rotateY(${state.yaw}deg)`
     if (hasImage) renderer.draw(state.yaw, state.pitch, state.fov)
-    for (const tile of sphere.querySelectorAll<HTMLElement>('.sv-tile')) {
-      const g = JSON.parse(tile.dataset.geom ?? '{}') as ReturnType<typeof frameGeometry>
-      tile.style.width = `${2 * f * Math.tan((g.widthDeg * Math.PI) / 360)}px`
-      tile.style.height = `${2 * f * Math.tan((g.heightDeg * Math.PI) / 360)}px`
-      tile.style.transform = `translate(-50%, -50%) ${cssTransform(g.azDeg, g.elDeg, f)}`
-    }
+    flatRedraw?.()
     for (const arrow of sphere.querySelectorAll<HTMLElement>('.sv-arrow')) {
       const az = Number(arrow.dataset.az)
       arrow.style.transform = `translate(-50%, -50%) ${cssTransform(az, ARROW_EL_DEG, f)} rotateX(-62deg)`
@@ -216,41 +209,70 @@ export function openStreetView(
       return [button]
     })
 
-  const photoTiles = (frames: Frame[], yawDeg: number): HTMLElement[] =>
-    frames
-      .filter((f) => {
-        const g = frameGeometry(f)
-        return g.elDeg + g.heightDeg / 2 <= 75 // skip sky-only frames — they appear as blank tiles
-      })
-      .flatMap((f) => {
-        const g = frameGeometry(f)
-        // Split each frame into sub-tiles so each is ≤SUBTILE_MAX_DEG wide/tall.
-        // CSS background-image shows the correct sub-region without needing CORS.
-        const cols = Math.ceil(g.widthDeg / SUBTILE_MAX_DEG)
-        const rows = Math.ceil(g.heightDeg / SUBTILE_MAX_DEG)
-        const subW = g.widthDeg / cols
-        const subH = g.heightDeg / rows
-        const tiles: HTMLElement[] = []
-        for (let row = 0; row < rows; row++) {
-          for (let col = 0; col < cols; col++) {
-            const subAz = g.azDeg + (col - (cols - 1) / 2) * subW
-            const subEl = g.elDeg + ((rows - 1) / 2 - row) * subH
-            const div = document.createElement('div')
-            div.className = 'sv-tile'
-            div.style.backgroundImage = `url(${JSON.stringify(f.url)})`
-            div.style.backgroundSize = `${cols * 100}% ${rows * 100}%`
-            div.style.backgroundPosition = `${cols > 1 ? (col / (cols - 1)) * 100 : 50}% ${rows > 1 ? (row / (rows - 1)) * 100 : 50}%`
-            div.dataset.geom = JSON.stringify({
-              azDeg: subAz + yawDeg,
-              elDeg: subEl,
-              widthDeg: subW,
-              heightDeg: subH,
-            })
-            tiles.push(div)
-          }
-        }
-        return tiles
-      })
+  /**
+   * Flat equirectangular fallback when the WebGL stitcher can't fetch images (proxy blocked).
+   * Draws frames directly onto a 2D canvas with correct az/el projection on every pan.
+   * Cross-origin images taint the canvas but it still renders — we never read pixels back.
+   * Returns a wrapper div (overflow:hidden) to insert behind the CSS-3D sphere.
+   */
+  const createPhotoCanvas = (frames: Frame[], yawDeg: number): HTMLDivElement => {
+    const wrap = document.createElement('div')
+    wrap.className = 'sv-flat-wrap'
+    const cvs = document.createElement('canvas')
+    cvs.className = 'sv-flat'
+    wrap.append(cvs)
+    const ctx = cvs.getContext('2d')!
+
+    const loaded: Array<{ img: HTMLImageElement; azDeg: number; elDeg: number; wDeg: number; hDeg: number }> = []
+
+    flatRedraw = () => {
+      const W = view.clientWidth
+      const H = view.clientHeight
+      if (!W || !H) return
+      if (cvs.width !== W) cvs.width = W
+      if (cvs.height !== H) cvs.height = H
+
+      // Sky: dusty amber at the top, darkening to reddish ground.
+      const skyH = H * 0.55
+      const sky = ctx.createLinearGradient(0, 0, 0, skyH)
+      sky.addColorStop(0, '#c4944a')
+      sky.addColorStop(0.6, '#b07828')
+      sky.addColorStop(1, '#7a4814')
+      ctx.fillStyle = '#3a1c08'
+      ctx.fillRect(0, 0, W, H)
+      ctx.fillStyle = sky
+      ctx.fillRect(0, 0, W, skyH)
+
+      // Linear az/el projection centred on the current view — correct for narrow FOV,
+      // acceptable at 70°. Handles 0/360 wrap via modular arithmetic.
+      const PX = W / state.fov
+      for (const { img, azDeg, elDeg, wDeg, hDeg } of loaded) {
+        const dAz = ((azDeg - state.yaw + 540) % 360) - 180
+        const cx = W / 2 + dAz * PX
+        const w = wDeg * PX
+        if (cx + w / 2 < 0 || cx - w / 2 > W) continue // entirely off-screen
+        const dEl = elDeg - state.pitch
+        const cy = H / 2 - dEl * PX
+        const h = hDeg * PX
+        ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h)
+      }
+    }
+
+    for (const f of frames) {
+      const g = frameGeometry(f)
+      if (g.elDeg + g.heightDeg / 2 > 75) continue // skip sky-only
+      const azDeg = g.azDeg + yawDeg
+      const { elDeg, widthDeg: wDeg, heightDeg: hDeg } = g
+      const img = new Image()
+      img.onload = () => {
+        loaded.push({ img, azDeg, elDeg, wDeg, hDeg })
+        flatRedraw?.()
+      }
+      img.src = f.url // cross-origin: <img> loads without CORS; canvas taints on drawImage but still displays
+    }
+
+    return wrap
+  }
 
   const show = async (stop: Stop, found: Frame[], id: number, borrowedStops = 0) => {
     const pano = selectPanorama(found, stop)
@@ -317,11 +339,11 @@ export function openStreetView(
     } catch (err) {
       console.error('[sv] stitch failed:', err)
       if (id !== request || previewed) return
-      // No same-origin image proxy (e.g. a static host): show the sweep as positioned photos.
-      reveal(` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`, [
-        ...photoTiles(pano.frames, yawDeg),
-        ...walkArrows(),
-      ])
+      // Proxy blocked by NASA: show frames on a flat equirectangular canvas instead.
+      // Insert the canvas wrap before the sphere so walk arrows still render on top.
+      const flatWrap = createPhotoCanvas(pano.frames, yawDeg)
+      sphere.before(flatWrap)
+      reveal(` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`, walkArrows())
     }
   }
 
@@ -374,6 +396,8 @@ export function openStreetView(
     const stop = stops[index]
     if (!stop) return
     describe(stop)
+    view.querySelector('.sv-flat-wrap')?.remove()
+    flatRedraw = null
     sphere.replaceChildren()
     hasImage = false
     labelSources = []
