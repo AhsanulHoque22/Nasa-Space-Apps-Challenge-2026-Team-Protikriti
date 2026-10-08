@@ -1,5 +1,8 @@
 /** Draw an equirectangular panorama as a sphere around the viewer (WebGL2, one full-screen quad). */
 
+// Labels tint the photo rather than hide it: the rocks stay readable under their class colour.
+const LABEL_OPACITY = 0.5
+
 const VERTEX = `#version 300 es
 in vec2 corner;
 out vec2 ndc;
@@ -11,6 +14,8 @@ precision highp float;
 in vec2 ndc;
 out vec4 colour;
 uniform sampler2D pano;
+uniform sampler2D labels; // AI4Mars class colours, alpha 0 where nothing is labelled
+uniform float labelMix;   // 0 hides the labels
 uniform float yaw, pitch;
 uniform vec2 tanHalf; // tangent of the half field of view, horizontal and vertical
 const float PI = 3.141592653589793;
@@ -27,10 +32,16 @@ void main() {
   float gx = abs(dFdx(ua)) < abs(dFdx(ub)) ? dFdx(ua) : dFdx(ub);
   float gy = abs(dFdy(ua)) < abs(dFdy(ub)) ? dFdy(ua) : dFdy(ub);
   colour = textureGrad(pano, uv, vec2(gx, dFdx(uv.y)), vec2(gy, dFdy(uv.y)));
+  if (labelMix > 0.0) {
+    vec4 l = textureLod(labels, uv, 0.0); // nearest: class edges stay crisp
+    colour.rgb = mix(colour.rgb, l.rgb, l.a * labelMix);
+  }
 }`
 
 export type PanoRenderer = {
   setImage(pixels: Uint8ClampedArray, width: number, height: number): void
+  /** An equirectangular RGBA overlay drawn over the photos, or null to remove it. */
+  setLabels(overlay: { pixels: Uint8ClampedArray; width: number; height: number } | null): void
   /** Angles in degrees; `fovDeg` spans the longer side of the screen. */
   draw(yawDeg: number, pitchDeg: number, fovDeg: number): void
 }
@@ -66,13 +77,47 @@ export function createPanoRenderer(canvas: HTMLCanvasElement): PanoRenderer {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+  const labelTexture = gl.createTexture()
+  gl.activeTexture(gl.TEXTURE1)
+  gl.bindTexture(gl.TEXTURE_2D, labelTexture)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4))
+  gl.activeTexture(gl.TEXTURE0)
   const uniform = (name: string) => gl.getUniformLocation(program, name)
-  const [yaw, pitch, tanHalf] = ['yaw', 'pitch', 'tanHalf'].map(uniform)
+  const [yaw, pitch, tanHalf, labels, labelMix] = [
+    'yaw',
+    'pitch',
+    'tanHalf',
+    'labels',
+    'labelMix',
+  ].map(uniform)
+  gl.uniform1i(labels, 1)
+  gl.uniform1f(labelMix, 0)
   const rad = Math.PI / 180
   return {
     setImage(pixels, width, height) {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
       gl.generateMipmap(gl.TEXTURE_2D)
+    },
+    setLabels(overlay) {
+      gl.activeTexture(gl.TEXTURE1)
+      if (overlay)
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          overlay.width,
+          overlay.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          overlay.pixels,
+        )
+      gl.activeTexture(gl.TEXTURE0)
+      gl.uniform1f(labelMix, overlay ? LABEL_OPACITY : 0)
     },
     draw(yawDeg, pitchDeg, fovDeg) {
       const dpr = Math.min(2, window.devicePixelRatio || 1)

@@ -15,6 +15,9 @@ import {
   frameGeometry,
   neighbours,
 } from '../core/streetview'
+import { CLASSES, CLASS_COLOURS, NONE, classShares } from '../core/ai4mars'
+import { type LabelSource, classAt, overlayPixels, projectLabels } from '../core/label-pano'
+import { labelSource, labelsFor } from '../map/ai4mars-client'
 import { type PanoRenderer, createPanoRenderer } from '../map/pano-gl'
 import { type Rover, framesForStop } from '../map/raw-images'
 import { stitchPanorama } from '../map/stitch-client'
@@ -32,6 +35,7 @@ const FILL_BATCH = 4 // NASA raw-image queries in flight at once
 const FULL_CIRCLE_DEG = 359.5
 const GOOD_COVERAGE_DEG = 90 // a sweep this wide reads as a place, not a close-up
 const ARROW_EL_DEG = -28 // walk arrows sit on the ground ahead, like Street View chevrons
+const LABEL_PANO_WIDTH = 1024 // labels are 128 px per frame: finer would add nothing
 
 type State = { yaw: number; pitch: number; fov: number }
 
@@ -63,10 +67,12 @@ export function openStreetView(
       <div class="sv-nav">
         <button type="button" data-act="prev" aria-label="Previous stop">‹ Prev</button>
         <button type="button" data-act="next" aria-label="Next stop">Next ›</button>
+        <button type="button" data-act="labels" aria-pressed="false" hidden>Terrain labels</button>
         <button type="button" data-act="close">Close</button>
       </div>
     </header>
     <p class="panel sv-status" role="status" aria-live="polite"></p>
+    <section class="panel sv-labels" aria-label="AI4Mars terrain labels" hidden></section>
     <p class="sv-credit">Navcam raw images: NASA/JPL-Caltech · <a target="_blank" rel="noopener">view the source frames on NASA</a></p>`
   document.body.append(root)
   const view = root.querySelector('.sv-view') as HTMLElement
@@ -79,6 +85,8 @@ export function openStreetView(
   const next = root.querySelector('[data-act="next"]') as HTMLButtonElement
   const compass = root.querySelector('.sv-compass') as HTMLElement
   const canvas = root.querySelector('.sv-canvas') as HTMLCanvasElement
+  const labelsButton = root.querySelector('[data-act="labels"]') as HTMLButtonElement
+  const labelsPanel = root.querySelector('.sv-labels') as HTMLElement
   let renderer: PanoRenderer
   try {
     renderer = createPanoRenderer(canvas)
@@ -93,6 +101,12 @@ export function openStreetView(
   }
   let stitching: AbortController | undefined
   let hasImage = false
+
+  // AI4Mars terrain labels: people's labels on this stop's frames, drawn over the sphere.
+  let labelSources: LabelSource[] = []
+  let labelGrid: ReturnType<typeof projectLabels> | null = null
+  let labelsOn = false
+  let centreLine: HTMLElement | null = null
 
   const state: State = { yaw: 0, pitch: 0, fov: FOV.start }
   let index = startIndex
@@ -118,7 +132,56 @@ export function openStreetView(
     }
     const heading = ((state.yaw % 360) + 360) % 360
     compass.textContent = `Facing ${Math.round(heading).toString().padStart(3, '0')}° ${compassPoint(heading)}`
+    if (centreLine && labelGrid) {
+      const c = classAt(labelGrid, state.yaw, state.pitch)
+      centreLine.textContent = `Centre of view: ${c === NONE ? 'not labelled' : CLASSES[c]}`
+    }
   }
+
+  /** Show or hide the labels and their legend for the current stop and toggle state. */
+  const updateLabels = async () => {
+    const n = labelSources.length
+    labelsButton.hidden = n === 0
+    labelsButton.textContent = `Terrain labels (${n} frame${n === 1 ? '' : 's'})`
+    labelsButton.setAttribute('aria-pressed', String(labelsOn))
+    labelsPanel.hidden = !(labelsOn && n)
+    if (!labelsOn || !n) {
+      renderer.setLabels(null)
+      centreLine = null
+      if (hasImage) renderer.draw(state.yaw, state.pitch, state.fov)
+      return
+    }
+    labelGrid ??= projectLabels(labelSources, LABEL_PANO_WIDTH)
+    renderer.setLabels({ ...labelGrid, pixels: overlayPixels(labelGrid) })
+    const shares = classShares(labelGrid.cls)
+    const meta = await labelSource()
+    labelsPanel.replaceChildren()
+    const title = document.createElement('h3')
+    title.textContent = 'Terrain labelled by people (AI4Mars)'
+    const list = document.createElement('ul')
+    CLASSES.forEach((name, i) => {
+      const li = document.createElement('li')
+      const swatch = document.createElement('i')
+      swatch.setAttribute('aria-hidden', 'true')
+      swatch.style.background = CLASS_COLOURS[i] ?? ''
+      li.append(swatch, `${name} · ${Math.round((shares[i] ?? 0) * 100)}%`)
+      list.append(li)
+    })
+    centreLine = document.createElement('p')
+    centreLine.className = 'sv-labels-centre'
+    const note = document.createElement('p')
+    note.className = 'sv-labels-note'
+    note.textContent =
+      `Labels people drew on ${n} of these Navcam frames: no model classified anything. ` +
+      'Shares are of the labelled ground; pixels people disagreed on are left clear. ' +
+      (meta ? `${meta.source}. Licence: ${meta.license}.` : '')
+    labelsPanel.append(title, list, centreLine, note)
+    layout()
+  }
+  labelsButton.addEventListener('click', () => {
+    labelsOn = !labelsOn
+    void updateLabels()
+  })
 
   const describe = (stop: Stop) => {
     title.textContent = `${ROVER_NAME[rover]} · Sol ${stop.sol}`
@@ -168,6 +231,12 @@ export function openStreetView(
     const first = pano.frames[0]
     if (!first) return
     const yawDeg = stop.yawDeg ?? 0 // mast azimuths are rover-frame; yaw makes them compass
+    void labelsFor(rover, pano.frames, yawDeg).then((labelled) => {
+      if (id !== request) return
+      labelSources = labelled
+      labelGrid = null
+      void updateLabels()
+    })
     const sweep =
       (pano.coverageDeg >= 359 ? '360°' : `${Math.round(pano.coverageDeg)}°`) +
       (borrowedStops
@@ -273,6 +342,9 @@ export function openStreetView(
     describe(stop)
     sphere.replaceChildren()
     hasImage = false
+    labelSources = []
+    labelGrid = null
+    void updateLabels()
     canvas.hidden = true // hide the previous stop while loading
     status.hidden = false
     status.textContent = 'Loading NASA Navcam panorama…'
