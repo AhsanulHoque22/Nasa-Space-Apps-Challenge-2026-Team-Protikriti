@@ -76,3 +76,24 @@ def test_model_axis_matches_the_mast_pointing() -> None:
     az, el = world_azimuth_elevation((rover_to_world("(1,0,0,0)") @ np.array(m.a))[None])
     assert az[0] == pytest.approx(255.64, abs=1)
     assert el[0] == pytest.approx(-31.11, abs=1)
+
+
+# Curiosity NAV_LEFT_B, sol 3000 (NLB_663825389EDR_F0850000NCAM00312M_): a perspective CAHVOR model.
+MSL_MODEL = (
+    "(0.939641,0.75466,-1.84547);(-0.340077,0.596884,0.726678);(-1237.1,-302.686,367.626);"
+    "(268.703,-474.285,1206.33);(-0.340075,0.596885,0.726678);(0.0,0.000114235,0.00639706)"
+)
+
+
+def test_parse_reads_curiosity_cahvor_as_a_perspective_lens() -> None:
+    m = parse_cahvore(MSL_MODEL)
+    assert m.linearity == 1.0
+    assert m.r == pytest.approx((0.0, 0.000114235, 0.00639706))
+    x, y = m.project(np.array([m.a]))[0]
+    assert (x, y) == pytest.approx((511.5, 511.5), abs=15)  # the 1024 x 1024 frame's centre
+
+
+def test_parse_reads_a_bare_cahv_model() -> None:
+    m = parse_cahvore("(0,0,0);(0,0,1);(500,0,320);(0,500,240)")
+    assert m.o == m.a and m.r == (0.0, 0.0, 0.0) and m.linearity == 1.0
+    assert m.project(np.array([[0.0, 0.0, 1.0]]))[0] == pytest.approx([320, 240])

@@ -6,6 +6,7 @@ python -m marsmap layers --raw data/raw --curated pipeline/data --out web/public
 
 import argparse
 import json
+import os
 import zipfile
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -117,22 +118,82 @@ def _stops(args: argparse.Namespace) -> None:
 
 def _panorama(args: argparse.Namespace) -> None:
     stops = json.loads(args.stops.read_text())
-    for wanted in args.stop:
-        site, drive = (int(v) for v in wanted.split(":"))
-        at = next(
-            (i for i, s in enumerate(stops) if (s["site"], s["drive"]) == (site, drive)), None
-        )
-        if at is None:
-            raise SystemExit(f"stop {wanted} is not in {args.stops}")
+    keys = [(s["site"], s["drive"]) for s in stops]
+    if args.all:
+        wanted = keys
+    else:
+        wanted = [(int(w.split(":")[0]), int(w.split(":")[1])) for w in args.stop or []]
+        if missing := [w for w in wanted if w not in keys]:
+            raise SystemExit(f"stops {missing} are not in {args.stops}")
+    index_path = args.out / "index.json"
+    done = set(json.loads(index_path.read_text())) if index_path.exists() else set()
+    failures_path = args.out / "failures.json"
+    failures = json.loads(failures_path.read_text()) if failures_path.exists() else {}
+    # A stop that killed the process last time (out of memory, say) is recorded, not retried
+    # forever by a supervisor that restarts the batch.
+    current = args.out / ".current"
+    if current.exists():
+        failures.setdefault(current.read_text(), "the process died while stitching it")
+        failures_path.write_text(json.dumps(failures, indent=0, sort_keys=True))
+        current.unlink()
+    for n, (site, drive) in enumerate(wanted, 1):
+        key = f"{site}_{drive}"
+        if args.all and (key in done or key in failures):
+            continue  # resumable: built already, or known to have nothing to stitch
+        at = keys.index((site, drive))
         next_sol = stops[at + 1]["sol"] if at + 1 < len(stops) else None
-        record = build_panorama(stops[at], next_sol, args.raw, args.out, args.width)
-        update_index(args.out, f"{site}_{drive}", record)
+        args.out.mkdir(parents=True, exist_ok=True)
+        current.write_text(key)
+        try:
+            record = build_panorama(
+                args.rover,
+                stops[at],
+                next_sol,
+                (args.raw, args.out),
+                args.width,
+                args.discard_frames,
+            )
+        except (ValueError, OSError) as err:
+            # One stop without usable frames, or one NASA outage, must not stop the batch.
+            current.unlink()
+            failures[key] = str(err)
+            failures_path.write_text(json.dumps(failures, indent=0, sort_keys=True))
+            print(f"[{n}/{len(wanted)}] stop {key}: skipped ({err})")
+            continue
+        current.unlink()
+        update_index(args.out, key, record)
+        failures.pop(key, None)
         a = record["alignment"]
         print(
-            f"stop {wanted}: {len(record['frames'])} frames, {a['pairs']} matched pairs, "
-            f"misalignment {a['rmsBeforeDeg']}° -> {a['rmsAfterDeg']}°, "
-            f"{record['coveredFraction']:.0%} of the sphere photographed"
+            f"[{n}/{len(wanted)}] stop {key} (sol {record['sol']}): "
+            f"{len(record['frames'])} frames, "
+            f"{a['pairs']} matched pairs, misalignment {a['rmsBeforeDeg']}° -> "
+            f"{a['rmsAfterDeg']}°, {record['coveredFraction']:.0%} of the sphere photographed",
+            flush=True,
         )
+
+
+def _upload_panoramas(args: argparse.Namespace) -> None:
+    """Publish the stitched panoramas to a Hugging Face dataset, where the web app reads them
+    (2 GB is past what a Vercel deployment may hold). The token comes from HF_TOKEN."""
+    from huggingface_hub import HfApi  # only this command needs it
+
+    token = os.environ.get("HF_TOKEN")
+    if not token:
+        raise SystemExit(
+            "set HF_TOKEN (a Hugging Face write token) in .env, then: set -a; . ./.env"
+        )
+    api = HfApi(token=token)
+    api.create_repo(args.repo, repo_type="dataset", exist_ok=True)
+    for rover_dir in sorted(p for p in args.dir.iterdir() if p.is_dir()):
+        api.upload_folder(
+            repo_id=args.repo,
+            repo_type="dataset",
+            folder_path=rover_dir,
+            path_in_repo=rover_dir.name,
+            commit_message=f"Panoramas: {rover_dir.name}",
+        )
+        print(f"uploaded {rover_dir.name}: {sum(1 for _ in rover_dir.glob('*.jpg'))} panoramas")
 
 
 def _dust(args: argparse.Namespace) -> None:
@@ -340,11 +401,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     mola.add_argument("--raw", type=Path, required=True)
     mola.add_argument("--out", type=Path, required=True)
     pano = sub.add_parser("panorama", help="pre-stitch Perseverance Navcam 360° panoramas")
-    pano.add_argument("--stops", type=Path, required=True, help="stops/m20.json")
-    pano.add_argument("--stop", action="append", required=True, help="SITE:DRIVE, repeatable")
+    pano.add_argument("--rover", choices=["m20", "msl"], default="m20")
+    pano.add_argument("--stops", type=Path, required=True, help="stops/m20.json or stops/msl.json")
+    which = pano.add_mutually_exclusive_group(required=True)
+    which.add_argument("--stop", action="append", help="SITE:DRIVE, repeatable")
+    which.add_argument("--all", action="store_true", help="every stop, resuming where it left off")
     pano.add_argument("--raw", type=Path, required=True, help="raw cache, e.g. data/raw/navcam/m20")
     pano.add_argument("--out", type=Path, required=True)
     pano.add_argument("--width", type=int, default=4096)
+    pano.add_argument(
+        "--discard-frames", action="store_true", help="delete each stop's raw frames once stitched"
+    )
+    up = sub.add_parser("upload-panoramas", help="publish panoramas to a Hugging Face dataset")
+    up.add_argument("--dir", type=Path, required=True, help="folder with one subfolder per rover")
+    up.add_argument("--repo", required=True, help="dataset id, e.g. user/atlas-mars-panoramas")
     swim = sub.add_parser("swim", help="SWIM 2.0 shallow-ice consistency for site reports")
     swim.add_argument("--raw", type=Path, required=True)
     swim.add_argument("--out", type=Path, required=True)
@@ -352,6 +422,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     commands = {
         "panorama": _panorama,
+        "upload-panoramas": _upload_panoramas,
         "swim": _swim,
         "activities": _activities,
         "benchmark": _benchmark,

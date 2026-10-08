@@ -12,6 +12,7 @@ import re
 import time
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,17 +24,21 @@ from numpy.typing import NDArray
 from marsmap.cahvore import Array, Cahvore, parse_cahvore, rover_to_world
 
 API_URL = "https://mars.nasa.gov/rss/api/"
+MSL_API_URL = "https://mars.nasa.gov/api/v1/raw_image_items/"
+MSL_SITE = "https://mars.nasa.gov"  # Curiosity records give their page link without the host
 PAGE_SIZE = 100
 TIMEOUT_S = 60
 RETRY_DELAYS_S = (2, 6, 15)  # the NASA API times out intermittently
 DOWNLOAD_WORKERS = 8
 NAVCAMS = "|NAVCAM_LEFT|NAVCAM_RIGHT"
+# Curiosity's Navcams: both eyes on both rover computers (the A side flew until sol ~200).
+MSL_NAVCAMS = ("NAV_LEFT_B", "NAV_RIGHT_B", "NAV_LEFT_A", "NAV_RIGHT_A")
 
 
 @dataclass(frozen=True)
 class NavcamFrame:
     image_id: str
-    url: str  # lossless full-resolution PNG
+    url: str  # the full-resolution image (Perseverance: lossless PNG; Curiosity: JPEG)
     link: str  # NASA's page for the image
     sol: int
     site: int
@@ -110,6 +115,47 @@ def normalize_m20(payload: dict[str, Any]) -> list[NavcamFrame]:
     return [f for f in (_frame(r) for r in images) if f is not None]
 
 
+def _msl_frame(r: dict[str, Any]) -> NavcamFrame | None:
+    ext = r.get("extended") or {}
+    url = _https(r.get("https_url") or r.get("url"))
+    sub = re.fullmatch(r"\((\d+),(\d+),(\d+),(\d+)\)", str(r.get("subframe_rect", "")))
+    model_text = r.get("camera_model_component_list")
+    if r.get("is_thumbnail") or ext.get("sample_type") not in (None, "full") or not sub:
+        return None
+    if not url or not model_text or not r.get("attitude"):
+        return None
+    scale = float(r.get("scale_factor") or 1)
+    x, y, w, h = (int(g) for g in sub.groups())
+    try:
+        model = parse_cahvore(str(model_text))
+        rotation = rover_to_world(str(r["attitude"]))
+    except ValueError:
+        return None
+    return NavcamFrame(
+        image_id=str(r["imageid"]),
+        url=url,
+        link=_https(f"{MSL_SITE}{r['link']}" if str(r.get("link", "")).startswith("/") else ""),
+        sol=int(r["sol"]),
+        site=int(r["site"]),
+        drive=int(r["drive"]),
+        width=round(w / scale),
+        height=round(h / scale),
+        model=model,
+        rotation=rotation,
+        right_eye="RIGHT" in str(r.get("instrument", "")),
+        taken_utc=str(r.get("date_taken", "")),
+        offset=((x - 1) / scale, (y - 1) / scale),
+    )
+
+
+def normalize_msl(payload: dict[str, Any]) -> list[NavcamFrame]:
+    """Curiosity API page -> frames; thumbnails and records without a model are skipped."""
+    items = payload.get("items")
+    if not isinstance(items, list):
+        raise ValueError('raw images: expected an "items" array')
+    return [f for f in (_msl_frame(r) for r in items) if f is not None]
+
+
 def shift_model(model: Cahvore, dx: float, dy: float) -> Cahvore:
     """The same camera with its image coordinates moved by (dx, dy) pixels."""
     a = np.array(model.a)
@@ -183,13 +229,23 @@ def _get(url: str) -> bytes:
     raise AssertionError("unreachable")
 
 
-def fetch_pages(from_sol: int, to_sol: int) -> list[dict[str, Any]]:
-    """Every Navcam API page between two sols (inclusive)."""
+def _all_pages(url: Callable[[int], str], total_key: str) -> list[dict[str, Any]]:
     pages: list[dict[str, Any]] = []
     page, total = 0, None
     while total is None or page * PAGE_SIZE < total:
-        query = urllib.parse.urlencode(
-            {
+        data = json.loads(_get(url(page)))
+        total = int(data.get(total_key) or 0)
+        pages.append(data)
+        page += 1
+    return pages
+
+
+def fetch_pages(rover: str, from_sol: int, to_sol: int) -> list[dict[str, Any]]:
+    """Every Navcam API page between two sols (inclusive)."""
+    if rover == "m20":
+
+        def m20(page: int) -> str:
+            q = {
                 "feed": "raw_images",
                 "category": "mars2020",
                 "feedtype": "json",
@@ -200,12 +256,30 @@ def fetch_pages(from_sol: int, to_sol: int) -> list[dict[str, Any]]:
                 "condition_2": f"{from_sol}:sol:gte",
                 "condition_3": f"{to_sol}:sol:lte",
             }
-        )
-        data = json.loads(_get(f"{API_URL}?{query}"))
-        total = int(data.get("total_results", 0))
-        pages.append(data)
-        page += 1
+            return f"{API_URL}?{urllib.parse.urlencode(q)}"
+
+        return _all_pages(m20, "total_results")
+    pages: list[dict[str, Any]] = []
+    for camera in MSL_NAVCAMS:
+
+        def msl(page: int, camera: str = camera) -> str:
+            q = {
+                "order": "sol desc",
+                "per_page": PAGE_SIZE,
+                "page": page,
+                "condition_1": "msl:mission",
+                "condition_2": f"{camera}:instrument",
+                "condition_3": f"{from_sol}:sol:gte",
+                "condition_4": f"{to_sol}:sol:lte",
+            }
+            return f"{MSL_API_URL}?{urllib.parse.urlencode(q)}"
+
+        pages += _all_pages(msl, "total")
     return pages
+
+
+def normalize(rover: str, page: dict[str, Any]) -> list[NavcamFrame]:
+    return normalize_m20(page) if rover == "m20" else normalize_msl(page)
 
 
 def read_image(path: Path, frame: NavcamFrame) -> NDArray[np.uint8]:
@@ -218,16 +292,25 @@ def read_image(path: Path, frame: NavcamFrame) -> NDArray[np.uint8]:
 
 
 def download(frames: list[NavcamFrame], cache: Path) -> dict[NavcamFrame, Path]:
-    """Fetch each frame's PNG into the raw cache (download-only, never modified)."""
+    """Fetch each frame into the raw cache (download-only, never modified); frames that will not
+    download after retries are left out of the result."""
     cache.mkdir(parents=True, exist_ok=True)
 
     def one(f: NavcamFrame) -> Path:
-        path = cache / f"{f.image_id}.png"
+        path = cache / f"{f.image_id}{Path(urllib.parse.urlparse(f.url).path).suffix.lower()}"
         if not path.exists():
             part = path.with_suffix(".part")
             part.write_bytes(_get(f.url))
             part.rename(path)
         return path
 
+    def tried(f: NavcamFrame) -> Path | None:
+        try:
+            return one(f)
+        except OSError as err:  # retried already; one lost frame must not lose the stop
+            print(f"  could not download {f.image_id}: {err}")
+            return None
+
     with concurrent.futures.ThreadPoolExecutor(DOWNLOAD_WORKERS) as pool:
-        return dict(zip(frames, pool.map(one, frames), strict=True))
+        got = dict(zip(frames, pool.map(tried, frames), strict=True))
+    return {f: path for f, path in got.items() if path is not None}

@@ -100,17 +100,25 @@ def _vec(x: list[float]) -> Vec3:
 
 
 def parse_cahvore(text: str) -> Cahvore:
-    """NASA raw-image API `camera_model_component_list` -> Cahvore; ValueError if malformed."""
+    """NASA raw-image API `camera_model_component_list` -> Cahvore; ValueError if malformed.
+
+    Accepts CAHV (4 vectors), CAHVOR (6: Curiosity's perspective Navcam) and CAHVORE (7 vectors,
+    then the model type and its parameter: Perseverance)."""
     try:
         parts = _vectors(text)
-        c, a, h, v, o, r, e = (p for p in parts[:7])
-        model_type = round(parts[7][0])
-        parameter = parts[8][0] if len(parts) > 8 else 0.0
-    except (ValueError, IndexError) as err:
+    except ValueError as err:
         raise ValueError(f"not a CAHVORE model: {text[:80]!r}") from err
-    if len(parts) < 8 or any(len(x) != 3 for x in (c, a, h, v, o, r, e)):
+    vectors = [x for x in parts if len(x) == 3]
+    if len(vectors) not in (4, 6, 7) or len(vectors) != min(len(parts), 7):
         raise ValueError(f"not a CAHVORE model: {text[:80]!r}")
-    linearity = LINEARITY_BY_TYPE.get(model_type, parameter)
+    a, h, v = vectors[1], vectors[2], vectors[3]
+    o, r = (vectors[4], vectors[5]) if len(vectors) >= 6 else (a, [0.0, 0.0, 0.0])
+    linearity = 1.0  # CAHV and CAHVOR are perspective models
+    if len(vectors) == 7:
+        if len(parts) < 8:
+            raise ValueError(f"CAHVORE model without its type: {text[:80]!r}")
+        parameter = parts[8][0] if len(parts) > 8 else 0.0
+        linearity = LINEARITY_BY_TYPE.get(round(parts[7][0]), parameter)
     return Cahvore(a=_vec(a), h=_vec(h), v=_vec(v), o=_vec(o), r=_vec(r), linearity=linearity)
 
 
