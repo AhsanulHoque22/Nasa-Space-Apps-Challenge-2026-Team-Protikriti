@@ -113,16 +113,20 @@ export function selectPanorama(
   stop?: StopPose,
 ): { frames: Frame[]; coverageDeg: number } {
   let usable = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
-  if (usable.length > MAX_STITCH_FRAMES) usable = deduplicateByDirection(usable)
+  if (usable.length > MAX_STITCH_FRAMES) usable = deduplicateByDirection(usable, MAX_STITCH_FRAMES)
   return { frames: usable, coverageDeg: azimuthCoverageDeg(usable) }
 }
 
-function deduplicateByDirection(frames: readonly Frame[]): Frame[] {
-  const seen = new Set<string>()
-  const out: Frame[] = []
+function deduplicateByDirection(frames: readonly Frame[], budget: number): Frame[] {
+  const bins = new Map<string, Frame[]>()
   for (const f of frames) {
     const key = `${Math.round(f.azDeg)},${Math.round(f.elDeg)}`
-    if (!seen.has(key)) { seen.add(key); out.push(f) }
+    const bin = bins.get(key) ?? []
+    bin.push(f)
+    bins.set(key, bin)
   }
+  const perBin = Math.max(1, Math.floor(budget / bins.size))
+  const out: Frame[] = []
+  for (const bin of bins.values()) out.push(...bin.slice(0, perBin))
   return out
 }

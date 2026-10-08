@@ -59,14 +59,19 @@ describe('selectPanorama', () => {
   it('is empty for no frames', () => {
     expect(selectPanorama([])).toEqual({ frames: [], coverageDeg: 0 })
   })
-  it('deduplicates repeated pointings when frame count exceeds the stitch limit', () => {
-    // 6 frames per unique direction × 25 directions = 150 > 120 → dedup kicks in
+  it('caps frame count to the stitch limit but keeps all unique directions and multiple frames per bin', () => {
+    // 6 frames per unique direction × 25 directions = 150 > 120 → cap kicks in
     const many = Array.from({ length: 25 }, (_, i) =>
       Array.from({ length: 6 }, () => frame({ azDeg: i * 14.4, elDeg: 0 })),
     ).flat()
     expect(many).toHaveLength(150)
     const pano = selectPanorama(many)
-    expect(pano.frames.length).toBe(25) // one per unique direction
+    expect(pano.frames.length).toBeLessThanOrEqual(120)
+    // All 25 unique directions must still be represented (coverage preserved)
+    const dirs = new Set(pano.frames.map((f) => `${Math.round(f.azDeg)},${Math.round(f.elDeg)}`))
+    expect(dirs.size).toBe(25)
+    // Multiple frames per direction kept for exposure calibration (floor(120/25) = 4)
+    expect(pano.frames.length).toBeGreaterThan(25)
   })
 })
 
