@@ -99,14 +99,30 @@ export function fillGaps(
   return { frames, borrowedStops }
 }
 
+// Stitching cost scales with n²–n³; beyond this, duplicate directions add no quality.
+const MAX_STITCH_FRAMES = 120
+
 /**
  * Every frame NASA took at the stop, whatever sequence, sol or pointing: repeats and extra shots
  * still add detail, exposure information and sky. Only shots aimed at the Sun are left out.
+ * When there are too many frames (e.g. Sol 886 with 290), deduplicate by 1° direction bins so
+ * the stitcher doesn't spend minutes on redundant data.
  */
 export function selectPanorama(
   frames: readonly Frame[],
   stop?: StopPose,
 ): { frames: Frame[]; coverageDeg: number } {
-  const usable = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
+  let usable = stop ? frames.filter((f) => !showsSun(f, stop)) : [...frames]
+  if (usable.length > MAX_STITCH_FRAMES) usable = deduplicateByDirection(usable)
   return { frames: usable, coverageDeg: azimuthCoverageDeg(usable) }
+}
+
+function deduplicateByDirection(frames: readonly Frame[]): Frame[] {
+  const seen = new Set<string>()
+  const out: Frame[] = []
+  for (const f of frames) {
+    const key = `${Math.round(f.azDeg)},${Math.round(f.elDeg)}`
+    if (!seen.has(key)) { seen.add(key); out.push(f) }
+  }
+  return out
 }

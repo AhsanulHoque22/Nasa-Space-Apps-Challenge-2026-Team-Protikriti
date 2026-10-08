@@ -59,6 +59,15 @@ describe('selectPanorama', () => {
   it('is empty for no frames', () => {
     expect(selectPanorama([])).toEqual({ frames: [], coverageDeg: 0 })
   })
+  it('deduplicates repeated pointings when frame count exceeds the stitch limit', () => {
+    // 6 frames per unique direction × 25 directions = 150 > 120 → dedup kicks in
+    const many = Array.from({ length: 25 }, (_, i) =>
+      Array.from({ length: 6 }, () => frame({ azDeg: i * 14.4, elDeg: 0 })),
+    ).flat()
+    expect(many).toHaveLength(150)
+    const pano = selectPanorama(many)
+    expect(pano.frames.length).toBe(25) // one per unique direction
+  })
 })
 
 describe('sunAt', () => {
