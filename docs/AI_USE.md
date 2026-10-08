@@ -7,6 +7,7 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 
 ## What the AI did
 - Wrote first drafts of most TypeScript and Python code, and its unit tests, under the standards in `CLAUDE.md` (tests first, strict type checks).
+- Wrote the OpenCV panorama step (`pipeline/src/marsmap/cahvore.py`, `navcam.py`, `pano.py`, `streetview.py`) and its tests, after watching a public OpenCV image-stitching tutorial (Nicolai Nielsen, YouTube) the team pointed it to.
 - Drafted documentation: `README.md`, `docs/data-sources.md`, the demo script and the pitch script.
 - No AI model runs inside the app. Routing, slope, Mars time and panorama stitching are ordinary tested code (`web/src/core/`, `pipeline/`). The app never asks a model for a number.
 
