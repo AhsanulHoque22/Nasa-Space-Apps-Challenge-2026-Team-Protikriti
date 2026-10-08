@@ -12,7 +12,7 @@ NASA Space Apps Challenge 2026 · **Team Protikriti** · Challenge: [*Interplane
 
 > **The challenge:** build a layered, integrated view of a location or route on the Martian surface that pulls together data from multiple NASA science missions, to help a human explorer plan a successful Marswalk while doing new science along the way.
 
-🌐 **Live: [martian-map.vercel.app](https://martian-map.vercel.app)**
+🌐 **Live: [atlas-mars.vercel.app](https://atlas-mars.vercel.app)**
 
 Martian Map puts a 3D globe, rover Street View, live weather, walkable terrain and a safe-route planner on one map of Mars, built entirely from open NASA, USGS and IAU data. 📄 **[Feature list (PDF)](docs/feature-list.pdf)**
 
@@ -133,11 +133,13 @@ Deploys are manual; CI only runs lint and tests.
 ```bash
 make build                          # web/dist, including the map data and vercel.json
 cd web/dist
-npx vercel link --yes --project martian-map
-npx vercel deploy --prod --yes      # publishes https://martian-map.vercel.app
+npx vercel link --yes --project atlas-mars
+npx vercel deploy --prod --yes      # publishes https://atlas-mars.vercel.app
 ```
 
 `npx vercel login` first if the CLI isn't signed in; it prints a link you can approve from any device.
+
+The `atlas-mars` project is also connected to GitHub: a push to `main` starts a production build from the repository, which has none of the git-ignored map data. Redeploy the prebuilt `web/dist` as above after every push.
 
 ### Offline demo
 
