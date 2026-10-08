@@ -61,6 +61,7 @@ import { renderDeltaCard } from './ui/delta-card'
 import { solarLongitudeDeg } from './core/mars-time'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
 import { createCaveLayer } from './map/caves-layer'
+import { createWalkGround } from './map/walk-ground'
 import { renderCaveCard } from './ui/cave-card'
 import { iceAt } from './core/site-report'
 
@@ -105,7 +106,7 @@ async function main() {
   const globe = document.getElementById('globe')
   const ui = document.getElementById('ui')
   if (!globe || !ui) throw new Error('#globe / #ui elements missing')
-  const { viewer, hirise } = createMarsViewer(globe)
+  const { viewer, hirise, offFoot } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
   const [sites, mola] = await Promise.all([loadSites(), loadMola()])
   const home = sites[0]
@@ -120,7 +121,8 @@ async function main() {
         (home.grid.south + home.grid.north) / 2,
       )
   })
-  const groundM = (lon: number, lat: number) => elevationAt(sites, mola, lon, lat).m
+  const ground = createWalkGround(viewer, sites, mola)
+  const groundM = ground.height
   // Height of the ground as drawn (terrain x vertical exaggeration). Markers sit on it directly:
   // CLAMP_TO_GROUND left most of them km above the terrain, off the draped lines and clicks.
   const surfaceM = (lon: number, lat: number) =>
@@ -198,16 +200,24 @@ async function main() {
     b.addEventListener('click', async () => {
       const site = sites.find((s) => s.id === b.dataset.site)
       if (!site) return
-      // Start where the rover is now if it is inside the site's terrain, else the site centre.
-      const positions = await roverPositions.catch(() => null)
-      const rover = site.rover === 'Curiosity' ? positions?.rems : positions?.meda
       const g = site.grid
-      const from =
-        rover && lonLatToCell(g, rover[0], rover[1])
-          ? { lon: rover[0], lat: rover[1] }
-          : { lon: (g.west + g.east) / 2, lat: (g.south + g.north) / 2 }
+      b.disabled = true // the walk patch may take a moment to arrive
+      const patch = await ground.patch(site.id)
+      b.disabled = false
+      // Walk the high-resolution patch from its centre (a landing site) when there is one;
+      // otherwise the site model, from the rover if it is inside it, else the site centre.
+      let walkSite: Site = site
+      let from = { lon: (g.west + g.east) / 2, lat: (g.south + g.north) / 2 }
+      if (patch) {
+        walkSite = { ...site, grid: patch.grid, source: patch.source }
+        from = patch.start
+      } else {
+        const positions = await roverPositions.catch(() => null)
+        const rover = site.rover === 'Curiosity' ? positions?.rems : positions?.meda
+        if (rover && lonLatToCell(g, rover[0], rover[1])) from = { lon: rover[0], lat: rover[1] }
+      }
       for (const hide of exploreHooks) hide(true)
-      openExplore(viewer, site, from, () => {
+      openExplore(viewer, walkSite, from, () => {
         for (const hide of exploreHooks) hide(false)
         viewAoi(viewer, g)
         b.focus()
@@ -215,7 +225,14 @@ async function main() {
     })
   }
   launcher.after(explore)
-  const exploreHooks: Array<(on: boolean) => void> = []
+  // On foot the walk patch and the 25 cm site mosaics fill the view: drop the layers beneath.
+  let offFootShown = offFoot.show
+  const exploreHooks: Array<(on: boolean) => void> = [
+    (on) => {
+      if (on) offFootShown = offFoot.show
+      offFoot.show = on ? false : offFootShown
+    },
+  ]
   renderReadout(ui, viewer, sites, mola)
   // Settlement guide: right-click anywhere, or the readout's button for the view centre.
   const thermalReady = loadThermalGrids(sites)

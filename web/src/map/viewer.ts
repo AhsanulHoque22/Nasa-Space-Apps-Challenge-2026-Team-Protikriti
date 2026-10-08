@@ -77,7 +77,16 @@ function hiriseGlobal() {
 /** All HiRISE imagery (global strips + site mosaics) and CTX Gale, toggled together. */
 export type SiteImagery = { show: boolean }
 
-export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hirise: SiteImagery } {
+export function createMarsViewer(container: HTMLElement): {
+  viewer: Viewer
+  hirise: SiteImagery
+  /**
+   * Layers a walker never sees: the planet-wide HiRISE strips (uncontrolled) and the wide
+   * CTX/HRSC composites that lie entirely under a sharper 25 cm site mosaic. Hidden on foot,
+   * where every layer is one more request per tile to the slow remote server.
+   */
+  offFoot: { show: boolean }
+} {
   const viewer = new Viewer(container, {
     baseLayer: new ImageryLayer(GLOBAL_BASE),
     baseLayerPicker: false,
@@ -92,15 +101,24 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
     fullscreenButton: false,
     scene3DOnly: true,
   })
-  const layers = [
-    viewer.imageryLayers.addImageryProvider(GALE_CTX),
-    viewer.imageryLayers.addImageryProvider(hiriseGlobal()),
-    ...HIRISE_MOSAICS.map((m) =>
-      viewer.imageryLayers.addImageryProvider(
-        trekLayer(m.id, 'png', m.maxLevel, Rectangle.fromDegrees(m.west, m.south, m.east, m.north)),
-      ),
+  const galeCtx = viewer.imageryLayers.addImageryProvider(GALE_CTX)
+  const strips = viewer.imageryLayers.addImageryProvider(hiriseGlobal())
+  const mosaics = HIRISE_MOSAICS.map((m) =>
+    viewer.imageryLayers.addImageryProvider(
+      trekLayer(m.id, 'png', m.maxLevel, Rectangle.fromDegrees(m.west, m.south, m.east, m.north)),
     ),
-  ]
+  )
+  const layers = [galeCtx, strips, ...mosaics]
+  const composites = mosaics.filter((_, i) => HIRISE_MOSAICS[i]?.id.includes('_Visible_Mosaic_'))
+  const hiddenOnFoot = [strips, galeCtx, ...composites]
+  const offFoot = {
+    get show() {
+      return hiddenOnFoot.every((l) => l.show)
+    },
+    set show(v: boolean) {
+      for (const l of hiddenOnFoot) l.show = v
+    },
+  }
   const hirise: SiteImagery = {
     get show() {
       return layers.every((l) => l.show)
@@ -126,7 +144,7 @@ export function createMarsViewer(container: HTMLElement): { viewer: Viewer; hiri
   viewer.scene.skyAtmosphere = marsSky()
   // Light the sky glow from the Mars sun that map/sun.ts sets, not from the camera.
   viewer.scene.atmosphere.dynamicLighting = DynamicAtmosphereLightingType.SCENE_LIGHT
-  return { viewer, hirise }
+  return { viewer, hirise, offFoot }
 }
 
 /** Mars atmospheric scale height (NASA Mars Fact Sheet: 11.1 km). */

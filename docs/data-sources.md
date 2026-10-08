@@ -216,3 +216,12 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 |---|---|
 | Road | The same router and CTX terrain grid as the walking route, run from the route's start to its last stop with the slope limit set to the vehicle grade (default 8%, about 4.6 deg; the user can set 1-26%). Marked hazards are avoided. When no road exists, the app reports the gentlest grade that would open one (the same search as the walking "needs N deg" message). |
 | Assumption | 8% is a common sustained-grade limit on Earth's open-pit haul roads: a team assumption for a Mars cargo road, not a Mars rule. The 20-32 m terrain model cannot see boulders. |
+
+## Walk patches (exploring on foot)
+
+| Item | Source and method |
+|---|---|
+| Jezero | USGS Mars 2020 Terrain Relative Navigation HiRISE DTM mosaic, 1 m, heights above the MOLA areoid (`JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif`), and the 25 cm orthomosaic (`JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif`), https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/ (USGS Astrogeology; public domain). 2 x 2 km centred on the Octavia E. Butler landing site (77.4509 E, 18.4446 N). |
+| Gale | USGS MSL Gale Merged DEM Mosaic v3 (1 m) and Orthophoto Mosaic v3 (25 cm HiRISE), https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/. 2 x 2 km centred on Bradbury Landing (137.4417 E, 4.5895 S). |
+| Method | `marsmap walk` reads both by range requests (both are equirectangular, lat_ts 0, on the 3,396,190 m sphere, so a lon/lat box is a pixel window). Heights are averaged to 2 m posts (HiRISE stereo resolves about 3x its 1 m posting) and stored as int16 in 2 cm steps. The orthomosaic is read once at Cesium geographic level 17 (about 0.32 m/px), contrast-stretched at its 0.5/99.5 percentiles, and averaged into levels 13-16. At Jezero the patch agrees with the 20 m CTX site model to -1.8 +/- 2.4 m. |
+| Blending | On the map, each walk patch blends into its site model over 60 m, and each site model into MOLA over 500 m, so no cliff shows where elevation models meet. On foot the walker stays inside the patch, and the slope warning uses the 15 deg route limit on the 2 m terrain. |
