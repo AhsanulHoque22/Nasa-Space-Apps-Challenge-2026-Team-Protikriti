@@ -49,6 +49,10 @@ SIGMA_OFFSET = 20.0  # prior spread of the offsets around 0, in grey levels
 # show something that changed between shots (a shadow, the arm), not exposure.
 OUTLIER_LOG_RATIO = 0.35
 MIN_OVERLAP_PX = 20
+# Photos are used up to this elevation. Above it Navcam sees only sky, shot over many hours, so it
+# brings Sun glare and exposure arcs; the fill paints a smooth sky instead. Jezero's rim and the
+# delta-front scarps stay well below it.
+MAX_PHOTO_EL_DEG = 25.0
 FILL_CONFIDENCE = 4.0  # coarse levels count as known once a quarter of their pixels are
 
 SIFT = cv2.SIFT_create(nfeatures=SIFT_FEATURES)  # type: ignore[attr-defined]  # not in stubs
@@ -243,6 +247,49 @@ def refine_rotations(views: list[View]) -> tuple[list[Array], RefineReport]:
     return rotations, report
 
 
+COVER_CELL_DEG = 2.0  # sphere grid on which shot footprints are compared
+# A shot must add this share of its own footprint to the sphere to be worth stitching.
+MIN_NEW_SHARE = 0.05
+# Only a shot's inner part counts as covering, so the shots kept still overlap their neighbours
+# (seams and exposure matching need shared pixels) and trimmed edges leave no gaps.
+COVER_MARGIN = 0.1
+
+
+def _cover_grid() -> tuple[Array, Array]:
+    """Unit directions of the grid cells' centres and each cell's area (cos of elevation)."""
+    az = np.radians(np.arange(0, 360, COVER_CELL_DEG) + COVER_CELL_DEG / 2)
+    el = np.radians(np.arange(-90, 90, COVER_CELL_DEG) + COVER_CELL_DEG / 2)
+    a, e = np.meshgrid(az, el)
+    dirs = np.stack([np.cos(e) * np.sin(a), np.sin(e), np.cos(e) * np.cos(a)], -1).reshape(-1, 3)
+    return dirs, np.cos(e).ravel()
+
+
+def pick_covering(shots: list[tuple[Cahvore, Array, int, int]], max_shots: int) -> list[int]:
+    """Indices of shots (model, rotation, width, height) that together see the most of the
+    sphere: greedily the shot adding the most unseen area, until none adds a fair share of its
+    own or `max_shots` are picked. Repeat looks at one place on later sols are left out."""
+    dirs, area = _cover_grid()
+    seen_by = []
+    for model, rotation, w, h in shots:
+        xy = model.project(dirs @ rotation)  # rows: world -> model frame
+        with np.errstate(invalid="ignore"):
+            mx, my = COVER_MARGIN * w, COVER_MARGIN * h
+            inside_x = (xy[:, 0] >= mx) & (xy[:, 0] < w - mx)
+            seen_by.append(inside_x & (xy[:, 1] >= my) & (xy[:, 1] < h - my))
+    covered = np.zeros(len(dirs), bool)
+    chosen: list[int] = []
+    while len(chosen) < max_shots:
+        gains = [
+            -1.0 if k in chosen else float(area[s & ~covered].sum()) for k, s in enumerate(seen_by)
+        ]
+        best = int(np.argmax(gains))
+        if gains[best] <= MIN_NEW_SHARE * area[seen_by[best]].sum():
+            break
+        chosen.append(best)
+        covered |= seen_by[best]
+    return chosen
+
+
 def shows_ground(v: View) -> bool:
     """Whether any of the frame's lower edge looks below the horizon; sky-only shots, taken at
     other hours, bring glare and exposure seams and nothing the sky fill could not paint."""
@@ -312,6 +359,7 @@ def _warp(v: View, rotation: Array, width: int, pad: int) -> _Patch | None:
     valid = cv2.remap(_valid_mask(v.image), xy[..., 0], xy[..., 1], cv2.INTER_NEAREST)
     cos_off_axis = np.clip(model_dirs @ np.asarray(v.model.o), 1e-3, 1).reshape(xs.shape)
     inside &= cos_off_axis > math.cos(math.radians(v.image_circle_deg))
+    inside &= el <= math.radians(MAX_PHOTO_EL_DEG)
     mask = np.where(inside & (valid > 0), 255, 0).astype(np.uint8)
     if v.vignette_exp:
         gain = cos_off_axis**-v.vignette_exp

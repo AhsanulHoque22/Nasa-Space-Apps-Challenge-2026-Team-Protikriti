@@ -148,3 +148,23 @@ def test_sky_only_frames_are_recognised() -> None:
     assert not shows_ground(View(blank, MODEL, _rotation(0, 60), "a"))
     assert shows_ground(View(blank, MODEL, _rotation(0, 30), "b"))
     assert shows_ground(View(blank, MODEL, _rotation(0, -40), "c"))
+
+
+def test_covering_shots_skip_repeats_and_keep_the_ring() -> None:
+    from marsmap.pano import pick_covering
+
+    ring = [(MODEL, _rotation(az, 5), FRAME_W, FRAME_H) for az in range(0, 360, 45)]
+    repeats = [(MODEL, _rotation(0.5, 5), FRAME_W, FRAME_H)] * 5  # the same look, five sols
+    chosen = pick_covering(ring + repeats, max_shots=50)
+    assert sorted(chosen) == list(range(8))
+    assert len(pick_covering(ring + repeats, max_shots=3)) == 3
+
+
+def test_photos_stop_short_of_the_high_sky() -> None:
+    from marsmap.pano import MAX_PHOTO_EL_DEG
+
+    views, truth = _ring(_world(), perturb_deg=0.0)  # frames reach ~50 degrees up
+    _, covered = render(views, truth, width=512)
+    rows = np.flatnonzero(covered.any(axis=1))
+    top_el = 90 - (rows.min() + 0.5) / 256 * 180
+    assert top_el <= MAX_PHOTO_EL_DEG + 1
