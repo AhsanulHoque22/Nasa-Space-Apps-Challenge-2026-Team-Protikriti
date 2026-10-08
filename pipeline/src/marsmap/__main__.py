@@ -30,6 +30,7 @@ from marsmap.layers import (
 from marsmap.mola import MEGDR_URL, megdr_to_web, write_mola
 from marsmap.slope import slope_deg
 from marsmap.stops import waypoint_stops
+from marsmap.streetview import build_panorama, update_index
 from marsmap.swim import SWIM_URL, swim_to_web, write_swim
 from marsmap.thermal import build_thermal
 from marsmap.walkpatch import build_walk_patch
@@ -112,6 +113,26 @@ def _stops(args: argparse.Namespace) -> None:
         stops = waypoint_stops(json.loads((args.raw / file).read_text()))
         (args.out / f"{rover}.json").write_text(json.dumps(stops, separators=(",", ":")))
         print(f"wrote {rover}: {len(stops)} stops")
+
+
+def _panorama(args: argparse.Namespace) -> None:
+    stops = json.loads(args.stops.read_text())
+    for wanted in args.stop:
+        site, drive = (int(v) for v in wanted.split(":"))
+        at = next(
+            (i for i, s in enumerate(stops) if (s["site"], s["drive"]) == (site, drive)), None
+        )
+        if at is None:
+            raise SystemExit(f"stop {wanted} is not in {args.stops}")
+        next_sol = stops[at + 1]["sol"] if at + 1 < len(stops) else None
+        record = build_panorama(stops[at], next_sol, args.raw, args.out, args.width)
+        update_index(args.out, f"{site}_{drive}", record)
+        a = record["alignment"]
+        print(
+            f"stop {wanted}: {len(record['frames'])} frames, {a['pairs']} matched pairs, "
+            f"misalignment {a['rmsBeforeDeg']}° -> {a['rmsAfterDeg']}°, "
+            f"{record['coveredFraction']:.0%} of the sphere photographed"
+        )
 
 
 def _dust(args: argparse.Namespace) -> None:
@@ -318,12 +339,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     mola = sub.add_parser("mola", help="global MOLA topography (4 px/deg) for the globe")
     mola.add_argument("--raw", type=Path, required=True)
     mola.add_argument("--out", type=Path, required=True)
+    pano = sub.add_parser("panorama", help="pre-stitch Perseverance Navcam 360° panoramas")
+    pano.add_argument("--stops", type=Path, required=True, help="stops/m20.json")
+    pano.add_argument("--stop", action="append", required=True, help="SITE:DRIVE, repeatable")
+    pano.add_argument("--raw", type=Path, required=True, help="raw cache, e.g. data/raw/navcam/m20")
+    pano.add_argument("--out", type=Path, required=True)
+    pano.add_argument("--width", type=int, default=4096)
     swim = sub.add_parser("swim", help="SWIM 2.0 shallow-ice consistency for site reports")
     swim.add_argument("--raw", type=Path, required=True)
     swim.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
     commands = {
+        "panorama": _panorama,
         "swim": _swim,
         "activities": _activities,
         "benchmark": _benchmark,
