@@ -76,6 +76,8 @@ export function startExplore(
     scale: viewer.resolutionScale,
     browserRes: viewer.useBrowserRecommendedResolution,
     collision: controller.enableCollisionDetection,
+    msaa: scene.msaaSamples,
+    fxaa: scene.postProcessStages.fxaa.enabled,
   }
   // Map pins, labels and lines don't exist on the real ground: hide every one, restore on exit.
   const markers: Array<{ show: boolean }> = []
@@ -96,6 +98,10 @@ export function startExplore(
   scene.fog.renderable = false
   viewer.useBrowserRecommendedResolution = false
   viewer.resolutionScale = Math.min(2, window.devicePixelRatio || 1)
+  // 4x MSAA makes the atmosphere pass resolve multisampled colour and depth every frame: 58 ms
+  // vs 24 ms a frame measured on Iris Xe at 1808x873. FXAA smooths edges for a fraction of that.
+  scene.msaaSamples = 1
+  scene.postProcessStages.fxaa.enabled = true
 
   const siteId: SiteId = site.id === 'gale' ? 'gale' : 'jezero'
   let sols: readonly SolWeather[] = []
@@ -308,6 +314,8 @@ export function startExplore(
       scene.fog.renderable = saved.fogDrawn
       viewer.resolutionScale = saved.scale
       viewer.useBrowserRecommendedResolution = saved.browserRes
+      scene.msaaSamples = saved.msaa
+      scene.postProcessStages.fxaa.enabled = saved.fxaa
       onExit()
     },
   }
