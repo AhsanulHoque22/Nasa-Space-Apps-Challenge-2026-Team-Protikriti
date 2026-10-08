@@ -20,7 +20,7 @@ import { type LabelSource, classAt, overlayPixels, projectLabels } from '../core
 import { labelSource, labelsFor } from '../map/ai4mars-client'
 import { type PanoRenderer, createPanoRenderer } from '../map/pano-gl'
 import { type Rover, framesForStop } from '../map/raw-images'
-import { proxied, stitchPanorama } from '../map/stitch-client'
+import { stitchPanorama } from '../map/stitch-client'
 
 const ROVER_NAME: Record<Rover, string> = { m20: 'Perseverance', msl: 'Curiosity' }
 const FOV = { ...FOV_RANGE, start: 70 }
@@ -221,7 +221,7 @@ export function openStreetView(
       .map((f) => {
         const img = document.createElement('img')
         img.className = 'sv-tile'
-        img.src = proxied(f.url) // proxy through same-origin to avoid CORS blocking
+        img.src = f.url // <img> can load cross-origin images without CORS; proxy is only needed for fetch()
         img.alt = f.caption
         img.decoding = 'async'
         img.referrerPolicy = 'no-referrer'
@@ -293,7 +293,8 @@ export function openStreetView(
         stitching.signal,
       )
       if (id === request) paint(full) // sharpen in place, keeping where the viewer is looking
-    } catch {
+    } catch (err) {
+      console.error('[sv] stitch failed:', err)
       if (id !== request || previewed) return
       // No same-origin image proxy (e.g. a static host): show the sweep as positioned photos.
       reveal(` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`, [
