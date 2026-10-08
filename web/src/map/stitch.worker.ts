@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 /** Downloads a panorama's frames, decodes them and stitches them off the main thread. */
-import { type Source, stitch } from '../core/stitch'
+import { type Source, prepare, renderPrep } from '../core/stitch'
 
 export type StitchRequest = {
   outWidth: number
@@ -9,6 +9,7 @@ export type StitchRequest = {
 }
 export type StitchReply =
   | { type: 'progress'; loaded: number; total: number }
+  | { type: 'stitching'; loaded: number; total: number }
   | { type: 'preview'; pixels: Uint8ClampedArray; width: number; height: number; used: number }
   | { type: 'done'; pixels: Uint8ClampedArray; width: number; height: number; used: number }
   | { type: 'error'; message: string }
@@ -40,9 +41,13 @@ self.onmessage = async ({ data }: MessageEvent<StitchRequest>) => {
   )
   const sources = settled.flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []))
   if (!sources.length) return post({ type: 'error', message: 'none of the frames downloaded' })
+  // Tell the UI stitching has started so it doesn't appear frozen on large frame counts.
+  post({ type: 'stitching', loaded: sources.length, total: data.frames.length })
+  // Preprocessing runs once; both renders share it.
+  const prep = prepare(sources)
   // A quick low-resolution sphere first, so the viewer can look around within seconds.
-  const preview = stitch(sources, data.previewWidth)
+  const preview = renderPrep(prep, sources, data.previewWidth)
   post({ type: 'preview', ...preview, used: sources.length }, [preview.pixels.buffer])
-  const pano = stitch(sources, data.outWidth)
+  const pano = renderPrep(prep, sources, data.outWidth)
   post({ type: 'done', ...pano, used: sources.length }, [pano.pixels.buffer])
 }

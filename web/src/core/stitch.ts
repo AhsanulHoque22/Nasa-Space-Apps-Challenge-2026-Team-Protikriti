@@ -34,6 +34,21 @@ export type { Source } from './pinhole'
 
 export type Panorama = { pixels: Uint8ClampedArray; width: number; height: number }
 
+/** Cached result of the expensive preprocessing so preview and full render share it. */
+export type StitchPrep = {
+  cams: Camera[]
+  coarse: Coarse[]
+  gain: number[]
+  offset: number[]
+  greyscale: boolean[]
+  colour: Float32Array
+  labels: Int32Array
+  own: Map<number, Float32Array>
+  target: Float32Array
+  fallback: number[][]
+  penalty: number[]
+}
+
 const SIGMA_N = 10 // grey-level noise in overlap means (Brown & Lowe)
 const SIGMA_O = 50 // prior spread of the offsets around 0, in grey levels (NASA stretches shift tens)
 const SIGMA_G = 0.3 // prior spread of the gains around 1 (Navcam auto-exposure varies a lot)
@@ -218,9 +233,8 @@ function addTileStrips(sources: readonly Source[], cams: readonly Camera[], st: 
     }
 }
 
-export function stitch(sources: readonly Source[], outWidth: number): Panorama {
-  const width = outWidth
-  const height = outWidth / 2
+/** Run the expensive preprocessing once; share the result between preview and full render. */
+export function prepare(sources: readonly Source[]): StitchPrep {
   const cams = sources.map(camera)
   // Sample every photo once on the coarse grid, match exposures there, then apply them.
   const coarse = sources.map((s, i) => sampleCoarse(s, cams[i]!))
@@ -236,12 +250,6 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
   const penalty = photoPenalties(sources, coarse, greyscale)
   const labels = chooseLabels(coarse, penalty)
   const { own, target } = toneBands(coarse, labels)
-  // Fallback photos need their own tone too, or their raw exposure shows as a bright patch.
-  const toneOf = (i: number) => {
-    let t = own.get(i)
-    if (!t) own.set(i, (t = ownTone(coarse[i]!)))
-    return t
-  }
   // Fallback photos per cell, best first: for pixels the labelled photos just miss.
   // A photo is a candidate in its cells and their neighbours: its real edge runs through cells
   // whose centres it misses, and the per-pixel projection decides coverage exactly.
@@ -261,6 +269,24 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
     for (const c of near) fallback[c]!.push(i)
   })
   for (const list of fallback) list.sort((a, b) => penalty[a]! - penalty[b]!)
+  return { cams, coarse, gain, offset, greyscale, colour, labels, own, target, fallback, penalty }
+}
+
+/** Render a panorama at the given width using already-computed preprocessing. */
+export function renderPrep(
+  prep: StitchPrep,
+  sources: readonly Source[],
+  outWidth: number,
+): Panorama {
+  const { cams, coarse, gain, offset, greyscale, colour, labels, own, target, fallback } = prep
+  const width = outWidth
+  const height = outWidth / 2
+  // Fallback photos need their own tone too, or their raw exposure shows as a bright patch.
+  const toneOf = (i: number) => {
+    let t = own.get(i)
+    if (!t) own.set(i, (t = ownTone(coarse[i]!)))
+    return t
+  }
   const acc = new Float32Array(width * height * 4) // r, g, b, 1 once painted
   const seen = new Float32Array(width * height) // lens weight of the photo used, for the gap fill
   const v = new Float32Array(3)
@@ -355,6 +381,10 @@ export function stitch(sources: readonly Source[], outWidth: number): Panorama {
     }
   }
   return fillGaps(acc, seen, width, height)
+}
+
+export function stitch(sources: readonly Source[], outWidth: number): Panorama {
+  return renderPrep(prepare(sources), sources, outWidth)
 }
 
 type Level = { rgb: Float32Array; a: Float32Array; width: number; height: number }

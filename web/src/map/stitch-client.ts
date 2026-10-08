@@ -69,6 +69,7 @@ export function stitchPanorama(
     worker.onerror = (e) => reject(new Error(e.message))
     worker.onmessage = ({ data }: MessageEvent<StitchReply>) => {
       if (data.type === 'progress') return on.progress(data.loaded, data.total)
+      if (data.type === 'stitching') return on.progress(data.loaded, data.total)
       if (data.type === 'preview') return on.preview(data)
       worker.terminate()
       if (data.type === 'error') reject(new Error(data.message))

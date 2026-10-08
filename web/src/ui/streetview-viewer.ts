@@ -269,7 +269,11 @@ export function openStreetView(
         stop,
         {
           progress: (loaded, total) => {
-            if (id === request) status.textContent = `Downloading Navcam frames ${loaded}/${total}…`
+            if (id !== request) return
+            status.textContent =
+              loaded < total
+                ? `Downloading Navcam frames ${loaded}/${total}…`
+                : `Stitching ${total} frames into a panorama… (may take a moment)`
           },
           preview: (p) => {
             if (id !== request) return
