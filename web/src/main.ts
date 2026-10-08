@@ -44,6 +44,7 @@ import { renderLinkPanel } from './ui/link-panel'
 import { renderQuestPanel } from './ui/quest-panel'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
+import { openWalkPlayer } from './ui/walk-player'
 import type { Rover } from './map/raw-images'
 import { renderTimelineBar } from './ui/timeline-bar'
 import { positionAtSol } from './core/timeline'
@@ -150,12 +151,17 @@ async function main() {
   side.className = 'side'
   ui.append(side)
   const quest = renderQuestPanel(side)
+  // Filled in after streetView loads; safe because the walk player opens only after user interaction.
+  let walkStreetView: ((lon: number, lat: number) => void) | undefined
   const routePanel = renderRoutePanel(side, viewer, sites, {
     makeClient: createRouteClient,
     makeLayer: (g) => createRouteLayer(viewer, g),
     makeRange: (g) => createRangeLayer(viewer, g),
     onEvent: quest.notify,
     onHazardOp: (op) => sync.record(op),
+    onStartWalk: (params) => {
+      openWalkPlayer(viewer, params, (lon, lat) => walkStreetView?.(lon, lat))
+    },
   })
   const sync = renderSyncPanel(side, routePanel.restoreHazards)
   // Optional validation card: a missing file must not take the planner down with it.
@@ -319,6 +325,16 @@ async function main() {
     )
   }
   const streetView = await addStreetViewStops(viewer, surfaceM, showStreetView)
+  walkStreetView = (lon, lat) => {
+    const stops = streetView.stops.m20
+    let bestI = 0, bestDSq = Infinity
+    for (let i = 0; i < stops.length; i++) {
+      const s = stops[i]!
+      const dSq = (lon - s.lon) ** 2 + (lat - s.lat) ** 2
+      if (dSq < bestDSq) { bestDSq = dSq; bestI = i }
+    }
+    showStreetView('m20', bestI)
+  }
   const openActivity = (activity: Activity) => {
     const card = renderActivityCard(side, activity, {
       onClose: () => card.remove(),

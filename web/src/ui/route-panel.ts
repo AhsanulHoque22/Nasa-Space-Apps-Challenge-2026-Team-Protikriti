@@ -33,6 +33,7 @@ import { MARS_SPHERE } from '../map/mars'
 import type { RouteClient } from '../map/route-client'
 import type { RangeLayer } from '../map/range-layer'
 import type { RouteLayer } from '../map/route-layer'
+import type { WalkParams } from './walk-player'
 import { type Playback, playTones } from './audio-player'
 import { mountSunTool } from './sun-tool'
 import { type CrewPoint, mountStormTool } from './storm-tool'
@@ -68,13 +69,15 @@ export type RoutePanelDeps = {
   onEvent: (event: QuestEvent) => void
   /** Told about every hazard edit, for offline sync. */
   onHazardOp?: (op: HazardOp) => void
+  /** Open the walk player for the current route. */
+  onStartWalk?: (p: WalkParams) => void
 }
 
 export function renderRoutePanel(
   parent: HTMLElement,
   viewer: Viewer,
   sites: readonly Site[],
-  { makeClient, makeLayer, makeRange, onEvent, onHazardOp }: RoutePanelDeps,
+  { makeClient, makeLayer, makeRange, onEvent, onHazardOp, onStartWalk }: RoutePanelDeps,
 ): {
   currentPlan: () => string | null
   currentBundle: () => PlanBundle | null
@@ -158,6 +161,7 @@ export function renderRoutePanel(
       <button type="button" class="quiet route-audio" data-act="audio" aria-pressed="false">Hear the route's height</button>
       <p class="route-note audio-note" role="status" hidden></p>
       <p class="route-note">Pace: Tobler's hiking function x ${DEFAULT_SUIT_FACTOR} suit factor, capped at ${MAX_SUIT_SPEED_KMH} km/h (team assumptions). Mars gravity is not modelled.</p>
+      <button type="button" class="walk-start" data-act="walk" hidden>▶ Start EVA Walk</button>
     </div>`
   parent.append(panel)
   const status = panel.querySelector('.route-status') as HTMLElement
@@ -171,6 +175,7 @@ export function renderRoutePanel(
   const wordsEl = panel.querySelector('.route-words p') as HTMLElement
   const audioButton = panel.querySelector('[data-act="audio"]') as HTMLButtonElement
   const audioNote = panel.querySelector('.audio-note') as HTMLElement
+  const walkButton = panel.querySelector('[data-act="walk"]') as HTMLButtonElement
   let playback: Playback | null = null
   const stopAudio = () => {
     playback?.stop()
@@ -368,7 +373,14 @@ export function renderRoutePanel(
             limitDeg: shown.limitDeg,
             stopMin: stopMin(),
           })
+        walkButton.hidden = false
+        walkButton.onclick = () => {
+          if (!active) return
+          onStartWalk?.({ stops, grid: active.grid, legs: reply.legs, card: shown.card, stopMin: stopMin() })
+        }
       }
+    } else {
+      walkButton.hidden = true
     }
     field('eva').textContent = formatDuration(
       evaDurationMin(total.durationMin, stopCount, stopMin()),
