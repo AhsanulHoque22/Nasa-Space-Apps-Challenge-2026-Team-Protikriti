@@ -19,6 +19,7 @@ data:
 	cd pipeline && uv run python -m marsmap thermal --config data/sites.json --out ../web/public/data
 	cd pipeline && uv run python -m marsmap caves --csv ../data/raw/Mars_Cave_Catalog.csv --out ../web/public/data/caves.json
 	cd pipeline && uv run python -m marsmap compare --out ../web/public/data/compare
+	cd pipeline && uv run python -m marsmap walk --config data/sites.json --out ../web/public/data
 	cd pipeline && uv run python -m marsmap dust --raw ../data/raw/dust --config data/sites.json --out ../web/public/data/dust.json
 	cd pipeline && uv run python -m marsmap mola --raw ../data/raw --out ../web/public/data
 	cd pipeline && uv run python -m marsmap swim --raw ../data/raw --out ../web/public/data

@@ -117,13 +117,14 @@ def _resample(rgb: NDArray[np.uint8], window: tuple[float, ...], px: int) -> NDA
     return out
 
 
-def _write_jpeg(path: Path, rgb: NDArray[np.uint8]) -> None:
-    _, height, width = rgb.shape
+def write_jpeg(path: Path, rgb: NDArray[np.uint8]) -> None:
+    """JPEG from a (bands, rows, cols) uint8 array: 1 band grey or 3 bands RGB."""
+    bands, height, width = rgb.shape
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", NotGeoreferencedWarning)  # placed by the page, not a CRS
         with MemoryFile() as mem:
             with mem.open(
-                driver="GTiff", width=width, height=height, count=3, dtype="uint8"
+                driver="GTiff", width=width, height=height, count=bands, dtype="uint8"
             ) as tmp:
                 tmp.write(rgb)
             with mem.open() as src:
@@ -146,12 +147,12 @@ def _jezero(fetch: Callable[[str], bytes], px: int) -> NDArray[np.uint8]:
 
 def build_compare(out_dir: Path, fetch: Callable[[str], bytes], px: int = PX) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    _write_jpeg(out_dir / "jezero.jpg", _jezero(fetch, px))
+    write_jpeg(out_dir / "jezero.jpg", _jezero(fetch, px))
     scenes = []
     box = box_deg(*JAMUNA, BOX_KM, EARTH_RADIUS_KM)
     for year, layer, date, source in JAMUNA_SCENES:
         rgb = _decode(fetch(gibs_url(layer, date, box, px)))
-        _write_jpeg(
+        write_jpeg(
             out_dir / f"jamuna_{year}.jpg", _resample(rgb, (0, 0, rgb.shape[2], rgb.shape[1]), px)
         )
         scenes.append(

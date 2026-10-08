@@ -31,6 +31,7 @@ from marsmap.slope import slope_deg
 from marsmap.stops import waypoint_stops
 from marsmap.swim import SWIM_URL, swim_to_web, write_swim
 from marsmap.thermal import build_thermal
+from marsmap.walkpatch import build_walk_patch
 from marsmap.weather import snapshot_weather
 
 # Octavia E. Butler landing site + western delta front, Jezero crater (Mars 2000 degrees E/N).
@@ -122,6 +123,14 @@ def _dust(args: argparse.Namespace) -> None:
 def _caves(args: argparse.Namespace) -> None:
     count = build_caves(args.csv, args.out)
     print(f"wrote {args.out}: {count} cave candidates")
+
+
+def _walk(args: argparse.Namespace) -> None:
+    for site in json.loads(args.config.read_text())["sites"]:
+        if "walk" not in site:
+            continue
+        meta = build_walk_patch(site["id"], site["walk"], args.out)
+        print(f"wrote walk patch for {site['id']}: {meta['width']}x{meta['height']} at 2 m")
 
 
 def _compare(args: argparse.Namespace) -> None:
@@ -277,6 +286,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     dust.add_argument("--raw", type=Path, required=True, help="folder of dustscenario_MY*.nc")
     dust.add_argument("--config", type=Path, required=True)
     dust.add_argument("--out", type=Path, required=True)
+    walk = sub.add_parser("walk", help="high-resolution ground for exploring on foot")
+    walk.add_argument("--config", type=Path, required=True)
+    walk.add_argument("--out", type=Path, required=True)
     compare = sub.add_parser("compare", help="Jezero vs Jamuna images at the same scale")
     compare.add_argument("--out", type=Path, required=True)
     caves = sub.add_parser("caves", help="USGS Mars cave candidate catalogue -> caves.json")
@@ -309,6 +321,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "thermal": _thermal,
         "caves": _caves,
         "compare": _compare,
+        "walk": _walk,
         "dust": _dust,
         "build": _build,
         "layers": _layers,
