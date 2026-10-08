@@ -1,0 +1,28 @@
+{
+ "width": 1000,
+ "height": 1000,
+ "west": 77.43311582224474,
+ "south": 18.427729395141885,
+ "east": 77.46868417775526,
+ "north": 18.461470604858118,
+ "start": {
+  "lon": 77.4509,
+  "lat": 18.4446
+ },
+ "spacingM": 2.0,
+ "heightOffsetM": -2570.639892578125,
+ "heightStepM": 0.02,
+ "nodata": -32768,
+ "maxSafeSlopeDeg": 15.0,
+ "tiles": {
+  "minLevel": 13,
+  "maxLevel": 17,
+  "rect": [
+   77.43311582224474,
+   18.427729395141885,
+   77.46868417775526,
+   18.461470604858118
+  ]
+ },
+ "source": "USGS Mars 2020 TRN HiRISE DTM (1 m, shown at 2 m) and 25 cm orthomosaic, soc_006; centred on the Octavia E. Butler landing site"
+}

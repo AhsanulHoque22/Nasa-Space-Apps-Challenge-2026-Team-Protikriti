@@ -1,0 +1,28 @@
+{
+ "width": 1000,
+ "height": 1000,
+ "west": 137.42477512653264,
+ "south": -4.606370604858116,
+ "east": 137.45862487346736,
+ "north": -4.572629395141885,
+ "start": {
+  "lon": 137.4417,
+  "lat": -4.5895
+ },
+ "spacingM": 2.0,
+ "heightOffsetM": -4504.27978515625,
+ "heightStepM": 0.02,
+ "nodata": -32768,
+ "maxSafeSlopeDeg": 15.0,
+ "tiles": {
+  "minLevel": 13,
+  "maxLevel": 17,
+  "rect": [
+   137.42477512653264,
+   -4.606370604858116,
+   137.45862487346736,
+   -4.572629395141885
+  ]
+ },
+ "source": "USGS MSL Gale Merged DEM Mosaic v3 (1 m, shown at 2 m) and 25 cm HiRISE orthophoto mosaic v3; centred on Bradbury Landing"
+}

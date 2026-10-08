@@ -1,0 +1,19 @@
+{
+  "result": {
+    "limit_deg": 15.0,
+    "legs_total": 556,
+    "legs_outside_grid": 271,
+    "legs_allowed": 285,
+    "legs_blocked": 0,
+    "waypoints_in_grid": 362,
+    "steep_waypoints": 9,
+    "steep_missed": 9,
+    "false_pass_rate_pct": 100.0,
+    "correlation": 0.577
+  },
+  "source": {
+    "traverse": "Perseverance traverse, NASA MMGIS / PDS PLACES (M20_traverse.json)",
+    "tilt": "Rover tilt at each localized waypoint (M20_waypoints.json)",
+    "terrain": "CTX DEM grid, 20 m pixels"
+  }
+}

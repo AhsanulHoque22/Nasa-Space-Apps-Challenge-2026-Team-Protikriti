@@ -1,0 +1,13 @@
+{
+ "width": 107,
+ "height": 207,
+ "west": 137.2997305772849,
+ "south": -4.899223650796659,
+ "east": 137.48024604926673,
+ "north": -4.550002130233674,
+ "units": "J m-2 K-1 s-1/2",
+ "source": "THEMIS quantitative thermal inertia mosaic, 100 m/px, USGS Astrogeology (Fergason et al. 2006, doi:10.1029/2006JE002735)",
+ "tile": "30S120E",
+ "p02": 259.3270568847656,
+ "p98": 615.4623413085938
+}

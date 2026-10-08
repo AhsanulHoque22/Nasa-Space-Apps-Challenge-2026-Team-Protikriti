@@ -1,0 +1,49 @@
+{
+  "boxKm": 20,
+  "px": 640,
+  "caveat": "The Jamuna (Brahmaputra) is not a recognised Mars analog. It is shown beside Jezero at the same scale only to compare shapes: a living braided river against an ancient delta. Recognised analogs for Jezero's delta include the Wax Lake Delta (Louisiana).",
+  "jezero": {
+    "file": "jezero.jpg",
+    "center": [
+      77.38,
+      18.5
+    ],
+    "source": "NASA Trek mosaic NES_JEZ_MID_Visible_Mosaic_HiRISE_CTX_HRSC_GCS_MARS_07-10-2018 (HiRISE, CTX, HRSC), Mars 2000 sphere"
+  },
+  "jamuna": {
+    "center": [
+      89.74,
+      24.45
+    ],
+    "scenes": [
+      {
+        "year": 1989,
+        "file": "jamuna_1989.jpg",
+        "layer": "Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual",
+        "date": "1989-12-01",
+        "source": "Landsat WELD annual true-colour composite, Dec 1989-Nov 1990; NASA GIBS (Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual)"
+      },
+      {
+        "year": 1999,
+        "file": "jamuna_1999.jpg",
+        "layer": "Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual",
+        "date": "1999-12-01",
+        "source": "Landsat WELD annual true-colour composite, Dec 1999-Nov 2000; NASA GIBS (Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual)"
+      },
+      {
+        "year": 2020,
+        "file": "jamuna_2020.jpg",
+        "layer": "HLS_L30_Nadir_BRDF_Adjusted_Reflectance",
+        "date": "2020-02-02",
+        "source": "HLS Landsat (L30), 2 Feb 2020; NASA GIBS (HLS_L30_Nadir_BRDF_Adjusted_Reflectance)"
+      },
+      {
+        "year": 2024,
+        "file": "jamuna_2024.jpg",
+        "layer": "HLS_S30_Nadir_BRDF_Adjusted_Reflectance",
+        "date": "2024-03-09",
+        "source": "HLS Sentinel-2 (S30), 9 Mar 2024; NASA GIBS (HLS_S30_Nadir_BRDF_Adjusted_Reflectance)"
+      }
+    ]
+  }
+}

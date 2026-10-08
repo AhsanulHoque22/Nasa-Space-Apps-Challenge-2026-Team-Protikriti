@@ -1,3 +1,0 @@
-{
-  "rewrites": [{ "source": "/nasa-raw/:path*", "destination": "https://mars.nasa.gov/:path*" }]
-}

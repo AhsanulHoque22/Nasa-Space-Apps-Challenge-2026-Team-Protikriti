@@ -1,0 +1,11 @@
+{
+  "width": 562,
+  "height": 593,
+  "pixel_size_m": 20.0,
+  "west": 77.32968749442561,
+  "north": 18.56002722860692,
+  "east": 77.52960691982891,
+  "south": 18.359941854989675,
+  "crs": "+proj=eqc +lat_ts=18.4663 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R=3396190 +units=m +no_defs=True",
+  "max_safe_slope_deg": 15.0
+}
