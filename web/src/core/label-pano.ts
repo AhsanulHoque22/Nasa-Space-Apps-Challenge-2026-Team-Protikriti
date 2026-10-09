@@ -11,6 +11,12 @@ const CLASS_RGB = CLASS_COLOURS.map((hex) =>
   [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)),
 )
 
+// Navcam frames photograph the terrain ahead: nothing useful is labeled above the horizon or near
+// nadir (where the rover body appears). Clamping avoids spurious sky labels and rover body labels
+// that arise when the pinhole projection maps those directions into label-frame edge pixels.
+const MAX_LABEL_EL_DEG = 20
+const MIN_LABEL_EL_DEG = -50
+
 /** Equirectangular class grid (outWidth x outWidth/2), NONE where no frame has a label. */
 export function projectLabels(
   sources: readonly LabelSource[],
@@ -30,6 +36,7 @@ export function projectLabels(
   }
   for (let y = 0; y < height; y++) {
     const elDeg = 90 - ((y + 0.5) / height) * 180
+    if (elDeg > MAX_LABEL_EL_DEG || elDeg < MIN_LABEL_EL_DEG) continue
     const sinEl = Math.sin(elDeg * RAD)
     const cosEl = Math.cos(elDeg * RAD)
     // Only frames whose bounding cone spans this elevation can see the row (most cannot).

@@ -33,7 +33,7 @@ void main() {
   float gy = abs(dFdy(ua)) < abs(dFdy(ub)) ? dFdy(ua) : dFdy(ub);
   colour = textureGrad(pano, uv, vec2(gx, dFdx(uv.y)), vec2(gy, dFdy(uv.y)));
   if (labelMix > 0.0) {
-    vec4 l = textureLod(labels, uv, 0.0); // nearest: class edges stay crisp
+    vec4 l = texture(labels, uv);
     colour.rgb = mix(colour.rgb, l.rgb, l.a * labelMix);
   }
 }`
@@ -82,8 +82,8 @@ export function createPanoRenderer(canvas: HTMLCanvasElement): PanoRenderer {
   gl.bindTexture(gl.TEXTURE_2D, labelTexture)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4))
   gl.activeTexture(gl.TEXTURE0)
   const uniform = (name: string) => gl.getUniformLocation(program, name)
