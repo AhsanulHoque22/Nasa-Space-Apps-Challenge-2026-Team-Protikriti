@@ -9,7 +9,7 @@
 
 ## Build status (updated 2026-10-08)
 
-**Built, tested and pushed:** #1 EVA safety card · #2 pace model (3.3 km/h cap) · #3 and #5 as one
+**Built, tested and pushed:** #55 student labelling task (Street View "Practice labelling", Cohen's kappa vs AI4Mars, `web/scripts/grade-labels.mjs`) · #1 EVA safety card · #2 pace model (3.3 km/h cap) · #3 and #5 as one
 routed *Walking range* (not circles) · #4 storm warning (habitat and nearest cave, straight-line
 floor) · #6 hazard markers · #7 replay benchmark · #8 route reliability · #9 provenance · #11 zone
 ranking (MOLA, SWIM, latitude) · #12 mission purpose (Water/Habitat/Logistics rules on the zone
@@ -31,7 +31,7 @@ Already existed: #42 rock samples layer.
 
 | Items | Reason |
 |---|---|
-| #10, #49, #51 to #53, #55, #56 | Need a language model or trained models; conflicts with the offline-first rule, and the rule that a model may only explain, never compute. |
+| #10, #49, #51 to #53, #56 | Need a language model or trained models; conflicts with the offline-first rule, and the rule that a model may only explain, never compute. |
 | #13, #15, #16, #18 to #21, #23, #26, rest of #22 | Would produce subsurface, dose or protected-zone numbers the sources do not support (SWIM is about 15 km per cell against an 11 km site; no published Special Region map; the research notes forbid claiming these). |
 | #41, #43, #44 | Data licence or access unconfirmed for map layers (#66 uses SIM 3464 text only, which is public domain). |
 | #36 to #40 | Need SPICE kernels (about 300 to 450 MB) or unverified status facts. |

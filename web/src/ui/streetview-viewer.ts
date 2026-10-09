@@ -18,6 +18,7 @@ import {
 import { CLASSES, CLASS_COLOURS, NONE, classShares } from '../core/ai4mars'
 import { type LabelSource, classAt, overlayPixels, projectLabels } from '../core/label-pano'
 import { labelSource, labelsFor } from '../map/ai4mars-client'
+import { openLabelTool } from './label-tool'
 import { type PanoRenderer, createPanoRenderer } from '../map/pano-gl'
 import { type Prestitched, prestitched, prestitchedLabels } from '../map/prestitched-client'
 import { type Rover, framesForStop } from '../map/raw-images'
@@ -69,6 +70,7 @@ export function openStreetView(
         <button type="button" data-act="prev" aria-label="Previous stop">‹ Prev</button>
         <button type="button" data-act="next" aria-label="Next stop">Next ›</button>
         <button type="button" data-act="labels" aria-pressed="false" hidden>Terrain labels</button>
+        <button type="button" data-act="practice" hidden>Practice labelling</button>
         <button type="button" data-act="close">Close</button>
       </div>
     </header>
@@ -88,6 +90,9 @@ export function openStreetView(
   const canvas = root.querySelector('.sv-canvas') as HTMLCanvasElement
   const labelsButton = root.querySelector('[data-act="labels"]') as HTMLButtonElement
   const labelsPanel = root.querySelector('.sv-labels') as HTMLElement
+  const practiceButton = root.querySelector('[data-act="practice"]') as HTMLButtonElement
+  let panoImage: { pixels: Uint8ClampedArray; width: number; height: number } | null = null
+  let labelTool: { close(): void } | null = null
   let renderer: PanoRenderer
   try {
     renderer = createPanoRenderer(canvas)
@@ -140,7 +145,9 @@ export function openStreetView(
   /** Show or hide the labels and their legend for the current stop and toggle state. */
   const updateLabels = async () => {
     const n = labelSources.length
-    const hasPrecomputed = precomputedLabels !== null && n === 0
+    practiceButton.hidden = !(panoImage && n > 0) // needs the stitched photo and people's labels
+    const precomputed = n === 0 ? precomputedLabels : null
+    const hasPrecomputed = precomputed !== null
     labelsButton.hidden = n === 0 && !hasPrecomputed
     labelsButton.textContent = hasPrecomputed
       ? 'Terrain labels (RF)'
@@ -154,7 +161,7 @@ export function openStreetView(
       return
     }
     if (hasPrecomputed) {
-      renderer.setLabels(precomputedLabels!)
+      if (precomputed) renderer.setLabels(precomputed)
       if (hasImage) renderer.draw(state.yaw, state.pitch, state.fov)
       labelsPanel.replaceChildren()
       const title = document.createElement('h3')
@@ -194,6 +201,16 @@ export function openStreetView(
     labelsPanel.append(title, list, centreLine, note)
     layout()
   }
+  practiceButton.addEventListener('click', () => {
+    if (!panoImage || labelSources.length === 0) return
+    labelTool?.close()
+    labelGrid ??= projectLabels(labelSources, LABEL_PANO_WIDTH)
+    labelTool = openLabelTool(root, {
+      stop: title.textContent ?? 'stop',
+      panorama: panoImage,
+      expert: labelGrid,
+    })
+  })
   labelsButton.addEventListener('click', () => {
     labelsOn = !labelsOn
     void updateLabels()
@@ -242,7 +259,13 @@ export function openStreetView(
     wrap.append(cvs)
     const ctx = cvs.getContext('2d')!
 
-    const loaded: Array<{ img: HTMLImageElement; azDeg: number; elDeg: number; wDeg: number; hDeg: number }> = []
+    const loaded: Array<{
+      img: HTMLImageElement
+      azDeg: number
+      elDeg: number
+      wDeg: number
+      hDeg: number
+    }> = []
 
     flatRedraw = () => {
       const W = view.clientWidth
@@ -362,7 +385,10 @@ export function openStreetView(
       // Insert the canvas wrap before the sphere so walk arrows still render on top.
       const flatWrap = createPhotoCanvas(pano.frames, yawDeg)
       sphere.before(flatWrap)
-      reveal(` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`, walkArrows())
+      reveal(
+        ` · ${sweep} Navcam sweep, ${pano.frames.length} frames, sol ${first.sol}`,
+        walkArrows(),
+      )
     }
   }
 
@@ -417,6 +443,7 @@ export function openStreetView(
   ) => {
     stitching?.abort()
     renderer.setImage(pixels, width, height)
+    panoImage = { pixels, width, height }
     hasImage = true
     canvas.hidden = false
     detail.textContent +=
@@ -462,6 +489,8 @@ export function openStreetView(
     labelSources = []
     labelGrid = null
     precomputedLabels = null
+    panoImage = null
+    labelTool?.close()
     void updateLabels()
     canvas.hidden = true // hide the previous stop while loading
     status.hidden = false
