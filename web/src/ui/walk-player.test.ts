@@ -280,6 +280,17 @@ describe('EVA dashboard', () => {
     expect(cancel).toHaveBeenCalled()
   })
 
+  it('can be left from a button outside the arm and with Escape', () => {
+    const { viewer } = fakeViewer()
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined)
+    expect(document.querySelector('.eva-exit[data-act="close"]')).not.toBeNull()
+    vi.useFakeTimers()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(document.body.classList.contains('eva-mode')).toBe(false)
+    vi.advanceTimersByTime(1000)
+    expect(footers()).toBe(0)
+  })
+
   it('profile helper marks the stops along the path', () => {
     const path = [...Array(15).keys()].map((i) => cell(10 + i, 10 + i))
     const p = routeProfile(grid, path, [cell(10, 10), cell(24, 24)])

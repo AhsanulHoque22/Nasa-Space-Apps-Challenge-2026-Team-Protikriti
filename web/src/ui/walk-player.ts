@@ -543,11 +543,16 @@ export function openWalkPlayer(
     }
   }
   wrist.root.addEventListener('click', onClick)
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') close()
+  }
+  document.addEventListener('keydown', onKey)
 
   const refresh = setInterval(render, REFRESH_MS)
 
   function close() {
     clearInterval(refresh)
+    document.removeEventListener('keydown', onKey)
     cancelAnimationFrame(handheldFrame)
     viewer.entities.remove(avatar)
     viewer.entities.remove(routeLine)

@@ -301,7 +301,13 @@ export function mountWrist(parent: HTMLElement = document.body): Wrist {
   const main = glass('eva-glass-main', MAIN_SIZE, MAIN_GLASS)
   const side = glass('eva-glass-side', SIDE_SIZE, SIDE_GLASS)
   arm.append(img, main, side)
-  root.append(arm)
+  // An exit that is always in plain sight, outside the arm: it never depends on reading the screen.
+  const exit = document.createElement('button')
+  exit.type = 'button'
+  exit.className = 'eva-exit'
+  exit.dataset.act = 'close'
+  exit.textContent = '✕ Exit walk (Esc)'
+  root.append(arm, exit)
   parent.append(root)
 
   let sx = 0

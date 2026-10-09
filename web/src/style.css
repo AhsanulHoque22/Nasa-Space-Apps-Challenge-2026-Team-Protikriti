@@ -2012,6 +2012,32 @@ body.eva-mode #ui {
   transform: translateY(0);
 }
 
+.eva-exit {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 21;
+  min-height: 44px;
+  padding: 0 18px;
+  font: 700 15px var(--font);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  background: rgb(190 50 40 / 0.92);
+  border: 2px solid rgb(255 255 255 / 0.85);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+}
+
+.eva-exit:hover {
+  background: rgb(215 65 50);
+}
+
+.eva-exit:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
 .eva-arm {
   position: absolute;
   bottom: 0;
