@@ -169,7 +169,7 @@ export function openWalkPlayer(
    * Look at a stop from behind and above, tilted toward where the walk goes next, at the height
    * the camera already has: recentring never changes the zoom, only the angle.
    */
-  const focus = (index: number, startingOut = false) => {
+  const focus = (index: number, startingOut = false, turn = true) => {
     const [lon, lat] = lonLatOf(index)
     const ground = surfaceM?.(lon, lat) ?? 0
     const cam = viewer.camera.positionCartographic
@@ -178,15 +178,20 @@ export function openWalkPlayer(
     if (startingOut && above > FAR_START_M) above = START_HEIGHT_M
     const ahead = index < stops.length - 1 ? lonLatOf(index + 1) : null
     const behind = index > 0 ? lonLatOf(index - 1) : null
-    const heading = ahead
-      ? bearingRad([lon, lat], ahead)
-      : behind
-        ? bearingRad(behind, [lon, lat])
-        : viewer.camera.heading
+    // Only Recenter (and the first view) turns the map toward the walk; stepping between stops
+    // slides along at the heading and tilt the user has.
+    const heading = !turn
+      ? viewer.camera.heading
+      : ahead
+        ? bearingRad([lon, lat], ahead)
+        : behind
+          ? bearingRad(behind, [lon, lat])
+          : viewer.camera.heading
+    const pitch = turn ? VIEW_PITCH_RAD : viewer.camera.pitch
     viewer.camera.flyToBoundingSphere(
       new BoundingSphere(Cartesian3.fromDegrees(lon, lat, ground, MARS_SPHERE), 0),
       {
-        offset: new HeadingPitchRange(heading, VIEW_PITCH_RAD, above / Math.sin(-VIEW_PITCH_RAD)),
+        offset: new HeadingPitchRange(heading, pitch, above / Math.max(0.2, Math.sin(-pitch))),
         duration: FLY_S,
       },
     )
@@ -510,7 +515,7 @@ export function openWalkPlayer(
   const go = (index: number) => {
     current = Math.max(0, Math.min(stops.length - 1, index))
     render()
-    focus(current)
+    focus(current, false, false)
   }
 
   const onClick = (event: Event) => {

@@ -131,6 +131,28 @@ describe('walk player', () => {
     expect(range * Math.sin(-pitch)).toBeCloseTo(3500 - 500, 3) // same height above the ground
   })
 
+  it('stepping to another stop keeps your heading and tilt; only Recenter turns the map', () => {
+    const { viewer, flyToBoundingSphere } = fakeViewer(3500)
+    Object.assign(viewer.camera, { heading: 1.0, pitch: CesiumMath.toRadians(-50) })
+    openWalkPlayer(viewer, plan([cell(10, 10), cell(10, 60), cell(60, 60)]), () => undefined)
+    flyToBoundingSphere.mockClear()
+    document.querySelector<HTMLButtonElement>('[data-act="next"]')?.click()
+    const [, step] = flyToBoundingSphere.mock.calls[0] as [
+      unknown,
+      { offset: { heading: number; pitch: number } },
+    ]
+    expect(step.offset.heading).toBeCloseTo(1.0, 6)
+    expect(step.offset.pitch).toBeCloseTo(CesiumMath.toRadians(-50), 6)
+    flyToBoundingSphere.mockClear()
+    document.querySelector<HTMLButtonElement>('[data-act="rc"]')?.click()
+    const [, turned] = flyToBoundingSphere.mock.calls[0] as [
+      unknown,
+      { offset: { heading: number; pitch: number } },
+    ]
+    expect(turned.offset.pitch).toBeCloseTo(CesiumMath.toRadians(-32), 6)
+    expect(turned.offset.heading).not.toBeCloseTo(1.0, 2)
+  })
+
   it('opens from a very high view at a walkable height, but never changes a close one', () => {
     const far = fakeViewer(120_000)
     openWalkPlayer(far.viewer, plan([cell(10, 10), cell(20, 20)]), () => undefined)
