@@ -1,7 +1,7 @@
 """Terrain classification on pre-stitched panoramas.
 
 Workflow:
-  1. project_labels()  — project AI4Mars human labels to equirectangular (Python port of label-pano.ts)
+  1. project_labels()  - project AI4Mars labels to equirectangular (port of label-pano.ts)
   2. extract_features() — LAB + texture features from labeled pixels
   3. train_classifier() — scikit-learn Random Forest (class_weight='balanced')
   4. infer_full_grid()  — full-sphere coverage; human labels take priority
@@ -33,7 +33,7 @@ CLASS_BGR_ALPHA: list[tuple[int, int, int, int]] = [
     (0x70, 0x9E, 0x19, 255),  # big rock #199e70
 ]
 
-MAX_EL_DEG = 20.0   # sky above this is not terrain
+MAX_EL_DEG = 20.0  # sky above this is not terrain
 MIN_EL_DEG = -50.0  # rover nadir below this is not terrain
 
 RAD = np.pi / 180.0
@@ -41,20 +41,20 @@ RAD = np.pi / 180.0
 
 @dataclass(frozen=True)
 class LabelFrame:
-    cls: NDArray[np.uint8]   # (height, width) uint8, values 0–NONE
+    cls: NDArray[np.uint8]  # (height, width) uint8, values 0-NONE
     width: int
     height: int
-    az_deg: float            # camera optical axis azimuth (clockwise from north)
-    el_deg: float            # camera optical axis elevation
-    width_deg: float         # horizontal FOV
-    height_deg: float        # vertical FOV
+    az_deg: float  # camera optical axis azimuth (clockwise from north)
+    el_deg: float  # camera optical axis elevation
+    width_deg: float  # horizontal FOV
+    height_deg: float  # vertical FOV
 
 
 def project_labels(
     frames: list[LabelFrame],
     out_width: int = 1024,
 ) -> NDArray[np.uint8]:
-    """Equirectangular class grid (out_width × out_width/2), NONE where no frame labels a pixel.
+    """Equirectangular class grid (out_width x out_width/2), NONE where no frame labels a pixel.
 
     Ports label-pano.ts:projectLabels — same pinhole model, same elevation clamp.
     """
@@ -78,8 +78,11 @@ def project_labels(
         cos_el = np.cos(el_deg * RAD)
 
         # Only frames whose bounding cone spans this elevation
-        cand = [i for i, (f, r) in enumerate(zip(frames, radii))
-                if abs(el_deg - f.el_deg) <= r]
+        cand = [
+            i
+            for i, (f, r) in enumerate(zip(frames, radii, strict=True))
+            if abs(el_deg - f.el_deg) <= r
+        ]
         if not cand:
             continue
 
@@ -156,7 +159,7 @@ def extract_features(
 ) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
     """LAB + texture features for labeled pixels inside the elevation band.
 
-    Returns (X, y): X shape (N, 7), y shape (N,), N = labeled pixel count.
+    Returns (feats, y): feats shape (N, 7), y shape (N,), N = labeled pixel count.
     Features: L, a, b, sobel_mag, laplacian_mag, sin_el, cos_el.
     """
     h, w = grid.shape
@@ -178,21 +181,24 @@ def extract_features(
     if not mask.any():
         return np.empty((0, 7), dtype=np.float32), np.empty(0, dtype=np.uint8)
 
-    X = np.stack([
-        lab[:, :, 0][mask],
-        lab[:, :, 1][mask],
-        lab[:, :, 2][mask],
-        sobel[mask],
-        laplacian[mask],
-        sin_el[mask],
-        cos_el[mask],
-    ], axis=1)
+    feats = np.stack(
+        [
+            lab[:, :, 0][mask],
+            lab[:, :, 1][mask],
+            lab[:, :, 2][mask],
+            sobel[mask],
+            laplacian[mask],
+            sin_el[mask],
+            cos_el[mask],
+        ],
+        axis=1,
+    )
     y = grid[mask]
-    return X.astype(np.float32), y
+    return feats.astype(np.float32), y
 
 
 def train_classifier(
-    X: NDArray[np.float32],
+    feats: NDArray[np.float32],
     y: NDArray[np.uint8],
 ) -> RandomForestClassifier:
     """Random Forest with balanced class weights — counters the ~2% big-rock minority."""
@@ -202,7 +208,7 @@ def train_classifier(
         n_jobs=-1,
         random_state=42,
     )
-    clf.fit(X, y)
+    clf.fit(feats, y)
     return clf
 
 
@@ -244,23 +250,26 @@ def infer_full_grid(
         end = min(start + _BATCH, n)
         idx = indices[start:end]
         rows, cols = idx[:, 0], idx[:, 1]
-        X_batch = np.stack([
-            lab[rows, cols, 0],
-            lab[rows, cols, 1],
-            lab[rows, cols, 2],
-            sobel[rows, cols],
-            laplacian[rows, cols],
-            sin_el_2d[rows, cols],
-            cos_el_2d[rows, cols],
-        ], axis=1).astype(np.float32)
-        preds[start:end] = clf.predict(X_batch).astype(np.uint8)
+        feats_batch = np.stack(
+            [
+                lab[rows, cols, 0],
+                lab[rows, cols, 1],
+                lab[rows, cols, 2],
+                sobel[rows, cols],
+                laplacian[rows, cols],
+                sin_el_2d[rows, cols],
+                cos_el_2d[rows, cols],
+            ],
+            axis=1,
+        ).astype(np.float32)
+        preds[start:end] = clf.predict(feats_batch).astype(np.uint8)
 
     result[indices[:, 0], indices[:, 1]] = preds
     return result
 
 
 def render_labels_png(grid: NDArray[np.uint8]) -> bytes:
-    """RGBA PNG matching overlayPixels() in label-pano.ts: class colour + full alpha, transparent for NONE."""
+    """RGBA PNG like overlayPixels() in label-pano.ts: class colour, transparent for NONE."""
     h, w = grid.shape
     rgba = np.zeros((h, w, 4), dtype=np.uint8)
     for cls_idx, (b, g, r, a) in enumerate(CLASS_BGR_ALPHA):
@@ -272,7 +281,7 @@ def render_labels_png(grid: NDArray[np.uint8]) -> bytes:
     return buf.tobytes()
 
 
-def frame_geometry(f: "NavcamFrame") -> tuple[float, float, float, float]:
+def frame_geometry(f: NavcamFrame) -> tuple[float, float, float, float]:
     """(az_deg, el_deg, width_deg, height_deg) of a NavcamFrame in world coordinates.
 
     Uses the frame centre direction as the optical axis and corner backprojections for FOV.

@@ -360,8 +360,8 @@ def _classify(args: argparse.Namespace) -> None:
     import cv2
     import numpy as np
 
-    from marsmap.ai4mars import NONE as AI4NONE
     from marsmap.ai4mars import decode_rle, group_of, label_key
+    from marsmap.classify import NONE as TERRAIN_NONE
     from marsmap.classify import (
         LabelFrame,
         extract_features,
@@ -372,7 +372,7 @@ def _classify(args: argparse.Namespace) -> None:
         train_classifier,
     )
     from marsmap.navcam import NavcamFrame
-    from marsmap.streetview import _frames  # type: ignore[attr-defined]
+    from marsmap.streetview import _frames
 
     pano_dir = Path(args.dir)
     raw_dir = Path(args.raw)
@@ -420,29 +420,24 @@ def _classify(args: argparse.Namespace) -> None:
             cls_flat = decode_rle(base64.b64decode(entry["rle"]), w * h)
             cls = cls_flat.reshape(h, w)
             az, el, wd, hd = frame_geometry(f)
-            out.append(LabelFrame(cls=cls, width=w, height=h,
-                                  az_deg=az, el_deg=el,
-                                  width_deg=wd, height_deg=hd))
+            out.append(
+                LabelFrame(
+                    cls=cls, width=w, height=h, az_deg=az, el_deg=el, width_deg=wd, height_deg=hd
+                )
+            )
         return out
 
     # ─── pass 1: collect features ───────────────────────────────────────────────
-    all_X: list[np.ndarray] = []
+    all_feats: list[np.ndarray] = []
     all_y: list[np.ndarray] = []
     human_grids: dict[str, np.ndarray] = {}
 
     for n, jpg in enumerate(jpgs, 1):
         key = jpg.stem
-        labels_path = pano_dir / f"{key}_labels.png"
 
         pano = cv2.imread(str(jpg))
         if pano is None:
             print(f"[{n}/{total}] {key}: can't read JPEG, skipping")
-            continue
-
-        prov = pano_dir / f"{key}.json"
-        if not prov.exists():
-            human_grids[key] = None  # type: ignore[assignment]
-            print(f"[{n}/{total}] {key}: no provenance, will infer only")
             continue
 
         if key in stops_by_key:
@@ -460,21 +455,21 @@ def _classify(args: argparse.Namespace) -> None:
         grid = project_labels(lf, out_width=1024)
         human_grids[key] = grid
 
-        pano_sm = cv2.resize(pano, (1024, 512))
-        X, y = extract_features(pano_sm, grid)
-        if len(X):
-            all_X.append(X)
+        pano_sm = np.asarray(cv2.resize(pano, (1024, 512)), dtype=np.uint8)
+        feats, y = extract_features(pano_sm, grid)
+        if len(feats):
+            all_feats.append(feats)
             all_y.append(y)
-        print(f"[{n}/{total}] {key}: {len(lf)} labeled frames, {len(X)} training pixels", flush=True)
+        print(f"[{n}/{total}] {key}: {len(lf)} frames, {len(feats)} px", flush=True)
 
-    if not all_X:
+    if not all_feats:
         print("No labeled pixels found — cannot train. Exiting.")
         return
 
-    X_all = np.concatenate(all_X)
+    feats_all = np.concatenate(all_feats)
     y_all = np.concatenate(all_y)
-    print(f"Training RF on {len(X_all)} pixels from {len(all_X)} stops …", flush=True)
-    clf = train_classifier(X_all, y_all)
+    print(f"Training RF on {len(feats_all)} pixels from {len(all_feats)} stops …", flush=True)
+    clf = train_classifier(feats_all, y_all)
 
     # ─── pass 2: infer + write PNGs ─────────────────────────────────────────────
     for n, jpg in enumerate(jpgs, 1):
@@ -486,12 +481,9 @@ def _classify(args: argparse.Namespace) -> None:
         pano = cv2.imread(str(jpg))
         if pano is None:
             continue
-        pano_sm = cv2.resize(pano, (1024, 512))
-        grid = human_grids.get(key)
-        if grid is None:
-            from marsmap.classify import NONE as CLF_NONE
-            grid = np.full((512, 1024), CLF_NONE, dtype=np.uint8)
-        result = infer_full_grid(pano_sm, clf, grid)
+        pano_sm = np.asarray(cv2.resize(pano, (1024, 512)), dtype=np.uint8)
+        no_labels = np.full((512, 1024), TERRAIN_NONE, dtype=np.uint8)
+        result = infer_full_grid(pano_sm, clf, human_grids.get(key, no_labels))
         labels_path.write_bytes(render_labels_png(result))
         print(f"[{n}/{total}] {key}: wrote {labels_path.name}", flush=True)
 
@@ -565,12 +557,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     clf.add_argument("--rover", choices=["m20", "msl"], required=True)
     clf.add_argument("--dir", type=Path, required=True, help="folder with *.jpg panoramas")
     clf.add_argument("--raw", type=Path, required=True, help="raw cache dir (API JSON + frames)")
-    clf.add_argument("--ai4mars-dir", type=Path, default=Path("web/public/data/ai4mars"),
-                     help="folder with per-rover group JSONs (default: web/public/data/ai4mars)")
-    clf.add_argument("--stops-file", type=Path, default=None,
-                     help="stops JSON (default: web/public/data/stops/{rover}.json)")
-    clf.add_argument("--stops", type=int, default=0,
-                     help="limit to first N stops (0 = all, for smoke-test)")
+    clf.add_argument(
+        "--ai4mars-dir",
+        type=Path,
+        default=Path("web/public/data/ai4mars"),
+        help="folder with per-rover group JSONs (default: web/public/data/ai4mars)",
+    )
+    clf.add_argument(
+        "--stops-file",
+        type=Path,
+        default=None,
+        help="stops JSON (default: web/public/data/stops/{rover}.json)",
+    )
+    clf.add_argument(
+        "--stops", type=int, default=0, help="limit to first N stops (0 = all, for smoke-test)"
+    )
     clf.add_argument("--force", action="store_true", help="overwrite existing _labels.png files")
     up = sub.add_parser("upload-panoramas", help="publish panoramas to a Hugging Face dataset")
     up.add_argument("--dir", type=Path, required=True, help="folder with one subfolder per rover")
