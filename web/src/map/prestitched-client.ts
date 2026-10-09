@@ -18,7 +18,10 @@ export type Prestitched = {
 
 async function fetchFirst(...urls: string[]): Promise<Response | null> {
   for (const url of urls) {
-    const r = await fetch(url).catch(() => null)
+    // ngrok's free tier answers browsers with a warning page unless told to skip it.
+    const init =
+      CDN && url.startsWith(CDN) ? { headers: { 'ngrok-skip-browser-warning': '1' } } : undefined
+    const r = await fetch(url, init).catch(() => null)
     if (r?.ok) return r
   }
   return null
