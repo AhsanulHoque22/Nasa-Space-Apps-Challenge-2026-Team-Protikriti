@@ -56,3 +56,27 @@ export async function prestitched(rover: Rover, stop: Stop): Promise<Prestitched
   const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height)
   return { pano, pixels: data, width, height }
 }
+
+/**
+ * Pre-computed terrain label PNG for a stop, or null when not available (caller falls back to
+ * live AI4Mars labels). `panoFile` is the stop's JPEG filename, e.g. "3_110.jpg".
+ */
+export async function prestitchedLabels(
+  rover: Rover,
+  panoFile: string,
+): Promise<{ pixels: Uint8ClampedArray; width: number; height: number } | null> {
+  const labelFile = panoFile.replace(/\.jpg$/i, '_labels.png')
+  const urls = CDN
+    ? [`${CDN}/${rover}/${labelFile}`, `data/pano/${rover}/${labelFile}`]
+    : [`data/pano/${rover}/${labelFile}`]
+  const response = await fetchFirst(...urls)
+  if (!response) return null
+  const bitmap = await createImageBitmap(await response.blob())
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  ctx.drawImage(bitmap, 0, 0)
+  bitmap.close()
+  const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  return { pixels: data, width, height }
+}

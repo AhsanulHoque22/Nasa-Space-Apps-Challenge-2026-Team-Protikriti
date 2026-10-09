@@ -19,7 +19,7 @@ import { CLASSES, CLASS_COLOURS, NONE, classShares } from '../core/ai4mars'
 import { type LabelSource, classAt, overlayPixels, projectLabels } from '../core/label-pano'
 import { labelSource, labelsFor } from '../map/ai4mars-client'
 import { type PanoRenderer, createPanoRenderer } from '../map/pano-gl'
-import { type Prestitched, prestitched } from '../map/prestitched-client'
+import { type Prestitched, prestitched, prestitchedLabels } from '../map/prestitched-client'
 import { type Rover, framesForStop } from '../map/raw-images'
 import { stitchPanorama } from '../map/stitch-client'
 
@@ -108,6 +108,7 @@ export function openStreetView(
   // AI4Mars terrain labels: people's labels on this stop's frames, drawn over the sphere.
   let labelSources: LabelSource[] = []
   let labelGrid: ReturnType<typeof projectLabels> | null = null
+  let precomputedLabels: { pixels: Uint8ClampedArray; width: number; height: number } | null = null
   let labelsOn = false
   let centreLine: HTMLElement | null = null
 
@@ -139,14 +140,31 @@ export function openStreetView(
   /** Show or hide the labels and their legend for the current stop and toggle state. */
   const updateLabels = async () => {
     const n = labelSources.length
-    labelsButton.hidden = n === 0
-    labelsButton.textContent = `Terrain labels (${n} frame${n === 1 ? '' : 's'})`
+    const hasPrecomputed = precomputedLabels !== null && n === 0
+    labelsButton.hidden = n === 0 && !hasPrecomputed
+    labelsButton.textContent = hasPrecomputed
+      ? 'Terrain labels (RF)'
+      : `Terrain labels (${n} frame${n === 1 ? '' : 's'})`
     labelsButton.setAttribute('aria-pressed', String(labelsOn))
-    labelsPanel.hidden = !(labelsOn && n)
-    if (!labelsOn || !n) {
+    labelsPanel.hidden = !(labelsOn && (n || hasPrecomputed))
+    if (!labelsOn || (!n && !hasPrecomputed)) {
       renderer.setLabels(null)
       centreLine = null
       if (hasImage) renderer.draw(state.yaw, state.pitch, state.fov)
+      return
+    }
+    if (hasPrecomputed) {
+      renderer.setLabels(precomputedLabels!)
+      if (hasImage) renderer.draw(state.yaw, state.pitch, state.fov)
+      labelsPanel.replaceChildren()
+      const title = document.createElement('h3')
+      title.textContent = 'Terrain classified by Random Forest (pre-computed)'
+      const note = document.createElement('p')
+      note.className = 'sv-labels-note'
+      note.textContent =
+        'Classes: soil, bedrock, sand, big rock — trained on AI4Mars human labels. ' +
+        'Sky and rover nadir are transparent.'
+      labelsPanel.append(title, note)
       return
     }
     labelGrid ??= projectLabels(labelSources, LABEL_PANO_WIDTH)
@@ -410,7 +428,15 @@ export function openStreetView(
     credit.href = pano.link || credit.href
     status.hidden = true
     layout()
-    // Terrain labels still come from the live frame list, when NASA answers.
+    // Pre-computed label PNG: try CDN first, show immediately when it arrives.
+    void prestitchedLabels(rover, pano.file)
+      .then((result) => {
+        if (id !== request) return
+        precomputedLabels = result
+        void updateLabels()
+      })
+      .catch(() => undefined)
+    // Live AI4Mars labels override the pre-computed ones when NASA answers.
     if (stop.yawDeg === null) return
     void framesAt(index, stop)
       .then((frames) => labelsFor(rover, selectPanorama(frames, stop).frames, stop.yawDeg ?? 0))
@@ -435,6 +461,7 @@ export function openStreetView(
     hasImage = false
     labelSources = []
     labelGrid = null
+    precomputedLabels = null
     void updateLabels()
     canvas.hidden = true // hide the previous stop while loading
     status.hidden = false
