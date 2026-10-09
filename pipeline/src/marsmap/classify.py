@@ -56,92 +56,52 @@ def project_labels(
 ) -> NDArray[np.uint8]:
     """Equirectangular class grid (out_width x out_width/2), NONE where no frame labels a pixel.
 
-    Ports label-pano.ts:projectLabels — same pinhole model, same elevation clamp.
+    Ports label-pano.ts:projectLabels (same pinhole model and elevation clamp), vectorised per
+    frame: where frames overlap, the one whose optical axis is nearest the pixel wins.
     """
     out_h = out_width // 2
     grid = np.full((out_h, out_width), NONE, dtype=np.uint8)
-    if not frames:
-        return grid
+    best_t2 = np.full((out_h, out_width), np.inf)
+    az = (np.arange(out_width) + 0.5) * (2 * np.pi / out_width)
+    sin_az, cos_az = np.sin(az)[None, :], np.cos(az)[None, :]
+    el_deg = 90.0 - (np.arange(out_h) + 0.5) / out_h * 180.0
+    in_band = (el_deg <= MAX_EL_DEG) & (el_deg >= MIN_EL_DEG)
 
-    # Pre-compute per-frame bounding info for early rejection
-    radii = [max(f.width_deg, f.height_deg) / 2.0 for f in frames]
-
-    sin_az = np.sin(np.arange(out_width) * (2 * np.pi / out_width) + np.pi / out_width)
-    cos_az = np.cos(np.arange(out_width) * (2 * np.pi / out_width) + np.pi / out_width)
-
-    for yi in range(out_h):
-        el_deg = 90.0 - (yi + 0.5) / out_h * 180.0
-        if el_deg > MAX_EL_DEG or el_deg < MIN_EL_DEG:
+    for f in frames:
+        rows = np.flatnonzero(
+            in_band & (np.abs(el_deg - f.el_deg) <= max(f.width_deg, f.height_deg) / 2)
+        )
+        if rows.size == 0:
             continue
+        sin_el = np.sin(el_deg[rows] * RAD)[:, None]
+        cos_el = np.cos(el_deg[rows] * RAD)[:, None]
+        dx, dy, dz = cos_el * sin_az, sin_el, cos_el * cos_az  # ray directions, broadcast
 
-        sin_el = np.sin(el_deg * RAD)
-        cos_el = np.cos(el_deg * RAD)
+        fwd_az, fwd_el = f.az_deg * RAD, f.el_deg * RAD
+        fx = np.cos(fwd_el) * np.sin(fwd_az)
+        fy = np.sin(fwd_el)
+        fz = np.cos(fwd_el) * np.cos(fwd_az)
+        t = fx * dx + fy * dy + fz * dz
+        ahead = t > 0
+        t_safe = np.where(ahead, t, 1.0)
+        # Camera right axis has no vertical part; up axis tilts with the camera elevation.
+        px = (np.cos(fwd_az) * dx - np.sin(fwd_az) * dz) / t_safe
+        py = (
+            -np.sin(fwd_el) * np.sin(fwd_az) * dx
+            + np.cos(fwd_el) * dy
+            - np.sin(fwd_el) * np.cos(fwd_az) * dz
+        ) / t_safe
+        half_w = np.tan(f.width_deg / 2 * RAD)
+        half_h = np.tan(f.height_deg / 2 * RAD)
+        inside = ahead & (np.abs(px) <= half_w) & (np.abs(py) <= half_h)
 
-        # Only frames whose bounding cone spans this elevation
-        cand = [
-            i
-            for i, (f, r) in enumerate(zip(frames, radii, strict=True))
-            if abs(el_deg - f.el_deg) <= r
-        ]
-        if not cand:
-            continue
-
-        for xi in range(out_width):
-            best_cls = NONE
-            best_t2 = np.inf
-
-            for i in cand:
-                f = frames[i]
-                # Project sphere direction through pinhole
-                # Forward vector of the camera
-                fwd_az = f.az_deg * RAD
-                fwd_el = f.el_deg * RAD
-                fx = np.cos(fwd_el) * np.sin(fwd_az)
-                fy = np.sin(fwd_el)
-                fz = np.cos(fwd_el) * np.cos(fwd_az)
-
-                # Ray direction
-                dx = cos_el * float(sin_az[xi])
-                dy = sin_el
-                dz = cos_el * float(cos_az[xi])
-
-                # Project onto camera plane: t = dot(forward, direction)
-                t = fx * dx + fy * dy + fz * dz
-                if t <= 0:
-                    continue
-
-                # Right and up axes of camera
-                rx = np.cos(fwd_az)
-                ry = 0.0
-                rz = -np.sin(fwd_az)
-
-                ux = -np.sin(fwd_el) * np.sin(fwd_az)
-                uy = np.cos(fwd_el)
-                uz = -np.sin(fwd_el) * np.cos(fwd_az)
-
-                # Normalised image coordinates
-                px = (rx * dx + ry * dy + rz * dz) / t
-                py = (ux * dx + uy * dy + uz * dz) / t
-
-                half_w = np.tan(f.width_deg / 2 * RAD)
-                half_h = np.tan(f.height_deg / 2 * RAD)
-                if abs(px) > half_w or abs(py) > half_h:
-                    continue  # outside frame
-
-                t2 = (dx - fx) ** 2 + (dy - fy) ** 2 + (dz - fz) ** 2
-                if t2 >= best_t2:
-                    continue
-
-                col = min(f.width - 1, int((px / half_w + 1) / 2 * f.width))
-                row = min(f.height - 1, int((1 - py / half_h) / 2 * f.height))
-                v = int(f.cls[row, col])
-                if v == NONE:
-                    continue
-                best_cls = v
-                best_t2 = t2
-
-            grid[yi, xi] = best_cls
-
+        col = np.clip(((px / half_w + 1) / 2 * f.width).astype(np.int64), 0, f.width - 1)
+        row = np.clip(((1 - py / half_h) / 2 * f.height).astype(np.int64), 0, f.height - 1)
+        value = f.cls[row, col]
+        t2 = (dx - fx) ** 2 + (dy - fy) ** 2 + (dz - fz) ** 2
+        take = inside & (value != NONE) & (t2 < best_t2[rows])
+        grid[rows] = np.where(take, value, grid[rows])
+        best_t2[rows] = np.where(take, t2, best_t2[rows])
     return grid
 
 

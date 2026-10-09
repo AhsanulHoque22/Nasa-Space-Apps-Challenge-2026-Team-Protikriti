@@ -406,7 +406,7 @@ def _classify(args: argparse.Namespace) -> None:
         """Build LabelFrames for frames that have AI4Mars labels."""
         out: list[LabelFrame] = []
         for f in frames:
-            key = label_key(rover, f.image_id)
+            key = label_key(rover, f"{f.image_id}.png")
             if key is None:
                 continue
             grp = group_of(rover, f.image_id)
