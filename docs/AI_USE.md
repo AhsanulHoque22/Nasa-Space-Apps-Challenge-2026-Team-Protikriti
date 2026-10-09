@@ -14,7 +14,7 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 - Claude wrote the code for that model, the sky and rover masks, and the rock detector; the team chose to use AI4Mars labels and reviewed the output over the panoramas.
 
 ## Terrain label accuracy (held-out stops)
-Measured by training on 4 of every 5 stops and scoring the fifth (Perseverance, `classify-panoramas --evaluate`). Share of each class's true pixels found: soil 74%, bedrock 37%, sand 30%, big rock 3% (rocks are 0.4% of labelled pixels). The rock figure is for the forest alone; rocks shown in the app come from the contrast rule described in `docs/data-sources.md`, which has not been scored against people's labels.
+Measured by training on 4 of every 5 stops and scoring the fifth (`classify-panoramas --evaluate`). Share of each class's true pixels the forest finds, Perseverance: soil 51%, bedrock 50%, sand 48%, big rock 33% (rocks are 0.4% of labelled pixels). That is modest: about half of each class. Curiosity figures are in `data/pano/msl_labels.log` after a run. Rocks shown in the app also come from a contrast rule (`docs/data-sources.md`) that has not been scored against people's labels.
 
 ## What the AI did not do
 - Choose the challenge, the Jezero and Gale sites, the 15° slope limit, or the product direction. The team decided these.
