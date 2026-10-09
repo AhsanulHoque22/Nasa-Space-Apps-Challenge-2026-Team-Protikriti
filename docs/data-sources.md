@@ -235,3 +235,18 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Reading | `marsmap ai4mars` reads only the label PNGs out of the 16 GB archive by HTTP range requests, shrinks each to 128 px wide (nearest neighbour), run-length encodes it and groups them by sol (Perseverance) or by 100,000 ticks of spacecraft clock (Curiosity). |
 | Matching | Curiosity labels are on version-1 products (`...M1`); the raw API serves `...M_` of the same shot, so frames match on the product id without its version character. Perseverance labels are on full-frame products, while the API serves tiles of the same exposure, so they match on eye and exposure clock and the label covers the whole sensor. |
 | Drawing | Each labelled frame is projected with the same Navcam camera model and pose (mast azimuth plus the stop's yaw) as the stitched photos; where frames overlap, the one looking most directly wins. No model is involved: these are people's labels. Colours are validated categorical palette slots; because sand and big rock sit close for deuteranopes, the viewer also names the class at the centre of the view and lists each class's share. |
+
+### Completing the labels on whole panoramas (`marsmap classify-panoramas`)
+
+People labelled only some frames, and only part of each, so most of a stitched panorama has no human label. The pipeline fills the rest offline and writes `{stop}_labels.png` beside each panorama; the app only displays those files.
+
+| Item | Source and method |
+|---|---|
+| Model | A scikit-learn Random Forest (100 trees, balanced class weights), trained by us on the AI4Mars labels above, one model per rover. It is not a pre-trained or third-party model. Each stop contributes at most 8,000 labelled pixels. |
+| Features | Per pixel: CIE Lab colour, edge strength, rock-scale blob contrast, local roughness, local contrast, and elevation angle. |
+| Where it applies | People's labels are kept wherever they exist; the forest fills the other ground. Sky, the rover body and the nadir fill are left clear. |
+| Sky | The skyline is the strongest bright-to-dark step in each column between +14 and -8 degrees elevation. Columns with no visible edge use the stop's median skyline. |
+| Rover | The body is fixed in the rover's frame, so up to 150 stops are rotated by each stop's recorded yaw and their median image shows the body; its outline is the mask. |
+| Rocks | Rocks are 0.4% of the labelled pixels, too few for the forest. Rock-sized blobs are found by contrast (difference of Gaussians, threshold at the 97.5th percentile of the stop's ground), 12 to 900 pixels in area and 25 px clear of the rover, and shown as "big rock". This is a rule, so it also marks some pebbles and shadow edges. |
+| Accuracy | Measured on stops held out from training (`--evaluate`): see the figures in `docs/AI_USE.md`. These labels are a visual aid. Routing, slope and every number in the app never use them. |
+

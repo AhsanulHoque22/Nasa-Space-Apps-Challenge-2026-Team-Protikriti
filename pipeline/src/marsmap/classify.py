@@ -210,15 +210,22 @@ def extract_features(
     return feature_stack(panorama)[mask], grid[mask]
 
 
+FOREST_TREES = 60
+FOREST_MIN_LEAF = 20  # pixels per leaf
+FOREST_TREE_SAMPLE = 0.25  # share of the training pixels each tree is fit on
+
+
 def train_classifier(
     feats: NDArray[np.float32],
     y: NDArray[np.uint8],
 ) -> RandomForestClassifier:
     """Random Forest with balanced class weights: counters the ~2% big-rock minority."""
     clf = RandomForestClassifier(
-        n_estimators=100,
+        n_estimators=FOREST_TREES,
+        min_samples_leaf=FOREST_MIN_LEAF,  # unbounded trees reach GBs on millions of pixels
+        max_samples=FOREST_TREE_SAMPLE,  # each tree sees a share of the pixels: faster
         class_weight="balanced",
-        n_jobs=-1,
+        n_jobs=2,  # the stitching batches share this machine
         random_state=42,
     )
     clf.fit(feats, y)

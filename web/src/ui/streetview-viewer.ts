@@ -180,8 +180,9 @@ export function openStreetView(
       })
       note.textContent =
         'Where people labelled these Navcam frames (AI4Mars) their labels are kept; elsewhere a ' +
-        'Random Forest trained on them fills in the ground. Sky, the rover body and the ground ' +
-        'under the cameras are left clear. The model is a guess, not a measurement.'
+        'Random Forest trained on them fills in the ground, and rocks are spotted by contrast. ' +
+        'Sky, the rover body and the ground under the cameras are left clear. ' +
+        'These are guesses to look at, not measurements, and nothing in the planner uses them.'
       labelsPanel.append(title, list, note)
       return
     }

@@ -10,6 +10,11 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 - Wrote the OpenCV panorama step (`pipeline/src/marsmap/cahvore.py`, `navcam.py`, `pano.py`, `streetview.py`) and its tests, after watching a public OpenCV image-stitching tutorial (Nicolai Nielsen, YouTube) the team pointed it to.
 - Drafted documentation: `README.md`, `docs/data-sources.md`, the demo script and the pitch script.
 - No AI model runs inside the app. Routing, slope, Mars time and panorama stitching are ordinary tested code (`web/src/core/`, `pipeline/`). The app never asks a model for a number.
+- One trained model exists, offline: a scikit-learn Random Forest in `pipeline/src/marsmap/classify.py` that we train on NASA's AI4Mars human labels to complete the terrain labels on whole panoramas (method and limits in `docs/data-sources.md`). It is our own small model, not a language model and not a third-party one. The app only shows its precomputed output, and no route, slope or other figure depends on it.
+- Claude wrote the code for that model, the sky and rover masks, and the rock detector; the team chose to use AI4Mars labels and reviewed the output over the panoramas.
+
+## Terrain label accuracy (held-out stops)
+Measured by training on 4 of every 5 stops and scoring the fifth (Perseverance, `classify-panoramas --evaluate`). Share of each class's true pixels found: soil 74%, bedrock 37%, sand 30%, big rock 3% (rocks are 0.4% of labelled pixels). The rock figure is for the forest alone; rocks shown in the app come from the contrast rule described in `docs/data-sources.md`, which has not been scored against people's labels.
 
 ## What the AI did not do
 - Choose the challenge, the Jezero and Gale sites, the 15° slope limit, or the product direction. The team decided these.
