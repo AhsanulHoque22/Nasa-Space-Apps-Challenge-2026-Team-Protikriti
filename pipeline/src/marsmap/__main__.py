@@ -349,6 +349,155 @@ def _download_bytes(url: str) -> bytes:
     raise AssertionError("unreachable")
 
 
+def _classify(args: argparse.Namespace) -> None:
+    """Two-pass terrain classification on stitched panoramas.
+
+    Pass 1: collect features from AI4Mars-labeled pixels across all stops.
+    Pass 2: train RF, then infer + write {stop_key}_labels.png for each stop.
+    """
+    import base64
+
+    import cv2
+    import numpy as np
+
+    from marsmap.ai4mars import NONE as AI4NONE
+    from marsmap.ai4mars import decode_rle, group_of, label_key
+    from marsmap.classify import (
+        LabelFrame,
+        extract_features,
+        frame_geometry,
+        infer_full_grid,
+        project_labels,
+        render_labels_png,
+        train_classifier,
+    )
+    from marsmap.navcam import NavcamFrame
+    from marsmap.streetview import _frames  # type: ignore[attr-defined]
+
+    pano_dir = Path(args.dir)
+    raw_dir = Path(args.raw)
+    ai4mars_dir = Path(args.ai4mars_dir)
+    rover = args.rover
+
+    stops_file = args.stops_file or Path(f"web/public/data/stops/{rover}.json")
+    stops_json = json.loads(stops_file.read_text())
+    stops_by_key = {f"{s['site']}_{s['drive']}": (i, s) for i, s in enumerate(stops_json)}
+
+    # Sort by sol order so early (labeled) stops come first; unlisted keys go at the end.
+    def _sol_order(p: Path) -> int:
+        entry = stops_by_key.get(p.stem)
+        return entry[1]["sol"] if entry else 999999
+
+    jpgs = sorted(pano_dir.glob("*.jpg"), key=_sol_order)
+    if args.stops:
+        jpgs = jpgs[: args.stops]
+    total = len(jpgs)
+    print(f"Found {total} stitched stops in {pano_dir}")
+
+    ai4mars_cache: dict[str, dict[str, Any]] = {}
+
+    def _load_group(group: str) -> dict[str, Any]:
+        path = ai4mars_dir / rover / f"{group}.json"
+        if group not in ai4mars_cache:
+            ai4mars_cache[group] = json.loads(path.read_text()) if path.exists() else {}
+        return ai4mars_cache[group]
+
+    def _label_frames(frames: list[NavcamFrame]) -> list[LabelFrame]:
+        """Build LabelFrames for frames that have AI4Mars labels."""
+        out: list[LabelFrame] = []
+        for f in frames:
+            key = label_key(rover, f.image_id)
+            if key is None:
+                continue
+            grp = group_of(rover, f.image_id)
+            if grp is None:
+                continue
+            group_data = _load_group(grp)
+            entry = group_data.get(key)
+            if entry is None:
+                continue
+            w, h = entry["w"], entry["h"]
+            cls_flat = decode_rle(base64.b64decode(entry["rle"]), w * h)
+            cls = cls_flat.reshape(h, w)
+            az, el, wd, hd = frame_geometry(f)
+            out.append(LabelFrame(cls=cls, width=w, height=h,
+                                  az_deg=az, el_deg=el,
+                                  width_deg=wd, height_deg=hd))
+        return out
+
+    # ─── pass 1: collect features ───────────────────────────────────────────────
+    all_X: list[np.ndarray] = []
+    all_y: list[np.ndarray] = []
+    human_grids: dict[str, np.ndarray] = {}
+
+    for n, jpg in enumerate(jpgs, 1):
+        key = jpg.stem
+        labels_path = pano_dir / f"{key}_labels.png"
+
+        pano = cv2.imread(str(jpg))
+        if pano is None:
+            print(f"[{n}/{total}] {key}: can't read JPEG, skipping")
+            continue
+
+        prov = pano_dir / f"{key}.json"
+        if not prov.exists():
+            human_grids[key] = None  # type: ignore[assignment]
+            print(f"[{n}/{total}] {key}: no provenance, will infer only")
+            continue
+
+        if key in stops_by_key:
+            idx, stop = stops_by_key[key]
+            next_sol = stops_json[idx + 1]["sol"] if idx + 1 < len(stops_json) else None
+            try:
+                navcam_frames = _frames(rover, stop, next_sol, raw_dir)
+            except Exception as e:
+                navcam_frames = []
+                print(f"[{n}/{total}] {key}: frame fetch failed ({e}), will infer only")
+            lf = _label_frames(navcam_frames)
+        else:
+            lf = []
+
+        grid = project_labels(lf, out_width=1024)
+        human_grids[key] = grid
+
+        pano_sm = cv2.resize(pano, (1024, 512))
+        X, y = extract_features(pano_sm, grid)
+        if len(X):
+            all_X.append(X)
+            all_y.append(y)
+        print(f"[{n}/{total}] {key}: {len(lf)} labeled frames, {len(X)} training pixels", flush=True)
+
+    if not all_X:
+        print("No labeled pixels found — cannot train. Exiting.")
+        return
+
+    X_all = np.concatenate(all_X)
+    y_all = np.concatenate(all_y)
+    print(f"Training RF on {len(X_all)} pixels from {len(all_X)} stops …", flush=True)
+    clf = train_classifier(X_all, y_all)
+
+    # ─── pass 2: infer + write PNGs ─────────────────────────────────────────────
+    for n, jpg in enumerate(jpgs, 1):
+        key = jpg.stem
+        labels_path = pano_dir / f"{key}_labels.png"
+        if labels_path.exists() and not args.force:
+            print(f"[{n}/{total}] {key}: already done, skipping")
+            continue
+        pano = cv2.imread(str(jpg))
+        if pano is None:
+            continue
+        pano_sm = cv2.resize(pano, (1024, 512))
+        grid = human_grids.get(key)
+        if grid is None:
+            from marsmap.classify import NONE as CLF_NONE
+            grid = np.full((512, 1024), CLF_NONE, dtype=np.uint8)
+        result = infer_full_grid(pano_sm, clf, grid)
+        labels_path.write_bytes(render_labels_png(result))
+        print(f"[{n}/{total}] {key}: wrote {labels_path.name}", flush=True)
+
+    print("Done.")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="marsmap")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -412,6 +561,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     pano.add_argument(
         "--discard-frames", action="store_true", help="delete each stop's raw frames once stitched"
     )
+    clf = sub.add_parser("classify-panoramas", help="RF terrain labels on pre-stitched panoramas")
+    clf.add_argument("--rover", choices=["m20", "msl"], required=True)
+    clf.add_argument("--dir", type=Path, required=True, help="folder with *.jpg panoramas")
+    clf.add_argument("--raw", type=Path, required=True, help="raw cache dir (API JSON + frames)")
+    clf.add_argument("--ai4mars-dir", type=Path, default=Path("web/public/data/ai4mars"),
+                     help="folder with per-rover group JSONs (default: web/public/data/ai4mars)")
+    clf.add_argument("--stops-file", type=Path, default=None,
+                     help="stops JSON (default: web/public/data/stops/{rover}.json)")
+    clf.add_argument("--stops", type=int, default=0,
+                     help="limit to first N stops (0 = all, for smoke-test)")
+    clf.add_argument("--force", action="store_true", help="overwrite existing _labels.png files")
     up = sub.add_parser("upload-panoramas", help="publish panoramas to a Hugging Face dataset")
     up.add_argument("--dir", type=Path, required=True, help="folder with one subfolder per rover")
     up.add_argument("--repo", required=True, help="dataset id, e.g. user/atlas-mars-panoramas")
@@ -422,6 +582,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     commands = {
         "panorama": _panorama,
+        "classify-panoramas": _classify,
         "upload-panoramas": _upload_panoramas,
         "swim": _swim,
         "activities": _activities,

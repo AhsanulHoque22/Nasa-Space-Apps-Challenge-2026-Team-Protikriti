@@ -13,3 +13,5 @@ dist/
 .vercel/
 .env.local
 data/pano/
+.vercel
+.env*
