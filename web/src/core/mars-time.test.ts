@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  nextLocalHourMs,
   localMeanSolarTimeHours,
   localTrueSolarTimeHours,
   marsSolDate,
@@ -86,5 +87,17 @@ describe('mission clocks (fixtures from NASA raw-image records, 2026-09-28)', ()
     const c = missionClock('perseverance', Date.parse('2026-09-28T13:47:29.727Z'))
     expect(c.sol).toBe(1993)
     expect(Math.abs(c.lmstHours - hms(14, 2, 23.1)) * 60).toBeLessThan(1)
+  })
+})
+
+describe('nextLocalHourMs', () => {
+  it('lands on the requested local hour, within one sol and never earlier', () => {
+    const now = Date.UTC(2026, 9, 9, 12, 0, 0)
+    for (const lon of [0, 77.45, 137.44, -120]) {
+      const later = nextLocalHourMs(now, lon, 10)
+      expect(later).toBeGreaterThanOrEqual(now)
+      expect(later - now).toBeLessThan(88_800_000)
+      expect(localMeanSolarTimeHours(later, lon)).toBeCloseTo(10, 6)
+    }
   })
 })

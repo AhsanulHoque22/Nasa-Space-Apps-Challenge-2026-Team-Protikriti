@@ -60,7 +60,11 @@ import { renderComparePanel } from './ui/compare-panel'
 import type { SiteId } from './core/surface-conditions'
 import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
-import { solarLongitudeDeg } from './core/mars-time'
+import {
+  localMeanSolarTimeHours,
+  nextLocalHourMs,
+  solarLongitudeDeg,
+} from './core/mars-time'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
 import { createCaveLayer } from './map/caves-layer'
 import { createWalkGround } from './map/walk-ground'
@@ -223,6 +227,11 @@ async function main() {
         const rover = site.rover === 'Curiosity' ? positions?.rems : positions?.meda
         if (rover && lonLatToCell(g, rover[0], rover[1])) from = { lon: rover[0], lat: rover[1] }
       }
+      // At night the whole view is black and nothing seems to open: arrive in the morning.
+      const arriveAt = from
+      const lmst = localMeanSolarTimeHours(sceneTimeMs(), arriveAt.lon)
+      if (lmst < EXPLORE_DAY_START_H || lmst >= EXPLORE_DAY_END_H)
+        clockRef.setTime(nextLocalHourMs(sceneTimeMs(), arriveAt.lon, EXPLORE_ARRIVAL_H))
       for (const hide of exploreHooks) hide(true)
       openExplore(viewer, walkSite, from, () => {
         for (const hide of exploreHooks) hide(false)
@@ -418,6 +427,10 @@ function weatherOpener(side: HTMLElement): (station: WeatherStation) => void {
   }
 }
 
+// Exploring on foot at night shows a black screen, so arrival is moved to the morning.
+const EXPLORE_DAY_START_H = 6.5 // local mean solar time: the sun is up between these hours
+const EXPLORE_DAY_END_H = 17.5
+const EXPLORE_ARRIVAL_H = 10
 const URL_SYNC_DELAY_MS = 400
 
 /** Keep the address bar pointing at the current view so any view can be shared. */

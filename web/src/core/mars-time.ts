@@ -106,6 +106,14 @@ export function localMeanSolarTimeHours(utcMs: number, eastLonDeg: number): numb
   return mod(marsTime(utcMs).mtcHours - westLon(eastLonDeg) / 15, 24)
 }
 
+const MS_PER_MARS_HOUR = (MS_PER_DAY * 1.0274912517) / 24 // a sol is 1.0274912517 Earth days
+
+/** The next UTC moment (within one sol, never earlier) when local mean solar time is `hour`. */
+export function nextLocalHourMs(utcMs: number, eastLonDeg: number, hour: number): number {
+  const ahead = mod(hour - localMeanSolarTimeHours(utcMs, eastLonDeg), 24)
+  return utcMs + ahead * MS_PER_MARS_HOUR
+}
+
 /** C-4: local true (sundial) solar time, hours in [0, 24). */
 export function localTrueSolarTimeHours(utcMs: number, eastLonDeg: number): number {
   const t = marsTime(utcMs)
