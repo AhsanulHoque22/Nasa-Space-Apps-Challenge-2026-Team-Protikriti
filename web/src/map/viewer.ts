@@ -8,6 +8,7 @@ import {
   Math as CesiumMath,
   Rectangle,
   SkyAtmosphere,
+  UrlTemplateImageryProvider,
   Viewer,
   WebMapTileServiceImageryProvider,
 } from 'cesium'
@@ -74,6 +75,41 @@ function hiriseGlobal() {
   return provider
 }
 
+type StripRegion = {
+  name: string
+  rect: [number, number, number, number]
+  minLevel: number
+  maxLevel: number
+}
+
+/**
+ * Tidied HiRISE strips (seams removed, aligned to CTX; made by `marsmap strips`) for the regions
+ * processed so far. They sit over the raw strips and step aside below their finest level, where
+ * the raw tiles carry more detail. A missing manifest just leaves the raw strips as they were.
+ */
+async function addTidyStrips(viewer: Viewer, above: ImageryLayer): Promise<ImageryLayer[]> {
+  const response = await fetch('data/strips/manifest.json').catch(() => null)
+  if (!response?.ok) return []
+  const { regions } = (await response.json()) as { regions: StripRegion[] }
+  let index = viewer.imageryLayers.indexOf(above)
+  return regions.map((r) => {
+    const provider = new UrlTemplateImageryProvider({
+      url: 'data/strips/{z}/{x}/{y}.webp',
+      tilingScheme: new GeographicTilingScheme({ ellipsoid: MARS_SPHERE }),
+      tileWidth: HIRISE_GLOBAL_TILE_PX,
+      tileHeight: HIRISE_GLOBAL_TILE_PX,
+      minimumLevel: r.minLevel,
+      maximumLevel: r.maxLevel,
+      rectangle: Rectangle.fromDegrees(...r.rect),
+      credit: 'NASA/JPL-Caltech/University of Arizona HiRISE, seams and alignment tidied here',
+    })
+    provider.errorEvent.addEventListener(() => undefined)
+    const layer = new ImageryLayer(provider, { maximumTerrainLevel: r.maxLevel })
+    viewer.imageryLayers.add(layer, ++index)
+    return layer
+  })
+}
+
 /** All HiRISE imagery (global strips + site mosaics) and CTX Gale, toggled together. */
 export type SiteImagery = { show: boolean }
 
@@ -111,6 +147,11 @@ export function createMarsViewer(container: HTMLElement): {
   const layers = [galeCtx, strips, ...mosaics]
   const composites = mosaics.filter((_, i) => HIRISE_MOSAICS[i]?.id.includes('_Visible_Mosaic_'))
   const hiddenOnFoot = [strips, galeCtx, ...composites]
+  void addTidyStrips(viewer, strips).then((tidy) => {
+    layers.push(...tidy)
+    hiddenOnFoot.push(...tidy)
+    for (const layer of tidy) layer.show = strips.show
+  })
   const offFoot = {
     get show() {
       return hiddenOnFoot.every((l) => l.show)

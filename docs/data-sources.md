@@ -251,3 +251,15 @@ People labelled only some frames, and only part of each, so most of a stitched p
 | Rocks | Rocks are 0.4% of the labelled pixels, too few for the forest. Rock-sized blobs are found by contrast (difference of Gaussians, threshold at the 97.5th percentile of the stop's ground), 12 to 900 pixels in area and 25 px clear of the rover, and shown as "big rock". This is a rule, so it also marks some pebbles and shadow edges. |
 | Accuracy | Measured on stops held out from training (`--evaluate`): see the figures in `docs/AI_USE.md`. These labels are a visual aid. Routing, slope and every number in the app never use them. |
 
+## Tidied HiRISE strips on the globe (`marsmap strips`)
+
+The planet-wide HiRISE layer (Esri OnMars, "every released observation") is a patchwork of separate strips, each with its own exposure and a position that can be tens of metres off. For the regions listed in `web/public/data/strips/manifest.json` the app draws a tidied copy over it. Beyond those regions, and when zoomed in past 20 m/px, the raw NASA/Esri tiles show as before.
+
+| Item | Method |
+|---|---|
+| Source | HiRISE: `astro.arcgis.com/arcgis/rest/services/OnMars/HiRISE` (credit NASA/JPL-Caltech/University of Arizona); reference for alignment: `OnMars/CTX` (CTX orbital mosaic, controlled to MOLA). Both are 512 px geographic tiles. Tiles are read at level 10 (about 20 m/px) and cached in `data/raw/esri/`. |
+| Seams | The long straight edges between strips are found by averaging the signed brightness gradient along tilted lines of 160 px (strips run nearly along the map axes). On a seam, only the gradient averaged along it (the step) is removed, then the image is re-integrated with a Poisson solve (DCT). Ground texture across the seam is kept. |
+| Alignment | Each strip piece between seams is shifted to line up with CTX by phase correlation on band-passed images, accepted only with a clear correlation peak and a shift of at most 8 px (about 160 m at level 10). Shifts are smoothed so no gap opens. |
+| Measured, Jezero | Band-passed correlation with CTX over the region rose from 0.39 to 0.52; 6 strip pieces were moved, by 3.5 px on average (about 70 m). 392,416 seam pixels were corrected. |
+| What it does not do | It cannot re-register strips from the original frames (the service only serves the flattened mosaic), so seams that are not long straight lines, and offsets larger than 8 px, are left alone. Nothing is drawn in: pixels are re-balanced or moved. Brightness is no longer radiometric; use for looking, not measuring. |
+

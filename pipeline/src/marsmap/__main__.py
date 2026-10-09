@@ -32,6 +32,7 @@ from marsmap.mola import MEGDR_URL, megdr_to_web, write_mola
 from marsmap.slope import slope_deg
 from marsmap.stops import waypoint_stops
 from marsmap.streetview import build_panorama, update_index
+from marsmap.strip_tiles import build_region
 from marsmap.swim import SWIM_URL, swim_to_web, write_swim
 from marsmap.thermal import build_thermal
 from marsmap.walkpatch import build_walk_patch
@@ -219,6 +220,17 @@ def _walk(args: argparse.Namespace) -> None:
             continue
         meta = build_walk_patch(site["id"], site["walk"], args.out, args.tiles_only)
         print(f"wrote walk patch for {site['id']}: {meta['width']}x{meta['height']} at 2 m")
+
+
+def _strips(args: argparse.Namespace) -> None:
+    summary = build_region(
+        args.name, tuple(args.region), args.level, args.out, args.cache, not args.no_align
+    )
+    print(
+        f"strips {args.name}: {summary['tiles']} tiles (levels {summary['minLevel']}-"
+        f"{summary['maxLevel']}), {int(summary['seamPx'])} seam px, "
+        f"{int(summary['aligned'])} pieces aligned to CTX"
+    )
 
 
 def _compare(args: argparse.Namespace) -> None:
@@ -585,6 +597,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     walk.add_argument("--config", type=Path, required=True)
     walk.add_argument("--out", type=Path, required=True)
     walk.add_argument("--tiles-only", action="store_true", help="redraw imagery tiles only")
+    strips = sub.add_parser("strips", help="tidy the HiRISE strip mosaic: seams and alignment")
+    strips.add_argument("--name", required=True)
+    strips.add_argument(
+        "--region", type=float, nargs=4, metavar=("W", "S", "E", "N"), required=True
+    )
+    strips.add_argument("--level", type=int, default=10)
+    strips.add_argument("--out", type=Path, required=True, help="web data folder (writes strips/)")
+    strips.add_argument("--cache", type=Path, default=Path("../data/raw/esri"))
+    strips.add_argument("--no-align", action="store_true", help="skip alignment to CTX")
     compare = sub.add_parser("compare", help="Jezero vs Jamuna images at the same scale")
     compare.add_argument("--out", type=Path, required=True)
     caves = sub.add_parser("caves", help="USGS Mars cave candidate catalogue -> caves.json")
@@ -649,6 +670,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = {
         "panorama": _panorama,
         "classify-panoramas": _classify,
+        "strips": _strips,
         "upload-panoramas": _upload_panoramas,
         "swim": _swim,
         "activities": _activities,

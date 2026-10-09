@@ -12,6 +12,7 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 - No AI model runs inside the app. Routing, slope, Mars time and panorama stitching are ordinary tested code (`web/src/core/`, `pipeline/`). The app never asks a model for a number.
 - One trained model exists, offline: a scikit-learn Random Forest in `pipeline/src/marsmap/classify.py` that we train on NASA's AI4Mars human labels to complete the terrain labels on whole panoramas (method and limits in `docs/data-sources.md`). It is our own small model, not a language model and not a third-party one. The app only shows its precomputed output, and no route, slope or other figure depends on it.
 - The 25 cm HiRISE walk-patch tiles are sharpened for display with classical OpenCV filters only (`pipeline/src/marsmap/enhance.py`). No super-resolution or generative model is used, so no terrain is invented.
+- The tidied HiRISE strips on the globe use classical OpenCV and SciPy only (Hough-free oriented seam detection, Poisson re-integration, phase correlation to CTX): no learned or generative model, so no terrain is invented (`pipeline/src/marsmap/strips.py`).
 - Claude wrote the code for that model, the sky and rover masks, and the rock detector; the team chose to use AI4Mars labels and reviewed the output over the panoramas.
 
 ## Terrain label accuracy (held-out stops)

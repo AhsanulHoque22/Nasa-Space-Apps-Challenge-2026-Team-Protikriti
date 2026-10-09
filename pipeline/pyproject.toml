@@ -9,6 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "huggingface-hub>=0.30",
     "scikit-learn>=1.5",  # terrain RF classifier
+    "scipy>=1.14",  # Poisson seam removal (DCT) and median filters; already a scikit-learn dependency
     "numpy>=2.5.3",
     "opencv-python-headless>=4.12",
     "rasterio>=1.5.1",

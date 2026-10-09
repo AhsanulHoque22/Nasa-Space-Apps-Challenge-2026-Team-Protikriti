@@ -391,6 +391,7 @@ dependencies = [
     { name = "opencv-python-headless" },
     { name = "rasterio" },
     { name = "scikit-learn" },
+    { name = "scipy" },
 ]
 
 [package.dev-dependencies]
@@ -407,6 +408,7 @@ requires-dist = [
     { name = "opencv-python-headless", specifier = ">=4.12" },
     { name = "rasterio", specifier = ">=1.5.1" },
     { name = "scikit-learn", specifier = ">=1.5" },
+    { name = "scipy", specifier = ">=1.14" },
 ]
 
 [package.metadata.requires-dev]

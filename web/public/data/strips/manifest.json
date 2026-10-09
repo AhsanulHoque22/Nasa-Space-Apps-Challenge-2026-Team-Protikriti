@@ -1,0 +1,22 @@
+{
+ "regions": [
+  {
+   "name": "jezero",
+   "rect": [
+    76.46484375,
+    17.40234375,
+    78.3984375,
+    19.3359375
+   ],
+   "maxLevel": 10,
+   "minLevel": 5,
+   "tiles": 130,
+   "aligned": 6.0,
+   "seamPx": 392416.0,
+   "pieces": 0.0,
+   "corrBefore": 0.386,
+   "corrAfter": 0.523,
+   "meanShiftPx": 3.517
+  }
+ ]
+}
