@@ -349,6 +349,9 @@ def _download_bytes(url: str) -> bytes:
     raise AssertionError("unreachable")
 
 
+TRAIN_PIXELS_PER_STOP = 8_000  # of ~140k labelled pixels per stop; neighbours are near-duplicates
+
+
 def _classify(args: argparse.Namespace) -> None:
     """Two-pass terrain classification on stitched panoramas.
 
@@ -428,6 +431,7 @@ def _classify(args: argparse.Namespace) -> None:
         return out
 
     # ─── pass 1: collect features ───────────────────────────────────────────────
+    rng = np.random.default_rng(0)
     all_feats: list[np.ndarray] = []
     all_y: list[np.ndarray] = []
     human_grids: dict[str, np.ndarray] = {}
@@ -457,10 +461,15 @@ def _classify(args: argparse.Namespace) -> None:
 
         pano_sm = np.asarray(cv2.resize(pano, (1024, 512)), dtype=np.uint8)
         feats, y = extract_features(pano_sm, grid)
+        if (
+            len(feats) > TRAIN_PIXELS_PER_STOP
+        ):  # keeps the forest's training set in RAM and in minutes
+            keep = rng.choice(len(feats), TRAIN_PIXELS_PER_STOP, replace=False)
+            feats, y = feats[keep], y[keep]
         if len(feats):
             all_feats.append(feats)
             all_y.append(y)
-        print(f"[{n}/{total}] {key}: {len(lf)} frames, {len(feats)} px", flush=True)
+        print(f"[{n}/{total}] {key}: {len(lf)} frames, {len(feats)} px kept", flush=True)
 
     if not all_feats:
         print("No labeled pixels found — cannot train. Exiting.")
