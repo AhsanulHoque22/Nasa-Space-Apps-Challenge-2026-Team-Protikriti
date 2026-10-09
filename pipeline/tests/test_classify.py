@@ -3,12 +3,14 @@
 import numpy as np
 
 from marsmap.classify import (
+    N_FEATURES,
     NONE,
     LabelFrame,
     extract_features,
     infer_full_grid,
     project_labels,
     render_labels_png,
+    rock_mask,
     train_classifier,
 )
 
@@ -63,7 +65,7 @@ def test_extract_features_no_labels():
     pano = np.zeros((512, 1024, 3), dtype=np.uint8)
     grid = np.full((512, 1024), NONE, dtype=np.uint8)
     feats, y = extract_features(pano, grid)
-    assert feats.shape == (0, 7)
+    assert feats.shape == (0, N_FEATURES)
     assert y.shape == (0,)
 
 
@@ -74,7 +76,7 @@ def test_extract_features_one_pixel():
     row = 256  # el ≈ 0°
     grid[row, 512] = 0
     feats, y = extract_features(pano, grid)
-    assert feats.shape == (1, 7)
+    assert feats.shape == (1, N_FEATURES)
     assert y[0] == 0
 
 
@@ -84,7 +86,7 @@ def test_extract_features_sky_pixel_excluded():
     # Place a labeled pixel at y=0 (el=90°, sky) — must be excluded
     grid[0, 512] = 0
     feats, _ = extract_features(pano, grid)
-    assert feats.shape == (0, 7)
+    assert feats.shape == (0, N_FEATURES)
 
 
 # ── train_classifier ──────────────────────────────────────────────────────────
@@ -93,7 +95,7 @@ def test_extract_features_sky_pixel_excluded():
 def test_train_classifier_big_rock_recall():
     """With balanced weights big-rock recall must not be zero on training data."""
     rng = np.random.default_rng(0)
-    feats = rng.standard_normal((1000, 7)).astype(np.float32)
+    feats = rng.standard_normal((1000, N_FEATURES)).astype(np.float32)
     y = np.zeros(1000, dtype=np.uint8)
     y[:100] = 3  # big rock — 10% of data
     clf = train_classifier(feats, y)
@@ -107,7 +109,7 @@ def test_train_classifier_big_rock_recall():
 def _simple_clf() -> object:
     """Tiny RF trained on synthetic data to use in other tests."""
     rng = np.random.default_rng(1)
-    feats = rng.standard_normal((400, 7)).astype(np.float32)
+    feats = rng.standard_normal((400, N_FEATURES)).astype(np.float32)
     y = np.tile(np.arange(4, dtype=np.uint8), 100)
     return train_classifier(feats, y)
 
@@ -117,10 +119,10 @@ def test_infer_full_grid_fills_elevation_band():
     human = np.full((512, 1024), NONE, dtype=np.uint8)
     clf = _simple_clf()
     result = infer_full_grid(pano, clf, human)
-    # Every pixel in [-50°, +20°] must be classified (not NONE)
+    # Every ground pixel (below the default horizon, above the nadir fill) must be classified
     for yi in range(512):
         el = 90.0 - (yi + 0.5) / 512 * 180.0
-        if -50 <= el <= 20:
+        if -50 <= el <= 0:
             assert result[yi, 0] < NONE, f"row {yi} (el={el:.1f}°) still NONE"
 
 
@@ -175,3 +177,28 @@ def test_render_labels_png_soil_colour():
     assert img[0, 0, 0] == 0x00  # B
     assert img[0, 0, 1] == 0x85  # G
     assert img[0, 0, 2] == 0xC9  # R
+
+
+# -- rock_mask ---------------------------------------------------------------------
+
+
+def test_rock_mask_finds_a_blob_on_flat_ground_and_nothing_on_flat_ground_alone() -> None:
+    ground = np.ones((512, 1024), dtype=bool)
+    flat = np.full((512, 1024, 3), 120, dtype=np.uint8)
+    assert not rock_mask(flat, ground).any()
+    rock = flat.copy()
+    rock[300:310, 500:510] = 30  # a dark 10 px rock
+    found = rock_mask(rock, ground)
+    assert found[305, 505]
+    assert not found[100, 100]
+
+
+def test_rock_mask_keeps_clear_of_the_rover_and_off_non_ground() -> None:
+    img = np.full((512, 1024, 3), 120, dtype=np.uint8)
+    img[300:310, 500:510] = 30
+    ground = np.ones((512, 1024), dtype=bool)
+    rover = np.zeros((512, 1024), dtype=bool)
+    rover[290:320, 480:500] = True  # rover edge right beside the dark patch
+    assert not rock_mask(img, ground, rover)[305, 505]
+    ground[:] = False
+    assert not rock_mask(img, ground).any()

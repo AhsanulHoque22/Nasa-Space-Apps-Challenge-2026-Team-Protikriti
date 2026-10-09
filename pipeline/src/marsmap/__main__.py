@@ -349,6 +349,7 @@ def _download_bytes(url: str) -> bytes:
     raise AssertionError("unreachable")
 
 
+ROVER_SAMPLE_STOPS = 150  # stops whose median reveals the rover body
 TRAIN_PIXELS_PER_STOP = 8_000  # of ~140k labelled pixels per stop; neighbours are near-duplicates
 
 
@@ -370,12 +371,18 @@ def _classify(args: argparse.Namespace) -> None:
         extract_features,
         frame_geometry,
         infer_full_grid,
+        per_class_recall,
         project_labels,
         render_labels_png,
         train_classifier,
     )
     from marsmap.navcam import NavcamFrame
     from marsmap.streetview import _frames
+    from marsmap.terrain_mask import (
+        build_rover_mask,
+        median_in_rover_frame,
+        roll_to_world_frame,
+    )
 
     pano_dir = Path(args.dir)
     raw_dir = Path(args.raw)
@@ -430,17 +437,48 @@ def _classify(args: argparse.Namespace) -> None:
             )
         return out
 
+    # ─── rover mask: the body is fixed in the rover frame, so find it across many stops ───
+    def read_small(path: Path) -> np.ndarray | None:
+        img = cv2.imread(str(path))
+        return None if img is None else np.asarray(cv2.resize(img, (1024, 512)), dtype=np.uint8)
+
+    mask_path = pano_dir / "rover_mask.png"
+    saved = None if args.force else cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+    rover_frame: np.ndarray | None = None
+    if saved is not None:
+        rover_frame = saved > 0
+    else:
+        usable = [j for j in jpgs if j.stem in stops_by_key]
+        picks = usable[:: max(1, len(usable) // ROVER_SAMPLE_STOPS)]
+        grays: list[np.ndarray] = []
+        yaws: list[float] = []
+        for j in picks:
+            small = read_small(j)
+            if small is not None:
+                grays.append(np.asarray(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), dtype=np.uint8))
+                yaws.append(float(stops_by_key[j.stem][1]["yawDeg"] or 0.0))
+        rover_frame = build_rover_mask(median_in_rover_frame(grays, yaws))
+        cv2.imwrite(str(mask_path), rover_frame.astype(np.uint8) * 255)
+        print(f"Rover mask from {len(grays)} stops: {rover_frame.mean():.0%} of the sphere")
+
+    def rover_world(key: str) -> np.ndarray | None:
+        entry = stops_by_key.get(key)
+        if rover_frame is None or entry is None or entry[1]["yawDeg"] is None:
+            return None
+        return np.asarray(roll_to_world_frame(rover_frame, entry[1]["yawDeg"]), dtype=bool)
+
     # ─── pass 1: collect features ───────────────────────────────────────────────
     rng = np.random.default_rng(0)
     all_feats: list[np.ndarray] = []
     all_y: list[np.ndarray] = []
+    stop_of: list[str] = []
     human_grids: dict[str, np.ndarray] = {}
 
     for n, jpg in enumerate(jpgs, 1):
         key = jpg.stem
 
-        pano = cv2.imread(str(jpg))
-        if pano is None:
+        pano_sm = read_small(jpg)
+        if pano_sm is None:
             print(f"[{n}/{total}] {key}: can't read JPEG, skipping")
             continue
 
@@ -459,8 +497,7 @@ def _classify(args: argparse.Namespace) -> None:
         grid = project_labels(lf, out_width=1024)
         human_grids[key] = grid
 
-        pano_sm = np.asarray(cv2.resize(pano, (1024, 512)), dtype=np.uint8)
-        feats, y = extract_features(pano_sm, grid)
+        feats, y = extract_features(pano_sm, grid, rover_world(key))
         if (
             len(feats) > TRAIN_PIXELS_PER_STOP
         ):  # keeps the forest's training set in RAM and in minutes
@@ -469,11 +506,29 @@ def _classify(args: argparse.Namespace) -> None:
         if len(feats):
             all_feats.append(feats)
             all_y.append(y)
+            stop_of.append(key)
         print(f"[{n}/{total}] {key}: {len(lf)} frames, {len(feats)} px kept", flush=True)
 
     if not all_feats:
         print("No labeled pixels found — cannot train. Exiting.")
         return
+
+    if args.evaluate:  # train on 4 of 5 stops, score on the rest: how well does it find each class?
+        held = [i % 5 == 0 for i in range(len(all_feats))]
+        train_f = np.concatenate([f for f, h in zip(all_feats, held, strict=True) if not h])
+        train_y = np.concatenate([y for y, h in zip(all_y, held, strict=True) if not h])
+        test_f = np.concatenate([f for f, h in zip(all_feats, held, strict=True) if h])
+        test_y = np.concatenate([y for y, h in zip(all_y, held, strict=True) if h])
+        recall = per_class_recall(train_classifier(train_f, train_y), test_f, test_y)
+        names = ["soil", "bedrock", "sand", "big rock"]
+        print(
+            "Held-out recall:",
+            ", ".join(f"{n} {r:.0%}" for n, r in zip(names, recall, strict=True)),
+        )
+        print(
+            "Held-out class shares:",
+            ", ".join(f"{n} {(test_y == c).mean():.1%}" for c, n in enumerate(names)),
+        )
 
     feats_all = np.concatenate(all_feats)
     y_all = np.concatenate(all_y)
@@ -487,12 +542,11 @@ def _classify(args: argparse.Namespace) -> None:
         if labels_path.exists() and not args.force:
             print(f"[{n}/{total}] {key}: already done, skipping")
             continue
-        pano = cv2.imread(str(jpg))
-        if pano is None:
+        pano_sm = read_small(jpg)
+        if pano_sm is None:
             continue
-        pano_sm = np.asarray(cv2.resize(pano, (1024, 512)), dtype=np.uint8)
         no_labels = np.full((512, 1024), TERRAIN_NONE, dtype=np.uint8)
-        result = infer_full_grid(pano_sm, clf, human_grids.get(key, no_labels))
+        result = infer_full_grid(pano_sm, clf, human_grids.get(key, no_labels), rover_world(key))
         labels_path.write_bytes(render_labels_png(result))
         print(f"[{n}/{total}] {key}: wrote {labels_path.name}", flush=True)
 
@@ -582,6 +636,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--stops", type=int, default=0, help="limit to first N stops (0 = all, for smoke-test)"
     )
     clf.add_argument("--force", action="store_true", help="overwrite existing _labels.png files")
+    clf.add_argument("--evaluate", action="store_true", help="print held-out recall per class")
     up = sub.add_parser("upload-panoramas", help="publish panoramas to a Hugging Face dataset")
     up.add_argument("--dir", type=Path, required=True, help="folder with one subfolder per rover")
     up.add_argument("--repo", required=True, help="dataset id, e.g. user/atlas-mars-panoramas")

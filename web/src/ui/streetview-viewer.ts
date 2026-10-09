@@ -146,11 +146,12 @@ export function openStreetView(
   const updateLabels = async () => {
     const n = labelSources.length
     practiceButton.hidden = !(panoImage && n > 0) // needs the stitched photo and people's labels
-    const precomputed = n === 0 ? precomputedLabels : null
+    // The pre-computed file is cleaned of sky and rover; raw frame labels are not, so it wins.
+    const precomputed = precomputedLabels
     const hasPrecomputed = precomputed !== null
     labelsButton.hidden = n === 0 && !hasPrecomputed
     labelsButton.textContent = hasPrecomputed
-      ? 'Terrain labels (RF)'
+      ? 'Terrain labels'
       : `Terrain labels (${n} frame${n === 1 ? '' : 's'})`
     labelsButton.setAttribute('aria-pressed', String(labelsOn))
     labelsPanel.hidden = !(labelsOn && (n || hasPrecomputed))
@@ -165,13 +166,23 @@ export function openStreetView(
       if (hasImage) renderer.draw(state.yaw, state.pitch, state.fov)
       labelsPanel.replaceChildren()
       const title = document.createElement('h3')
-      title.textContent = 'Terrain classified by Random Forest (pre-computed)'
+      title.textContent = 'Terrain: people’s labels, completed by a model'
       const note = document.createElement('p')
       note.className = 'sv-labels-note'
+      const list = document.createElement('ul')
+      CLASSES.forEach((name, i) => {
+        const li = document.createElement('li')
+        const swatch = document.createElement('i')
+        swatch.setAttribute('aria-hidden', 'true')
+        swatch.style.background = CLASS_COLOURS[i] ?? ''
+        li.append(swatch, name)
+        list.append(li)
+      })
       note.textContent =
-        'Classes: soil, bedrock, sand, big rock — trained on AI4Mars human labels. ' +
-        'Sky and rover nadir are transparent.'
-      labelsPanel.append(title, note)
+        'Where people labelled these Navcam frames (AI4Mars) their labels are kept; elsewhere a ' +
+        'Random Forest trained on them fills in the ground. Sky, the rover body and the ground ' +
+        'under the cameras are left clear. The model is a guess, not a measurement.'
+      labelsPanel.append(title, list, note)
       return
     }
     labelGrid ??= projectLabels(labelSources, LABEL_PANO_WIDTH)
@@ -205,10 +216,16 @@ export function openStreetView(
     if (!panoImage || labelSources.length === 0) return
     labelTool?.close()
     labelGrid ??= projectLabels(labelSources, LABEL_PANO_WIDTH)
+    // Practise only on ground: where the cleaned file is clear (sky, rover) there is nothing to label.
+    const expert = { ...labelGrid, cls: labelGrid.cls.slice() }
+    const clean = precomputedLabels
+    if (clean && clean.width === expert.width && clean.height === expert.height)
+      for (let i = 0; i < expert.cls.length; i++)
+        if (clean.pixels[i * 4 + 3] === 0) expert.cls[i] = NONE
     labelTool = openLabelTool(root, {
       stop: title.textContent ?? 'stop',
       panorama: panoImage,
-      expert: labelGrid,
+      expert,
     })
   })
   labelsButton.addEventListener('click', () => {

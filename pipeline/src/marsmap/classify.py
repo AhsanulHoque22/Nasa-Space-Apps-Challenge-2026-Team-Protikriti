@@ -21,6 +21,8 @@ import numpy as np
 from numpy.typing import NDArray
 from sklearn.ensemble import RandomForestClassifier  # type: ignore[import-untyped]
 
+from marsmap.terrain_mask import terrain_mask
+
 if TYPE_CHECKING:
     from marsmap.navcam import NavcamFrame
 
@@ -105,63 +107,114 @@ def project_labels(
     return grid
 
 
-def _elevation_mask(height: int, width: int) -> NDArray[np.bool_]:
-    """Boolean mask: True where elevation is within the label band."""
-    ys = np.arange(height)
-    el = 90.0 - (ys + 0.5) / height * 180.0
-    row_mask = (el >= MIN_EL_DEG) & (el <= MAX_EL_DEG)
-    return np.broadcast_to(row_mask[:, None], (height, width)).copy()
+N_FEATURES = 10
+ROCK_BLOB_SIGMAS_PX = (
+    2.0,
+    6.0,
+)  # difference of Gaussians: rock-sized blobs against their surroundings
+LOCAL_CONTRAST_SIGMA_PX = (
+    20.0  # brightness against the wider neighbourhood: rocks and shadows stand out
+)
+LOCAL_STD_WINDOW_PX = 9  # roughness: rocky ground varies more than soil or sand
+
+
+def feature_stack(panorama: NDArray[np.uint8]) -> NDArray[np.float32]:
+    """(height, width, N_FEATURES): colour, edges, rock-scale texture and elevation per pixel."""
+    h, w = panorama.shape[:2]
+    lab = cv2.cvtColor(panorama, cv2.COLOR_BGR2LAB).astype(np.float32)
+    lightness = lab[:, :, 0]
+    gray = cv2.cvtColor(panorama, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    sobel = np.hypot(
+        cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+    )
+    laplacian = np.abs(cv2.Laplacian(gray, cv2.CV_32F)) / 255.0
+    fine, coarse = (cv2.GaussianBlur(lightness, (0, 0), s) for s in ROCK_BLOB_SIGMAS_PX)
+    mean = cv2.blur(lightness, (LOCAL_STD_WINDOW_PX, LOCAL_STD_WINDOW_PX))
+    mean_sq = cv2.blur(lightness * lightness, (LOCAL_STD_WINDOW_PX, LOCAL_STD_WINDOW_PX))
+    local_std = np.sqrt(np.maximum(mean_sq - mean * mean, 0.0))
+    el = (90.0 - (np.arange(h) + 0.5) / h * 180.0) * RAD
+    column = np.ones((1, w), dtype=np.float32)
+    return np.dstack(
+        [
+            lab[:, :, 0],
+            lab[:, :, 1],
+            lab[:, :, 2],
+            sobel / 1442.0,
+            laplacian,
+            fine - coarse,
+            local_std,
+            lightness - cv2.GaussianBlur(lightness, (0, 0), LOCAL_CONTRAST_SIGMA_PX),
+            np.sin(el)[:, None] * column,
+            np.cos(el)[:, None] * column,
+        ]
+    ).astype(np.float32)
+
+
+ROCK_CLASS = 3  # "big rock" in the AI4Mars classes
+ROCK_SIGMAS_PX = (1.5, 6.0)  # blob detector: a rock is a patch that differs from its surroundings
+ROCK_PERCENTILE = 97.5  # per stop: contrast above this share of the ground is rock-like
+ROCK_MIN_CONTRAST = 8.0  # lightness levels: below this there is nothing rock-like to find
+ROCK_MIN_AREA_PX = 12  # smaller specks are noise
+ROCK_MAX_AREA_PX = 900  # larger patches are shadows, ruts or slopes, not a rock
+ROCK_GROW_PX = 3  # a rock's outline is wider than its sharpest contrast
+ROVER_CLEARANCE_PX = 25  # rover edges and shadows look like rocks: keep this far away
+
+
+def rock_mask(
+    panorama: NDArray[np.uint8],
+    ground: NDArray[np.bool_],
+    rover_world: NDArray[np.bool_] | None = None,
+) -> NDArray[np.bool_]:
+    """Rock-sized blobs on the ground, found by contrast. A rule, not a trained model.
+
+    Rocks are 0.4% of the human-labelled pixels, too few for the forest to learn, so they are
+    found directly. The threshold follows each stop's own contrast.
+    """
+    lightness = cv2.cvtColor(panorama, cv2.COLOR_BGR2LAB)[:, :, 0].astype(np.float32)
+    fine, coarse = (cv2.GaussianBlur(lightness, (0, 0), s) for s in ROCK_SIGMAS_PX)
+    contrast = np.abs(fine - coarse)
+    if not ground.any():
+        return np.zeros_like(ground)
+    threshold = max(ROCK_MIN_CONTRAST, float(np.percentile(contrast[ground], ROCK_PERCENTILE)))
+    candidate = ((contrast > threshold) & ground).astype(np.uint8)
+    candidate = np.asarray(
+        cv2.morphologyEx(candidate, cv2.MORPH_OPEN, np.ones((2, 2), np.uint8)), dtype=np.uint8
+    )
+    _, labels, stats, _ = cv2.connectedComponentsWithStats(candidate)
+    area = stats[:, cv2.CC_STAT_AREA]
+    keep = np.flatnonzero((area >= ROCK_MIN_AREA_PX) & (area <= ROCK_MAX_AREA_PX))
+    keep = keep[keep != 0]
+    rocks = np.isin(labels, keep).astype(np.uint8)
+    grown = cv2.dilate(rocks, np.ones((ROCK_GROW_PX, ROCK_GROW_PX), np.uint8))
+    rocks_on_ground = grown.astype(bool) & ground
+    if rover_world is not None:
+        size = 2 * ROVER_CLEARANCE_PX + 1
+        near = cv2.dilate(rover_world.astype(np.uint8), np.ones((size, size), np.uint8))
+        rocks_on_ground &= ~near.astype(bool)
+    return rocks_on_ground
 
 
 def extract_features(
     panorama: NDArray[np.uint8],
     grid: NDArray[np.uint8],
+    rover_world: NDArray[np.bool_] | None = None,
 ) -> tuple[NDArray[np.float32], NDArray[np.uint8]]:
-    """LAB + texture features for labeled pixels inside the elevation band.
+    """Features and class of every labelled pixel that is photographed ground.
 
-    Returns (feats, y): feats shape (N, 7), y shape (N,), N = labeled pixel count.
-    Features: L, a, b, sobel_mag, laplacian_mag, sin_el, cos_el.
+    Returns (feats, y): feats shape (N, N_FEATURES), y shape (N,). Labels that fall on sky,
+    nadir fill or the rover body are dropped: they are projection spill, not terrain.
     """
-    h, w = grid.shape
-    lab = cv2.cvtColor(panorama, cv2.COLOR_BGR2LAB).astype(np.float32)
-    gray = cv2.cvtColor(panorama, cv2.COLOR_BGR2GRAY).astype(np.float32)
-
-    sobel_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
-    sobel_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
-    sobel = np.hypot(sobel_x, sobel_y) / 1442.0  # normalise by max possible
-
-    laplacian = np.abs(cv2.Laplacian(gray, cv2.CV_32F)) / 255.0
-
-    ys = np.arange(h)
-    el = (90.0 - (ys + 0.5) / h * 180.0) * RAD
-    sin_el = np.sin(el)[:, None] * np.ones((1, w), dtype=np.float32)
-    cos_el = np.cos(el)[:, None] * np.ones((1, w), dtype=np.float32)
-
-    mask = _elevation_mask(h, w) & (grid != NONE)
+    mask = terrain_mask(panorama, rover_world) & (grid != NONE)
     if not mask.any():
-        return np.empty((0, 7), dtype=np.float32), np.empty(0, dtype=np.uint8)
-
-    feats = np.stack(
-        [
-            lab[:, :, 0][mask],
-            lab[:, :, 1][mask],
-            lab[:, :, 2][mask],
-            sobel[mask],
-            laplacian[mask],
-            sin_el[mask],
-            cos_el[mask],
-        ],
-        axis=1,
-    )
-    y = grid[mask]
-    return feats.astype(np.float32), y
+        return np.empty((0, N_FEATURES), dtype=np.float32), np.empty(0, dtype=np.uint8)
+    return feature_stack(panorama)[mask], grid[mask]
 
 
 def train_classifier(
     feats: NDArray[np.float32],
     y: NDArray[np.uint8],
 ) -> RandomForestClassifier:
-    """Random Forest with balanced class weights — counters the ~2% big-rock minority."""
+    """Random Forest with balanced class weights: counters the ~2% big-rock minority."""
     clf = RandomForestClassifier(
         n_estimators=100,
         class_weight="balanced",
@@ -172,59 +225,42 @@ def train_classifier(
     return clf
 
 
-_BATCH = 50_000  # pixels per inference batch — keeps RAM flat
+def per_class_recall(
+    clf: RandomForestClassifier, feats: NDArray[np.float32], y: NDArray[np.uint8]
+) -> list[float]:
+    """Share of each class's true pixels that the classifier gets right (NaN: class absent)."""
+    pred = clf.predict(feats)
+    return [
+        float((pred[y == c] == c).mean()) if (y == c).any() else float("nan") for c in range(NONE)
+    ]
+
+
+_BATCH = 50_000  # pixels per inference batch: keeps RAM flat
 
 
 def infer_full_grid(
     panorama: NDArray[np.uint8],
     clf: RandomForestClassifier,
     human_grid: NDArray[np.uint8],
+    rover_world: NDArray[np.bool_] | None = None,
 ) -> NDArray[np.uint8]:
-    """Full-coverage class grid: human labels where available, RF elsewhere.
+    """Full-coverage class grid: human labels where available, RF on the rest of the ground,
+    then rock blobs found by contrast on top.
 
-    Pixels outside [-50°, +20°] elevation stay NONE.
+    Sky, nadir fill and the rover body stay NONE, human labels there included.
     """
-    h, w = human_grid.shape
-    result = human_grid.copy()
-    mask = _elevation_mask(h, w) & (human_grid == NONE)
-    if not mask.any():
+    ground = terrain_mask(panorama, rover_world)
+    result = np.where(ground, human_grid, NONE).astype(np.uint8)
+    todo = ground & (result == NONE)
+    if not todo.any():
+        result[rock_mask(panorama, ground, rover_world)] = ROCK_CLASS
         return result
-
-    # Build feature array for unlabeled pixels in batches
-    lab = cv2.cvtColor(panorama, cv2.COLOR_BGR2LAB).astype(np.float32)
-    gray = cv2.cvtColor(panorama, cv2.COLOR_BGR2GRAY).astype(np.float32)
-    sobel_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
-    sobel_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
-    sobel = np.hypot(sobel_x, sobel_y) / 1442.0
-    laplacian = np.abs(cv2.Laplacian(gray, cv2.CV_32F)) / 255.0
-    ys = np.arange(h)
-    el = (90.0 - (ys + 0.5) / h * 180.0) * RAD
-    sin_el_2d = np.sin(el)[:, None] * np.ones((1, w), dtype=np.float32)
-    cos_el_2d = np.cos(el)[:, None] * np.ones((1, w), dtype=np.float32)
-
-    indices = np.argwhere(mask)  # (N, 2) — row, col
-    n = len(indices)
-    preds = np.empty(n, dtype=np.uint8)
-
-    for start in range(0, n, _BATCH):
-        end = min(start + _BATCH, n)
-        idx = indices[start:end]
-        rows, cols = idx[:, 0], idx[:, 1]
-        feats_batch = np.stack(
-            [
-                lab[rows, cols, 0],
-                lab[rows, cols, 1],
-                lab[rows, cols, 2],
-                sobel[rows, cols],
-                laplacian[rows, cols],
-                sin_el_2d[rows, cols],
-                cos_el_2d[rows, cols],
-            ],
-            axis=1,
-        ).astype(np.float32)
-        preds[start:end] = clf.predict(feats_batch).astype(np.uint8)
-
-    result[indices[:, 0], indices[:, 1]] = preds
+    features = feature_stack(panorama)
+    indices = np.argwhere(todo)  # (N, 2): row, col
+    for start in range(0, len(indices), _BATCH):
+        rows, cols = indices[start : start + _BATCH].T
+        result[rows, cols] = clf.predict(features[rows, cols]).astype(np.uint8)
+    result[rock_mask(panorama, ground, rover_world)] = ROCK_CLASS
     return result
 
 
