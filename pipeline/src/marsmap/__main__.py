@@ -217,7 +217,7 @@ def _walk(args: argparse.Namespace) -> None:
     for site in json.loads(args.config.read_text())["sites"]:
         if "walk" not in site:
             continue
-        meta = build_walk_patch(site["id"], site["walk"], args.out)
+        meta = build_walk_patch(site["id"], site["walk"], args.out, args.tiles_only)
         print(f"wrote walk patch for {site['id']}: {meta['width']}x{meta['height']} at 2 m")
 
 
@@ -584,6 +584,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     walk = sub.add_parser("walk", help="high-resolution ground for exploring on foot")
     walk.add_argument("--config", type=Path, required=True)
     walk.add_argument("--out", type=Path, required=True)
+    walk.add_argument("--tiles-only", action="store_true", help="redraw imagery tiles only")
     compare = sub.add_parser("compare", help="Jezero vs Jamuna images at the same scale")
     compare.add_argument("--out", type=Path, required=True)
     caves = sub.add_parser("caves", help="USGS Mars cave candidate catalogue -> caves.json")

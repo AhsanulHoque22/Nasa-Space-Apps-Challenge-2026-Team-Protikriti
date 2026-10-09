@@ -20,12 +20,14 @@ from rasterio.windows import from_bounds
 
 from marsmap.compare import MARS_RADIUS_KM, box_deg, write_jpeg
 from marsmap.dem import MARS_LONLAT
+from marsmap.enhance import enhance_orthomosaic
 
 DEM_SPACING_M = 2.0  # HiRISE stereo DEMs resolve ~3x their 1 m posts; 2 m keeps that detail
 HEIGHT_STEP_M = 0.02  # int16 quantisation: +/-655 m around the patch median, 2 cm steps
 NODATA_I16 = -32768
 TILE_PX = 256
 MAX_SAFE_SLOPE_DEG = 15.0  # the route planner's walking limit, for slope warnings on foot
+TILE_JPEG_QUALITY = 90  # above the usual 85: fine ground texture is the point of these tiles
 STRETCH_PCT = (0.5, 99.5)  # contrast stretch of the orthomosaic, ignoring 0 (no data)
 M_PER_DEG = MARS_RADIUS_KM * 1000 * math.pi / 180
 
@@ -109,11 +111,15 @@ def _tiles(walk: dict[str, Any], box: Box, out: Path) -> None:
     _, south, east, _ = tile_box(x1, y1, top)
     shape = ((y1 - y0 + 1) * TILE_PX, (x1 - x0 + 1) * TILE_PX)
     img = read_lonlat(walk["ortho"], (west, south, east, north), shape, Resampling.average)
-    valid = img[np.isfinite(img) & (img > 0)]
-    lo, hi = np.percentile(valid, STRETCH_PCT) if valid.size else (0.0, 255.0)
-    scaled = np.clip((np.nan_to_num(img, nan=0.0) - lo) / max(hi - lo, 1) * 255, 0, 255)
-    finest = scaled.astype(np.float32)
-    finest[~(np.nan_to_num(img, nan=0.0) > 0)] = 0  # keep no data black, not stretched
+    covered = np.isfinite(img) & (img > 0)
+    lo, hi = np.percentile(img[covered], STRETCH_PCT) if covered.any() else (0.0, 255.0)
+    stretched = np.clip((np.nan_to_num(img, nan=0.0) - lo) / max(hi - lo, 1) * 255, 0, 255)
+    del img
+    # Valid pixels are at least 1 so that 0 can mean "no data"; the enhancer keeps that promise.
+    grey = np.where(covered, np.maximum(np.round(stretched), 1), 0).astype(np.uint8)
+    del stretched
+    finest = enhance_orthomosaic(grey).astype(np.float32)
+    del grey
     for level in levels:
         k = 2 ** (top - level)
         tx0, tx1, ty0, ty1 = tile_range(box, level)
@@ -129,17 +135,26 @@ def _tiles(walk: dict[str, Any], box: Box, out: Path) -> None:
                 if sx1 > sx0 and sy1 > sy0:
                     block[sy0 - py0 : sy1 - py0, sx0 - px0 : sx1 - px0] = finest[sy0:sy1, sx0:sx1]
                 tile = block.reshape(TILE_PX, k, TILE_PX, k).mean(axis=(1, 3))
-                grey: NDArray[np.uint8] = np.round(tile).astype(np.uint8)
+                grey = np.round(tile).astype(np.uint8)
                 path = out / "tiles" / str(level) / str(tx) / f"{ty}.jpg"
                 path.parent.mkdir(parents=True, exist_ok=True)
-                write_jpeg(path, grey[None, :, :])
+                write_jpeg(path, grey[None, :, :], TILE_JPEG_QUALITY)
 
 
-def build_walk_patch(site_id: str, walk: dict[str, Any], out_dir: Path) -> dict[str, Any]:
-    """Write walk/<site>/dem.bin (int16 LE, north-up), walk.json and tiles/{z}/{x}/{y}.jpg."""
+def build_walk_patch(
+    site_id: str, walk: dict[str, Any], out_dir: Path, tiles_only: bool = False
+) -> dict[str, Any]:
+    """Write walk/<site>/dem.bin (int16 LE, north-up), walk.json and tiles/{z}/{x}/{y}.jpg.
+
+    tiles_only redraws just the imagery tiles and returns the walk.json already there.
+    """
     box = box_deg(walk["lon"], walk["lat"], walk["km"], MARS_RADIUS_KM)
     out = out_dir / "walk" / site_id
     out.mkdir(parents=True, exist_ok=True)
+    if tiles_only:
+        _tiles(walk, box, out)
+        existing: dict[str, Any] = json.loads((out / "walk.json").read_text())
+        return existing
     dem, size = _dem(walk, box)
     encoded, offset = _encode(dem)
     encoded.tofile(out / "dem.bin")

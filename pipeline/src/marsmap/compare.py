@@ -117,7 +117,7 @@ def _resample(rgb: NDArray[np.uint8], window: tuple[float, ...], px: int) -> NDA
     return out
 
 
-def write_jpeg(path: Path, rgb: NDArray[np.uint8]) -> None:
+def write_jpeg(path: Path, rgb: NDArray[np.uint8], quality: int = 85) -> None:
     """JPEG from a (bands, rows, cols) uint8 array: 1 band grey or 3 bands RGB."""
     bands, height, width = rgb.shape
     with warnings.catch_warnings():
@@ -128,7 +128,7 @@ def write_jpeg(path: Path, rgb: NDArray[np.uint8]) -> None:
             ) as tmp:
                 tmp.write(rgb)
             with mem.open() as src:
-                copy(src, str(path), driver="JPEG", quality=85)
+                copy(src, str(path), driver="JPEG", quality=quality)
 
 
 def _jezero(fetch: Callable[[str], bytes], px: int) -> NDArray[np.uint8]:
