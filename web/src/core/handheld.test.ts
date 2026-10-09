@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AMPLITUDE_RAD, createHandheld, swayAt } from './handheld'
+import { AMPLITUDE_RAD, swayAt } from './handheld'
 
 const LIFT = (1.1 * Math.PI) / 180
 
@@ -36,40 +36,5 @@ describe('swayAt', () => {
     expect(swayAt(12.3)).toEqual(swayAt(12.3))
     const samples = Array.from({ length: 200 }, (_, i) => swayAt(10 + i * 0.1).roll)
     expect(Math.max(...samples) - Math.min(...samples)).toBeGreaterThan(AMPLITUDE_RAD.roll * 0.5)
-  })
-})
-
-describe('createHandheld', () => {
-  const recorder = () => {
-    const sum = { heading: 0, pitch: 0, roll: 0 }
-    return {
-      sum,
-      camera: {
-        lookRight: (a: number) => (sum.heading += a),
-        lookUp: (a: number) => (sum.pitch += a),
-        twistRight: (a: number) => (sum.roll += a),
-      },
-    }
-  }
-
-  it('applies only the change each frame, so the camera ends up exactly at the sway', () => {
-    const { sum, camera } = recorder()
-    const hand = createHandheld(camera)
-    for (let t = 0; t <= 5; t += 1 / 60) hand.tick(t)
-    hand.tick(5)
-    const s = swayAt(5)
-    expect(sum.heading).toBeCloseTo(s.heading, 9)
-    expect(sum.pitch).toBeCloseTo(s.pitch, 9)
-    expect(sum.roll).toBeCloseTo(s.roll, 9)
-  })
-
-  it('gives the view back untouched when released', () => {
-    const { sum, camera } = recorder()
-    const hand = createHandheld(camera)
-    for (let t = 0; t <= 8; t += 1 / 30) hand.tick(t)
-    hand.release()
-    expect(sum.heading).toBeCloseTo(0, 9)
-    expect(sum.pitch).toBeCloseTo(0, 9)
-    expect(sum.roll).toBeCloseTo(0, 9)
   })
 })

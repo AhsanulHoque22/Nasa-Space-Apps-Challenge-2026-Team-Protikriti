@@ -60,11 +60,12 @@ function fakeViewer(heightM = 3500) {
   return { viewer, entities, flyToBoundingSphere, preRender }
 }
 
-const footers = () => document.querySelectorAll('.eva-dash').length
+const footers = () => document.querySelectorAll('.eva-wrist').length
 const text = () => document.querySelector('.wp-pos')?.textContent?.replace(/\s+/g, ' ').trim()
 
 afterEach(() => {
   updateWalkPlayer(null)
+  vi.useRealTimers()
   document.body.innerHTML = ''
   document.body.className = ''
 })
@@ -106,7 +107,9 @@ describe('walk player', () => {
     const legend: LineLegend = { set: vi.fn(), remove: vi.fn() }
     openWalkPlayer(viewer, plan([cell(10, 10), cell(20, 20)]), () => undefined, { legend })
     expect(legend.set).toHaveBeenCalledWith('stops', expect.anything(), expect.any(Array))
+    vi.useFakeTimers()
     updateWalkPlayer(null)
+    vi.advanceTimersByTime(1000) // the arm lowers, then is removed
     expect(footers()).toBe(0)
     expect(entities).toHaveLength(0)
     expect(legend.remove).toHaveBeenCalledWith('stops')
@@ -171,15 +174,17 @@ const richPlan = (stops: Cell[]): WalkParams => ({
   words: 'Walk north-east for three kilometres.',
   siteId: 'jezero',
 })
-const text2 = () => document.querySelector('.eva-dash')?.textContent?.replace(/\s+/g, ' ') ?? ''
+const text2 = () => document.querySelector('.eva-wrist')?.textContent?.replace(/\s+/g, ' ') ?? ''
 
 describe('EVA dashboard', () => {
   it('takes over the screen while the walk runs, and gives it back when it ends', () => {
     const { viewer } = fakeViewer()
     openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined)
     expect(document.body.classList.contains('eva-mode')).toBe(true)
+    vi.useFakeTimers()
     document.querySelector<HTMLButtonElement>('[data-act="close"]')?.click()
     expect(document.body.classList.contains('eva-mode')).toBe(false)
+    vi.advanceTimersByTime(1000)
     expect(footers()).toBe(0)
   })
 
@@ -190,22 +195,21 @@ describe('EVA dashboard', () => {
       nowMs: () => Date.UTC(2026, 9, 10, 10, 0, 0),
     })
     const t = text2()
-    expect(t).toContain('EVA walk · Jezero crater')
     expect(t).toContain('GO')
     expect(t).toContain('+30 min') // the card's tightest margin
     expect(t).toContain('9.4° of 15°') // steepest step against the limit
     expect(t).toContain('93%') // reliability from the planner
     expect(t).toContain('Walk north-east for three kilometres.')
-    expect(document.querySelectorAll('.eva-stops li')).toHaveLength(3)
-    expect(document.querySelector('.eva-stops .is-current')?.textContent).toContain('Start')
+    expect(document.querySelectorAll('.ws-stops li')).toHaveLength(3)
+    expect(document.querySelector('.ws-stops .is-current')?.textContent).toContain('Start')
     expect(t).toContain('LMST')
-    expect(document.querySelector('svg.eva-profile')).not.toBeNull()
+    expect(document.querySelector('svg.ws-profile')).not.toBeNull()
   })
 
   it('shows live telemetry that moves with the stop you are at', () => {
     const { viewer } = fakeViewer()
     openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20), cell(24, 24)]), () => undefined)
-    const at = () => document.querySelector('.eva-right section')?.textContent ?? ''
+    const at = () => document.querySelector('.ws-now .ws-col')?.textContent ?? ''
     expect(at()).toContain('At the start')
     document.querySelector<HTMLButtonElement>('[data-act="next"]')?.click()
     expect(at()).toContain('At stop 1')
@@ -220,7 +224,7 @@ describe('EVA dashboard', () => {
     openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined, {
       places: () => places,
     })
-    const names = [...document.querySelectorAll('.eva-near-name')].map((n) => n.textContent)
+    const names = [...document.querySelectorAll('.ws-near-name')].map((n) => n.textContent)
     expect(names).toContain('Ridge A')
     expect(names).toContain('Sample 4')
     expect(names).not.toContain('Far Hills')
@@ -234,8 +238,8 @@ describe('EVA dashboard', () => {
     openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined, {
       places: () => hostile,
     })
-    expect(document.querySelector('.eva-nearby img')).toBeNull()
-    expect(document.querySelector('.eva-near-name')?.textContent).toContain('<img')
+    expect(document.querySelector('.ws-nearby img')).toBeNull()
+    expect(document.querySelector('.ws-near-name')?.textContent).toContain('<img')
   })
 
   it('says plainly when the site has no weather record of its own', () => {
@@ -249,18 +253,31 @@ describe('EVA dashboard', () => {
     expect(text2()).toContain('not measured')
   })
 
-  it('runs a hand-held camera that can be switched off and is released at the end', () => {
-    const { viewer, preRender } = fakeViewer()
+  it('shows the dashboard on the wrist console: two screens on the arm, tabs switch pages', () => {
+    const { viewer } = fakeViewer()
     openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined)
-    expect(preRender.addEventListener).toHaveBeenCalledTimes(1)
-    expect(document.querySelector('[data-act="hand"]')?.getAttribute('aria-pressed')).toBe('true')
-    document.querySelector<HTMLButtonElement>('[data-act="hand"]')?.click()
-    expect(preRender.removeEventListener).toHaveBeenCalledTimes(1)
+    expect(document.querySelectorAll('.eva-arm .eva-glass')).toHaveLength(2)
+    expect(document.querySelector('.eva-glass-side')?.textContent).toContain('Conditions here')
+    const page = (id: string) => document.querySelector<HTMLElement>(`[data-page="${id}"]`)
+    expect(page('now')?.hidden).toBe(false)
+    expect(page('route')?.hidden).toBe(true)
+    document.querySelector<HTMLButtonElement>('[data-act="tab"][data-tab="route"]')?.click()
+    expect(page('now')?.hidden).toBe(true)
+    expect(page('route')?.hidden).toBe(false)
+  })
+
+  it('sways the arm like a hand; the switch turns it off, and ending the walk stops it', () => {
+    const cancel = vi.spyOn(window, 'cancelAnimationFrame')
+    const { viewer } = fakeViewer()
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined)
+    const toggle = () => document.querySelector<HTMLButtonElement>('[data-act="hand"]')
+    toggle()?.click() // it is on to start with
+    expect(cancel).toHaveBeenCalled()
+    document.querySelector<HTMLButtonElement>('[data-act="tab"][data-tab="tools"]')?.click()
     expect(document.querySelector('[data-act="hand"]')?.getAttribute('aria-pressed')).toBe('false')
-    document.querySelector<HTMLButtonElement>('[data-act="hand"]')?.click()
-    expect(preRender.addEventListener).toHaveBeenCalledTimes(2)
+    cancel.mockClear()
     document.querySelector<HTMLButtonElement>('[data-act="close"]')?.click()
-    expect(preRender.removeEventListener).toHaveBeenCalledTimes(2)
+    expect(cancel).toHaveBeenCalled()
   })
 
   it('profile helper marks the stops along the path', () => {

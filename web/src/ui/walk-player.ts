@@ -21,7 +21,7 @@ import {
   slopeDegAt,
 } from '../core/eva-telemetry'
 import { formatDistance, formatDuration } from '../core/format'
-import { createHandheld } from '../core/handheld'
+import { swayAt } from '../core/handheld'
 import { DOSE_RATES } from '../core/dose'
 import { localMeanSolarTimeHours, season, solarLongitudeDeg, sunPosition } from '../core/mars-time'
 import { placeNote } from '../core/place-notes'
@@ -32,7 +32,16 @@ import { type Cell, type Grid, cellToLonLat } from '../core/grid'
 import type { RouteSummary } from '../core/summary'
 import { bearingRad, lineOnGround } from '../core/terrain-line'
 import { MARS_SPHERE } from '../map/mars'
-import { type DashView, type Tile, dashboardHtml } from './eva-dashboard'
+import {
+  type DashView,
+  type Minimap,
+  type TabId,
+  type Tile,
+  type Wrist,
+  mainScreenHtml,
+  mountWrist,
+  sideScreenHtml,
+} from './eva-dashboard'
 import type { LineLegend } from './line-legend'
 
 export type WalkParams = {
@@ -146,11 +155,8 @@ export function openWalkPlayer(
     },
   })
 
-  const overlay = document.createElement('div')
-  overlay.className = 'eva-dash'
-  overlay.setAttribute('role', 'complementary')
-  overlay.setAttribute('aria-label', 'EVA walk dashboard')
-  document.body.append(overlay)
+  const wrist: Wrist = mountWrist()
+  let tab: TabId = 'now'
 
   const registerLegend = (positions: Cartesian3[]) =>
     legend?.set(
@@ -209,20 +215,22 @@ export function openWalkPlayer(
   const reducedMotion =
     typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   let handheldOn = !reducedMotion
-  let handheld: ReturnType<typeof createHandheld> | null = null
+  let handheldFrame = 0
   let handheldStart = 0
-  const sway = () => handheld?.tick((performance.now() - handheldStart) / 1000)
+  const PX_PER_DEG = 40 // how far the arm drifts for each degree of the hand's sway
+  const sway = () => {
+    const s = swayAt((performance.now() - handheldStart) / 1000)
+    const deg = (rad: number) => (rad * 180) / Math.PI
+    wrist.sway(deg(s.heading) * PX_PER_DEG, -deg(s.pitch) * PX_PER_DEG, deg(s.roll))
+    handheldFrame = requestAnimationFrame(sway)
+  }
   const setHandheld = (on: boolean) => {
     handheldOn = on && !reducedMotion
-    if (handheldOn && !handheld) {
-      handheld = createHandheld(viewer.camera)
+    cancelAnimationFrame(handheldFrame)
+    if (handheldOn) {
       handheldStart = performance.now()
-      viewer.scene.preRender.addEventListener(sway)
-    } else if (!handheldOn && handheld) {
-      viewer.scene.preRender.removeEventListener(sway)
-      handheld.release()
-      handheld = null
-    }
+      handheldFrame = requestAnimationFrame(sway)
+    } else wrist.sway(0, 0, 0)
   }
 
   const tone = (ok: boolean, warn: boolean): Tile['tone'] => (ok ? 'ok' : warn ? 'warn' : 'bad')
@@ -230,6 +238,30 @@ export function openWalkPlayer(
   const fmtLon = (lon: number) => `${(((lon % 360) + 360) % 360).toFixed(4)}° E`
   const signed = (min: number) =>
     min >= 0 ? `+${formatDuration(min)}` : `−${formatDuration(Math.abs(min))}`
+
+  /** The route drawn small and north-up, in grid cells; the dial scales it to fit. */
+  const buildMinimap = (): Minimap | null => {
+    const cells = params0.path && params0.path.length > 1 ? params0.path : stops
+    if (cells.length < 2) return null
+    const cols = cells.map((c) => c.col)
+    const rows = cells.map((c) => c.row)
+    const size = Math.max(
+      Math.max(...cols) - Math.min(...cols),
+      Math.max(...rows) - Math.min(...rows),
+      1,
+    )
+    const cx = (Math.max(...cols) + Math.min(...cols)) / 2
+    const cy = (Math.max(...rows) + Math.min(...rows)) / 2
+    const at = (c: Cell): [number, number] => [c.col - cx + size / 2, c.row - cy + size / 2]
+    const nextCell = stops[current + 1]
+    return {
+      path: cells.map(at),
+      stops: stops.map(at),
+      you: at(stops[current] as Cell),
+      next: nextCell ? at(nextCell) : null,
+      size,
+    }
+  }
 
   const buildView = (): DashView => {
     const [lon, lat] = lonLatOf(current)
@@ -446,6 +478,19 @@ export function openWalkPlayer(
         canPrev: current > 0,
         canNext: current < lastIndex,
       },
+      minimap: buildMinimap(),
+      next:
+        toNext && nextLeg
+          ? {
+              label: 'Next stop',
+              value: `${formatDistance(toNext.distanceM)} ${compassOf(toNext.bearingDeg)}`,
+              sub: `${formatDuration(nextLeg.durationMin)} on foot · bearing ${Math.round(toNext.bearingDeg)}°`,
+            }
+          : {
+              label: 'Walk home',
+              value: formatDuration(card.walkbackMin),
+              sub: 'from here, with the safety margin added',
+            },
       handheld: handheldOn,
       reducedMotion: !!reducedMotion,
     }
@@ -457,7 +502,9 @@ export function openWalkPlayer(
     const [lon, lat] = cellToLonLat(grid, stop)
     // CLAMP_TO_GROUND places the avatar on the surface, so its height here is 0
     avatar.position = new ConstantPositionProperty(Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE))
-    overlay.innerHTML = dashboardHtml(buildView())
+    const view = buildView()
+    wrist.main.innerHTML = mainScreenHtml(view, tab)
+    wrist.side.innerHTML = sideScreenHtml(view)
   }
 
   const go = (index: number) => {
@@ -466,7 +513,7 @@ export function openWalkPlayer(
     focus(current)
   }
 
-  overlay.addEventListener('click', (event) => {
+  const onClick = (event: Event) => {
     const button = (event.target as Element).closest<HTMLElement>('[data-act]')
     if (!button || button.hasAttribute('disabled')) return
     const [lon, lat] = lonLatOf(current)
@@ -488,22 +535,26 @@ export function openWalkPlayer(
       case 'hand':
         setHandheld(!handheldOn)
         return render()
+      case 'tab':
+        tab = (button.dataset.tab as TabId | undefined) ?? 'now'
+        return render()
       case 'close':
         return close()
     }
-  })
+  }
+  wrist.root.addEventListener('click', onClick)
 
   const refresh = setInterval(render, REFRESH_MS)
 
   function close() {
     clearInterval(refresh)
-    setHandheld(false)
+    cancelAnimationFrame(handheldFrame)
     viewer.entities.remove(avatar)
     viewer.entities.remove(routeLine)
     legend?.remove('stops')
-    overlay.remove()
-    document.body.classList.remove('eva-mode') // every other panel comes back
     active = null
+    document.body.classList.remove('eva-mode') // every other panel comes back
+    wrist.dismiss(() => wrist.destroy()) // the arm lowers out of view
   }
 
   active = {

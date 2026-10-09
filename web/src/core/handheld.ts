@@ -1,6 +1,6 @@
 /**
- * A hand-held camera: a small, slowly changing sway in heading, pitch and roll, made of breathing,
- * hand drift and a fine tremor. Applied as increments, so the user's own steering still works.
+ * A held hand: a small, slowly changing sway in heading, pitch and roll, made of breathing,
+ * hand drift and a fine tremor. The wrist console is moved by it.
  */
 
 export type Sway = { heading: number; pitch: number; roll: number } // radians
@@ -50,26 +50,5 @@ export function swayAt(tS: number): Sway {
     heading: AMPLITUDE_RAD.heading * axis('heading', tS) * ease,
     pitch: AMPLITUDE_RAD.pitch * axis('pitch', tS) * ease + LIFT_RAD * (1 - smooth(tS / LIFT_S)),
     roll: AMPLITUDE_RAD.roll * axis('roll', tS) * ease,
-  }
-}
-
-export type SwayCamera = {
-  lookRight(amount: number): void
-  lookUp(amount: number): void
-  twistRight(amount: number): void
-}
-
-/** Moves the camera by the change in sway since last time; `release` takes it all back out. */
-export function createHandheld(camera: SwayCamera) {
-  let applied: Sway = { heading: 0, pitch: 0, roll: 0 }
-  const to = (target: Sway) => {
-    camera.lookRight(target.heading - applied.heading)
-    camera.lookUp(target.pitch - applied.pitch)
-    camera.twistRight(target.roll - applied.roll)
-    applied = target
-  }
-  return {
-    tick: (tS: number) => to(swayAt(tS)),
-    release: () => to({ heading: 0, pitch: 0, roll: 0 }),
   }
 }

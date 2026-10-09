@@ -22,6 +22,7 @@ Measured by training on 4 of every 5 stops and scoring the fifth (`classify-pano
 - Choose the challenge, the Jezero and Gale sites, the 15° slope limit, or the product direction. The team decided these.
 - Supply any data. Every dataset comes from NASA, USGS or the IAU and is cited in `docs/data-sources.md`.
 - Produce images, video or audio shown in the app or the pitch videos. [Team: confirm.]
+- The astronaut-arm picture behind the EVA dashboard (`web/public/assets/wrist-console.webp`) was supplied by the team as `Sci-Fi Astronaut Wrist HUD Console.png`; the code only converts it to WebP and places the screens on it. [Team: state its source and licence.] Nothing on the screens is invented: no suit vitals, only the walk's own numbers.
 
 ## Prompts
 - The standing instructions given to the AI are in `CLAUDE.md` and `PRODUCT.md`.
