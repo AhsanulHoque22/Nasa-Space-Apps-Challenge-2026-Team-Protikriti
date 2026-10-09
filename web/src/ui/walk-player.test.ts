@@ -32,6 +32,7 @@ const plan = (stops: Cell[]): WalkParams => ({
 
 function fakeViewer(heightM = 3500) {
   const entities: unknown[] = []
+  const preRender = { addEventListener: vi.fn(), removeEventListener: vi.fn() }
   const flyToBoundingSphere = vi.fn()
   const viewer = {
     entities: {
@@ -50,17 +51,22 @@ function fakeViewer(heightM = 3500) {
       directionWC: new Cartesian3(-1, 0, 0),
       flyToBoundingSphere,
       flyTo: vi.fn(),
+      lookRight: vi.fn(),
+      lookUp: vi.fn(),
+      twistRight: vi.fn(),
     },
+    scene: { preRender },
   } as unknown as Viewer
-  return { viewer, entities, flyToBoundingSphere }
+  return { viewer, entities, flyToBoundingSphere, preRender }
 }
 
-const footers = () => document.querySelectorAll('.walk-player').length
+const footers = () => document.querySelectorAll('.eva-dash').length
 const text = () => document.querySelector('.wp-pos')?.textContent?.replace(/\s+/g, ' ').trim()
 
 afterEach(() => {
   updateWalkPlayer(null)
   document.body.innerHTML = ''
+  document.body.className = ''
 })
 
 describe('walk player', () => {
@@ -138,5 +144,129 @@ describe('walk player', () => {
       { offset: { range: number; pitch: number } },
     ]
     expect(nearOptions.offset.range * Math.sin(-nearOptions.offset.pitch)).toBeCloseTo(800, 3)
+  })
+})
+
+import type { Place } from '../core/search'
+import { routeProfile } from '../core/eva-telemetry'
+
+const places: Place[] = [
+  { name: 'Ridge A', kind: 'feature', lon: 77.2, lat: 18.8, detail: 'a ridge' },
+  { name: 'Far Hills', kind: 'feature', lon: 79, lat: 18.8, detail: '' },
+  { name: 'Sample 4', kind: 'sample', lon: 77.21, lat: 18.81, detail: 'core sample' },
+]
+const richPlan = (stops: Cell[]): WalkParams => ({
+  ...plan(stops),
+  path: [...Array(15).keys()].map((i) => cell(10 + i, 10 + i)),
+  total: {
+    distanceM: 3000,
+    ascentM: 40,
+    descentM: 55,
+    maxSlopeDeg: 9.4,
+    durationMin: 80,
+  } as RouteSummary,
+  limitDeg: 15,
+  hazards: 2,
+  reliability: 0.93,
+  words: 'Walk north-east for three kilometres.',
+  siteId: 'jezero',
+})
+const text2 = () => document.querySelector('.eva-dash')?.textContent?.replace(/\s+/g, ' ') ?? ''
+
+describe('EVA dashboard', () => {
+  it('takes over the screen while the walk runs, and gives it back when it ends', () => {
+    const { viewer } = fakeViewer()
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined)
+    expect(document.body.classList.contains('eva-mode')).toBe(true)
+    document.querySelector<HTMLButtonElement>('[data-act="close"]')?.click()
+    expect(document.body.classList.contains('eva-mode')).toBe(false)
+    expect(footers()).toBe(0)
+  })
+
+  it('shows the verdict, route numbers, every stop and where you are', () => {
+    const { viewer } = fakeViewer()
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20), cell(24, 24)]), () => undefined, {
+      siteName: 'Jezero crater',
+      nowMs: () => Date.UTC(2026, 9, 10, 10, 0, 0),
+    })
+    const t = text2()
+    expect(t).toContain('EVA walk · Jezero crater')
+    expect(t).toContain('GO')
+    expect(t).toContain('+30 min') // the card's tightest margin
+    expect(t).toContain('9.4° of 15°') // steepest step against the limit
+    expect(t).toContain('93%') // reliability from the planner
+    expect(t).toContain('Walk north-east for three kilometres.')
+    expect(document.querySelectorAll('.eva-stops li')).toHaveLength(3)
+    expect(document.querySelector('.eva-stops .is-current')?.textContent).toContain('Start')
+    expect(t).toContain('LMST')
+    expect(document.querySelector('svg.eva-profile')).not.toBeNull()
+  })
+
+  it('shows live telemetry that moves with the stop you are at', () => {
+    const { viewer } = fakeViewer()
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20), cell(24, 24)]), () => undefined)
+    const at = () => document.querySelector('.eva-right section')?.textContent ?? ''
+    expect(at()).toContain('At the start')
+    document.querySelector<HTMLButtonElement>('[data-act="next"]')?.click()
+    expect(at()).toContain('At stop 1')
+    expect(at()).toContain('Next stop')
+    document.querySelector<HTMLButtonElement>('[data-act="goto"][data-i="2"]')?.click()
+    expect(at()).toContain('At stop 2')
+    expect(at()).toContain('Walk home') // the last stop looks homeward instead
+  })
+
+  it('lists named features and samples near you, nearest first, and leaves far ones out', () => {
+    const { viewer } = fakeViewer()
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined, {
+      places: () => places,
+    })
+    const names = [...document.querySelectorAll('.eva-near-name')].map((n) => n.textContent)
+    expect(names).toContain('Ridge A')
+    expect(names).toContain('Sample 4')
+    expect(names).not.toContain('Far Hills')
+  })
+
+  it('escapes text from place names, so a name can never inject markup', () => {
+    const { viewer } = fakeViewer()
+    const hostile: Place[] = [
+      { name: '<img src=x onerror=alert(1)>', kind: 'feature', lon: 77.2, lat: 18.8, detail: '' },
+    ]
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined, {
+      places: () => hostile,
+    })
+    expect(document.querySelector('.eva-nearby img')).toBeNull()
+    expect(document.querySelector('.eva-near-name')?.textContent).toContain('<img')
+  })
+
+  it('says plainly when the site has no weather record of its own', () => {
+    const { viewer } = fakeViewer()
+    openWalkPlayer(
+      viewer,
+      { ...richPlan([cell(10, 10), cell(20, 20)]), siteId: 'insight' },
+      () => undefined,
+      { siteName: 'InSight landing site' },
+    )
+    expect(text2()).toContain('not measured')
+  })
+
+  it('runs a hand-held camera that can be switched off and is released at the end', () => {
+    const { viewer, preRender } = fakeViewer()
+    openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined)
+    expect(preRender.addEventListener).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-act="hand"]')?.getAttribute('aria-pressed')).toBe('true')
+    document.querySelector<HTMLButtonElement>('[data-act="hand"]')?.click()
+    expect(preRender.removeEventListener).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-act="hand"]')?.getAttribute('aria-pressed')).toBe('false')
+    document.querySelector<HTMLButtonElement>('[data-act="hand"]')?.click()
+    expect(preRender.addEventListener).toHaveBeenCalledTimes(2)
+    document.querySelector<HTMLButtonElement>('[data-act="close"]')?.click()
+    expect(preRender.removeEventListener).toHaveBeenCalledTimes(2)
+  })
+
+  it('profile helper marks the stops along the path', () => {
+    const path = [...Array(15).keys()].map((i) => cell(10 + i, 10 + i))
+    const p = routeProfile(grid, path, [cell(10, 10), cell(24, 24)])
+    expect(p.stopD[0]).toBe(0)
+    expect(p.stopD[1]).toBeCloseTo(p.totalM, 6)
   })
 })

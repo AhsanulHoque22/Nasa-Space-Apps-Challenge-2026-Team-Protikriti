@@ -62,7 +62,8 @@ import type { SiteId } from './core/surface-conditions'
 import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
 import { localMeanSolarTimeHours, nextLocalHourMs, solarLongitudeDeg } from './core/mars-time'
-import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
+import { firmerThanPct, thermalAt } from './core/thermal'
+import { type SiteThermal, addThermalLayer, loadThermalGrids } from './map/thermal-layer'
 import { createCaveLayer } from './map/caves-layer'
 import { createWalkGround } from './map/walk-ground'
 import { renderCaveCard } from './ui/cave-card'
@@ -142,6 +143,9 @@ async function main() {
   keepUrlInSync(viewer)
   const openRef: { current?: (ref: string) => void } = {}
   const placesReady = loadPlaces()
+  let loadedPlaces: Place[] = [] // for the walk dashboard's "near you"
+  void placesReady.then((p) => (loadedPlaces = p)).catch(() => undefined)
+  let thermalGrids: SiteThermal[] = [] // ground firmness, once it has loaded
   void placesReady.then((places) =>
     renderSearchBox(ui, places, (p) => {
       flyToPlace(viewer, p.lon, p.lat, p.sizeKm)
@@ -166,6 +170,14 @@ async function main() {
       openWalkPlayer(viewer, params, (lon, lat) => walkStreetView?.(lon, lat), {
         surfaceM,
         legend: lineLegend,
+        siteName: sites.find((s) => s.id === params.siteId)?.name.split(' (')[0],
+        places: () => loadedPlaces,
+        nowMs: sceneTimeMs,
+        firmnessAt: (lon, lat) => {
+          const grid = thermalGrids.find((t) => t.site.id === params.siteId)?.grid
+          const value = grid ? thermalAt(grid, lon, lat) : null
+          return grid && value !== null ? { value, softerPct: firmerThanPct(grid, value) } : null
+        },
       })
     },
     onWalkPlan: updateWalkPlayer,
@@ -254,6 +266,7 @@ async function main() {
   renderReadout(ui, viewer, sites, mola)
   // Settlement guide: right-click anywhere, or the readout's button for the view centre.
   const thermalReady = loadThermalGrids(sites)
+  void thermalReady.then((t) => (thermalGrids = t)).catch(() => undefined)
   let swim: Promise<SwimGrid | null> | undefined
   const getSwim = () => (swim ??= loadSwim().catch(() => null))
   const openReport = async (lon: number, lat: number) => {

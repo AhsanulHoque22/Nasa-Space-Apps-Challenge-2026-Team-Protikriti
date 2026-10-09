@@ -11,12 +11,28 @@ import {
   Math as CesiumMath,
   type Viewer,
 } from 'cesium'
-import type { EvaCard } from '../core/eva-card'
+import { EVA_LIMITS, type EvaCard } from '../core/eva-card'
+import {
+  ahead,
+  compassOf,
+  doseMsv,
+  nearbyPlaces,
+  routeProfile,
+  slopeDegAt,
+} from '../core/eva-telemetry'
 import { formatDistance, formatDuration } from '../core/format'
+import { createHandheld } from '../core/handheld'
+import { DOSE_RATES } from '../core/dose'
+import { localMeanSolarTimeHours, season, solarLongitudeDeg, sunPosition } from '../core/mars-time'
+import { placeNote } from '../core/place-notes'
+import { DEFAULT_SUIT_FACTOR, MAX_SUIT_SPEED_KMH } from '../core/route'
+import type { Place } from '../core/search'
+import { surfaceConditions } from '../core/surface-conditions'
 import { type Cell, type Grid, cellToLonLat } from '../core/grid'
 import type { RouteSummary } from '../core/summary'
 import { bearingRad, lineOnGround } from '../core/terrain-line'
 import { MARS_SPHERE } from '../map/mars'
+import { type DashView, type Tile, dashboardHtml } from './eva-dashboard'
 import type { LineLegend } from './line-legend'
 
 export type WalkParams = {
@@ -25,12 +41,27 @@ export type WalkParams = {
   legs: RouteSummary[]
   card: EvaCard
   stopMin: number
+  /** The rest is for the dashboard; a walk still opens without it. */
+  path?: Cell[]
+  total?: RouteSummary
+  limitDeg?: number
+  hazards?: number
+  reliability?: number | null
+  words?: string
+  siteId?: string
 }
 
 export type WalkDeps = {
   /** Rendered ground height (terrain x exaggeration): lines and the camera sit on it. */
   surfaceM?: (lon: number, lat: number) => number
   legend?: LineLegend
+  siteName?: string
+  /** Named places for "near you"; read each time, so a list that loads late still shows up. */
+  places?: () => readonly Place[]
+  /** The map clock (UTC ms): the dashboard shows the Mars time and sun at that moment. */
+  nowMs?: () => number
+  /** Ground firmness (THEMIS thermal inertia) under a point, with how much of the map is softer. */
+  firmnessAt?: (lon: number, lat: number) => { value: number; softerPct: number } | null
 }
 
 const LINK_COLOUR = '#5b8def'
@@ -61,6 +92,8 @@ export function openWalkPlayer(
     active.update(params)
     return
   }
+  let params0 = params
+  let siteId = params.siteId ?? ''
   let { stops, grid, legs, card, stopMin } = params
   let current = 0
   let cumDistM: number[] = []
@@ -114,9 +147,9 @@ export function openWalkPlayer(
   })
 
   const overlay = document.createElement('div')
-  overlay.className = 'walk-player panel'
+  overlay.className = 'eva-dash'
   overlay.setAttribute('role', 'complementary')
-  overlay.setAttribute('aria-label', 'EVA walk player')
+  overlay.setAttribute('aria-label', 'EVA walk dashboard')
   document.body.append(overlay)
 
   const registerLegend = (positions: Cartesian3[]) =>
@@ -172,95 +205,326 @@ export function openWalkPlayer(
     })
   }
 
+  const REFRESH_MS = 15_000 // the Mars clock, sun and conditions move on while you read
+  const reducedMotion =
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  let handheldOn = !reducedMotion
+  let handheld: ReturnType<typeof createHandheld> | null = null
+  let handheldStart = 0
+  const sway = () => handheld?.tick((performance.now() - handheldStart) / 1000)
+  const setHandheld = (on: boolean) => {
+    handheldOn = on && !reducedMotion
+    if (handheldOn && !handheld) {
+      handheld = createHandheld(viewer.camera)
+      handheldStart = performance.now()
+      viewer.scene.preRender.addEventListener(sway)
+    } else if (!handheldOn && handheld) {
+      viewer.scene.preRender.removeEventListener(sway)
+      handheld.release()
+      handheld = null
+    }
+  }
+
+  const tone = (ok: boolean, warn: boolean): Tile['tone'] => (ok ? 'ok' : warn ? 'warn' : 'bad')
+  const fmtLat = (lat: number) => `${Math.abs(lat).toFixed(4)}° ${lat < 0 ? 'S' : 'N'}`
+  const fmtLon = (lon: number) => `${(((lon % 360) + 360) % 360).toFixed(4)}° E`
+  const signed = (min: number) =>
+    min >= 0 ? `+${formatDuration(min)}` : `−${formatDuration(Math.abs(min))}`
+
+  const buildView = (): DashView => {
+    const [lon, lat] = lonLatOf(current)
+    const here = stops[current] as Cell
+    const nowMs = deps.nowMs?.() ?? Date.now()
+    const lmst = localMeanSolarTimeHours(nowMs, lon)
+    const sun = sunPosition(nowMs, lon, lat)
+    const ls = solarLongitudeDeg(nowMs)
+    const wholeHours = Math.floor(lmst)
+    const clockText = `LMST ${String(wholeHours).padStart(2, '0')}:${String(Math.floor((lmst - wholeHours) * 60)).padStart(2, '0')}`
+    const sunText =
+      sun.elevationDeg >= 0 ? `Sun ${Math.round(sun.elevationDeg)}° up` : 'Sun below horizon'
+    const places = deps.places?.() ?? []
+    const evaMin = cumArriveMin[current] ?? 0
+    const lastIndex = stops.length - 1
+    const slope = slopeDegAt(grid, here)
+    const limit = params0.limitDeg ?? grid.maxSafeSlopeDeg
+    const next = current < lastIndex ? (stops[current + 1] ?? null) : null
+    const toNext = next ? ahead(grid, here, next) : null
+    const nextLeg = current < lastIndex ? legs[current] : undefined
+    const margin = card.tightestMarginMin
+    const station = siteId === 'gale' || siteId === 'jezero'
+    const conditions = surfaceConditions({
+      utcMs: nowMs,
+      ls,
+      lmstHours: lmst,
+      site: siteId === 'gale' ? 'gale' : 'jezero',
+      sols: [],
+    })
+    const firm = deps.firmnessAt?.(lon, lat) ?? null
+    const near = nearbyPlaces(places, lon, lat, { radiusKm: 8, limit: 6 })
+    const total = params0.total
+    const reliability = params0.reliability
+    const rate = DOSE_RATES.find((d) => d.id === 'surface')
+    const evaHours = totalEvaMin / 60
+
+    const stopRows = stops.map((_, i) => {
+      const [sLon, sLat] = lonLatOf(i)
+      const close = nearbyPlaces(places, sLon, sLat, { radiusKm: 3, limit: 1 })[0]
+      return {
+        name: i === 0 ? 'Start' : `Stop ${i}`,
+        detail: `${formatDistance(cumDistM[i] ?? 0)} along · ${formatDuration(cumArriveMin[i] ?? 0)} into the EVA`,
+        near: close
+          ? `near ${close.place.name}, ${close.km < 1 ? `${Math.round(close.km * 1000)} m` : `${close.km.toFixed(1)} km`} ${close.compass}`
+          : null,
+        current: i === current,
+        done: i < current,
+      }
+    })
+
+    const knowNote = near.map((n) => placeNote(n.place.name)).find((n): n is string => !!n)
+    return {
+      siteName: deps.siteName ?? 'this site',
+      summaryLine: `${lastIndex} stop${lastIndex === 1 ? '' : 's'} · ${formatDistance(cumDistM[lastIndex] ?? 0)} · ${formatDuration(totalEvaMin)} of EVA`,
+      verdict: card.verdict,
+      verdictLine: Number.isFinite(margin)
+        ? `${signed(margin)} spare at the tightest point of the walk home`
+        : 'no safe way home',
+      progress: {
+        fraction: totalEvaMin > 0 ? Math.min(1, evaMin / totalEvaMin) : 0,
+        text: `EVA ${formatDuration(evaMin)} of ${formatDuration(totalEvaMin)} · ${formatDuration(totalEvaMin - evaMin)} to go`,
+      },
+      clock: [clockText, sunText, season(ls, lat)],
+      numbers: [
+        { label: 'Distance', value: formatDistance(cumDistM[lastIndex] ?? 0) },
+        { label: 'EVA time', value: formatDuration(totalEvaMin) },
+        ...(total
+          ? [
+              {
+                label: 'Relief',
+                value: `+${Math.round(total.ascentM)} m / −${Math.round(total.descentM)} m`,
+              },
+              {
+                label: 'Steepest step',
+                value: `${total.maxSlopeDeg.toFixed(1)}° of ${limit}°`,
+                tone: tone(total.maxSlopeDeg <= limit * 0.8, total.maxSlopeDeg <= limit),
+              },
+            ]
+          : []),
+        ...(reliability != null
+          ? [
+              {
+                label: 'Holds up',
+                value: `${Math.round(reliability * 100)}%`,
+                hint: 'Share of simulated terrain errors under which every step stays within the slope limit.',
+              },
+            ]
+          : []),
+        ...(params0.hazards != null
+          ? [{ label: 'Hazards marked', value: String(params0.hazards) }]
+          : []),
+      ],
+      stops: stopRows,
+      words: params0.words ?? 'The route in words appears here once the route is planned.',
+      checks: [
+        `EVA limit ${formatDuration(EVA_LIMITS.maxEvaMin)}, with ${formatDuration(EVA_LIMITS.backupMin)} kept in reserve and ${Math.round(EVA_LIMITS.walkbackPad * 100)}% added to the walk home.`,
+        `Slope limit ${limit}° on a ${grid.pixelSizeM} m terrain grid.`,
+        `Pace: Tobler's hiking function × ${DEFAULT_SUIT_FACTOR} suit factor, capped at ${MAX_SUIT_SPEED_KMH} km/h (team assumptions; Mars gravity is not modelled).`,
+        `${stopMin} minutes of science at each stop (a planning assumption).`,
+        'Every number here comes from the same route that the planner shows.',
+      ],
+      position: {
+        title: current === 0 ? 'At the start' : `At stop ${current}`,
+        tiles: [
+          { label: 'Position', value: `${fmtLat(lat)}, ${fmtLon(lon)}` },
+          {
+            label: 'Elevation',
+            value: `${Math.round(grid.elevationM[here.row * grid.width + here.col] ?? 0)
+              .toLocaleString('en-US')
+              .replace('-', '−')} m`,
+          },
+          {
+            label: 'Ground slope here',
+            value:
+              slope === null
+                ? 'no data'
+                : `${slope.toFixed(1)}° (${slope <= limit * 0.8 ? 'gentle' : slope <= limit ? 'near the limit' : 'steeper than the limit'})`,
+            tone: slope === null ? undefined : tone(slope <= limit * 0.8, slope <= limit),
+          },
+          { label: 'Walked', value: formatDistance(cumDistM[current] ?? 0) },
+          {
+            label: 'Left to walk',
+            value: formatDistance((cumDistM[lastIndex] ?? 0) - (cumDistM[current] ?? 0)),
+          },
+          toNext && nextLeg
+            ? {
+                label: 'Next stop',
+                value: `${formatDistance(toNext.distanceM)} ${compassOf(toNext.bearingDeg)} · ${formatDuration(nextLeg.durationMin)}`,
+                hint: `Bearing ${Math.round(toNext.bearingDeg)}° from north, ${formatDistance(nextLeg.distanceM)} on the route`,
+              }
+            : {
+                label: 'Walk home',
+                value: `${formatDuration(card.walkbackMin)} from here (padded)`,
+                tone: tone(card.verdict === 'GO', false),
+              },
+          {
+            label: 'Margin on the walk home',
+            value: Number.isFinite(margin) ? signed(margin) : 'none',
+            tone: tone(margin >= 30, margin >= 0),
+          },
+        ],
+      },
+      conditions: {
+        tiles: [
+          { label: 'Air', value: `${Math.round(conditions.airTempC)} °C` },
+          { label: 'Wind', value: `${Math.round(conditions.windMs)} m/s` },
+          { label: 'Sky', value: `${conditions.sky} · dust τ ${conditions.tau.toFixed(1)}` },
+          {
+            label: 'Visibility',
+            value: `${conditions.visibilityKm >= 10 ? Math.round(conditions.visibilityKm) : conditions.visibilityKm.toFixed(1)} km`,
+          },
+          {
+            label: 'Dust devils',
+            value:
+              conditions.dustDevilsPerHour >= 0.05
+                ? `~${conditions.dustDevilsPerHour.toFixed(1)} per hour`
+                : 'none expected',
+          },
+          {
+            label: 'Sunlight',
+            value:
+              sun.elevationDeg >= 0
+                ? `${Math.round(sun.elevationDeg)}° high, from ${compassOf(sun.azimuthDeg)}`
+                : 'night',
+            tone: sun.elevationDeg >= 5 ? 'ok' : 'warn',
+          },
+          firm
+            ? {
+                label: 'Ground firmness',
+                value:
+                  `thermal inertia ${Math.round(firm.value)} · softer than ${Math.round(firm.softerPct)}% of mapped ground`.replace(
+                    'softer',
+                    'firmer',
+                  ),
+                hint: 'THEMIS thermal inertia (SI units): higher means rockier, firmer ground. 100 m resolution.',
+              }
+            : { label: 'Ground firmness', value: 'not mapped here' },
+        ],
+        note: station
+          ? 'Seasonal climatology for this sol of the Mars year, not a live station reading.'
+          : `Stand-in seasonal climatology (Jezero's model): this app has no weather record for ${deps.siteName ?? 'this site'}, so air, wind and dust here are not measured.`,
+      },
+      nearby: near.map((n) => ({
+        name: n.place.name,
+        kind:
+          n.place.kind === 'sample'
+            ? 'rock sample'
+            : n.place.kind === 'landing'
+              ? 'landing site'
+              : n.place.kind === 'zone'
+                ? 'exploration zone'
+                : 'named feature',
+        where: `${n.km < 1 ? `${Math.round(n.km * 1000)} m` : `${n.km.toFixed(1)} km`} ${n.compass}`,
+        note: placeNote(n.place.name) ?? (n.place.detail || null),
+      })),
+      know: [
+        'Mars gravity is 3.72 m/s², 0.38 of Earth’s. The pace model does not include it, so treat walking times as planning figures.',
+        rate?.msvPerDay != null
+          ? `Radiation: the surface dose measured at Gale is ${rate.msvPerDay} mSv a day (${rate.source}); this EVA would add about ${doseMsv(evaHours, rate.msvPerDay).toFixed(2)} mSv. The astronaut career limit is 600 mSv. Jezero has no measurement of its own.`
+          : 'Radiation: no surface dose rate is available.',
+        ...(knowNote ? [`Nearby: ${knowNote}`] : []),
+        'Stops are planning points. Check the ground in person before sampling.',
+      ],
+      profile:
+        params0.path && params0.path.length > 1
+          ? {
+              data: routeProfile(grid, params0.path, stops),
+              currentM: routeProfile(grid, params0.path, stops).stopD[current] ?? 0,
+            }
+          : null,
+      navigation: {
+        name: current === 0 ? 'Start' : `Stop ${current}`,
+        count: lastIndex,
+        canPrev: current > 0,
+        canNext: current < lastIndex,
+      },
+      handheld: handheldOn,
+      reducedMotion: !!reducedMotion,
+    }
+  }
+
   const render = () => {
     const stop = stops[current]
     if (!stop) return
     const [lon, lat] = cellToLonLat(grid, stop)
-    const elev = grid.elevationM[stop.row * grid.width + stop.col] ?? Number.NaN
-    const elevStr = Number.isNaN(elev)
-      ? '—'
-      : `${Math.round(elev).toLocaleString('en-US').replace('-', '−')} m`
-
     // CLAMP_TO_GROUND places the avatar on the surface, so its height here is 0
     avatar.position = new ConstantPositionProperty(Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE))
-
-    const evaMin = cumArriveMin[current] ?? 0
-    const remainMin = totalEvaMin - evaMin
-    const isGo = card.verdict === 'GO'
-    const margin = card.tightestMarginMin
-    const marginStr = Number.isFinite(margin)
-      ? margin >= 0
-        ? `+${formatDuration(margin)}`
-        : `−${formatDuration(Math.abs(margin))}`
-      : '—'
-    const stopName = current === 0 ? 'Start' : `Stop ${current}`
-
-    overlay.innerHTML = `
-      <div class="wp-main">
-        <div class="wp-nav">
-          <button type="button" data-act="prev"${current === 0 ? ' disabled' : ''} aria-label="Previous stop">‹ Prev</button>
-          <span class="wp-pos">${stopName} <span class="wp-of">of ${stops.length - 1}</span></span>
-          <button type="button" data-act="next"${current >= stops.length - 1 ? ' disabled' : ''} aria-label="Next stop">Next ›</button>
-        </div>
-        <div class="wp-stats">
-          <span><span class="wp-label">Dist</span>${formatDistance(cumDistM[current] ?? 0)}</span>
-          <span><span class="wp-label">EVA</span>${formatDuration(evaMin)}</span>
-          <span><span class="wp-label">Remaining</span>${formatDuration(remainMin)}</span>
-          <span><span class="wp-label">Elev</span>${elevStr}</span>
-          <span class="wp-verdict${isGo ? ' wp-go' : ' wp-nogo'}" title="EVA verdict">${card.verdict} ${marginStr}</span>
-        </div>
-        <div class="wp-actions">
-          <button type="button" data-act="sv">Street View</button>
-          <button type="button" data-act="rc" title="Tilt the map toward where the walk goes next, at your current zoom">⊙ Recenter</button>
-          <button type="button" data-act="zi" aria-label="Zoom in">+</button>
-          <button type="button" data-act="zo" aria-label="Zoom out">−</button>
-          <button type="button" data-act="close" class="quiet wp-close">End Walk</button>
-        </div>
-      </div>`
-
-    const go = (index: number) => {
-      current = index
-      render()
-      focus(current)
-    }
-    overlay.querySelector('[data-act="prev"]')?.addEventListener('click', () => {
-      if (current > 0) go(current - 1)
-    })
-    overlay.querySelector('[data-act="next"]')?.addEventListener('click', () => {
-      if (current < stops.length - 1) go(current + 1)
-    })
-    overlay
-      .querySelector('[data-act="sv"]')
-      ?.addEventListener('click', () => onStreetView(lon, lat))
-    overlay.querySelector('[data-act="rc"]')?.addEventListener('click', () => focus(current))
-    overlay.querySelector('[data-act="zi"]')?.addEventListener('click', () => zoomTo(0.5))
-    overlay.querySelector('[data-act="zo"]')?.addEventListener('click', () => zoomTo(2))
-    overlay.querySelector('[data-act="close"]')?.addEventListener('click', close)
+    overlay.innerHTML = dashboardHtml(buildView())
   }
 
+  const go = (index: number) => {
+    current = Math.max(0, Math.min(stops.length - 1, index))
+    render()
+    focus(current)
+  }
+
+  overlay.addEventListener('click', (event) => {
+    const button = (event.target as Element).closest<HTMLElement>('[data-act]')
+    if (!button || button.hasAttribute('disabled')) return
+    const [lon, lat] = lonLatOf(current)
+    switch (button.dataset.act) {
+      case 'prev':
+        return go(current - 1)
+      case 'next':
+        return go(current + 1)
+      case 'goto':
+        return go(Number(button.dataset.i))
+      case 'sv':
+        return onStreetView(lon, lat)
+      case 'rc':
+        return focus(current)
+      case 'zi':
+        return zoomTo(0.5)
+      case 'zo':
+        return zoomTo(2)
+      case 'hand':
+        setHandheld(!handheldOn)
+        return render()
+      case 'close':
+        return close()
+    }
+  })
+
+  const refresh = setInterval(render, REFRESH_MS)
+
   function close() {
+    clearInterval(refresh)
+    setHandheld(false)
     viewer.entities.remove(avatar)
     viewer.entities.remove(routeLine)
     legend?.remove('stops')
     overlay.remove()
+    document.body.classList.remove('eva-mode') // every other panel comes back
     active = null
   }
 
   active = {
     close,
     update(next) {
+      params0 = next
       ;({ stops, grid, legs, card, stopMin } = next)
+      siteId = next.siteId ?? siteId
       current = Math.min(current, stops.length - 1)
       derive()
       const positions = linkPositions()
       if (routeLine.polyline) routeLine.polyline.positions = new ConstantProperty(positions)
       registerLegend(positions)
-      render() // the footer follows the new plan: stop count, distances, times, verdict
+      render() // the dashboard follows the new plan: stop count, distances, times, verdict
     },
   }
 
+  document.body.classList.add('eva-mode') // hides every panel but this dashboard
   derive()
   registerLegend(linkPositions())
   render()
   focus(0, true)
+  setHandheld(handheldOn)
 }

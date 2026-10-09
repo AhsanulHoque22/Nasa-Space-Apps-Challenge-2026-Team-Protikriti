@@ -1993,36 +1993,346 @@ body.exploring #ui {
   color: var(--text-muted);
 }
 
-/* Walk player */
-.walk-player {
+/* ---- EVA walk dashboard: takes over the screen while a walk runs ---- */
+body.eva-mode #ui {
+  display: none; /* every other panel steps aside; End walk brings them back */
+}
+
+.eva-dash {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
-  border-radius: var(--radius) var(--radius) 0 0;
-  padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--rule);
-}
-
-.wp-main {
-  display: flex;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr) minmax(0, 370px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'top top top'
+    'left . right'
+    'bottom bottom bottom';
   gap: var(--space-3);
-  align-items: center;
-  flex-wrap: wrap;
+  padding: var(--space-4);
+  pointer-events: none; /* the map stays draggable between the panels */
 }
 
-.wp-nav {
+.eva-dash > *,
+.eva-sheet > *,
+.eva-right > * {
+  pointer-events: auto;
+}
+
+.eva-sheet {
+  display: contents;
+}
+
+.eva-dash h2,
+.eva-dash h3 {
+  margin: 0;
+}
+
+.eva-dash h3 {
+  margin-bottom: var(--space-2);
+  font-size: 14px;
+}
+
+.eva-top {
+  grid-area: top;
+  display: grid;
+  grid-template-columns: minmax(180px, auto) auto minmax(160px, 1fr) auto auto;
+  grid-template-areas: 'id verdict progress clock close';
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.eva-id {
+  grid-area: id;
+}
+
+.eva-verdict {
+  grid-area: verdict;
+}
+
+.eva-progress {
+  grid-area: progress;
+}
+
+.eva-clock {
+  grid-area: clock;
+}
+
+.eva-top .wp-close {
+  grid-area: close;
+}
+
+.eva-id h2 {
+  font-size: 16px;
+}
+
+.eva-id p,
+.eva-progress p,
+.eva-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eva-verdict {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  border: 1px solid currentColor;
+}
+
+.eva-verdict b {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.eva-verdict span {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.wp-go {
+  color: #7be0a0;
+}
+
+.wp-nogo {
+  color: #ff8a73;
+}
+
+.eva-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.1);
+}
+
+.eva-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--nasa-blue-lift);
+  transition: width 300ms var(--ease-out);
+}
+
+.eva-clock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.eva-left,
+.eva-right > .panel {
+  padding: var(--space-3);
+}
+
+.eva-left {
+  grid-area: left;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.eva-right {
+  grid-area: right;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.eva-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+
+.eva-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+
+.eva-tile dt {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.eva-tile dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.eva-tile[data-tone='ok'] dd {
+  color: #7be0a0;
+}
+
+.eva-tile[data-tone='warn'] dd {
+  color: #ffc857;
+}
+
+.eva-tile[data-tone='bad'] dd {
+  color: #ff8a73;
+}
+
+.eva-stops,
+.eva-nearby,
+.eva-know {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.eva-stops button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.eva-stops button:hover {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.eva-stops .is-current button {
+  background: rgb(91 141 239 / 0.16);
+  border-color: var(--nasa-blue-lift);
+}
+
+.eva-stop-name {
+  font-weight: 700;
+}
+
+.eva-stops .is-done .eva-stop-name::after {
+  content: ' · done';
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.eva-stop-detail,
+.eva-stop-near,
+.eva-near-where,
+.eva-near-note {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.eva-nearby li {
+  display: grid;
+  gap: 1px;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.eva-near-name {
+  font-weight: 600;
+}
+
+.eva-empty,
+.eva-know li {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eva-know li {
+  color: var(--text);
+}
+
+.eva-left details {
+  margin-top: var(--space-2);
+  font-size: 12px;
+}
+
+.eva-left summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.eva-left details p,
+.eva-left details ul {
+  margin: var(--space-2) 0 0;
+  padding-left: 0;
+  color: var(--text-muted);
+  list-style-position: inside;
+}
+
+.eva-bottom {
+  grid-area: bottom;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+}
+
+.eva-profile {
+  width: 100%;
+  height: 84px;
+}
+
+.eva-pf-area {
+  fill: rgb(91 141 239 / 0.2);
+}
+
+.eva-pf-line {
+  fill: none;
+  stroke: var(--nasa-blue-lift);
+  stroke-width: 1.6;
+}
+
+.eva-pf-stop {
+  stroke: rgb(255 255 255 / 0.25);
+  stroke-dasharray: 2 3;
+}
+
+.eva-pf-dot {
+  fill: #fff;
+  stroke: #05070c;
+}
+
+.eva-pf-here {
+  fill: #fc7a3c;
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.eva-controls {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+}
+
+.wp-nav,
+.wp-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-shrink: 0;
 }
 
 .wp-pos {
-  font-weight: 600;
-  min-width: 72px;
+  min-width: 96px;
   text-align: center;
+  font-weight: 600;
 }
 
 .wp-of {
@@ -2030,48 +2340,105 @@ body.exploring #ui {
   font-weight: 400;
 }
 
-.wp-stats {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  flex-wrap: wrap;
-  flex: 1;
-  font-size: 13px;
+.eva-dash button {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  font: 600 12px var(--font);
+  color: var(--text);
+  background: rgb(255 255 255 / 0.1);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.wp-label {
-  color: var(--text-muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-right: 3px;
+.eva-dash button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.18);
 }
 
-.wp-verdict {
-  padding: 2px var(--space-2);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  border: 1px solid currentColor;
+.eva-dash .eva-stops button {
+  min-height: 0;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px solid transparent;
 }
 
-.wp-go {
-  color: var(--nasa-blue-lift);
-}
-.wp-nogo {
-  color: #ff8a73;
+.eva-dash .eva-stops .is-current button {
+  background: rgb(91 141 239 / 0.16);
+  border-color: var(--nasa-blue-lift);
 }
 
-.wp-actions {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  flex-shrink: 0;
+@media (max-width: 1000px) {
+  .eva-dash {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'top' 'main' 'bottom';
+    padding: var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .eva-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'id close' 'verdict verdict' 'progress progress';
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .eva-id h2 {
+    font-size: 14px;
+  }
+
+  .eva-id p,
+  .eva-clock {
+    display: none; /* the position panel carries the clock and sunlight on a small screen */
+  }
+
+  .eva-verdict {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  /* The two columns become one scrolling sheet over the lower half of the map. */
+  .eva-sheet {
+    display: grid;
+    grid-area: main;
+    align-self: end;
+    gap: var(--space-2);
+    max-height: min(100%, 44vh);
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+
+  .eva-left,
+  .eva-right {
+    grid-area: auto;
+    overflow: visible;
+    max-height: none;
+  }
+
+  .eva-right {
+    order: -1; /* live telemetry first on a small screen */
+  }
+
+  .eva-bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .eva-controls {
+    justify-items: stretch;
+  }
+
+  .wp-nav,
+  .wp-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
-.wp-close {
-  margin-left: var(--space-1);
+@media (prefers-reduced-motion: reduce) {
+  .eva-bar i {
+    transition: none;
+  }
 }
 
 /* "Start EVA Walk" button in route panel */

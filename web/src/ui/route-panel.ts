@@ -346,7 +346,7 @@ export function renderRoutePanel(
       `Terrain check: the route stays within ${g.maxSafeSlopeDeg}° in ${Math.round(held * 100)}% of ` +
       `${RELIABILITY_TRIALS} simulated terrain errors (±${DEM_SIGMA_M} m, smooth over ` +
       `${ERROR_CORRELATION_CELLS * g.pixelSizeM} m: a team assumption, not a measured error).`
-    return { card, failAlongM, limitDeg: g.maxSafeSlopeDeg }
+    return { card, failAlongM, limitDeg: g.maxSafeSlopeDeg, held }
   }
 
   const showResult = (reply: Extract<RouteReply, { type: 'route' }> | null, stops: Cell[] = []) => {
@@ -391,6 +391,21 @@ export function renderRoutePanel(
           legs: reply.legs,
           card: shown.card,
           stopMin: stopMin(),
+          path: reply.path ?? [],
+          total,
+          limitDeg: shown.limitDeg,
+          hazards: routedHazards.length,
+          reliability: shown.held,
+          siteId: site.id,
+          words: describeRoute({
+            total,
+            legs: reply.legs,
+            stopCount,
+            evaMin: evaDurationMin(total.durationMin, stopCount, stopMin()),
+            limitDeg: shown.limitDeg,
+            card: shown.card,
+            failAlongM: shown.failAlongM,
+          }),
         }
         walkButton.onclick = () => onStartWalk?.(walkParams)
         onWalkPlan?.(walkParams) // a walk already running follows the new plan
