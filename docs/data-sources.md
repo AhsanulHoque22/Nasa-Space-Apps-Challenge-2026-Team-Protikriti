@@ -263,3 +263,7 @@ The planet-wide HiRISE layer (Esri OnMars, "every released observation") is a pa
 | Measured, Jezero | Band-passed correlation with CTX over the region rose from 0.39 to 0.52; 6 strip pieces were moved, by 3.5 px on average (about 70 m). 392,416 seam pixels were corrected. |
 | What it does not do | It cannot re-register strips from the original frames (the service only serves the flattened mosaic), so seams that are not long straight lines, and offsets larger than 8 px, are left alone. Nothing is drawn in: pixels are re-balanced or moved. Brightness is no longer radiometric; use for looking, not measuring. |
 
+Regions tidied so far (about 1.8 degrees square each, levels 5 to 10): Jezero, Gale, Gusev/Columbia Hills, Meridiani, Pathfinder, Viking 1, Viking 2, InSight, Ares 3, Ares 4, Marth crater rim and SW Candor Chasma; 1,031 tiles, 15 MB. Measured correlation with CTX, before to after: Jezero 0.39 to 0.52, Gale 0.20 to 0.27, Gusev 0.35 to 0.41, Meridiani 0.41 to 0.41, Pathfinder 0.14 to 0.16, Viking 1 0.45 to 0.56, Viking 2 0.45 to 0.48, InSight 0.14 to 0.20, Ares 3 0.53 to 0.64, Ares 4 0.24 to 0.30, Marth 0.62 to 0.67, Candor 0.27 to 0.37; the gain is real but small in several regions, large in few.
+
+Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past about 66 to 68 degrees of latitude, so Phoenix (68.2 N) has no strips to tidy (its own controlled mosaic covers it). Six CTX reference tiles are corrupt on Esri's server and are skipped; alignment simply ignores those gaps.
+

@@ -80,3 +80,36 @@ def test_build_region_writes_tiles_and_a_manifest(tmp_path: Path, monkeypatch) -
     manifest = json.loads((tmp_path / "strips" / "manifest.json").read_text())
     assert manifest["regions"][0]["name"] == "test" and summary["tiles"] >= 6
     assert (tmp_path / "strips" / "10").is_dir()
+
+
+def test_a_corrupt_cached_tile_is_fetched_again(tmp_path: Path) -> None:
+    from marsmap.strip_tiles import fetch_tile
+
+    cached = tmp_path / "CTX" / "10" / "5_7.png"
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(b"\x89PNG truncated")  # an interrupted download left this behind
+    good = np.full((TILE_PX, TILE_PX), 80, np.uint8)
+
+    def get(url: str) -> bytes | None:
+        ok, data = cv2.imencode(".png", good)
+        return data.tobytes() if ok else None
+
+    tile = fetch_tile("CTX", 10, 7, 5, tmp_path, get)
+    assert tile is not None and (tile == 80).all()
+    assert cv2.imread(str(cached), cv2.IMREAD_GRAYSCALE) is not None
+
+
+def test_a_region_with_no_coverage_writes_nothing(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr("marsmap.strip_tiles._download", lambda url: None)
+    summary = build_region(
+        "pole", (10.0, 80.0, 10.5, 80.5), 10, tmp_path, tmp_path / "c", align=False
+    )
+    assert summary["tiles"] == 0
+    assert not (tmp_path / "strips" / "manifest.json").exists()
+
+
+def test_a_tile_that_is_broken_on_the_server_counts_as_no_image(tmp_path: Path) -> None:
+    from marsmap.strip_tiles import fetch_tile
+
+    assert fetch_tile("CTX", 10, 7, 5, tmp_path, lambda url: b"\x89PNG not really") is None
+    assert (tmp_path / "CTX" / "10" / "5_7.png").read_bytes() == b""  # not fetched again next run

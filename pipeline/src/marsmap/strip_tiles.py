@@ -59,13 +59,25 @@ def fetch_tile(
     """One 512 px grey tile, or None where the layer has no image. Cached on disk."""
     path = cache / service / str(level) / f"{y}_{x}.png"
     if path.exists():
-        data = path.read_bytes()
-        return None if not data else _decode(data)
+        cached = path.read_bytes()
+        if not cached:
+            return None  # remembered: the layer has no image here
+        tile = _decode(cached)
+        if tile is not None:
+            return tile
+        path.unlink()  # a truncated download from an earlier run: fetch it again
     url = ESRI.format(service=service, z=level, y=y, x=x)
     body: bytes | None = (get or _download)(url)
+    tile = None if not body else _decode(body)
+    if body and tile is None:  # once more: the first download may have been cut short
+        body = (get or _download)(url)
+        tile = None if not body else _decode(body)
+        if body and tile is None:
+            print(f"warning: {url} is broken on the server; treating it as no image")
+            body = None
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(body or b"")  # an empty file remembers "no image here"
-    return None if not body else _decode(body)
+    return tile
 
 
 def _decode(data: bytes) -> Gray | None:
@@ -185,6 +197,8 @@ def build_region(
     levels = pyramid(tidy, mask, level, box)
     out = out_dir / "strips"
     count = write_tiles(levels, out)
+    if count == 0:  # the layer has nothing here (it stops short of the poles): record nothing
+        return {"name": name, "tiles": 0, "seamPx": 0.0, "aligned": 0.0}
     size = tile_deg(level)
     rect = [
         box[0] * size - 180,
