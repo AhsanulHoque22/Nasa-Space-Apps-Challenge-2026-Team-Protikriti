@@ -45,7 +45,8 @@ import { renderLinkPanel } from './ui/link-panel'
 import { renderQuestPanel } from './ui/quest-panel'
 import { renderRoutePanel } from './ui/route-panel'
 import { openStreetView } from './ui/streetview-viewer'
-import { openWalkPlayer } from './ui/walk-player'
+import { createLineLegend } from './ui/line-legend'
+import { openWalkPlayer, updateWalkPlayer } from './ui/walk-player'
 import type { Rover } from './map/raw-images'
 import { renderTimelineBar } from './ui/timeline-bar'
 import { positionAtSol } from './core/timeline'
@@ -60,11 +61,7 @@ import { renderComparePanel } from './ui/compare-panel'
 import type { SiteId } from './core/surface-conditions'
 import { renderDosePanel } from './ui/dose-panel'
 import { renderDeltaCard } from './ui/delta-card'
-import {
-  localMeanSolarTimeHours,
-  nextLocalHourMs,
-  solarLongitudeDeg,
-} from './core/mars-time'
+import { localMeanSolarTimeHours, nextLocalHourMs, solarLongitudeDeg } from './core/mars-time'
 import { addThermalLayer, loadThermalGrids } from './map/thermal-layer'
 import { createCaveLayer } from './map/caves-layer'
 import { createWalkGround } from './map/walk-ground'
@@ -155,18 +152,23 @@ async function main() {
   const side = document.createElement('div')
   side.className = 'side'
   ui.append(side)
+  const lineLegend = createLineLegend(viewer)
   const quest = renderQuestPanel(side)
   // Filled in after streetView loads; safe because the walk player opens only after user interaction.
   let walkStreetView: ((lon: number, lat: number) => void) | undefined
   const routePanel = renderRoutePanel(side, viewer, sites, {
     makeClient: createRouteClient,
-    makeLayer: (g) => createRouteLayer(viewer, g),
+    makeLayer: (g) => createRouteLayer(viewer, g, { surfaceM, legend: lineLegend }),
     makeRange: (g) => createRangeLayer(viewer, g),
     onEvent: quest.notify,
     onHazardOp: (op) => sync.record(op),
     onStartWalk: (params) => {
-      openWalkPlayer(viewer, params, (lon, lat) => walkStreetView?.(lon, lat))
+      openWalkPlayer(viewer, params, (lon, lat) => walkStreetView?.(lon, lat), {
+        surfaceM,
+        legend: lineLegend,
+      })
     },
+    onWalkPlan: updateWalkPlayer,
   })
   const sync = renderSyncPanel(side, routePanel.restoreHazards)
   // Optional validation card: a missing file must not take the planner down with it.
@@ -337,11 +339,15 @@ async function main() {
   const streetView = await addStreetViewStops(viewer, surfaceM, showStreetView)
   walkStreetView = (lon, lat) => {
     const stops = streetView.stops.m20
-    let bestI = 0, bestDSq = Infinity
+    let bestI = 0,
+      bestDSq = Infinity
     for (let i = 0; i < stops.length; i++) {
       const s = stops[i]!
       const dSq = (lon - s.lon) ** 2 + (lat - s.lat) ** 2
-      if (dSq < bestDSq) { bestDSq = dSq; bestI = i }
+      if (dSq < bestDSq) {
+        bestDSq = dSq
+        bestI = i
+      }
     }
     showStreetView('m20', bestI)
   }

@@ -71,13 +71,23 @@ export type RoutePanelDeps = {
   onHazardOp?: (op: HazardOp) => void
   /** Open the walk player for the current route. */
   onStartWalk?: (p: WalkParams) => void
+  /** The route changed (or went away: null): a walk that is already running must follow it. */
+  onWalkPlan?: (p: WalkParams | null) => void
 }
 
 export function renderRoutePanel(
   parent: HTMLElement,
   viewer: Viewer,
   sites: readonly Site[],
-  { makeClient, makeLayer, makeRange, onEvent, onHazardOp, onStartWalk }: RoutePanelDeps,
+  {
+    makeClient,
+    makeLayer,
+    makeRange,
+    onEvent,
+    onHazardOp,
+    onStartWalk,
+    onWalkPlan,
+  }: RoutePanelDeps,
 ): {
   currentPlan: () => string | null
   currentBundle: () => PlanBundle | null
@@ -351,6 +361,7 @@ export function renderRoutePanel(
     bundle = null
     if (!reply || !total) {
       if (active) tools(active).layer.setFail(null)
+      onWalkPlan?.(null)
       return
     }
     const shown = showCard(reply, stops)
@@ -374,13 +385,19 @@ export function renderRoutePanel(
             stopMin: stopMin(),
           })
         walkButton.hidden = false
-        walkButton.onclick = () => {
-          if (!active) return
-          onStartWalk?.({ stops, grid: active.grid, legs: reply.legs, card: shown.card, stopMin: stopMin() })
+        const walkParams: WalkParams = {
+          stops,
+          grid: site.grid,
+          legs: reply.legs,
+          card: shown.card,
+          stopMin: stopMin(),
         }
+        walkButton.onclick = () => onStartWalk?.(walkParams)
+        onWalkPlan?.(walkParams) // a walk already running follows the new plan
       }
     } else {
       walkButton.hidden = true
+      onWalkPlan?.(null)
     }
     field('eva').textContent = formatDuration(
       evaDurationMin(total.durationMin, stopCount, stopMin()),

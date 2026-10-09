@@ -9,6 +9,7 @@ import {
   cssTransform,
   frameGeometry,
   imagesForStop,
+  latestStopIndex,
   nearestStopWithImagery,
   neighbours,
 } from './streetview'
@@ -137,5 +138,13 @@ describe('isRightNavcam', () => {
     ).toBe(false)
     expect(isRightNavcam('https://x/NRB_843851071EDR_F1241978NCAM00353M_.JPG')).toBe(true)
     expect(isRightNavcam('https://x/NLA_443851071EDR_F1241978NCAM00353M_.JPG')).toBe(false)
+  })
+})
+
+describe('latestStopIndex', () => {
+  it('finds the highest sol, the later of equal ones, and handles an empty list', () => {
+    expect(latestStopIndex([{ sol: 3 }, { sol: 90 }, { sol: 12 }])).toBe(1)
+    expect(latestStopIndex([{ sol: 5 }, { sol: 5 }])).toBe(1)
+    expect(latestStopIndex([])).toBe(-1)
   })
 })

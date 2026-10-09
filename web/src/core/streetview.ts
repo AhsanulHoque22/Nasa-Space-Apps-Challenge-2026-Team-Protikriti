@@ -134,3 +134,12 @@ export function sensorTan(
     (h / sh) * th,
   ]
 }
+
+/** Index of the most recent stop (highest sol; the later one if two share a sol), or -1. */
+export function latestStopIndex(stops: readonly Pick<Stop, 'sol'>[]): number {
+  let best = -1
+  stops.forEach((s, i) => {
+    if (best < 0 || s.sol >= (stops[best]?.sol ?? -1)) best = i
+  })
+  return best
+}

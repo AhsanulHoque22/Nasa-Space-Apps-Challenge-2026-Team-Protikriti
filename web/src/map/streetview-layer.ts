@@ -1,14 +1,19 @@
 /** Street View stops: every localized rover position, clickable when zoomed in. */
 import {
   BillboardCollection,
+  Cartesian2,
   Cartesian3,
+  Color,
   DistanceDisplayCondition,
+  LabelCollection,
+  LabelStyle,
   NearFarScalar,
+  VerticalOrigin,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   type Viewer,
 } from 'cesium'
-import type { Stop } from '../core/streetview'
+import { type Stop, latestStopIndex } from '../core/streetview'
 import { LAYER_STYLE } from './layers'
 import { MARS_SPHERE } from './mars'
 import { addClickables, pickedId } from './picking'
@@ -31,6 +36,39 @@ function dot(fill: string): HTMLCanvasElement {
   g.lineWidth = 1.5
   g.strokeStyle = '#05070C'
   g.stroke()
+  return c
+}
+
+const POINTER_W = 34
+const POINTER_H = 46
+const POINTER_VISIBLE_M = 30_000_000 // from the whole planet down to the ground
+const POINTER_LABEL_M = 1_500_000
+
+/** A map pin, drawn once: a filled teardrop with a white ring, in the rover's colour. */
+function pin(fill: string): HTMLCanvasElement {
+  const c = document.createElement('canvas')
+  c.width = POINTER_W
+  c.height = POINTER_H
+  const g = c.getContext('2d')
+  if (!g) return c
+  const r = POINTER_W / 2 - 3
+  const cx = POINTER_W / 2
+  const cy = r + 3
+  g.beginPath()
+  g.moveTo(cx, POINTER_H - 2)
+  g.bezierCurveTo(cx - r * 1.6, cy + r * 0.9, cx - r, cy - r * 0.2, cx - r, cy)
+  g.arc(cx, cy, r, Math.PI, 0)
+  g.bezierCurveTo(cx + r, cy - r * 0.2, cx + r * 1.6, cy + r * 0.9, cx, POINTER_H - 2)
+  g.closePath()
+  g.fillStyle = fill
+  g.fill()
+  g.lineWidth = 2.5
+  g.strokeStyle = '#FFFFFF'
+  g.stroke()
+  g.beginPath()
+  g.arc(cx, cy, r * 0.38, 0, Math.PI * 2)
+  g.fillStyle = '#05070C'
+  g.fill()
   return c
 }
 
@@ -82,6 +120,56 @@ export async function addStreetViewStops(
     })
   }
   viewer.scene.primitives.add(billboards)
+
+  // Always-on pointer at each rover's latest stop (its last visited sol), in both craters.
+  const pointers = new BillboardCollection({ scene: viewer.scene })
+  const pointerLabels = new LabelCollection({ scene: viewer.scene })
+  const pins = { m20: pin(LAYER_STYLE.perseverance), msl: pin(LAYER_STYLE.curiosity) }
+  for (const rover of ['m20', 'msl'] as const) {
+    const index = latestStopIndex(stops[rover])
+    const latest = stops[rover][index]
+    if (!latest) continue
+    const position = Cartesian3.fromDegrees(
+      latest.lon,
+      latest.lat,
+      surfaceM(latest.lon, latest.lat),
+      MARS_SPHERE,
+    )
+    const id = `stop:${rover}:${index}` // clicking opens that stop in Street View
+    pointers.add({
+      id,
+      position,
+      image: pins[rover],
+      verticalOrigin: VerticalOrigin.BOTTOM,
+      scaleByDistance: new NearFarScalar(20_000, 1, 8_000_000, 0.7),
+      distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_VISIBLE_M),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    })
+    pointerLabels.add({
+      position,
+      text: `${rover === 'm20' ? 'Perseverance' : 'Curiosity'} · latest stop, Sol ${latest.sol}`,
+      font: '700 13px system-ui, sans-serif',
+      fillColor: Color.WHITE,
+      outlineColor: Color.fromCssColorString('#05070C'),
+      outlineWidth: 3,
+      style: LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: VerticalOrigin.BOTTOM,
+      pixelOffset: new Cartesian2(0, -POINTER_H - 4),
+      distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_LABEL_M),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    })
+    addClickables([
+      {
+        id,
+        position,
+        shown: () =>
+          pointers.show &&
+          Cartesian3.distance(viewer.camera.positionWC, position) < POINTER_VISIBLE_M,
+      },
+    ])
+  }
+  viewer.scene.primitives.add(pointers)
+  viewer.scene.primitives.add(pointerLabels)
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
       const match = /^stop:(m20|msl):(\d+)$/.exec(pickedId(viewer, click.position) ?? '')
@@ -99,6 +187,8 @@ export async function addStreetViewStops(
     hideForExplore: (on) => {
       if (on) wasShowing = billboards.show
       billboards.show = on ? false : wasShowing
+      pointers.show = !on // the pointers stay on the map in every view but the on-foot one
+      pointerLabels.show = !on
     },
   }
 }

@@ -11,6 +11,8 @@ import {
   type Viewer,
 } from 'cesium'
 import { type Cell, type Grid, cellToLonLat } from '../core/grid'
+import { lineOnGround } from '../core/terrain-line'
+import type { LineLegend } from '../ui/line-legend'
 import { LAYER_STYLE } from './layers'
 import { MARS_SPHERE } from './mars'
 
@@ -26,7 +28,17 @@ export type RouteLayer = {
   setHaul(path: Cell[] | null): void
 }
 
-export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
+/**
+ * `surfaceM` is the rendered ground height (terrain x vertical exaggeration). With it, lines are
+ * laid on that surface: Cesium's clamp-to-ground lines are built for unexaggerated terrain, so
+ * they sank under the exaggerated ground and vanished whenever the camera tilted.
+ */
+export function createRouteLayer(
+  viewer: Viewer,
+  grid: Grid,
+  extras: { surfaceM?: (lon: number, lat: number) => number; legend?: LineLegend } = {},
+): RouteLayer {
+  const { surfaceM, legend } = extras
   const source = new CustomDataSource('route')
   void viewer.dataSources.add(source)
   const red = Color.fromCssColorString(LAYER_STYLE.hazard)
@@ -35,6 +47,17 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
     const [lon, lat] = cellToLonLat(grid, c)
     return Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE)
   }
+  const onGround = (cells: Cell[]) =>
+    surfaceM
+      ? Cartesian3.fromDegreesArrayHeights(
+          lineOnGround(
+            cells.map((c) => cellToLonLat(grid, c)),
+            surfaceM,
+          ),
+          MARS_SPHERE,
+        )
+      : cells.map(toCartesian)
+  const clamp = !surfaceM
   let path: Cell[] | null = null
   let stops: Cell[] = []
   let fail: Cell | null = null
@@ -44,31 +67,43 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
   const redraw = () => {
     source.entities.removeAll()
     if (haul && haul.length > 1) {
+      const positions = onGround(haul)
+      const material = new PolylineDashMaterialProperty({
+        color: Color.fromCssColorString(LAYER_STYLE.haul),
+        gapColor: Color.fromCssColorString('#05070C'),
+        dashLength: 16,
+      })
       source.entities.add({
         name: 'Haul road',
         polyline: {
-          positions: haul.map(toCartesian),
+          positions,
           width: 4,
-          material: new PolylineDashMaterialProperty({
-            color: Color.fromCssColorString(LAYER_STYLE.haul),
-            gapColor: Color.fromCssColorString('#05070C'),
-            dashLength: 16,
-          }),
-          clampToGround: true,
+          material,
+          depthFailMaterial: material,
+          clampToGround: clamp,
         },
       })
-    }
+      legend?.set('haul', { label: 'Haul road', colour: LAYER_STYLE.haul, dashed: true }, positions)
+    } else legend?.remove('haul')
     if (baseline && baseline.length > 1) {
+      const positions = onGround(baseline)
+      const material = new PolylineDashMaterialProperty({ color: Color.WHITE, dashLength: 12 })
       source.entities.add({
         name: 'Direct route (before hazards)',
         polyline: {
-          positions: baseline.map(toCartesian),
+          positions,
           width: 3,
-          material: new PolylineDashMaterialProperty({ color: Color.WHITE, dashLength: 12 }),
-          clampToGround: true,
+          material,
+          depthFailMaterial: material,
+          clampToGround: clamp,
         },
       })
-    }
+      legend?.set(
+        'baseline',
+        { label: 'Direct route, before hazards', colour: '#FFFFFF', dashed: true },
+        positions,
+      )
+    } else legend?.remove('baseline')
     hazards.forEach((cell, i) => {
       source.entities.add({
         name: `Hazard ${i + 1}`,
@@ -96,16 +131,23 @@ export function createRouteLayer(viewer: Viewer, grid: Grid): RouteLayer {
       })
     })
     if (path && path.length > 1) {
+      const positions = onGround(path)
       source.entities.add({
         name: 'Planned Marswalk',
         polyline: {
-          positions: path.map(toCartesian),
+          positions,
           width: 4,
           material: red,
-          clampToGround: true,
+          depthFailMaterial: red,
+          clampToGround: clamp,
         },
       })
-    }
+      legend?.set(
+        'route',
+        { label: 'Planned route, around hazards', colour: LAYER_STYLE.hazard },
+        positions,
+      )
+    } else legend?.remove('route')
     stops.forEach((stop, i) => {
       const isStart = i === 0
       source.entities.add({
