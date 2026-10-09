@@ -31,6 +31,7 @@ import { renderBenchmarkCard } from './ui/benchmark-card'
 import { renderClock } from './ui/clock'
 import { renderConnectionBadge } from './ui/connection-badge'
 import { openExplore } from './ui/explore-hud'
+import { renderDock } from './ui/dock'
 import { renderHeader } from './ui/header'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
@@ -364,6 +365,7 @@ async function main() {
       openActivity(a)
     },
   )
+  renderDock(side)
   let thermalWasShown = false
   exploreHooks.push(layerToggles.hideForExplore, streetView.hideForExplore, (on) => {
     // like the other paint-on overlays, ground firmness would cover the walker's view
