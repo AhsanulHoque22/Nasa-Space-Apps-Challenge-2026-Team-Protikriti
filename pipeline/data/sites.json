@@ -57,6 +57,20 @@
         "ortho": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_Orthophoto_Mosaic_25cm_v3.tif",
         "source": "USGS MSL Gale Merged DEM Mosaic v3 (1 m, shown at 2 m) and 25 cm HiRISE orthophoto mosaic v3; centred on Bradbury Landing"
       }
+    },
+    {
+      "id": "insight",
+      "name": "InSight landing site (Elysium Planitia)",
+      "rover": "InSight",
+      "dem": "../data/raw/insight_ctx_dtm.tif",
+      "bounds": [
+        135.52,
+        4.4,
+        135.72,
+        4.6
+      ],
+      "pixel_m": 20,
+      "source": "USGS InSight landing-site CTX DTM (F02_036761_1828 / F04_037262_1841), 20 m/px"
     }
   ]
 }

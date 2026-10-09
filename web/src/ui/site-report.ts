@@ -30,7 +30,7 @@ function firmness(grids: readonly ThermalGrid[], lon: number, lat: number): stri
       pct >= 67 ? 'firmer, rockier ground' : pct <= 33 ? 'looser, finer ground' : 'mid-range ground'
     return `${Math.round(v)} J m⁻² K⁻¹ s⁻½: ${reading}, firmer than ${pct}% of this site`
   }
-  return 'Mapped only at the Jezero and Gale sites'
+  return 'Mapped only at the Jezero, Gale and InSight sites'
 }
 
 const hm = (hours: number) =>

@@ -9,7 +9,7 @@ export const QUEST_STEPS: readonly QuestStep[] = [
   {
     event: 'start-set',
     title: 'Choose where to start',
-    hint: 'Click the terrain in Jezero or Gale. The first point is where the walk begins.',
+    hint: 'Click the terrain at a site with 3D terrain (Jezero, Gale or InSight). The first point is where the walk begins.',
   },
   {
     event: 'route-found',

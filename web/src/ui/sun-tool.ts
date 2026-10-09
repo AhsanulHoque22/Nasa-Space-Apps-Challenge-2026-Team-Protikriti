@@ -49,7 +49,7 @@ export function mountSunTool(actions: HTMLElement, notes: HTMLElement, deps: Sun
     if (!on) return
     const site = deps.siteNow()
     if (!site) {
-      note.textContent = 'Zoom to Jezero or Gale to see sunlight on the terrain.'
+      note.textContent = 'Zoom to Jezero, Gale or InSight to see sunlight on the terrain.'
       return
     }
     note.textContent = 'Working out a sol of sunlight…'

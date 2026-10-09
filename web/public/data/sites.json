@@ -21,6 +21,17 @@
    "east": 137.4799844331873,
    "north": -4.549986528120114,
    "pixel_size_m": 32.0
+  },
+  {
+   "id": "insight",
+   "name": "InSight landing site (Elysium Planitia)",
+   "rover": "InSight",
+   "source": "USGS InSight landing-site CTX DTM (F02_036761_1828 / F04_037262_1841), 20 m/px",
+   "west": 135.51992754974992,
+   "south": 4.400178475959807,
+   "east": 135.71998221550461,
+   "north": 4.600233141714511,
+   "pixel_size_m": 20.235801707741
   }
  ]
 }

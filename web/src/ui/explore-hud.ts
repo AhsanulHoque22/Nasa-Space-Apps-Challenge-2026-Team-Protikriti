@@ -49,7 +49,10 @@ export function openExplore(
   const compass = hud.querySelector('.xh-compass') as HTMLElement
   const warn = hud.querySelector('.xh-warn') as HTMLElement
   let lastWarning: string | null = null
-  const weather = loadWeather(site.id === 'gale' ? 'rems' : 'meda').then((r) => r.sols)
+  // Rover weather records exist for Gale (REMS) and Jezero (MEDA) only; elsewhere the HUD uses the
+  // seasonal climatology and says so, rather than showing another site's weather.
+  const station = site.id === 'gale' ? 'rems' : site.id === 'jezero' ? 'meda' : null
+  const weather = station ? loadWeather(station).then((r) => r.sols) : Promise.resolve([])
 
   const session = startExplore(
     viewer,
@@ -74,7 +77,9 @@ export function openExplore(
         ? `${body.speedMs.toFixed(1)} m/s${body.speedMs > 2 ? ' · loping' : ''}`
         : `airborne · ${body.vzMs >= 0 ? 'rising' : 'falling'}`
       field('dist').textContent = formatDistance(body.distanceM)
-      field('source').textContent = `Conditions: ${c.source}; dust from rover sky records.`
+      field('source').textContent = station
+        ? `Conditions: ${c.source}; dust from rover sky records.`
+        : `Conditions: stand-in seasonal climatology (Jezero's model). This app has no weather record for ${site.name.split(' (')[0]}, so sky, air and wind here are not measured.`
       if (body.warning !== lastWarning) {
         warn.textContent = body.warning ?? ''
         warn.classList.toggle('active', !!body.warning)
