@@ -9,7 +9,8 @@ import {
   cssTransform,
   frameGeometry,
   imagesForStop,
-  latestStopIndex,
+  recallVisit,
+  rememberVisit,
   nearestStopWithImagery,
   neighbours,
 } from './streetview'
@@ -141,10 +142,47 @@ describe('isRightNavcam', () => {
   })
 })
 
-describe('latestStopIndex', () => {
-  it('finds the highest sol, the later of equal ones, and handles an empty list', () => {
-    expect(latestStopIndex([{ sol: 3 }, { sol: 90 }, { sol: 12 }])).toBe(1)
-    expect(latestStopIndex([{ sol: 5 }, { sol: 5 }])).toBe(1)
-    expect(latestStopIndex([])).toBe(-1)
+describe('last visited stop', () => {
+  const memory = () => {
+    const data = new Map<string, string>()
+    return {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+    }
+  }
+  const stops = [stop(1, 0), stop(1, 10), stop(2, 5)]
+
+  it('brings back the stop each rover was last at, after a reload', () => {
+    const store = memory()
+    rememberVisit(store, 'm20', stops[2] as Stop)
+    rememberVisit(store, 'msl', stops[1] as Stop)
+    expect(recallVisit(store, 'm20', stops)).toBe(2)
+    expect(recallVisit(store, 'msl', stops)).toBe(1)
+  })
+  it('keeps only the latest visit per rover', () => {
+    const store = memory()
+    rememberVisit(store, 'm20', stops[0] as Stop)
+    rememberVisit(store, 'm20', stops[1] as Stop)
+    expect(recallVisit(store, 'm20', stops)).toBe(1)
+  })
+  it('says nothing is remembered for a new browser, an unknown stop or damaged data', () => {
+    expect(recallVisit(memory(), 'm20', stops)).toBe(-1)
+    const store = memory()
+    rememberVisit(store, 'm20', stop(9, 9))
+    expect(recallVisit(store, 'm20', stops)).toBe(-1)
+    store.setItem('martian-map-last-stop', '{not json')
+    expect(recallVisit(store, 'm20', stops)).toBe(-1)
+  })
+  it('does not break when storage refuses to save or read', () => {
+    const blocked = {
+      getItem: () => {
+        throw new Error('blocked')
+      },
+      setItem: () => {
+        throw new Error('blocked')
+      },
+    }
+    expect(() => rememberVisit(blocked, 'm20', stops[0] as Stop)).not.toThrow()
+    expect(recallVisit(blocked, 'm20', stops)).toBe(-1)
   })
 })

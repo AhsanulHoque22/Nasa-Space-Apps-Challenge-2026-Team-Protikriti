@@ -135,11 +135,45 @@ export function sensorTan(
   ]
 }
 
-/** Index of the most recent stop (highest sol; the later one if two share a sol), or -1. */
-export function latestStopIndex(stops: readonly Pick<Stop, 'sol'>[]): number {
-  let best = -1
-  stops.forEach((s, i) => {
-    if (best < 0 || s.sol >= (stops[best]?.sol ?? -1)) best = i
-  })
-  return best
+const VISITED_KEY = 'martian-map-last-stop'
+
+/** The browser's storage, as far as we need it (a Storage, or a stand-in in tests). */
+export type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>
+
+type VisitedStops = Partial<Record<'m20' | 'msl', { site: number; drive: number }>>
+
+function readVisited(store: KeyValueStore): VisitedStops {
+  try {
+    const parsed: unknown = JSON.parse(store.getItem(VISITED_KEY) ?? '{}')
+    return parsed && typeof parsed === 'object' ? (parsed as VisitedStops) : {}
+  } catch {
+    return {} // private window, blocked storage or a damaged value: start with nothing remembered
+  }
+}
+
+/** Remember the stop a rover's Street View was last at. Stored by site and drive, which stay put even if the stop list is re-cut. */
+export function rememberVisit(
+  store: KeyValueStore,
+  rover: 'm20' | 'msl',
+  stop: Pick<Stop, 'site' | 'drive'>,
+): void {
+  try {
+    store.setItem(
+      VISITED_KEY,
+      JSON.stringify({ ...readVisited(store), [rover]: { site: stop.site, drive: stop.drive } }),
+    )
+  } catch {
+    // storage full or blocked: the pointer simply won't survive a reload
+  }
+}
+
+/** Index in `stops` of the stop last visited, or -1 if none is remembered or it no longer exists. */
+export function recallVisit(
+  store: KeyValueStore,
+  rover: 'm20' | 'msl',
+  stops: readonly Pick<Stop, 'site' | 'drive'>[],
+): number {
+  const seen = readVisited(store)[rover]
+  if (!seen) return -1
+  return stops.findIndex((s) => s.site === seen.site && s.drive === seen.drive)
 }

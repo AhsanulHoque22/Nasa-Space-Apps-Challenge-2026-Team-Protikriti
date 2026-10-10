@@ -1,10 +1,12 @@
 /** Street View stops: every localized rover position, clickable when zoomed in. */
 import {
+  type Billboard,
   BillboardCollection,
   Cartesian2,
   Cartesian3,
   Color,
   DistanceDisplayCondition,
+  type Label,
   LabelCollection,
   LabelStyle,
   NearFarScalar,
@@ -13,10 +15,10 @@ import {
   ScreenSpaceEventType,
   type Viewer,
 } from 'cesium'
-import { type Stop, latestStopIndex } from '../core/streetview'
+import { type Stop, recallVisit } from '../core/streetview'
 import { LAYER_STYLE } from './layers'
 import { MARS_SPHERE } from './mars'
-import { addClickables, pickedId } from './picking'
+import { type Clickable, addClickables, pickedId } from './picking'
 import type { Rover } from './raw-images'
 
 // Visible from a whole-crater view; shrunk with distance so the path still reads as a line.
@@ -86,6 +88,8 @@ export async function addStreetViewStops(
 ): Promise<{
   stops: StopsByRover
   setVisible: (v: boolean) => void
+  /** Move a rover's last-visited pointer to this stop. */
+  markVisited: (rover: Rover, index: number) => void
   hideForExplore: (on: boolean) => void
 }> {
   const load = async (rover: Rover): Promise<Stop[]> => {
@@ -121,52 +125,76 @@ export async function addStreetViewStops(
   }
   viewer.scene.primitives.add(billboards)
 
-  // Always-on pointer at each rover's latest stop (its last visited sol), in both craters.
+  // A pointer at the stop each rover's Street View was last at, kept across reloads. It shows once
+  // there is a visit to remember, and clicking it reopens that stop.
   const pointers = new BillboardCollection({ scene: viewer.scene })
   const pointerLabels = new LabelCollection({ scene: viewer.scene })
   const pins = { m20: pin(LAYER_STYLE.perseverance), msl: pin(LAYER_STYLE.curiosity) }
-  for (const rover of ['m20', 'msl'] as const) {
-    const index = latestStopIndex(stops[rover])
-    const latest = stops[rover][index]
-    if (!latest) continue
+  const marks = {} as Record<
+    Rover,
+    { billboard: Billboard; label: Label; click: Clickable } | undefined
+  >
+  const markVisited = (rover: Rover, index: number) => {
+    const stop = stops[rover][index]
+    if (!stop) return
     const position = Cartesian3.fromDegrees(
-      latest.lon,
-      latest.lat,
-      surfaceM(latest.lon, latest.lat),
+      stop.lon,
+      stop.lat,
+      surfaceM(stop.lon, stop.lat),
       MARS_SPHERE,
     )
     const id = `stop:${rover}:${index}` // clicking opens that stop in Street View
-    pointers.add({
-      id,
-      position,
-      image: pins[rover],
-      verticalOrigin: VerticalOrigin.BOTTOM,
-      scaleByDistance: new NearFarScalar(20_000, 1, 8_000_000, 0.7),
-      distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_VISIBLE_M),
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    })
-    pointerLabels.add({
-      position,
-      text: `${rover === 'm20' ? 'Perseverance' : 'Curiosity'} · latest stop, Sol ${latest.sol}`,
-      font: '700 13px system-ui, sans-serif',
-      fillColor: Color.WHITE,
-      outlineColor: Color.fromCssColorString('#05070C'),
-      outlineWidth: 3,
-      style: LabelStyle.FILL_AND_OUTLINE,
-      verticalOrigin: VerticalOrigin.BOTTOM,
-      pixelOffset: new Cartesian2(0, -POINTER_H - 4),
-      distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_LABEL_M),
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    })
-    addClickables([
-      {
+    const text = `${rover === 'm20' ? 'Perseverance' : 'Curiosity'} · last visited, Sol ${stop.sol}`
+    const mark = marks[rover]
+    if (mark) {
+      mark.billboard.position = position
+      mark.billboard.id = id
+      mark.label.position = position
+      mark.label.text = text
+      mark.click.id = id
+      mark.click.position = position
+    } else {
+      const billboard = pointers.add({
+        id,
+        position,
+        image: pins[rover],
+        verticalOrigin: VerticalOrigin.BOTTOM,
+        scaleByDistance: new NearFarScalar(20_000, 1, 8_000_000, 0.7),
+        distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_VISIBLE_M),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      })
+      const label = pointerLabels.add({
+        position,
+        text,
+        font: '700 13px system-ui, sans-serif',
+        fillColor: Color.WHITE,
+        outlineColor: Color.fromCssColorString('#05070C'),
+        outlineWidth: 3,
+        style: LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: VerticalOrigin.BOTTOM,
+        pixelOffset: new Cartesian2(0, -POINTER_H - 4),
+        distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_LABEL_M),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      })
+      const click: Clickable = {
         id,
         position,
         shown: () =>
           pointers.show &&
-          Cartesian3.distance(viewer.camera.positionWC, position) < POINTER_VISIBLE_M,
-      },
-    ])
+          Cartesian3.distance(viewer.camera.positionWC, click.position) < POINTER_VISIBLE_M,
+      }
+      addClickables([click])
+      marks[rover] = { billboard, label, click }
+    }
+    viewer.scene.requestRender()
+  }
+  for (const rover of ['m20', 'msl'] as const) {
+    try {
+      const index = recallVisit(localStorage, rover, stops[rover])
+      if (index >= 0) markVisited(rover, index)
+    } catch {
+      // storage blocked: nothing to bring back
+    }
   }
   viewer.scene.primitives.add(pointers)
   viewer.scene.primitives.add(pointerLabels)
@@ -180,6 +208,7 @@ export async function addStreetViewStops(
   let wasShowing = true
   return {
     stops,
+    markVisited,
     setVisible: (v) => {
       billboards.show = v
       viewer.scene.requestRender()

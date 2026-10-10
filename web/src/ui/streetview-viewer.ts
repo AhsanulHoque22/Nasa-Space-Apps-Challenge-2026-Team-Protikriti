@@ -13,7 +13,6 @@ import {
   compassPoint,
   cssTransform,
   frameGeometry,
-  latestStopIndex,
   neighbours,
 } from '../core/streetview'
 import { CLASSES, CLASS_COLOURS, NONE, classShares } from '../core/ai4mars'
@@ -48,6 +47,7 @@ export function openStreetView(
   startIndex: number,
   returnFocus?: HTMLElement | null,
   onClose?: () => void,
+  onVisit?: (index: number) => void,
 ): void {
   document.querySelector('.sv')?.remove()
   const root = document.createElement('div')
@@ -70,7 +70,6 @@ export function openStreetView(
       <div class="sv-nav">
         <button type="button" data-act="prev" aria-label="Previous stop">‹ Prev</button>
         <button type="button" data-act="next" aria-label="Next stop">Next ›</button>
-        <button type="button" data-act="latest" title="Jump to the most recent stop">Latest stop</button>
         <button type="button" data-act="labels" aria-pressed="false" hidden>Terrain labels</button>
         <button type="button" data-act="practice" hidden>Practice labelling</button>
         <button type="button" data-act="close">Close</button>
@@ -88,7 +87,6 @@ export function openStreetView(
   const credit = root.querySelector('.sv-credit a') as HTMLAnchorElement
   const prev = root.querySelector('[data-act="prev"]') as HTMLButtonElement
   const next = root.querySelector('[data-act="next"]') as HTMLButtonElement
-  const latest = root.querySelector('[data-act="latest"]') as HTMLButtonElement
   const compass = root.querySelector('.sv-compass') as HTMLElement
   const canvas = root.querySelector('.sv-canvas') as HTMLCanvasElement
   const labelsButton = root.querySelector('[data-act="labels"]') as HTMLButtonElement
@@ -238,7 +236,7 @@ export function openStreetView(
   })
 
   const describe = (stop: Stop) => {
-    title.textContent = `${ROVER_NAME[rover]} · Sol ${stop.sol}${index === latestStopIndex(stops) ? ' · latest stop' : ''}`
+    title.textContent = `${ROVER_NAME[rover]} · Sol ${stop.sol}`
     const lat = `${Math.abs(stop.lat).toFixed(5)}° ${stop.lat < 0 ? 'S' : 'N'}`
     const lon = `${(((stop.lon % 360) + 360) % 360).toFixed(5)}° E`
     detail.textContent = `Site ${stop.site} · Drive ${stop.drive} · ${lat} ${lon}${
@@ -249,7 +247,6 @@ export function openStreetView(
     const n = neighbours(stops, index)
     prev.disabled = n.previous === null
     next.disabled = n.next === null
-    latest.disabled = index === latestStopIndex(stops)
   }
 
   const walkArrows = () =>
@@ -504,6 +501,7 @@ export function openStreetView(
     const stop = stops[index]
     if (!stop) return
     describe(stop)
+    onVisit?.(index)
     view.querySelector('.sv-flat-wrap')?.remove()
     flatRedraw = null
     sphere.replaceChildren()
@@ -640,7 +638,6 @@ export function openStreetView(
   window.addEventListener('resize', layout)
   prev.addEventListener('click', () => void load(index - 1))
   next.addEventListener('click', () => void load(index + 1))
-  latest.addEventListener('click', () => void load(latestStopIndex(stops)))
   root.querySelector('[data-act="close"]')?.addEventListener('click', close)
   view.focus()
   void load(startIndex)

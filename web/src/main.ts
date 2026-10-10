@@ -44,6 +44,7 @@ import type { Place } from './core/search'
 import { renderLinkPanel } from './ui/link-panel'
 import { renderQuestPanel } from './ui/quest-panel'
 import { renderRoutePanel } from './ui/route-panel'
+import { rememberVisit } from './core/streetview'
 import { openStreetView } from './ui/streetview-viewer'
 import { createLineLegend } from './ui/line-legend'
 import { openWalkPlayer, updateWalkPlayer } from './ui/walk-player'
@@ -346,6 +347,17 @@ async function main() {
       document.activeElement as HTMLElement,
       () => {
         viewer.useDefaultRenderLoop = true
+      },
+      (visited) => {
+        const stop = streetView.stops[rover][visited]
+        if (stop) {
+          try {
+            rememberVisit(localStorage, rover, stop)
+          } catch {
+            // storage blocked: the pointer just won't survive a reload
+          }
+        }
+        streetView.markVisited(rover, visited)
       },
     )
   }
