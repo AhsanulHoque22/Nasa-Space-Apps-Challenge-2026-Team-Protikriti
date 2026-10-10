@@ -222,7 +222,7 @@ async function main() {
   )
   const openWeather = weatherOpener(side)
   const launcher = document.createElement('nav')
-  launcher.className = 'panel wx-launch'
+  launcher.className = 'panel wx-launch wx-panel'
   launcher.setAttribute('aria-label', 'Mars weather stations')
   launcher.innerHTML = `<span>Mars weather</span>
     <button type="button" data-station="rems">Gale</button>
