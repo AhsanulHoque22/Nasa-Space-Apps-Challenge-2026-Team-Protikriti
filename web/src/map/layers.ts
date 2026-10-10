@@ -11,15 +11,17 @@ import {
   GeoJsonDataSource,
   HeightReference,
   JulianDate,
+  type Label,
   LabelCollection,
+  HorizontalOrigin,
   LabelStyle,
-  NearFarScalar,
   Rectangle,
   SingleTileImageryProvider,
   VerticalOrigin,
   type Viewer,
 } from 'cesium'
 import { graticuleLines, labelMaxDistanceM } from '../core/coords'
+import { type LabelCandidate, declutter } from '../core/declutter'
 import type { Site } from '../core/elevation'
 import { isOnNearSide } from '../core/horizon'
 import { MARS_SPHERE } from './mars'
@@ -177,19 +179,89 @@ async function addLandingSites(viewer: Viewer): Promise<CustomDataSource> {
   return source
 }
 
-function addNames(viewer: Viewer, data: FeatureCollection): LabelCollection {
+const NAME_FONT_PX = 16
+const NAME_FONT = `700 ${NAME_FONT_PX}px system-ui, -apple-system, "Segoe UI", sans-serif`
+const NAME_CHAR_W = 0.6 * NAME_FONT_PX // a safe over-estimate of an average glyph's width
+const NAME_LIFT_M = 2 // sits on the ground; a hair above so the terrain does not slice the text
+const NAME_UPDATE_MS = 120
+
+type NameEntry = { label: Label; position: Cartesian3; maxRangeM: number; priority: number }
+
+/**
+ * Named features: drawn on the ground (the terrain hides names behind a ridge), sized to read,
+ * and thinned every few frames so only names inside the window that do not collide are shown.
+ */
+function addNames(
+  viewer: Viewer,
+  data: FeatureCollection,
+  surfaceM: (lon: number, lat: number) => number,
+): LabelCollection {
   const labels = new LabelCollection({ scene: viewer.scene })
+  const entries: NameEntry[] = []
   for (const f of data.features) {
     const [lon, lat] = f.geometry.coordinates as [number, number]
     const { name, diameter_km: diameterKm } = f.properties as { name: string; diameter_km: number }
-    labels.add({
-      ...label(name, Color.fromCssColorString('#E8ECF4')),
-      position: Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE),
-      distanceDisplayCondition: new DistanceDisplayCondition(0, labelMaxDistanceM(diameterKm)),
-      scaleByDistance: new NearFarScalar(2e5, 1.0, 8e6, 0.75),
+    const position = Cartesian3.fromDegrees(lon, lat, surfaceM(lon, lat) + NAME_LIFT_M, MARS_SPHERE)
+    const entry = labels.add({
+      text: name,
+      font: NAME_FONT,
+      fillColor: Color.fromCssColorString('#F2F5FB'),
+      outlineColor: LABEL_OUTLINE,
+      outlineWidth: 4,
+      style: LabelStyle.FILL_AND_OUTLINE,
+      horizontalOrigin: HorizontalOrigin.CENTER,
+      verticalOrigin: VerticalOrigin.CENTER,
+      position,
+      disableDepthTestDistance: 0, // always depth-tested: higher ground in front covers the name
+      show: false, // the thinning below decides
+    })
+    entries.push({
+      label: entry,
+      position,
+      maxRangeM: labelMaxDistanceM(diameterKm),
+      priority: diameterKm,
     })
   }
   viewer.scene.primitives.add(labels)
+
+  let lastCamera = new Cartesian3(Number.NaN, Number.NaN, Number.NaN)
+  let lastSize = ''
+  let lastRun = 0
+  viewer.scene.preRender.addEventListener(() => {
+    const now = performance.now()
+    if (now - lastRun < NAME_UPDATE_MS) return
+    const camera = viewer.camera.positionWC
+    const canvas = viewer.scene.canvas
+    const size = `${canvas.clientWidth}x${canvas.clientHeight}`
+    if (Cartesian3.equals(camera, lastCamera) && size === lastSize) return
+    lastRun = now
+    lastCamera = Cartesian3.clone(camera, lastCamera)
+    lastSize = size
+    const candidates: LabelCandidate[] = []
+    const ids: number[] = []
+    entries.forEach((e, id) => {
+      if (
+        Cartesian3.distance(camera, e.position) > e.maxRangeM ||
+        !isOnNearSide(camera, e.position, MARS_SPHERE.maximumRadius, HORIZON_MARGIN_M)
+      )
+        return
+      const xy = viewer.scene.cartesianToCanvasCoordinates(e.position)
+      if (!xy) return
+      candidates.push({
+        id,
+        x: xy.x,
+        y: xy.y,
+        width: e.label.text.length * NAME_CHAR_W + 8,
+        height: NAME_FONT_PX + 8,
+        priority: e.priority,
+      })
+      ids.push(id)
+    })
+    const shown = declutter(candidates, { width: canvas.clientWidth, height: canvas.clientHeight })
+    entries.forEach((e, id) => {
+      e.label.show = shown.has(id)
+    })
+  })
   return labels
 }
 
@@ -281,6 +353,7 @@ export async function addLayers(
   viewer: Viewer,
   sites: readonly Site[],
   hirise: { show: boolean },
+  surfaceM: (lon: number, lat: number) => number,
 ): Promise<
   Omit<LayerToggles, 'streetview' | 'samples' | 'thermal' | 'caves'> & {
     hideForExplore: (on: boolean) => void
@@ -294,15 +367,10 @@ export async function addLayers(
     addZones(viewer),
   ])
   const trek = addTrekOverlays(viewer)
-  const nameLabels = addNames(viewer, names)
+  const nameLabels = addNames(viewer, names, surfaceM)
   const graticule = addGraticule(viewer)
   graticule.show = false
-  const nameTargets: Cullable[] = []
-  for (let i = 0; i < nameLabels.length; i++) {
-    const l = nameLabels.get(i)
-    nameTargets.push({ position: l.position, setShow: (show) => void (l.show = show) })
-  }
-  cullFarSide(viewer, [...nameTargets, ...entityTargets(zones), ...entityTargets(landing)])
+  cullFarSide(viewer, [...entityTargets(zones), ...entityTargets(landing)])
   const redraw = () => viewer.scene.requestRender()
   const toggle =
     (target: { show: boolean }) =>

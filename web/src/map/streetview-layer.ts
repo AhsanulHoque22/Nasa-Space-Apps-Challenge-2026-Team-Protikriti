@@ -16,7 +16,7 @@ import {
   type Viewer,
 } from 'cesium'
 import { type Stop, recallVisit } from '../core/streetview'
-import { LAYER_STYLE } from './layers'
+import { LAYER_STYLE, cullFarSide } from './layers'
 import { MARS_SPHERE } from './mars'
 import { type Clickable, addClickables, pickedId } from './picking'
 import type { Rover } from './raw-images'
@@ -45,6 +45,7 @@ const POINTER_W = 34
 const POINTER_H = 46
 const POINTER_VISIBLE_M = 30_000_000 // from the whole planet down to the ground
 const POINTER_LABEL_M = 1_500_000
+const PIN_DEPTH_TEST_OFF_WITHIN_M = 20_000 // closer than this the ground never slices a pin; farther, the planet hides it
 
 /** A map pin, drawn once: a filled teardrop with a white ring, in the rover's colour. */
 function pin(fill: string): HTMLCanvasElement {
@@ -161,7 +162,7 @@ export async function addStreetViewStops(
         verticalOrigin: VerticalOrigin.BOTTOM,
         scaleByDistance: new NearFarScalar(20_000, 1, 8_000_000, 0.7),
         distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_VISIBLE_M),
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        disableDepthTestDistance: PIN_DEPTH_TEST_OFF_WITHIN_M,
       })
       const label = pointerLabels.add({
         position,
@@ -174,7 +175,7 @@ export async function addStreetViewStops(
         verticalOrigin: VerticalOrigin.BOTTOM,
         pixelOffset: new Cartesian2(0, -POINTER_H - 4),
         distanceDisplayCondition: new DistanceDisplayCondition(0, POINTER_LABEL_M),
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        disableDepthTestDistance: PIN_DEPTH_TEST_OFF_WITHIN_M,
       })
       const click: Clickable = {
         id,
@@ -188,6 +189,18 @@ export async function addStreetViewStops(
     }
     viewer.scene.requestRender()
   }
+  cullFarSide(
+    viewer,
+    (['m20', 'msl'] as const).map((rover) => ({
+      get position() {
+        return marks[rover]?.click.position ?? Cartesian3.ZERO
+      },
+      setShow: (show: boolean) => {
+        const mark = marks[rover]
+        if (mark) mark.billboard.show = mark.label.show = show
+      },
+    })),
+  )
   for (const rover of ['m20', 'msl'] as const) {
     try {
       const index = recallVisit(localStorage, rover, stops[rover])

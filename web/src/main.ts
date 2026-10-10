@@ -326,7 +326,7 @@ async function main() {
       .register(new URL('sw.js', document.baseURI).href)
       .catch((error: unknown) => console.warn('Offline cache unavailable:', error))
   }
-  const layerToggles = await addLayers(viewer, sites, hirise)
+  const layerToggles = await addLayers(viewer, sites, hirise, surfaceM)
   const thermalLayer = await addThermalLayer(viewer, await thermalReady)
   const siteCentres = sites.map((s) => ({
     name: s.name.split(' (')[0] ?? s.name,
