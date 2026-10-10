@@ -10,6 +10,7 @@ import { createRangeLayer } from './map/range-layer'
 import { createRouteLayer } from './map/route-layer'
 import { createTerrain, keepCameraAboveGround } from './map/terrain'
 import { installKeyboardCamera } from './map/keyboard-camera'
+import { startIdleSpin } from './map/idle-spin'
 import { installScaleBar } from './map/scale-bar'
 import { sceneTimeMs } from './map/sun'
 import { installWheelZoom } from './map/wheel-zoom'
@@ -116,16 +117,22 @@ async function main() {
   const [sites, mola] = await Promise.all([loadSites(), loadMola()])
   const home = sites[0]
   if (!home) throw new Error('sites.json lists no sites')
-  renderHeader(ui, sites, (view) => {
-    const site = sites.find((s) => s.id === view)
-    if (site) viewAoi(viewer, site.grid)
-    else
-      viewGlobe(
-        viewer,
-        (home.grid.west + home.grid.east) / 2,
-        (home.grid.south + home.grid.north) / 2,
-      )
-  })
+  const shared = decodeView(window.location.search)
+  renderHeader(
+    ui,
+    sites,
+    (view) => {
+      const site = sites.find((s) => s.id === view)
+      if (site) viewAoi(viewer, site.grid)
+      else
+        viewGlobe(
+          viewer,
+          (home.grid.west + home.grid.east) / 2,
+          (home.grid.south + home.grid.north) / 2,
+        )
+    },
+    shared ? undefined : 'mars',
+  )
   const ground = createWalkGround(viewer, sites, mola)
   const groundM = ground.height
   // Height of the ground as drawn (terrain x vertical exaggeration). Markers sit on it directly:
@@ -138,10 +145,16 @@ async function main() {
   )
   viewer.terrainProvider = createTerrain(groundM)
   keepCameraAboveGround(viewer, groundM)
-  const shared = decodeView(window.location.search)
+  // A shared link opens on its own view; a plain visit opens on Mars, 500 km up, turning slowly.
+  const spin = shared
+    ? null
+    : startIdleSpin(
+        viewer,
+        (home.grid.west + home.grid.east) / 2,
+        (home.grid.south + home.grid.north) / 2,
+      )
   if (shared) applyView(viewer, shared)
-  else viewAoi(viewer, home.grid)
-  keepUrlInSync(viewer)
+  keepUrlInSync(viewer, () => spin?.active === true)
   const openRef: { current?: (ref: string) => void } = {}
   const placesReady = loadPlaces()
   let loadedPlaces: Place[] = [] // for the walk dashboard's "near you"
@@ -465,9 +478,10 @@ const EXPLORE_ARRIVAL_H = 10
 const URL_SYNC_DELAY_MS = 400
 
 /** Keep the address bar pointing at the current view so any view can be shared. */
-function keepUrlInSync(viewer: Parameters<typeof currentView>[0]): void {
+function keepUrlInSync(viewer: Parameters<typeof currentView>[0], paused: () => boolean): void {
   let timer = 0
   viewer.camera.moveEnd.addEventListener(() => {
+    if (paused()) return // the opening spin must not leak into the address bar and block the next visit
     window.clearTimeout(timer)
     timer = window.setTimeout(() => {
       history.replaceState(null, '', `?${encodeView(currentView(viewer))}`)

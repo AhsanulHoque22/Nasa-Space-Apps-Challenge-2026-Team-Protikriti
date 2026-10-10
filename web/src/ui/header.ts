@@ -5,6 +5,8 @@ export function renderHeader(
   parent: HTMLElement,
   sites: ReadonlyArray<{ id: string; name: string }>,
   onView: (view: ViewId) => void,
+  /** The tab shown as selected on first paint; the first site when omitted. */
+  initialView: ViewId | undefined = sites[0]?.id,
 ): void {
   const header = document.createElement('header')
   header.className = 'panel masthead'
@@ -14,8 +16,8 @@ export function renderHeader(
       <div><h1>ATLAS</h1><p>Marswalk planner</p></div>
     </div>
     <div class="view-switch" role="group" aria-label="Camera view">
-      <button type="button" data-view="mars" aria-pressed="false">Mars</button>
-      ${sites.map((s, i) => `<button type="button" data-view="${s.id}" aria-pressed="${i === 0}">${s.name.split(' ')[0]}</button>`).join('')}
+      <button type="button" data-view="mars" aria-pressed="${initialView === 'mars'}">Mars</button>
+      ${sites.map((s) => `<button type="button" data-view="${s.id}" aria-pressed="${s.id === initialView}">${s.name.split(' ')[0]}</button>`).join('')}
     </div>`
   const buttons = header.querySelectorAll<HTMLButtonElement>('button[data-view]')
   for (const button of buttons) {
