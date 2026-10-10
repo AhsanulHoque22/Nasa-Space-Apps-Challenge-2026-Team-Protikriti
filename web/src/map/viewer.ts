@@ -2,6 +2,7 @@
 import {
   Cartesian2,
   Cartesian3,
+  Color,
   DynamicAtmosphereLightingType,
   GeographicTilingScheme,
   ImageryLayer,
@@ -176,6 +177,8 @@ export function createMarsViewer(container: HTMLElement): {
   controls.inertiaZoom = 0.5
   controls.zoomFactor = 2.5
   viewer.scene.verticalExaggeration = VERTICAL_EXAGGERATION
+  // Until the first NASA tiles arrive (they are slow) the globe shows this, not Cesium's Earth-blue.
+  viewer.scene.globe.baseColor = Color.fromCssColorString(MARS_BASE_COLOR)
   viewer.scene.globe.showGroundAtmosphere = false // Earth-tuned; causes artifacts on Mars
   // Occlude labels and markers behind the planet or terrain (e.g. Phoenix's label seen from Jezero).
   viewer.scene.globe.depthTestAgainstTerrain = true
@@ -187,6 +190,9 @@ export function createMarsViewer(container: HTMLElement): {
   viewer.scene.atmosphere.dynamicLighting = DynamicAtmosphereLightingType.SCENE_LIGHT
   return { viewer, hirise, offFoot }
 }
+
+/** Average Mars regolith tone, close to the Viking mosaic's mean colour. */
+const MARS_BASE_COLOR = '#8a5a44'
 
 /** Mars atmospheric scale height (NASA Mars Fact Sheet: 11.1 km). */
 const MARS_SCALE_HEIGHT_M = 11_100

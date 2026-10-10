@@ -1,9 +1,9 @@
-/** Opening view: the camera sits 500 km up and Mars turns on its axis until the user takes over. */
+/** Opening view: the whole planet, turning on its axis, until the user takes over. */
 import { Cartesian3, Math as CesiumMath, type Viewer } from 'cesium'
 import { IDLE_SPIN_ALTITUDE_M, idleSpinStepRad } from '../core/idle-spin'
 import { MARS_SPHERE } from './mars'
 
-const OPENING_PITCH_DEG = -35 // shallow enough to show the curved horizon and sky
+const OPENING_PITCH_DEG = -90 // straight down at the planet, so the poles sit at top and bottom
 const STOP_EVENTS = ['pointerdown', 'wheel', 'keydown', 'touchstart'] as const
 
 export type IdleSpin = { readonly active: boolean; stop: () => void }

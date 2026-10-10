@@ -7,8 +7,12 @@ import {
 } from './idle-spin'
 
 describe('idle spin', () => {
-  it('opens at a 500 km camera height', () => {
-    expect(IDLE_SPIN_ALTITUDE_M).toBe(500_000)
+  it('opens high enough to see the whole planet, not a patch of one site', () => {
+    const MARS_RADIUS_M = 3_396_190
+    const halfFovRad = Math.asin(MARS_RADIUS_M / (MARS_RADIUS_M + IDLE_SPIN_ALTITUDE_M))
+    // Cesium's default vertical field of view is 60 degrees (30 either side of the centre).
+    expect(halfFovRad).toBeLessThanOrEqual((31 * Math.PI) / 180)
+    expect(IDLE_SPIN_ALTITUDE_M).toBeLessThan(MARS_RADIUS_M * 4)
   })
 
   it('turns one full revolution in the spin period', () => {

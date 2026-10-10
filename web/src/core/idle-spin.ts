@@ -1,10 +1,10 @@
 /** The slow turn of Mars shown when the site opens, before anyone touches the map. */
 
-/** Camera height above the Mars sphere: low enough to see terrain, high enough to show the limb. */
-export const IDLE_SPIN_ALTITUDE_M = 500_000
+/** Camera height above the Mars sphere: the whole disc sits in view with room around it. */
+export const IDLE_SPIN_ALTITUDE_M = 6_000_000
 
 /** One full turn takes this long. Mars's real 24.6 h day would look frozen, so this is sped up
- * (~140 km/s of ground passing under the camera at the equator: a clear, calm drift at 500 km). */
+ * (2.4 degrees of longitude a second: a calm turn that is plainly visible). */
 export const IDLE_SPIN_PERIOD_S = 150
 
 /** A longer pause between frames (a hidden tab) is treated as this long, so the view never jumps.
