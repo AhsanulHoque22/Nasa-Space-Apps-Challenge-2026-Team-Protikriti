@@ -3,6 +3,9 @@
 /** Camera height above the Mars sphere: the whole disc sits in view with room around it. */
 export const IDLE_SPIN_ALTITUDE_M = 6_000_000
 
+/** Spin only above this altitude; below it the user is navigating a surface area. */
+export const IDLE_SPIN_THRESHOLD_M = 200_000
+
 /** One full turn takes this long. Mars's real 24.6 h day would look frozen, so this is sped up
  * (2.4 degrees of longitude a second: a calm turn that is plainly visible). */
 export const IDLE_SPIN_PERIOD_S = 150

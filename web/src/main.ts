@@ -157,7 +157,7 @@ async function main() {
         (home.grid.south + home.grid.north) / 2,
       )
   if (shared) applyView(viewer, shared)
-  keepUrlInSync(viewer, () => spin?.active === true)
+  keepUrlInSync(viewer, () => spin?.spinning === true)
   const openRef: { current?: (ref: string) => void } = {}
   const placesReady = loadPlaces()
   let loadedPlaces: Place[] = [] // for the walk dashboard's "near you"
