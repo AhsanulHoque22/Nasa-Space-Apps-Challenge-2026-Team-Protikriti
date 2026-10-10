@@ -1,7 +1,7 @@
 import './style.css'
 import { type Site, elevationAt, parseMola } from './core/elevation'
 import { type Grid, lonLatToCell, parseGrid } from './core/grid'
-import { addLayers } from './map/layers'
+import { type LayerId, addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
 import { type Activity, addActivities } from './map/activities-layer'
 import { createReplay } from './map/replay'
@@ -118,13 +118,16 @@ async function main() {
   const home = sites[0]
   if (!home) throw new Error('sites.json lists no sites')
   const shared = decodeView(window.location.search)
+  const setLayer: { current?: (id: LayerId, visible: boolean) => void } = {}
   renderHeader(
     ui,
     sites,
     (view) => {
       const site = sites.find((s) => s.id === view)
-      if (site) viewAoi(viewer, site.grid)
-      else
+      if (site) {
+        viewAoi(viewer, site.grid)
+        setLayer.current?.('imagery', true) // a site view is about its imagery
+      } else
         viewGlobe(
           viewer,
           (home.grid.west + home.grid.east) / 2,
@@ -428,16 +431,21 @@ async function main() {
     } else thermalLayer.show = thermalWasShown
   })
   exploreHooks.push((on) => caveLayer.setVisible(!on && cavesShown)) // a paint-on overlay too
-  renderLayerPanel(ui, {
-    thermal: (visible) => void (thermalLayer.show = visible),
-    caves: (visible) => {
-      cavesShown = visible
-      caveLayer.setVisible(visible)
+  // The opening Mars view starts with plain terrain; imagery comes on when a site is chosen.
+  setLayer.current = renderLayerPanel(
+    ui,
+    {
+      thermal: (visible) => void (thermalLayer.show = visible),
+      caves: (visible) => {
+        cavesShown = visible
+        caveLayer.setVisible(visible)
+      },
+      ...layerToggles,
+      streetview: streetView.setVisible,
+      samples: samples.setVisible,
     },
-    ...layerToggles,
-    streetview: streetView.setVisible,
-    samples: samples.setVisible,
-  })
+    shared ? {} : { imagery: false },
+  )
   const timeline = renderTimelineBar(ui, streetView.stops, createReplay(viewer, streetView.stops))
   exploreHooks.push((on) => {
     if (on) timeline.pauseForExplore()

@@ -137,7 +137,13 @@ function provenanceDrawer(id: string, p: Provenance): HTMLElement {
   return dl
 }
 
-export function renderLayerPanel(parent: HTMLElement, toggles: LayerToggles): void {
+/** Builds the panel; `initial` overrides a layer's default visibility. Returns a way to switch a layer on or off later. */
+export function renderLayerPanel(
+  parent: HTMLElement,
+  toggles: LayerToggles,
+  initial: Partial<Record<LayerId, boolean>> = {},
+): (id: LayerId, visible: boolean) => void {
+  const boxes = new Map<LayerId, HTMLInputElement>()
   const panel = document.createElement('details')
   panel.className = 'panel layers'
   panel.open = window.matchMedia('(min-width: 720px)').matches
@@ -154,10 +160,11 @@ export function renderLayerPanel(parent: HTMLElement, toggles: LayerToggles): vo
       heading.textContent = group
       list.append(heading)
     }
+    const visible = initial[item.id] ?? item.visible
     const li = document.createElement('li')
     li.innerHTML = `
       <label class="layer">
-        <input type="checkbox" ${item.visible ? 'checked' : ''} />
+        <input type="checkbox" ${visible ? 'checked' : ''} />
         ${SWATCHES[item.id]}
         <span class="layer-text"><span class="layer-name">${item.label}</span>
         <span class="layer-detail">${item.detail}</span></span>
@@ -177,9 +184,15 @@ export function renderLayerPanel(parent: HTMLElement, toggles: LayerToggles): vo
     li.append(info, drawer)
     const input = li.querySelector('input')
     input?.addEventListener('change', () => toggles[item.id](input.checked))
-    toggles[item.id](item.visible)
+    if (input) boxes.set(item.id, input)
+    toggles[item.id](visible)
     list.append(li)
   }
   panel.append(list)
   parent.append(panel)
+  return (id, visible) => {
+    const box = boxes.get(id)
+    if (box) box.checked = visible
+    toggles[id](visible)
+  }
 }
