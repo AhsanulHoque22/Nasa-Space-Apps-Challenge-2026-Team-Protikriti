@@ -1,4 +1,5 @@
 /** Right-hand workbench: one tab per purpose, so the column shows a few panels, not fourteen. */
+import { heroKPIs, onHeroChange } from './hero-state'
 
 type Tab = 'plan' | 'explore' | 'science'
 
@@ -42,9 +43,10 @@ export function renderDock(side: HTMLElement): void {
     (t) =>
       `<button type="button" role="tab" id="dock-tab-${t.id}" data-tab="${t.id}" aria-controls="dock-hint">
         <svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg><span>${t.label}</span></button>`,
-  ).join('')}</div><p class="dock-hint" id="dock-hint" role="tabpanel"></p>`
+  ).join('')}</div><div class="hero-card" aria-hidden="true"></div><p class="dock-hint" id="dock-hint" role="tabpanel"></p>`
   const buttons = [...dock.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
   const hint = dock.querySelector('.dock-hint') as HTMLElement
+  const heroCard = dock.querySelector('.hero-card') as HTMLElement
   let active: Tab = 'plan'
 
   const tag = (el: Element) => {
@@ -67,9 +69,48 @@ export function renderDock(side: HTMLElement): void {
     hint.textContent = TABS.find((t) => t.id === active)?.hint ?? ''
     hint.setAttribute('aria-labelledby', `dock-tab-${active}`)
   }
+  type StatConfig = { val: () => string; label: string }
+  const HERO: Record<Tab, StatConfig[]> = {
+    plan: [
+      { val: () => heroKPIs().plan.verdict, label: 'Verdict' },
+      { val: () => heroKPIs().plan.dur, label: 'EVA time' },
+      { val: () => heroKPIs().plan.dist, label: 'Distance' },
+      { val: () => heroKPIs().plan.climb, label: 'Climb' },
+    ],
+    explore: [
+      { val: () => heroKPIs().explore.temp, label: 'Air temp' },
+      { val: () => heroKPIs().explore.pressure, label: 'Pressure' },
+      { val: () => heroKPIs().explore.sky, label: 'Sky' },
+      { val: () => heroKPIs().explore.sol, label: 'Sol' },
+    ],
+    science: [
+      { val: () => heroKPIs().science.unit, label: 'Geo unit' },
+      { val: () => heroKPIs().science.radiation, label: 'Radiation' },
+      { val: () => heroKPIs().science.ice, label: 'Ice' },
+      { val: () => heroKPIs().science.firmness, label: 'Firmness' },
+    ],
+  }
+  const renderHero = (tab: Tab) => {
+    heroCard.innerHTML = ''
+    for (const cfg of HERO[tab]) {
+      const stat = document.createElement('div')
+      stat.className = 'hero-stat'
+      const val = document.createElement('span')
+      val.className = 'hero-val'
+      val.textContent = cfg.val()
+      const label = document.createElement('span')
+      label.className = 'hero-label'
+      label.textContent = cfg.label
+      stat.append(val, label)
+      heroCard.append(stat)
+    }
+  }
+
   const select = (tab: Tab, focus = false) => {
     active = tab
+    document.body.dataset.mode = tab
     apply()
+    renderHero(tab)
     if (focus) buttons.find((b) => b.dataset.tab === tab)?.focus()
   }
 
@@ -91,5 +132,6 @@ export function renderDock(side: HTMLElement): void {
   }).observe(side, { childList: true })
   for (const el of side.children) tag(el)
   side.prepend(dock)
+  onHeroChange(() => renderHero(active))
   select(active)
 }
