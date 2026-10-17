@@ -148,6 +148,14 @@ export function renderLayerPanel(
   panel.className = 'panel layers'
   panel.open = window.matchMedia('(min-width: 720px)').matches
   panel.innerHTML = `<summary><span>Layers</span></summary>`
+  const MODE_GROUPS: Record<string, string> = {
+    Surface: 'plan science',
+    Composition: 'explore science',
+    Missions: 'explore',
+    'Human exploration': 'science explore',
+    Reference: 'any',
+  }
+
   const list = document.createElement('ul')
   list.className = 'layer-list'
   let group = ''
@@ -157,11 +165,13 @@ export function renderLayerPanel(
       const heading = document.createElement('li')
       heading.className = 'layer-group'
       heading.setAttribute('role', 'presentation')
+      heading.setAttribute('data-mode-group', MODE_GROUPS[group] ?? 'any')
       heading.textContent = group
       list.append(heading)
     }
     const visible = initial[item.id] ?? item.visible
     const li = document.createElement('li')
+    li.setAttribute('data-mode-group', MODE_GROUPS[item.group] ?? 'any')
     li.innerHTML = `
       <label class="layer">
         <input type="checkbox" ${visible ? 'checked' : ''} />

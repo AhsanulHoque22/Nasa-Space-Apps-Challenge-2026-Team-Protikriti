@@ -1,4 +1,5 @@
 /** Mars weather station panel: latest sol, a Mars year of temperature and pressure. */
+import { pushExploreKPIs } from './hero-state'
 import { bandPath, lastMarsYear, linePath, linearScale } from '../core/chart'
 import type { SolWeather } from '../core/weather'
 import type { WeatherResult, WeatherStation } from '../map/weather-client'
@@ -179,6 +180,12 @@ export function renderWeatherPanel(
     panel.append(el('p', 'wx-empty', 'No readings in this feed right now.'))
   } else {
     panel.append(el('p', 'wx-sol', `Sol ${latest.sol} · ${latest.earthDate}`), tiles(latest))
+    pushExploreKPIs({
+      temp: `${fmt(latest.minC, '°')} / ${fmt(latest.maxC, '°C')}`,
+      pressure: fmt(latest.pressurePa, ' Pa'),
+      sky: latest.opacity ?? '—',
+      sol: latest.sol != null ? `Sol ${latest.sol}` : '—',
+    })
     const year = lastMarsYear(result.sols)
     if (year.length > 20) {
       panel.append(

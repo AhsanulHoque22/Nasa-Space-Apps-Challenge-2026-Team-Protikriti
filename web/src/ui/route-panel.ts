@@ -1,4 +1,5 @@
 /** Marswalk planner: click a start, then science stops; see the safest timed EVA. */
+import { pushPlanKPIs } from './hero-state'
 import { Cartesian2, ScreenSpaceEventHandler, ScreenSpaceEventType, type Viewer } from 'cesium'
 import { formatDistance, formatDuration } from '../core/format'
 import type { Site } from '../core/elevation'
@@ -362,6 +363,7 @@ export function renderRoutePanel(
     if (!reply || !total) {
       if (active) tools(active).layer.setFail(null)
       onWalkPlan?.(null)
+      pushPlanKPIs({ verdict: '—', dur: '—', dist: '—', climb: '—' })
       return
     }
     const shown = showCard(reply, stops)
@@ -421,6 +423,12 @@ export function renderRoutePanel(
     field('relief').textContent =
       `+${Math.round(total.ascentM)} m / −${Math.round(total.descentM)} m`
     field('slope').textContent = `${total.maxSlopeDeg.toFixed(1)}°`
+    pushPlanKPIs({
+      verdict: evaBadge.textContent ?? '—',
+      dur: field('eva').textContent ?? '—',
+      dist: field('distance').textContent ?? '—',
+      climb: field('relief').textContent ?? '—',
+    })
     if (shown) {
       wordsEl.textContent = describeRoute({
         total,
