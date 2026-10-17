@@ -188,9 +188,10 @@ export function createMarsViewer(container: HTMLElement): {
   viewer.scene.skyAtmosphere = marsSky()
   // Light the sky glow from the Mars sun that map/sun.ts sets, not from the camera.
   viewer.scene.atmosphere.dynamicLighting = DynamicAtmosphereLightingType.SCENE_LIGHT
-  // Smooth the jagged globe horizon: FXAA post-pass + 4× MSAA (WebGL2).
+  // Smooth the jagged globe horizon: FXAA post-pass + 4× MSAA + 1.5× render resolution.
   viewer.scene.postProcessStages.fxaa.enabled = true
   viewer.scene.msaaSamples = 4
+  viewer.resolutionScale = 1.5
   return { viewer, hirise, offFoot }
 }
 
@@ -212,6 +213,8 @@ function marsSky(): SkyAtmosphere {
   sky.atmosphereRayleighCoefficient = new Cartesian3(9e-6, 6e-6, 3.5e-6)
   sky.atmosphereMieCoefficient = new Cartesian3(30e-6, 18e-6, 9e-6)
   sky.atmosphereMieAnisotropy = 0.8
+  // Per-fragment (vs per-vertex) atmosphere evaluation: smooth limb with no pixel steps.
+  sky.perFragmentAtmosphere = true
   return sky
 }
 
