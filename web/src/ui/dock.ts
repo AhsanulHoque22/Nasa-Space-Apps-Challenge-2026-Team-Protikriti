@@ -1,4 +1,4 @@
-/** Right-hand workbench: one tab per purpose, so the column shows a few panels, not fourteen. */
+/** Workbench: a fixed trigger bar (always visible) + a floating panel card (opens on click). */
 import { heroKPIs, onHeroChange } from './hero-state'
 
 type Tab = 'plan' | 'explore' | 'science'
@@ -24,7 +24,7 @@ const TABS: { id: Tab; label: string; hint: string; icon: string }[] = [
   },
 ]
 
-// First match wins. Panels that match nothing (weather result, site report, cards) stay on every tab.
+// First match wins. Panels that match nothing stay visible on every tab.
 const GROUPS: [Tab, string[]][] = [
   ['plan', ['quest', 'route', 'sync', 'link']],
   ['explore', ['wx-panel', 'zones', 'delta']],
@@ -37,38 +37,67 @@ function groupOf(el: Element): Tab | null {
 }
 
 export function renderDock(side: HTMLElement): void {
-  const dock = document.createElement('div')
-  dock.className = 'panel dock'
-  dock.innerHTML = `<div class="dock-tabs" role="tablist" aria-label="Workbench">${TABS.map(
+  // ── Trigger bar — always visible at top-right ─────────────────────────
+  const trigger = document.createElement('div')
+  trigger.className = 'dock-trigger'
+  trigger.innerHTML = `<div class="dock-tabs" role="tablist" aria-label="Workbench">${TABS.map(
     (t) =>
-      `<button type="button" role="tab" id="dock-tab-${t.id}" data-tab="${t.id}" aria-controls="dock-hint">
-        <svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg><span>${t.label}</span></button>`,
-  ).join('')}</div><div class="hero-card" aria-hidden="true"></div><p class="dock-hint" id="dock-hint" role="tabpanel"></p>`
-  const buttons = [...dock.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
-  const hint = dock.querySelector('.dock-hint') as HTMLElement
-  const heroCard = dock.querySelector('.hero-card') as HTMLElement
+      `<button type="button" role="tab" data-tab="${t.id}" aria-selected="false" tabindex="-1" title="${t.hint}">
+        <svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg><span>${t.label}</span>
+      </button>`,
+  ).join('')}</div>`
+  document.body.append(trigger)
+  const tabButtons = [...trigger.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+
+  // ── Card header — sits at the top of the floating side panel ─────────
+  const cardHead = document.createElement('div')
+  cardHead.className = 'dock-card-head'
+  cardHead.innerHTML = `
+    <span class="dock-card-title"></span>
+    <button type="button" class="dock-close" aria-label="Close panel">
+      <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    </button>`
+  const heroCard = document.createElement('div')
+  heroCard.className = 'hero-card'
+  heroCard.setAttribute('aria-hidden', 'true')
+  const hint = document.createElement('p')
+  hint.className = 'dock-hint'
+  hint.id = 'dock-panel'
+  side.prepend(hint, heroCard, cardHead)
+
+  cardHead.querySelector<HTMLButtonElement>('.dock-close')!.addEventListener('click', close)
+
+  // ── Panel group visibility ────────────────────────────────────────────
   let active: Tab = 'plan'
 
   const tag = (el: Element) => {
-    if (el === dock || el.hasAttribute('data-group')) return
+    if (el === cardHead || el === heroCard || el === hint || el.hasAttribute('data-group')) return
     const g = groupOf(el)
     if (g) el.setAttribute('data-group', g)
     else el.setAttribute('data-group', 'any')
     el.classList.toggle('dock-hidden', g !== null && g !== active)
   }
+
   const apply = () => {
+    const open = !!document.body.dataset.panelOpen
     for (const el of side.children) {
       const g = el.getAttribute('data-group')
       el.classList.toggle('dock-hidden', g !== null && g !== 'any' && g !== active)
     }
-    for (const b of buttons) {
-      const on = b.dataset.tab === active
+    for (const b of tabButtons) {
+      const on = b.dataset.tab === active && open
       b.setAttribute('aria-selected', String(on))
-      b.tabIndex = on ? 0 : -1
+      b.tabIndex = b.dataset.tab === active ? 0 : -1
     }
     hint.textContent = TABS.find((t) => t.id === active)?.hint ?? ''
-    hint.setAttribute('aria-labelledby', `dock-tab-${active}`)
+    const titleEl = cardHead.querySelector<HTMLElement>('.dock-card-title')
+    if (titleEl) titleEl.textContent = TABS.find((t) => t.id === active)?.label ?? ''
   }
+
+  // ── Hero KPIs ─────────────────────────────────────────────────────────
   type StatConfig = { val: () => string; label: string }
   const HERO: Record<Tab, StatConfig[]> = {
     plan: [
@@ -106,32 +135,39 @@ export function renderDock(side: HTMLElement): void {
     }
   }
 
-  const select = (tab: Tab, focus = false) => {
-    active = tab
-    document.body.dataset.mode = tab
+  // ── Open / close ──────────────────────────────────────────────────────
+  function close() {
+    delete document.body.dataset.panelOpen
     apply()
-    renderHero(tab)
-    if (focus) buttons.find((b) => b.dataset.tab === tab)?.focus()
   }
 
-  for (const b of buttons) {
+  const select = (tab: Tab, focus = false) => {
+    const alreadyOpen = document.body.dataset.panelOpen && active === tab
+    if (alreadyOpen) { close(); return }
+    active = tab
+    document.body.dataset.mode = tab
+    document.body.dataset.panelOpen = 'yes'
+    apply()
+    renderHero(tab)
+    if (focus) tabButtons.find((b) => b.dataset.tab === tab)?.focus()
+  }
+
+  for (const b of tabButtons) {
     b.addEventListener('click', () => select(b.dataset.tab as Tab))
     b.addEventListener('keydown', (e) => {
-      const i = buttons.indexOf(b)
+      const i = tabButtons.indexOf(b)
       const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
       if (!step) return
       e.preventDefault()
-      const next = buttons[(i + step + buttons.length) % buttons.length]
+      const next = tabButtons[(i + step + tabButtons.length) % tabButtons.length]
       if (next) select(next.dataset.tab as Tab, true)
     })
   }
 
-  // Panels arrive late (benchmark, zones) or on demand (weather, site report): sort each as it lands.
   new MutationObserver((records) => {
     for (const r of records) for (const n of r.addedNodes) if (n instanceof HTMLElement) tag(n)
   }).observe(side, { childList: true })
   for (const el of side.children) tag(el)
-  side.prepend(dock)
   onHeroChange(() => renderHero(active))
-  select(active)
+  apply()
 }

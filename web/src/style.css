@@ -370,15 +370,38 @@ body {
 
 /* Right-hand stack: route planner and weather */
 .side {
-  grid-area: route;
-  align-self: start;
+  position: fixed;
+  top: 68px;
+  right: var(--space-4);
+  width: 300px;
+  max-height: calc(100vh - 88px);
   display: grid;
   gap: var(--space-3);
-  max-height: 100%;
   overflow-y: auto;
-  pointer-events: none;
   scrollbar-width: thin;
   scrollbar-color: var(--rule) transparent;
+  z-index: 50;
+  pointer-events: none;
+  /* floating card */
+  background: var(--surface-raised);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--mode-accent, var(--nasa-blue));
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.7), 0 4px 16px rgb(0 0 0 / 0.4);
+  padding-bottom: var(--space-3);
+  /* hidden by default — slides in from the right */
+  transform: translateX(calc(100% + 24px));
+  opacity: 0;
+  transition:
+    transform 280ms var(--ease-out),
+    opacity 200ms var(--ease-out),
+    border-color 250ms var(--ease-out);
+}
+
+body[data-panel-open] .side {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Route */
@@ -2518,12 +2541,64 @@ body.eva-mode #ui {
   display: none !important; /* beats panels that set their own display */
 }
 
-.dock {
+/* ── Trigger bar (always visible, top-right) ──────────────────────────── */
+.dock-trigger {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 60;
+  padding: var(--space-1);
+  background: var(--surface-raised);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--mode-accent, var(--nasa-blue));
+  border-radius: 10px;
+  backdrop-filter: blur(10px) saturate(1.2);
+  pointer-events: auto;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 0.5);
+  transition: border-color 250ms var(--ease-out);
+}
+
+/* ── Card header inside the floating panel ────────────────────────────── */
+.dock-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-2);
   position: sticky;
   top: 0;
-  z-index: 3;
-  padding: var(--space-2);
   background: var(--surface-raised);
+  z-index: 1;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0;
+}
+
+.dock-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mode-accent-lift, var(--nasa-blue-lift));
+  transition: color 250ms var(--ease-out);
+}
+
+.dock-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  transition: background 150ms var(--ease-out), color 150ms var(--ease-out);
+}
+
+.dock-close:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: var(--text);
 }
 
 .dock-tabs {
@@ -2570,10 +2645,12 @@ body.eva-mode #ui {
 }
 
 .dock-hint {
-  margin: var(--space-2) var(--space-1) 0;
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-1);
   font-size: 12px;
   line-height: 1.4;
   color: var(--text-muted);
+  border-bottom: 1px solid var(--rule);
 }
 
 /* ---- Selected state: one rule for every toggle, so on never looks like off ----
@@ -2785,21 +2862,14 @@ body[data-mode='science'] {
   --mode-accent-lift: #2aab96;
 }
 
-/* Mode-aware dock: colored bar at the top indicates active mode */
-.dock {
-  border-top: 3px solid var(--mode-accent, var(--nasa-blue));
-  transition: border-color 250ms var(--ease-out);
-}
-
-/* ---- Hero card: 4-stat KPI strip inside the dock ---- */
+/* ---- Hero card: 4-stat KPI strip inside the floating panel ---- */
 .hero-card {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-1);
-  margin-top: var(--space-2);
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: rgb(255 255 255 / 0.04);
-  border-radius: 6px;
+  border-bottom: 1px solid var(--rule);
   border-left: 3px solid var(--mode-accent-lift, var(--nasa-blue));
   transition: border-color 250ms var(--ease-out);
 }
