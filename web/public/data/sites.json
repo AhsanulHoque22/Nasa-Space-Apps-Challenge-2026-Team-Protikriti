@@ -32,6 +32,39 @@
    "east": 135.71998221550461,
    "north": 4.600233141714511,
    "pixel_size_m": 20.235801707741
+  },
+  {
+   "id": "columbia_hills",
+   "name": "Columbia Hills (Spirit)",
+   "rover": "Spirit",
+   "source": "HiRISE DTEEC_001513_1655_001777_1650_U01, MRO HiRISE, 1 m/px native, read at 20 m/px \u2014 Spirit rover, Gusev crater",
+   "west": 175.441840421273,
+   "south": -14.677491843839778,
+   "east": 175.5547832411706,
+   "north": -14.492585327664097,
+   "pixel_size_m": 20.21082480195
+  },
+  {
+   "id": "viking2",
+   "name": "Viking 2 landing site (Utopia Planitia)",
+   "rover": "Viking 2",
+   "source": "HiRISE DTEEC_002055_2280_001976_2280_A01, MRO HiRISE, 1 m/px native, read at 20 m/px \u2014 Viking 2 landing site, Utopia Planitia",
+   "west": 134.19238508449385,
+   "south": 47.55269899323278,
+   "east": 134.37879299441337,
+   "north": 47.767902928462426,
+   "pixel_size_m": 19.981839056246
+  },
+  {
+   "id": "pathfinder",
+   "name": "Mars Pathfinder (Ares Vallis)",
+   "rover": "Sojourner",
+   "source": "HiRISE DTEEC_002391_1995_001890_1995_A01, MRO HiRISE, 1 m/px native, read at 20 m/px \u2014 Mars Pathfinder / Sojourner, Ares Vallis",
+   "west": -33.30505191927843,
+   "south": 18.938910567085834,
+   "east": -33.18900367290458,
+   "north": 19.18216425507386,
+   "pixel_size_m": 20.190595299216
   }
  ]
 }
