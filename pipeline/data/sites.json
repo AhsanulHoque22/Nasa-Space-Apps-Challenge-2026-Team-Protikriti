@@ -113,6 +113,34 @@
       ],
       "pixel_m": 20,
       "source": "HiRISE DTEEC_002391_1995_001890_1995_A01, MRO HiRISE, 1 m/px native, read at 20 m/px — Mars Pathfinder / Sojourner, Ares Vallis"
+    },
+    {
+      "id": "ius_chasma",
+      "name": "Ius Chasma (Valles Marineris)",
+      "rover": null,
+      "dem": "../HiRISE_IMages/DTEEC_001918_1735_001984_1735_U01.IMG",
+      "bounds": [
+        -76.9824,
+        -6.5616,
+        -76.8733,
+        -6.3778
+      ],
+      "pixel_m": 20,
+      "source": "HiRISE DTEEC_001918_1735_001984_1735_U01, MRO HiRISE, 1 m/px native, read at 20 m/px — Ius Chasma, western Valles Marineris"
+    },
+    {
+      "id": "meridiani",
+      "name": "Meridiani Planum (Opportunity)",
+      "rover": "Opportunity",
+      "dem": "../HiRISE_IMages/megt90n000cb.img",
+      "bounds": [
+        -5.5068,
+        -2.0652,
+        -5.4849,
+        -2.0363
+      ],
+      "pixel_m": 20,
+      "source": "HiRISE DTM, MRO HiRISE, 1 m/px native, read at 20 m/px — Meridiani Planum, Opportunity rover landing site"
     }
   ]
 }

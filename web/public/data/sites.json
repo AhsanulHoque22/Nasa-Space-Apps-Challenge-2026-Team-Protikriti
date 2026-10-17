@@ -65,6 +65,28 @@
    "east": -33.18900367290458,
    "north": 19.18216425507386,
    "pixel_size_m": 20.190595299216
+  },
+  {
+   "id": "ius_chasma",
+   "name": "Ius Chasma (Valles Marineris)",
+   "rover": null,
+   "source": "HiRISE DTEEC_001918_1735_001984_1735_U01, MRO HiRISE, 1 m/px native, read at 20 m/px \u2014 Ius Chasma, western Valles Marineris",
+   "west": -76.98240753055497,
+   "south": -6.561580740787647,
+   "east": -76.87330940875897,
+   "north": -6.377836887072899,
+   "pixel_size_m": 20.231990173554003
+  },
+  {
+   "id": "meridiani",
+   "name": "Meridiani Planum (Opportunity)",
+   "rover": "Opportunity",
+   "source": "HiRISE DTM, MRO HiRISE, 1 m/px native, read at 20 m/px \u2014 Meridiani Planum, Opportunity rover landing site",
+   "west": -5.50677703102783,
+   "south": -2.065167908531148,
+   "east": -5.484943724517424,
+   "north": -2.036301511886087,
+   "pixel_size_m": 20.237101475148
   }
  ]
 }
