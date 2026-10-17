@@ -17,7 +17,7 @@ export function renderHeader(
     </div>
     <div class="view-switch" role="group" aria-label="Camera view">
       <button type="button" data-view="mars" aria-pressed="${initialView === 'mars'}">Mars</button>
-      ${sites.map((s) => `<button type="button" data-view="${s.id}" aria-pressed="${s.id === initialView}">${s.name.split(' ')[0]}</button>`).join('')}
+      ${sites.map((s) => `<button type="button" data-view="${s.id}" aria-pressed="${s.id === initialView}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`).join('')}
     </div>`
   const buttons = header.querySelectorAll<HTMLButtonElement>('button[data-view]')
   for (const button of buttons) {

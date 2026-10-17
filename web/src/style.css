@@ -106,7 +106,11 @@ body {
   padding: 2px;
   border-radius: 8px;
   background: rgb(255 255 255 / 0.06);
+  overflow-x: auto;
+  max-width: calc(100vw - 220px);
+  scrollbar-width: none;
 }
+.view-switch::-webkit-scrollbar { display: none; }
 
 .view-switch button {
   font: 600 12px var(--font);
@@ -2781,15 +2785,23 @@ body[data-mode='science'] {
   --mode-accent-lift: #2aab96;
 }
 
+/* Mode-aware dock: colored bar at the top indicates active mode */
+.dock {
+  border-top: 3px solid var(--mode-accent, var(--nasa-blue));
+  transition: border-color 250ms var(--ease-out);
+}
+
 /* ---- Hero card: 4-stat KPI strip inside the dock ---- */
 .hero-card {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-1);
   margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-2) 0;
-  border-top: 1px solid var(--rule);
-  border-left: 2px solid var(--mode-accent, var(--nasa-blue));
+  padding: var(--space-2);
+  background: rgb(255 255 255 / 0.04);
+  border-radius: 6px;
+  border-left: 3px solid var(--mode-accent-lift, var(--nasa-blue));
+  transition: border-color 250ms var(--ease-out);
 }
 
 .hero-stat {
@@ -2800,27 +2812,31 @@ body[data-mode='science'] {
 }
 
 .hero-val {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text);
+  color: var(--mode-accent-lift, var(--text));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 250ms var(--ease-out);
 }
 
 .hero-label {
   font-size: 11px;
   color: var(--text-muted);
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* Active tab uses mode accent fill */
 .dock-tabs [role='tab'][aria-selected='true'] {
-  background: color-mix(in srgb, var(--mode-accent, var(--nasa-blue)) 90%, transparent) !important;
+  background: color-mix(in srgb, var(--mode-accent, var(--nasa-blue)) 85%, transparent) !important;
+  color: #fff !important;
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.2),
-    0 2px 6px rgb(0 0 0 / 0.4) !important;
+    inset 0 0 0 1px rgb(255 255 255 / 0.25),
+    0 2px 8px color-mix(in srgb, var(--mode-accent, var(--nasa-blue)) 60%, transparent) !important;
 }
 
 /* ---- Layer group spotlight: dims non-relevant groups per active mode ---- */

@@ -236,7 +236,7 @@ async function main() {
   explore.className = 'panel wx-launch'
   explore.setAttribute('aria-label', 'Explore a site on foot')
   explore.innerHTML = `<span>Explore on foot</span>${sites
-    .map((s) => `<button type="button" data-site="${s.id}">${s.name.split(' ')[0]}</button>`)
+    .map((s) => `<button type="button" data-site="${s.id}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`)
     .join('')}`
   for (const b of explore.querySelectorAll<HTMLButtonElement>('button')) {
     b.addEventListener('click', async () => {
