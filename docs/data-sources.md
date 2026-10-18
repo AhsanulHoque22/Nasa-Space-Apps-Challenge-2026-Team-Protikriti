@@ -267,3 +267,17 @@ Regions tidied so far (about 1.8 degrees square each, levels 5 to 10): Jezero, G
 
 Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past about 66 to 68 degrees of latitude, so Phoenix (68.2 N) has no strips to tidy (its own controlled mosaic covers it). Six CTX reference tiles are corrupt on Esri's server and are skipped; alignment simply ignores those gaps.
 
+
+
+## CRISM Jezero Mineralogy (`marsmap crism`)
+
+| Item | Detail |
+|---|---|
+| Dataset | `jezeroFinal.tif` — CRISM-based mineral unit map of Jezero crater |
+| Source | Salvatore et al. 2021, *Zenodo*, DOI [10.5281/zenodo.5575824](https://doi.org/10.5281/zenodo.5575824) |
+| Licence | CC BY 4.0 |
+| Instrument | CRISM (Compact Reconnaissance Imaging Spectrometer for Mars), MRO |
+| What it maps | Integer mineral-class codes per pixel (basalt, Fe/Mg smectite, carbonate, sulfate, chloride/perchlorate, etc.) covering the Jezero crater floor and delta region |
+| Pipeline use | `crism.py` reads the uint8 class codes, maps them to 0–1 hazard weights (higher = more chemically hazardous for EVA crew contact), and writes `crism.json` + `crism.bin` per site |
+| Web use | Rendered as a semi-transparent red ramp overlay ("Chemical hazard"); also consumed by `eva-score.ts` as the chemical component of the EVA Safety Score |
+| Download | `python -m marsmap crism --tif data/raw/crism/jezeroFinal.tif --out web/public/data` (download tif from Zenodo first) |

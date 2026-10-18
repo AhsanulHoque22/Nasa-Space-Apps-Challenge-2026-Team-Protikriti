@@ -34,6 +34,7 @@ from marsmap.stops import waypoint_stops
 from marsmap.streetview import build_panorama, update_index
 from marsmap.strip_tiles import build_region
 from marsmap.swim import SWIM_URL, swim_to_web, write_swim
+from marsmap.crism import export_crism_grid
 from marsmap.thermal import build_thermal
 from marsmap.walkpatch import build_walk_patch
 from marsmap.weather import snapshot_weather
@@ -246,6 +247,18 @@ def _thermal(args: argparse.Namespace) -> None:
         print(f"wrote thermal inertia for {site['id']}: {size} (tile {meta['tile']})")
 
 
+def _crism(args: argparse.Namespace) -> None:
+    # Only Jezero has the CRISM mineralogy map from Salvatore et al. 2021.
+    meta = export_crism_grid(
+        "jezero",
+        tuple(JEZERO_AOI),  # type: ignore[arg-type]
+        args.tif,
+        args.out / "sites" / "jezero",
+    )
+    if meta:
+        print(f"wrote CRISM chemical hazard for jezero: {meta['width']}x{meta['height']}")
+
+
 def _benchmark(args: argparse.Namespace) -> None:
     out = run_benchmark(args.traverse, args.waypoints, args.grid)
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -362,7 +375,7 @@ def _download_bytes(url: str) -> bytes:
 
 
 ROVER_SAMPLE_STOPS = 150  # stops whose median reveals the rover body
-TRAIN_PIXELS_PER_STOP = 8_000  # of ~140k labelled pixels per stop; neighbours are near-duplicates
+TRAIN_PIXELS_PER_STOP = 15_000  # of ~140k labelled pixels per stop; neighbours are near-duplicates
 
 
 def _classify(args: argparse.Namespace) -> None:
@@ -614,6 +627,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     thermal = sub.add_parser("thermal", help="THEMIS thermal inertia window for each site")
     thermal.add_argument("--config", type=Path, required=True)
     thermal.add_argument("--out", type=Path, required=True)
+    crism = sub.add_parser("crism", help="CRISM chemical hazard overlay for Jezero")
+    crism.add_argument(
+        "--tif",
+        type=Path,
+        default=Path("data/raw/crism/jezeroFinal.tif"),
+        help="path to jezeroFinal.tif from Zenodo DOI 10.5281/zenodo.5575824",
+    )
+    crism.add_argument("--out", type=Path, required=True)
     bench = sub.add_parser("benchmark", help="replay Perseverance's real path against the map")
     bench.add_argument("--traverse", type=Path, required=True)
     bench.add_argument("--waypoints", type=Path, required=True)
@@ -676,6 +697,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "activities": _activities,
         "benchmark": _benchmark,
         "thermal": _thermal,
+        "crism": _crism,
         "caves": _caves,
         "compare": _compare,
         "walk": _walk,
