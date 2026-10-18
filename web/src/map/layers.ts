@@ -55,6 +55,7 @@ export type LayerId =
   | 'zones'
   | 'graticule'
   | 'thermal'
+  | 'crism'
   | 'caves'
 
 export type LayerToggles = Record<LayerId, (visible: boolean) => void>
@@ -355,7 +356,7 @@ export async function addLayers(
   hirise: { show: boolean },
   surfaceM: (lon: number, lat: number) => number,
 ): Promise<
-  Omit<LayerToggles, 'streetview' | 'samples' | 'thermal' | 'caves'> & {
+  Omit<LayerToggles, 'streetview' | 'samples' | 'thermal' | 'crism' | 'caves'> & {
     hideForExplore: (on: boolean) => void
   }
 > {

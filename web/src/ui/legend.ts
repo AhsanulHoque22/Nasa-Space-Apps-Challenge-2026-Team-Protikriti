@@ -14,6 +14,9 @@ export const SWATCHES: Record<LayerId, string> = {
   thermal: svg(
     '<defs><linearGradient id="ti" x1="0" x2="1"><stop offset="0" stop-color="#0d366b"/><stop offset=".5" stop-color="#3987e5"/><stop offset="1" stop-color="#cde2fb"/></linearGradient></defs><rect x="2" y="2" width="16" height="16" rx="2" fill="url(#ti)"/>',
   ),
+  crism: svg(
+    '<defs><linearGradient id="cr" x1="0" x2="1"><stop offset="0" stop-color="#5a1f08"/><stop offset=".5" stop-color="#eb6834"/><stop offset="1" stop-color="#fde0cf"/></linearGradient></defs><rect x="2" y="2" width="16" height="16" rx="2" fill="url(#cr)"/>',
+  ),
   roughness: svg(
     '<rect x="2" y="2" width="16" height="16" rx="2" fill="#20263a"/><path d="M3 13l3-4 2 3 3-6 2 5 2-2 2 4" fill="none" stroke="#c9d2e6" stroke-width="1.4"/>',
   ),

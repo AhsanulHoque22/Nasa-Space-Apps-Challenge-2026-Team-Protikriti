@@ -39,6 +39,14 @@ export const PROVENANCE: Record<LayerId, Provenance> = {
     datum: MARS_SPHERE,
     url: 'https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic',
   },
+  crism: {
+    mission: 'MRO / CRISM',
+    product:
+      'Jezero mineralogy classification, Salvatore et al. 2021 (Zenodo doi:10.5281/zenodo.5575824, CC BY 4.0); each pixel is an integer mineral-class code mapped to a 0–1 chemical-hazard weight. Orange runs dark (safe: basalt) to light (hazardous: chloride/sulfate). Covers the Jezero crater window only.',
+    crs: MARS_SPHERE,
+    datum: NO_DATUM_IMAGE,
+    url: 'https://zenodo.org/records/5575824',
+  },
   thermal: {
     mission: '2001 Mars Odyssey / THEMIS',
     product:

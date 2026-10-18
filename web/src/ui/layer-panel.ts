@@ -41,6 +41,13 @@ export const LAYER_ITEMS: LayerItem[] = [
     visible: false,
   },
   {
+    id: 'crism',
+    group: 'Surface',
+    label: 'Chemical hazard',
+    detail: 'CRISM mineralogy · Salvatore et al. 2021 · Jezero',
+    visible: false,
+  },
+  {
     id: 'roughness',
     group: 'Surface',
     label: 'Surface roughness',

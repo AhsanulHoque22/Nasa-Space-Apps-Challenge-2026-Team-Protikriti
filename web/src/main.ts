@@ -66,6 +66,7 @@ import { renderDeltaCard } from './ui/delta-card'
 import { localMeanSolarTimeHours, nextLocalHourMs, solarLongitudeDeg } from './core/mars-time'
 import { firmerThanPct, thermalAt } from './core/thermal'
 import { type SiteThermal, addThermalLayer, loadThermalGrids } from './map/thermal-layer'
+import { addCrismLayer, loadCrismGrids } from './map/crism-layer'
 import { createCaveLayer } from './map/caves-layer'
 import { createWalkGround } from './map/walk-ground'
 import { renderCaveCard } from './ui/cave-card'
@@ -284,6 +285,7 @@ async function main() {
   // Settlement guide: right-click anywhere, or the readout's button for the view centre.
   const thermalReady = loadThermalGrids(sites)
   void thermalReady.then((t) => (thermalGrids = t)).catch(() => undefined)
+  const crismReady = loadCrismGrids(sites)
   let swim: Promise<SwimGrid | null> | undefined
   const getSwim = () => (swim ??= loadSwim().catch(() => null))
   const openReport = async (lon: number, lat: number) => {
@@ -344,6 +346,7 @@ async function main() {
   }
   const layerToggles = await addLayers(viewer, sites, hirise, surfaceM)
   const thermalLayer = await addThermalLayer(viewer, await thermalReady)
+  const crismLayer = await addCrismLayer(viewer, await crismReady)
   const siteCentres = sites.map((s) => ({
     name: s.name.split(' (')[0] ?? s.name,
     lon: (s.grid.west + s.grid.east) / 2,
@@ -423,12 +426,18 @@ async function main() {
   )
   renderDock(side)
   let thermalWasShown = false
+  let crismWasShown = false
   exploreHooks.push(layerToggles.hideForExplore, streetView.hideForExplore, (on) => {
-    // like the other paint-on overlays, ground firmness would cover the walker's view
+    // like the other paint-on overlays, ground firmness/chemistry would cover the walker's view
     if (on) {
       thermalWasShown = thermalLayer.show
       thermalLayer.show = false
-    } else thermalLayer.show = thermalWasShown
+      crismWasShown = crismLayer.show
+      crismLayer.show = false
+    } else {
+      thermalLayer.show = thermalWasShown
+      crismLayer.show = crismWasShown
+    }
   })
   exploreHooks.push((on) => caveLayer.setVisible(!on && cavesShown)) // a paint-on overlay too
   // The opening Mars view starts with plain terrain; imagery comes on when a site is chosen.
@@ -436,6 +445,7 @@ async function main() {
     ui,
     {
       thermal: (visible) => void (thermalLayer.show = visible),
+      crism: (visible) => void (crismLayer.show = visible),
       caves: (visible) => {
         cavesShown = visible
         caveLayer.setVisible(visible)
