@@ -161,6 +161,11 @@ export function renderRoutePanel(
           <p class="eva-detail eva-reliability"></p>
         </details>
       </div>
+      <div class="eva-budget-bar" aria-label="EVA time budget" hidden>
+        <div class="eva-bar-used" role="presentation"></div>
+        <div class="eva-bar-margin" role="presentation"></div>
+        <span class="eva-bar-label"></span>
+      </div>
       <dl class="route-summary">
         <div><dt>EVA time <span class="qualifier" data-k="stop-time">incl. ${SCIENCE_STOP_MIN} min/stop</span></dt><dd data-k="eva"></dd></div>
         <div><dt>Distance</dt><dd data-k="distance"></dd></div>
@@ -347,6 +352,19 @@ export function renderRoutePanel(
       `Terrain check: the route stays within ${g.maxSafeSlopeDeg}° in ${Math.round(held * 100)}% of ` +
       `${RELIABILITY_TRIALS} simulated terrain errors (±${DEM_SIGMA_M} m, smooth over ` +
       `${ERROR_CORRELATION_CELLS * g.pixelSizeM} m: a team assumption, not a measured error).`
+    const barEl = panel.querySelector('.eva-budget-bar') as HTMLElement
+    const usedEl = panel.querySelector('.eva-bar-used') as HTMLElement
+    const marginEl = panel.querySelector('.eva-bar-margin') as HTMLElement
+    const barLabelEl = panel.querySelector('.eva-bar-label') as HTMLElement
+    const usedPct = Math.min(100, (card.evaMin / card.budgetMin) * 100)
+    const marginPct = Math.max(0, Math.min(100 - usedPct, (card.tightestMarginMin / card.budgetMin) * 100))
+    usedEl.style.width = `${usedPct.toFixed(1)}%`
+    marginEl.style.width = `${marginPct.toFixed(1)}%`
+    barEl.hidden = false
+    barEl.dataset.verdict = card.verdict
+    barLabelEl.textContent = go
+      ? `${formatDuration(card.tightestMarginMin)} spare`
+      : `${formatDuration(Math.abs(card.tightestMarginMin))} short`
     return { card, failAlongM, limitDeg: g.maxSafeSlopeDeg, held }
   }
 

@@ -458,6 +458,37 @@ body[data-panel-open] .side {
   color: var(--text-muted);
 }
 
+.eva-budget-bar {
+  display: flex;
+  align-items: center;
+  height: 8px;
+  background: var(--bg-secondary, #1a1c20);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: var(--space-2) 0 var(--space-3);
+  position: relative;
+}
+.eva-bar-used {
+  height: 100%;
+  background: var(--text-muted, #888);
+  transition: width 0.3s ease-out;
+}
+[data-verdict='NO-GO'] .eva-bar-used { background: var(--hazard, #c0392b); }
+[data-verdict='GO']    .eva-bar-used { background: #0b3d91; }
+.eva-bar-margin {
+  height: 100%;
+  background: #2aab96;
+  opacity: 0.5;
+  transition: width 0.3s ease-out;
+}
+.eva-bar-label {
+  position: absolute;
+  right: var(--space-2);
+  font-size: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
 .route-summary {
   margin: var(--space-3) 0 0;
   padding-top: var(--space-3);

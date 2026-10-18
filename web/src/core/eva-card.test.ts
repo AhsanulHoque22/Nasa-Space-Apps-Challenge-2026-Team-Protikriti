@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { EVA_LIMITS, evaCard } from './eva-card'
+
+describe('evaCard budget', () => {
+  it('budgetMin equals maxEvaMin minus backupMin', () => {
+    expect(EVA_LIMITS.maxEvaMin - EVA_LIMITS.backupMin).toBe(420) // 8h - 1h = 7h
+  })
+})
 import { suitedSpeedMs, timesHomeS } from './route'
 import { SCIENCE_STOP_MIN } from './summary'
 import { makeGrid } from './test-grids'
