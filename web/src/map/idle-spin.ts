@@ -24,6 +24,7 @@ export function startIdleSpin(viewer: Viewer, lon: number, lat: number): IdleSpi
     const alt = viewer.camera.positionCartographic?.height ?? 0
     if (alt > IDLE_SPIN_THRESHOLD_M) {
       viewer.camera.rotate(Cartesian3.UNIT_Z, idleSpinStepRad((now - last) / 1000))
+      viewer.scene.requestRender()
     }
     last = now
   }

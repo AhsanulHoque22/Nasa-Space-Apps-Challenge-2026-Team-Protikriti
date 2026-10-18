@@ -192,6 +192,8 @@ export function createMarsViewer(container: HTMLElement): {
   viewer.scene.postProcessStages.fxaa.enabled = true
   viewer.scene.msaaSamples = 4
   viewer.resolutionScale = 1.5
+  // Ensure the render loop runs every frame — required for the idle-spin preRender tick.
+  viewer.scene.requestRenderMode = false
   return { viewer, hirise, offFoot }
 }
 
