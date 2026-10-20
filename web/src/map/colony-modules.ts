@@ -3,7 +3,6 @@ import {
   Cartesian3,
   CustomDataSource,
   HeadingPitchRoll,
-  HeightReference,
   Model,
   Transforms,
   type Viewer,
@@ -29,15 +28,15 @@ const MODULE_SCALE: Record<ModuleType, number> = {
 }
 
 export type ColonyLayer = {
-  place(type: ModuleType, lon: number, lat: number, score: ColonyScore): PlacedModule
+  place(type: ModuleType, lon: number, lat: number, altM: number, score: ColonyScore): PlacedModule
   remove(id: string): void
   clear(): void
   modules: readonly PlacedModule[]
 }
 
-const poseMatrix = (lon: number, lat: number) =>
+const poseMatrix = (lon: number, lat: number, altM: number) =>
   Transforms.headingPitchRollToFixedFrame(
-    Cartesian3.fromDegrees(lon, lat, 0, MARS_SPHERE),
+    Cartesian3.fromDegrees(lon, lat, altM, MARS_SPHERE),
     new HeadingPitchRoll(0, 0, 0),
     MARS_SPHERE,
   )
@@ -50,16 +49,15 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
   const modelMap = new Map<string, Model>()
   let modules: PlacedModule[] = []
 
-  function place(type: ModuleType, lon: number, lat: number, score: ColonyScore): PlacedModule {
+  function place(type: ModuleType, lon: number, lat: number, altM: number, score: ColonyScore): PlacedModule {
     const id = crypto.randomUUID()
     const module: PlacedModule = { id, type, lon, lat, score }
     modules.push(module)
 
     void Model.fromGltfAsync({
       url: MODEL_URLS[type],
-      modelMatrix: poseMatrix(lon, lat),
+      modelMatrix: poseMatrix(lon, lat, altM),
       scale: MODULE_SCALE[type],
-      heightReference: HeightReference.CLAMP_TO_GROUND,
       scene: viewer.scene,
     }).then((model) => {
       viewer.scene.primitives.add(model)
