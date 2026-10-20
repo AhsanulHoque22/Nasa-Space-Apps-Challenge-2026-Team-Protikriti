@@ -1,9 +1,14 @@
-/** Colony module placement: places 3D GLB models on the Mars terrain. */
+/** Colony module placement: renders modules as Cesium geometry primitives. */
 import {
   Cartesian3,
+  Color,
+  ColorGeometryInstanceAttribute,
+  CylinderGeometry,
   CustomDataSource,
+  GeometryInstance,
   HeadingPitchRoll,
-  Model,
+  PerInstanceColorAppearance,
+  Primitive,
   Transforms,
   type Viewer,
 } from 'cesium'
@@ -11,21 +16,30 @@ import type { ColonyScore } from '../core/colony-score'
 import type { ModuleType, PlacedModule } from '../core/colony-budget'
 import { MARS_SPHERE } from './mars'
 
-const MODEL_URLS: Record<ModuleType, string> = {
-  habitat: 'models/habitat.glb',
-  solar: 'models/solar-array.glb',
-  isru: 'models/isru.glb',
-  greenhouse: 'models/greenhouse.glb',
-  garage: 'models/garage.glb',
+/** Geometry dimensions (meters): [topRadius, bottomRadius, length] */
+const MODULE_DIMS: Record<ModuleType, [number, number, number]> = {
+  habitat:    [18,  18,  80],   // white pressure cylinder
+  solar:      [40,  40,   4],   // flat blue disc
+  isru:       [12,  14,  36],   // truncated orange cone
+  greenhouse: [28,  28,  50],   // green cylinder (dome)
+  garage:     [30,  30,  20],   // low sand-coloured slab
 }
 
-const MODULE_SCALE: Record<ModuleType, number> = {
-  habitat: 40.0,
-  solar: 25.0,
-  isru: 20.0,
-  greenhouse: 35.0,
-  garage: 30.0,
+const MODULE_COLORS: Record<ModuleType, Color> = {
+  habitat:    Color.fromCssColorString('#e8e8ee'),
+  solar:      Color.fromCssColorString('#1428a0'),
+  isru:       Color.fromCssColorString('#c36e32'),
+  greenhouse: Color.fromCssColorString('#4ab95a'),
+  garage:     Color.fromCssColorString('#d2cdb8'),
 }
+
+/** Position matrix: ENU frame with the base of the module at altM. */
+const baseMatrix = (lon: number, lat: number, altM: number, halfH: number) =>
+  Transforms.headingPitchRollToFixedFrame(
+    Cartesian3.fromDegrees(lon, lat, altM + halfH, MARS_SPHERE),
+    new HeadingPitchRoll(0, 0, 0),
+    MARS_SPHERE,
+  )
 
 export type ColonyLayer = {
   place(type: ModuleType, lon: number, lat: number, altM: number, score: ColonyScore): PlacedModule
@@ -34,57 +48,57 @@ export type ColonyLayer = {
   modules: readonly PlacedModule[]
 }
 
-const poseMatrix = (lon: number, lat: number, altM: number) =>
-  Transforms.headingPitchRollToFixedFrame(
-    Cartesian3.fromDegrees(lon, lat, altM, MARS_SPHERE),
-    new HeadingPitchRoll(0, 0, 0),
-    MARS_SPHERE,
-  )
-
 export function createColonyLayer(viewer: Viewer): ColonyLayer {
   const dataSource = new CustomDataSource('colony')
   void viewer.dataSources.add(dataSource)
 
-  // Map from module id → CesiumJS Model primitive (stored for removal)
-  const modelMap = new Map<string, Model>()
+  const primMap = new Map<string, Primitive>()
   let modules: PlacedModule[] = []
 
   function place(type: ModuleType, lon: number, lat: number, altM: number, score: ColonyScore): PlacedModule {
     const id = crypto.randomUUID()
-    const module: PlacedModule = { id, type, lon, lat, score }
-    modules.push(module)
+    modules.push({ id, type, lon, lat, score })
 
-    console.log('[colony] place', type, 'lon', lon.toFixed(4), 'lat', lat.toFixed(4), 'altM', altM.toFixed(1))
-    Model.fromGltfAsync({
-      url: MODEL_URLS[type],
-      modelMatrix: poseMatrix(lon, lat, altM),
-      scale: MODULE_SCALE[type],
-      scene: viewer.scene,
-    }).then((model) => {
-      console.log('[colony] model ready, adding to scene', type)
-      viewer.scene.primitives.add(model)
-      modelMap.set(id, model)
-    }).catch((err: unknown) => {
-      console.error('[colony] fromGltfAsync failed', type, err)
+    const [top, bot, len] = MODULE_DIMS[type]
+    const color = MODULE_COLORS[type]
+
+    const prim = new Primitive({
+      geometryInstances: new GeometryInstance({
+        geometry: new CylinderGeometry({
+          topRadius: top,
+          bottomRadius: bot,
+          length: len,
+          vertexFormat: PerInstanceColorAppearance.FLAT_VERTEX_FORMAT,
+        }),
+        modelMatrix: baseMatrix(lon, lat, altM, len / 2),
+        id,
+        attributes: {
+          color: ColorGeometryInstanceAttribute.fromColor(color),
+        },
+      }),
+      appearance: new PerInstanceColorAppearance({ flat: true, translucent: false }),
+      asynchronous: false,
     })
 
-    return module
+    viewer.scene.primitives.add(prim)
+    primMap.set(id, prim)
+    return { id, type, lon, lat, score }
   }
 
   function remove(id: string): void {
-    const model = modelMap.get(id)
-    if (model) {
-      viewer.scene.primitives.remove(model)
-      modelMap.delete(id)
+    const prim = primMap.get(id)
+    if (prim) {
+      viewer.scene.primitives.remove(prim)
+      primMap.delete(id)
     }
     modules = modules.filter((m) => m.id !== id)
   }
 
   function clear(): void {
-    for (const model of modelMap.values()) {
-      viewer.scene.primitives.remove(model)
+    for (const prim of primMap.values()) {
+      viewer.scene.primitives.remove(prim)
     }
-    modelMap.clear()
+    primMap.clear()
     modules = []
   }
 
