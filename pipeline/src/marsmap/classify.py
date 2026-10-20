@@ -107,7 +107,7 @@ def project_labels(
     return grid
 
 
-N_FEATURES = 10
+N_FEATURES = 12
 ROCK_BLOB_SIGMAS_PX = (
     2.0,
     6.0,
@@ -116,6 +116,7 @@ LOCAL_CONTRAST_SIGMA_PX = (
     20.0  # brightness against the wider neighbourhood: rocks and shadows stand out
 )
 LOCAL_STD_WINDOW_PX = 9  # roughness: rocky ground varies more than soil or sand
+LOCAL_STD_FINE_WINDOW_PX = 3  # fine-scale roughness: separates granular sand from smooth bedrock
 
 
 def feature_stack(panorama: NDArray[np.uint8]) -> NDArray[np.float32]:
@@ -123,6 +124,8 @@ def feature_stack(panorama: NDArray[np.uint8]) -> NDArray[np.float32]:
     h, w = panorama.shape[:2]
     lab = cv2.cvtColor(panorama, cv2.COLOR_BGR2LAB).astype(np.float32)
     lightness = lab[:, :, 0]
+    hsv = cv2.cvtColor(panorama, cv2.COLOR_BGR2HSV).astype(np.float32)
+    saturation = hsv[:, :, 1]
     gray = cv2.cvtColor(panorama, cv2.COLOR_BGR2GRAY).astype(np.float32)
     sobel = np.hypot(
         cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
@@ -132,6 +135,9 @@ def feature_stack(panorama: NDArray[np.uint8]) -> NDArray[np.float32]:
     mean = cv2.blur(lightness, (LOCAL_STD_WINDOW_PX, LOCAL_STD_WINDOW_PX))
     mean_sq = cv2.blur(lightness * lightness, (LOCAL_STD_WINDOW_PX, LOCAL_STD_WINDOW_PX))
     local_std = np.sqrt(np.maximum(mean_sq - mean * mean, 0.0))
+    mean_f = cv2.blur(lightness, (LOCAL_STD_FINE_WINDOW_PX, LOCAL_STD_FINE_WINDOW_PX))
+    mean_sq_f = cv2.blur(lightness * lightness, (LOCAL_STD_FINE_WINDOW_PX, LOCAL_STD_FINE_WINDOW_PX))
+    local_std_fine = np.sqrt(np.maximum(mean_sq_f - mean_f * mean_f, 0.0))
     el = (90.0 - (np.arange(h) + 0.5) / h * 180.0) * RAD
     column = np.ones((1, w), dtype=np.float32)
     return np.dstack(
@@ -143,7 +149,9 @@ def feature_stack(panorama: NDArray[np.uint8]) -> NDArray[np.float32]:
             laplacian,
             fine - coarse,
             local_std,
+            local_std_fine,
             lightness - cv2.GaussianBlur(lightness, (0, 0), LOCAL_CONTRAST_SIGMA_PX),
+            saturation / 255.0,
             np.sin(el)[:, None] * column,
             np.cos(el)[:, None] * column,
         ]
@@ -210,9 +218,9 @@ def extract_features(
     return feature_stack(panorama)[mask], grid[mask]
 
 
-FOREST_TREES = 60
-FOREST_MIN_LEAF = 20  # pixels per leaf
-FOREST_TREE_SAMPLE = 0.25  # share of the training pixels each tree is fit on
+FOREST_TREES = 150
+FOREST_MIN_LEAF = 10  # pixels per leaf
+FOREST_TREE_SAMPLE = 0.5  # share of the training pixels each tree is fit on
 
 
 def train_classifier(
