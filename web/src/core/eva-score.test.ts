@@ -2,8 +2,14 @@ import { evaScore } from './eva-score'
 import { describe, it, expect } from 'vitest'
 
 const flatGrid = {
-  width: 3, height: 3, pixelSizeM: 25, maxSafeSlopeDeg: 20,
-  west: 0, south: 0, east: 0.001, north: 0.001,
+  width: 3,
+  height: 3,
+  pixelSizeM: 25,
+  maxSafeSlopeDeg: 20,
+  west: 0,
+  south: 0,
+  east: 0.001,
+  north: 0.001,
   elevationM: new Float32Array(9).fill(0),
 }
 
@@ -21,8 +27,19 @@ describe('evaScore', () => {
 
   it('returns null when crism is provided with NaN for that cell', () => {
     const crismGrid = {
-      width: 3, height: 3, west: 0, south: 0, east: 0.001, north: 0.001, p02: 0, p98: 1,
-      values: (() => { const a = new Float32Array(9); a.fill(NaN); return a })(),
+      width: 3,
+      height: 3,
+      west: 0,
+      south: 0,
+      east: 0.001,
+      north: 0.001,
+      p02: 0,
+      p98: 1,
+      values: (() => {
+        const a = new Float32Array(9)
+        a.fill(NaN)
+        return a
+      })(),
     }
     expect(evaScore({ grid: flatGrid, thermal: null, crism: crismGrid }, 1, 1)).toBeNull()
   })

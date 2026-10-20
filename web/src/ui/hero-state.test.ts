@@ -1,7 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
 
 // Re-import fresh state per test by resetting module
-import { heroKPIs, onHeroChange, pushPlanKPIs, pushExploreKPIs, pushScienceKPIs } from './hero-state'
+import {
+  heroKPIs,
+  onHeroChange,
+  pushPlanKPIs,
+  pushExploreKPIs,
+  pushScienceKPIs,
+} from './hero-state'
 
 describe('heroKPIs', () => {
   it('initialises plan and explore with em-dash placeholders', () => {

@@ -2,7 +2,7 @@
 
 Source: Salvatore et al. 2021, Zenodo DOI 10.5281/zenodo.5575824 (CC BY 4.0).
 `jezeroFinal.tif` is a classified uint8 raster; each integer code is one mineral unit.
-We map codes to a 0–1 hazard weight: higher = more hazardous for EVA crew contact.
+We map codes to a 0-1 hazard weight: higher = more hazardous for EVA crew contact.
 
 Hazard rationale (team planning assumption, not a mission standard):
   - Perchlorates / chlorides are toxic and reactive with organics.

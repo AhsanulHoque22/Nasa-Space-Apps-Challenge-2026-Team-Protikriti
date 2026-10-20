@@ -30,10 +30,7 @@ export function parseColonyScore(meta: Record<string, unknown>, bin: ArrayBuffer
 }
 
 export function colonyScoreAt(grid: ColonyScoreGrid, lon: number, lat: number): ColonyScore {
-  const col = Math.min(
-    grid.width - 1,
-    Math.floor((((lon + 180) % 360) / 360) * grid.width),
-  )
+  const col = Math.min(grid.width - 1, Math.floor((((lon + 180) % 360) / 360) * grid.width))
   const row = Math.min(
     grid.height - 1,
     Math.floor(((grid.north - lat) / (grid.north - grid.south)) * grid.height),

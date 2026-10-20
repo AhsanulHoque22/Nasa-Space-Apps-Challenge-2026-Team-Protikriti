@@ -21,9 +21,13 @@ const subs: Array<() => void> = []
 
 export const heroKPIs = () => state
 
-export const onHeroChange = (fn: () => void) => { subs.push(fn) }
+export const onHeroChange = (fn: () => void) => {
+  subs.push(fn)
+}
 
-const notify = () => { for (const fn of subs) fn() }
+const notify = () => {
+  for (const fn of subs) fn()
+}
 
 export const pushPlanKPIs = (vals: Partial<PlanKPIs>) => {
   Object.assign(state.plan, vals)

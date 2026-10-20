@@ -2,11 +2,11 @@
 """Generate proxy GLB models for colony module placement.
 
 Creates simple geometric shapes for each colony module type:
-  habitat      → tall cylinder (radius=4m, height=8m)
-  solar-array  → flat box (16m × 8m × 0.3m)
-  isru         → cube (3m × 3m × 3m)
-  greenhouse   → wider cylinder (radius=6m, height=3m)
-  garage       → box (12m × 6m × 4m)
+  habitat      -> tall cylinder (radius=4m, height=8m)
+  solar-array  -> flat box (16m x 8m x 0.3m)
+  isru         -> cube (3m x 3m x 3m)
+  greenhouse   -> wider cylinder (radius=6m, height=3m)
+  garage       -> box (12m x 6m x 4m)
 
 Run from repo root: uv run python pipeline/scripts/make_proxy_models.py
 """
@@ -16,7 +16,6 @@ from pathlib import Path
 
 try:
     import trimesh
-    import numpy as np
 except ImportError as e:
     sys.exit(f"Missing dependency: {e}. Run: uv add trimesh")
 

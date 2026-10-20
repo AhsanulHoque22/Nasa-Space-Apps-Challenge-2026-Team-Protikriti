@@ -186,6 +186,7 @@ async function main() {
   const lineLegend = createLineLegend(viewer)
   const quest = renderQuestPanel(side)
   // Filled in after streetView loads; safe because the walk player opens only after user interaction.
+  // eslint-disable-next-line prefer-const
   let walkStreetView: ((lon: number, lat: number) => void) | undefined
   const routePanel = renderRoutePanel(side, viewer, sites, {
     makeClient: createRouteClient,
@@ -246,7 +247,10 @@ async function main() {
   explore.className = 'panel wx-launch'
   explore.setAttribute('aria-label', 'Explore a site on foot')
   explore.innerHTML = `<span>Explore on foot</span>${sites
-    .map((s) => `<button type="button" data-site="${s.id}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`)
+    .map(
+      (s) =>
+        `<button type="button" data-site="${s.id}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`,
+    )
     .join('')}`
   for (const b of explore.querySelectorAll<HTMLButtonElement>('button')) {
     b.addEventListener('click', async () => {
@@ -395,7 +399,8 @@ async function main() {
     let bestI = 0,
       bestDSq = Infinity
     for (let i = 0; i < stops.length; i++) {
-      const s = stops[i]!
+      const s = stops[i]
+      if (s === undefined) continue
       const dSq = (lon - s.lon) ** 2 + (lat - s.lat) ** 2
       if (dSq < bestDSq) {
         bestDSq = dSq
@@ -476,7 +481,9 @@ async function main() {
       const lon = (c.longitude * 180) / Math.PI
       const lat = (c.latitude * 180) / Math.PI
       void colonyScorePromise.then((grid) => {
-        const score = grid ? colonyScoreAt(grid, lon, lat) : { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
+        const score = grid
+          ? colonyScoreAt(grid, lon, lat)
+          : { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
         colonyLayer.place(activeModuleType, lon, lat, score)
         colonySummaryCtrl.update(computeBudget(colonyLayer.modules as PlacedModule[]))
       })
@@ -497,7 +504,9 @@ async function main() {
       const c = MARS_SPHERE.cartesianToCartographic(hit)
       void colonyScorePromise.then((grid) => {
         if (!colonyModeActive || !grid) return
-        colonyPanelCtrl.update(colonyScoreAt(grid, (c.longitude * 180) / Math.PI, (c.latitude * 180) / Math.PI))
+        colonyPanelCtrl.update(
+          colonyScoreAt(grid, (c.longitude * 180) / Math.PI, (c.latitude * 180) / Math.PI),
+        )
       })
     },
     ScreenSpaceEventType.MOUSE_MOVE,

@@ -1,16 +1,15 @@
 """Tests for 6-channel colony suitability score grid."""
-import json
-import numpy as np
-import pytest
+
 from pathlib import Path
+
+import numpy as np
+
 from marsmap.colony_score import (
-    solar_score_grid,
-    ice_score_grid,
-    shelter_score_grid,
-    stability_score_grid,
-    GRID_ROWS,
     GRID_COLS,
+    GRID_ROWS,
     N_CHANNELS,
+    shelter_score_grid,
+    solar_score_grid,
 )
 
 
@@ -36,7 +35,7 @@ def test_shelter_near_cave_high() -> None:
 
 
 def test_colony_score_bin_size(tmp_path: Path) -> None:
-    # Binary format: 180 × 360 × 6 uint8
+    # Binary format: 180 x 360 x 6 uint8
     grid = np.zeros((GRID_ROWS, GRID_COLS, N_CHANNELS), dtype=np.uint8)
     out = tmp_path / "colony_score.bin"
     grid.tofile(out)

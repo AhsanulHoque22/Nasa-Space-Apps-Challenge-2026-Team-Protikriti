@@ -18,6 +18,7 @@ from marsmap.ai4mars import AI4MARS_URL, build_labels
 from marsmap.benchmark import run_benchmark
 from marsmap.caves import build_caves
 from marsmap.compare import build_compare
+from marsmap.crism import export_crism_grid
 from marsmap.dem import load_dem
 from marsmap.dust import build_dust
 from marsmap.export import export_grid, export_slope_overlay
@@ -34,7 +35,6 @@ from marsmap.stops import waypoint_stops
 from marsmap.streetview import build_panorama, update_index
 from marsmap.strip_tiles import build_region
 from marsmap.swim import SWIM_URL, swim_to_web, write_swim
-from marsmap.crism import export_crism_grid
 from marsmap.thermal import build_thermal
 from marsmap.walkpatch import build_walk_patch
 from marsmap.weather import snapshot_weather

@@ -357,7 +357,10 @@ export function renderRoutePanel(
     const marginEl = panel.querySelector('.eva-bar-margin') as HTMLElement
     const barLabelEl = panel.querySelector('.eva-bar-label') as HTMLElement
     const usedPct = Math.min(100, (card.evaMin / card.budgetMin) * 100)
-    const marginPct = Math.max(0, Math.min(100 - usedPct, (card.tightestMarginMin / card.budgetMin) * 100))
+    const marginPct = Math.max(
+      0,
+      Math.min(100 - usedPct, (card.tightestMarginMin / card.budgetMin) * 100),
+    )
     usedEl.style.width = `${usedPct.toFixed(1)}%`
     marginEl.style.width = `${marginPct.toFixed(1)}%`
     barEl.hidden = false

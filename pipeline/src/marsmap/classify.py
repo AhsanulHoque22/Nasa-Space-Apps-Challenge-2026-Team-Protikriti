@@ -135,8 +135,9 @@ def feature_stack(panorama: NDArray[np.uint8]) -> NDArray[np.float32]:
     mean = cv2.blur(lightness, (LOCAL_STD_WINDOW_PX, LOCAL_STD_WINDOW_PX))
     mean_sq = cv2.blur(lightness * lightness, (LOCAL_STD_WINDOW_PX, LOCAL_STD_WINDOW_PX))
     local_std = np.sqrt(np.maximum(mean_sq - mean * mean, 0.0))
-    mean_f = cv2.blur(lightness, (LOCAL_STD_FINE_WINDOW_PX, LOCAL_STD_FINE_WINDOW_PX))
-    mean_sq_f = cv2.blur(lightness * lightness, (LOCAL_STD_FINE_WINDOW_PX, LOCAL_STD_FINE_WINDOW_PX))
+    k_f = (LOCAL_STD_FINE_WINDOW_PX, LOCAL_STD_FINE_WINDOW_PX)
+    mean_f = cv2.blur(lightness, k_f)
+    mean_sq_f = cv2.blur(lightness * lightness, k_f)
     local_std_fine = np.sqrt(np.maximum(mean_sq_f - mean_f * mean_f, 0.0))
     el = (90.0 - (np.arange(h) + 0.5) / h * 180.0) * RAD
     column = np.ones((1, w), dtype=np.float32)

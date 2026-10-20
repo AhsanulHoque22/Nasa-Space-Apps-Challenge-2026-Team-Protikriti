@@ -17,13 +17,13 @@ from marsmap.classify import (
 # ── project_labels ────────────────────────────────────────────────────────────
 
 
-def test_project_labels_empty():
+def test_project_labels_empty() -> None:
     grid = project_labels([], out_width=64)
     assert grid.shape == (32, 64)
     assert (grid == NONE).all()
 
 
-def test_project_labels_sky_frame_produces_none():
+def test_project_labels_sky_frame_produces_none() -> None:
     """A frame pointing at el=80° (sky) must produce all NONE after elevation clamp."""
     cls = np.zeros((8, 8), dtype=np.uint8)
     frame = LabelFrame(cls=cls, width=8, height=8, az_deg=0, el_deg=80, width_deg=60, height_deg=60)
@@ -31,7 +31,7 @@ def test_project_labels_sky_frame_produces_none():
     assert (grid == NONE).all()
 
 
-def test_project_labels_extreme_nadir_stays_none():
+def test_project_labels_extreme_nadir_stays_none() -> None:
     """Pixels at el < -50° must stay NONE even when a frame looks downward.
 
     A frame at el=-70° with 60° FOV can still reach el=-40° (top edge), which is
@@ -46,7 +46,7 @@ def test_project_labels_extreme_nadir_stays_none():
     assert grid[31, 0] == NONE
 
 
-def test_project_labels_forward_frame_labels_centre():
+def test_project_labels_forward_frame_labels_centre() -> None:
     """A frame at az=0, el=0 with 90° FOV must label pixels near az=0, el=0."""
     cls = np.zeros((16, 16), dtype=np.uint8)  # all soil
     frame = LabelFrame(
@@ -61,7 +61,7 @@ def test_project_labels_forward_frame_labels_centre():
 # ── extract_features ──────────────────────────────────────────────────────────
 
 
-def test_extract_features_no_labels():
+def test_extract_features_no_labels() -> None:
     pano = np.zeros((512, 1024, 3), dtype=np.uint8)
     grid = np.full((512, 1024), NONE, dtype=np.uint8)
     feats, y = extract_features(pano, grid)
@@ -69,7 +69,7 @@ def test_extract_features_no_labels():
     assert y.shape == (0,)
 
 
-def test_extract_features_one_pixel():
+def test_extract_features_one_pixel() -> None:
     pano = np.zeros((512, 1024, 3), dtype=np.uint8)
     grid = np.full((512, 1024), NONE, dtype=np.uint8)
     # Place a labeled pixel at the horizon row, middle column
@@ -80,7 +80,7 @@ def test_extract_features_one_pixel():
     assert y[0] == 0
 
 
-def test_extract_features_sky_pixel_excluded():
+def test_extract_features_sky_pixel_excluded() -> None:
     pano = np.zeros((512, 1024, 3), dtype=np.uint8)
     grid = np.full((512, 1024), NONE, dtype=np.uint8)
     # Place a labeled pixel at y=0 (el=90°, sky) — must be excluded
@@ -92,7 +92,7 @@ def test_extract_features_sky_pixel_excluded():
 # ── train_classifier ──────────────────────────────────────────────────────────
 
 
-def test_train_classifier_big_rock_recall():
+def test_train_classifier_big_rock_recall() -> None:
     """With balanced weights big-rock recall must not be zero on training data."""
     rng = np.random.default_rng(0)
     feats = rng.standard_normal((1000, N_FEATURES)).astype(np.float32)
@@ -114,7 +114,7 @@ def _simple_clf() -> object:
     return train_classifier(feats, y)
 
 
-def test_infer_full_grid_fills_elevation_band():
+def test_infer_full_grid_fills_elevation_band() -> None:
     pano = np.zeros((512, 1024, 3), dtype=np.uint8)
     human = np.full((512, 1024), NONE, dtype=np.uint8)
     clf = _simple_clf()
@@ -126,7 +126,7 @@ def test_infer_full_grid_fills_elevation_band():
             assert result[yi, 0] < NONE, f"row {yi} (el={el:.1f}°) still NONE"
 
 
-def test_infer_full_grid_human_labels_take_priority():
+def test_infer_full_grid_human_labels_take_priority() -> None:
     pano = np.zeros((512, 1024, 3), dtype=np.uint8)
     human = np.full((512, 1024), NONE, dtype=np.uint8)
     human[256, 0] = 2  # sand — should survive in output
@@ -135,7 +135,7 @@ def test_infer_full_grid_human_labels_take_priority():
     assert result[256, 0] == 2
 
 
-def test_infer_full_grid_sky_stays_none():
+def test_infer_full_grid_sky_stays_none() -> None:
     pano = np.zeros((512, 1024, 3), dtype=np.uint8)
     human = np.full((512, 1024), NONE, dtype=np.uint8)
     clf = _simple_clf()
@@ -147,33 +147,36 @@ def test_infer_full_grid_sky_stays_none():
 # ── render_labels_png ─────────────────────────────────────────────────────────
 
 
-def test_render_labels_png_transparent_for_none():
+def test_render_labels_png_transparent_for_none() -> None:
     import cv2
 
     grid = np.full((4, 8), NONE, dtype=np.uint8)
     data = render_labels_png(grid)
     img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
+    assert img is not None
     assert img.shape == (4, 8, 4)
     assert (img[:, :, 3] == 0).all()
 
 
-def test_render_labels_png_opaque_for_labeled():
+def test_render_labels_png_opaque_for_labeled() -> None:
     import cv2
 
     grid = np.full((4, 8), NONE, dtype=np.uint8)
     grid[2, 4] = 0  # soil
     data = render_labels_png(grid)
     img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
+    assert img is not None
     assert img[2, 4, 3] == 255
 
 
-def test_render_labels_png_soil_colour():
+def test_render_labels_png_soil_colour() -> None:
     """Soil (#c98500) must encode as B=0x00, G=0x85, R=0xC9 in OpenCV BGR."""
     import cv2
 
     grid = np.zeros((4, 8), dtype=np.uint8)  # all soil
     data = render_labels_png(grid)
     img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
+    assert img is not None
     assert img[0, 0, 0] == 0x00  # B
     assert img[0, 0, 1] == 0x85  # G
     assert img[0, 0, 2] == 0xC9  # R

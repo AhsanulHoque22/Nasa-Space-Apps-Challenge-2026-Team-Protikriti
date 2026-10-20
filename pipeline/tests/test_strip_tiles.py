@@ -59,6 +59,7 @@ def test_write_tiles_stores_alpha_only_where_there_is_data(tmp_path: Path) -> No
     levels = {10: (image, image > 0, (7, 7, 9, 9))}
     assert write_tiles(levels, tmp_path) == 1
     tile = cv2.imread(str(tmp_path / "10" / "7" / "9.webp"), cv2.IMREAD_UNCHANGED)
+    assert tile is not None
     assert tile.shape == (TILE_PX, TILE_PX, 4)
     assert tile[10, 10, 3] == 255 and tile[10, 300, 3] == 0
 

@@ -60,7 +60,8 @@ export function renderColonySummary(parent: HTMLElement): ColonySummary {
     const g = (id: string) => document.getElementById(id)
 
     const power = g('colony-power')
-    if (power) power.textContent = `▲ ${powerGenKwhSol.toFixed(1)} kWh/sol gen / ▼ ${powerUseKwhSol.toFixed(1)} kWh/sol used`
+    if (power)
+      power.textContent = `▲ ${powerGenKwhSol.toFixed(1)} kWh/sol gen / ▼ ${powerUseKwhSol.toFixed(1)} kWh/sol used`
 
     const o2 = g('colony-o2')
     if (o2) o2.textContent = `${o2GramPerSol.toFixed(0)} g/sol`

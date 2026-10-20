@@ -69,6 +69,7 @@ class TestExportCrismGrid:
             tif,
             out,
         )
+        assert meta is not None
         grid = np.fromfile(out / "crism.bin", dtype="<f4").reshape(meta["height"], meta["width"])
         assert grid.dtype == np.float32
         assert grid.shape == (meta["height"], meta["width"])
@@ -80,7 +81,9 @@ class TestExportCrismGrid:
         assert saved["p02"] is not None
         assert saved["p98"] is not None
 
-    def test_skips_gracefully_when_tif_absent(self, tmp_path: Path, capsys) -> None:
+    def test_skips_gracefully_when_tif_absent(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         out = tmp_path / "site"
         result = export_crism_grid(
             "jezero",

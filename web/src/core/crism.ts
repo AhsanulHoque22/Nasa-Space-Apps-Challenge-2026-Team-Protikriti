@@ -29,9 +29,7 @@ export function parseCrism(meta: unknown, bin: ArrayBuffer): CrismGrid {
   const width = num(m, 'width')
   const height = num(m, 'height')
   if (bin.byteLength !== width * height * 4) {
-    throw new Error(
-      `crism.bin size ${bin.byteLength} B does not match ${width}x${height} float32`,
-    )
+    throw new Error(`crism.bin size ${bin.byteLength} B does not match ${width}x${height} float32`)
   }
   return {
     width,

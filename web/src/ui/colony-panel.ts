@@ -7,8 +7,8 @@ const LABELS = ['Solar', 'Ice', 'Minerals', 'Shelter', 'Stability', 'Wind']
 const SVG_NS = 'http://www.w3.org/2000/svg'
 const CX = 100
 const CY = 100
-const R = 70  // radius at score=100
-const LABEL_R = 84  // radius for labels
+const R = 70 // radius at score=100
+const LABEL_R = 84 // radius for labels
 
 function axisPoint(i: number, score: number): [number, number] {
   const angle = (i * Math.PI * 2) / 6 - Math.PI / 2
@@ -51,13 +51,31 @@ export function renderColonyPanel(parent: HTMLElement): ColonyPanel {
   // Background rings at 25, 50, 75, 100
   for (const pct of [0.25, 0.5, 0.75, 1.0]) {
     const pts = CHANNELS.map((_, i) => axisPoint(i, pct * 100).join(',')).join(' ')
-    svg.append(el('polygon', { points: pts, fill: 'none', stroke: 'var(--border)', 'stroke-width': '0.5', opacity: '0.4' }))
+    svg.append(
+      el('polygon', {
+        points: pts,
+        fill: 'none',
+        stroke: 'var(--border)',
+        'stroke-width': '0.5',
+        opacity: '0.4',
+      }),
+    )
   }
 
   // Axis lines
   for (let i = 0; i < 6; i++) {
     const [x, y] = axisPoint(i, 100)
-    svg.append(el('line', { x1: String(CX), y1: String(CY), x2: String(x), y2: String(y), stroke: 'var(--border)', 'stroke-width': '0.5', opacity: '0.4' }))
+    svg.append(
+      el('line', {
+        x1: String(CX),
+        y1: String(CY),
+        x2: String(x),
+        y2: String(y),
+        stroke: 'var(--border)',
+        'stroke-width': '0.5',
+        opacity: '0.4',
+      }),
+    )
   }
 
   // Score polygon (updated on each call)

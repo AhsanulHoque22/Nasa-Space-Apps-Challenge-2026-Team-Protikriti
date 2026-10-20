@@ -29,7 +29,7 @@ def test_mean_annual_finite() -> None:
 
 def test_southern_summer_positive() -> None:
     # South pole summer: Ls=90 puts sun south of equator (southern summer = Ls ~270° is wrong)
-    # Ls=90 → delta = 25.19 × sin(90-248) = 25.19 × sin(-158°) ≈ -9.4° (sun south of equator)
+    # Ls=90 -> delta = 25.19 x sin(90-248) approx -9.4 deg (sun south of equator)
     kwh = daily_insolation_kwh(-90.0, 90.0, 0.5)
     assert kwh > 0, f"Expected positive insolation at south pole southern summer (Ls=90), got {kwh}"
 

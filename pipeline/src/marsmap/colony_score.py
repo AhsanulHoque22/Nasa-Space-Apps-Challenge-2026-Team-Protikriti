@@ -160,8 +160,7 @@ def _load_caves(caves_path: Path) -> list[dict[str, Any]]:
     i_lat = fields.index("lat")
     i_pri = fields.index("priority")
     return [
-        {"lon": row[i_lon], "lat": row[i_lat], "priority": int(row[i_pri])}
-        for row in data["caves"]
+        {"lon": row[i_lon], "lat": row[i_lat], "priority": int(row[i_pri])} for row in data["caves"]
     ]
 
 
@@ -215,8 +214,7 @@ def build_colony_score(raw_dir: Path, data_dir: Path, out_dir: Path) -> None:
             "IDW from REMS (Gale) and Viking Lander 1/2 surface measurements",
         ],
         "caveat": (
-            "Colony scores are a planning aid."
-            " All channels require ground-truth validation."
+            "Colony scores are a planning aid. All channels require ground-truth validation."
         ),
     }
     (out_dir / "colony_score.json").write_text(json.dumps(meta, separators=(",", ":")))

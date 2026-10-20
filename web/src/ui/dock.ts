@@ -68,7 +68,7 @@ export function renderDock(side: HTMLElement): void {
   hint.id = 'dock-panel'
   side.prepend(hint, heroCard, cardHead)
 
-  cardHead.querySelector<HTMLButtonElement>('.dock-close')!.addEventListener('click', close)
+  cardHead.querySelector<HTMLButtonElement>('.dock-close')?.addEventListener('click', close)
 
   // ── Panel group visibility ────────────────────────────────────────────
   let active: Tab = 'plan'
@@ -143,7 +143,10 @@ export function renderDock(side: HTMLElement): void {
 
   const select = (tab: Tab, focus = false) => {
     const alreadyOpen = document.body.dataset.panelOpen && active === tab
-    if (alreadyOpen) { close(); return }
+    if (alreadyOpen) {
+      close()
+      return
+    }
     active = tab
     document.body.dataset.mode = tab
     document.body.dataset.panelOpen = 'yes'

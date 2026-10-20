@@ -7,19 +7,19 @@ longitude, and dust optical depth.  All physical constants cite the source paper
 import math
 
 # Mars orbital constants (Appelbaum & Flood §2)
-_MARS_OBLIQUITY_DEG = 25.19       # axial tilt, degrees
-_PERIHELION_LS_DEG = 251.0        # Ls at perihelion
-_ECCENTRICITY = 0.0934            # Mars orbital eccentricity
-_H_TOA_MEAN_W_M2 = 590.0          # W/m² at mean Mars-Sun distance (1.524 AU)
-_MARS_SOL_HOURS = 24.6597         # hours in a Mars sol
+_MARS_OBLIQUITY_DEG = 25.19  # axial tilt, degrees
+_PERIHELION_LS_DEG = 251.0  # Ls at perihelion
+_ECCENTRICITY = 0.0934  # Mars orbital eccentricity
+_H_TOA_MEAN_W_M2 = 590.0  # W/m² at mean Mars-Sun distance (1.524 AU)
+_MARS_SOL_HOURS = 24.6597  # hours in a Mars sol
 
 # Raw surface irradiance constants (no panel efficiency applied here)
-_VISIBLE_FACTOR = 2.6             # IR to visible optical depth factor (Montabone dust.py constant)
+_VISIBLE_FACTOR = 2.6  # IR to visible optical depth factor (Montabone dust.py constant)
 
 # Reference maximum for normalising score grids: raw surface kWh/m²/sol
 # Equatorial perihelion (Ls=251, lat=0, tau_ir=0.1): ~4.45 kWh/m²/sol from model
 # InSight ~5 kWh/sol from 7 m² at ~20% efficiency → raw ≈ 3.6 kWh/m²/sol. Use 4.5 as ceiling.
-INSOLATION_MAX_KWH = 4.5          # kWh/m²/sol raw surface (used for score normalisation)
+INSOLATION_MAX_KWH = 4.5  # kWh/m²/sol raw surface (used for score normalisation)
 
 # Mean annual Ls step for annual-average computation
 _LS_STEPS = 36
@@ -59,10 +59,9 @@ def daily_insolation_kwh(lat_deg: float, ls_deg: float, tau_ir: float) -> float:
     tau_trans = math.exp(-tau_vis / 2.0)
 
     # Daily integrated geometric factor (Appelbaum & Flood eq. 3)
-    geo = (
-        omega_s * math.sin(phi_rad) * math.sin(delta_rad)
-        + math.cos(phi_rad) * math.cos(delta_rad) * math.sin(omega_s)
-    )
+    geo = omega_s * math.sin(phi_rad) * math.sin(delta_rad) + math.cos(phi_rad) * math.cos(
+        delta_rad
+    ) * math.sin(omega_s)
 
     h_surface_w = (h_toa / math.pi) * tau_trans * geo
 

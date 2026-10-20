@@ -18,12 +18,17 @@ N = 512
 def _terrain(seed: int = 0, size: int = N) -> np.ndarray:
     """Fractal-ish ground: broad swells plus fine detail, like real orbital imagery."""
     rng = np.random.default_rng(seed)
-    noise = lambda sigma: cv2.GaussianBlur(  # noqa: E731
-        rng.normal(0, 1, (size, size)).astype(np.float32), (0, 0), sigma
-    )
+
+    def noise(sigma: float) -> np.ndarray:
+        raw = rng.normal(0, 1, (size, size)).astype(np.float32)
+        return np.asarray(cv2.GaussianBlur(raw, (0, 0), sigma))
+
     layers = [(14.0, 1.0), (6.0, 0.8), (2.5, 0.5)]
-    field = sum(weight * (n := noise(sigma)) / n.std() for sigma, weight in layers)
-    return np.asarray(110 + 35 * field / field.std(), dtype=np.float32)
+    field: np.ndarray = np.zeros((size, size), np.float32)
+    for sigma, weight in layers:
+        n = noise(sigma)
+        field = field + weight * n / float(n.std())
+    return np.asarray(110 + 35 * field / float(field.std()), dtype=np.float32)
 
 
 def _two_strips(offset: float = 45.0) -> tuple[np.ndarray, np.ndarray]:
@@ -60,7 +65,10 @@ def test_remove_seams_cuts_the_brightness_step_and_keeps_detail() -> None:
     flat = remove_seams(image, mask, seams)
     assert _step(image) > 25
     assert _step(flat) < 10
-    detail = lambda a: cv2.GaussianBlur(a, (0, 0), 1.0) - cv2.GaussianBlur(a, (0, 0), 6.0)  # noqa: E731
+
+    def detail(a: np.ndarray) -> np.ndarray:
+        return np.asarray(cv2.GaussianBlur(a, (0, 0), 1.0) - cv2.GaussianBlur(a, (0, 0), 6.0))
+
     left = (slice(40, 460), slice(40, 200))
     corr = np.corrcoef(detail(image)[left].ravel(), detail(flat)[left].ravel())[0, 1]
     assert corr > 0.95

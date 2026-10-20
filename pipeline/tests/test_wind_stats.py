@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from marsmap.wind_stats import build_wind, ANCHOR_SITES, GRID_ROWS, GRID_COLS
+from marsmap.wind_stats import ANCHOR_SITES, GRID_COLS, GRID_ROWS, build_wind
 
 
 def test_wind_json_structure(tmp_path: Path) -> None:

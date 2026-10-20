@@ -3,10 +3,20 @@ import { computeBudget, solarKwhPerSol } from './colony-budget'
 import type { ColonyScore, PlacedModule, ModuleType } from './colony-budget'
 
 const nullScore: ColonyScore = {
-  solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null,
+  solar: null,
+  ice: null,
+  minerals: null,
+  shelter: null,
+  stability: null,
+  wind: null,
 }
 const highScore: ColonyScore = {
-  solar: 80, ice: 80, minerals: 60, shelter: 50, stability: 70, wind: 40,
+  solar: 80,
+  ice: 80,
+  minerals: 60,
+  shelter: 50,
+  stability: 70,
+  wind: 40,
 }
 
 describe('computeBudget', () => {
@@ -32,10 +42,18 @@ describe('computeBudget', () => {
     const modules: PlacedModule[] = [
       { id: 'h', type: 'habitat', lon: 0, lat: 0, score: highScore },
       ...Array.from({ length: 30 }, (_, i) => ({
-        id: `s${i}`, type: 'solar' as ModuleType, lon: 0, lat: 0, score: highScore,
+        id: `s${i}`,
+        type: 'solar' as ModuleType,
+        lon: 0,
+        lat: 0,
+        score: highScore,
       })),
       ...Array.from({ length: 12 }, (_, i) => ({
-        id: `r${i}`, type: 'isru' as ModuleType, lon: 0, lat: 0, score: highScore,
+        id: `r${i}`,
+        type: 'isru' as ModuleType,
+        lon: 0,
+        lat: 0,
+        score: highScore,
       })),
     ]
     const b = computeBudget(modules)

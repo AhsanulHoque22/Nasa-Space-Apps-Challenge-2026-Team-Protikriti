@@ -112,7 +112,9 @@ body {
   overflow-x: auto;
   scrollbar-width: none;
 }
-.view-switch::-webkit-scrollbar { display: none; }
+.view-switch::-webkit-scrollbar {
+  display: none;
+}
 
 .view-switch button {
   font: 600 12px var(--font);
@@ -389,7 +391,9 @@ body {
   border: 1px solid var(--rule);
   border-top: 3px solid var(--mode-accent, var(--nasa-blue));
   border-radius: var(--radius);
-  box-shadow: 0 20px 60px rgb(0 0 0 / 0.7), 0 4px 16px rgb(0 0 0 / 0.4);
+  box-shadow:
+    0 20px 60px rgb(0 0 0 / 0.7),
+    0 4px 16px rgb(0 0 0 / 0.4);
   padding-bottom: var(--space-3);
   /* hidden by default — slides in from the right */
   transform: translateX(calc(100% + 24px));
@@ -475,8 +479,12 @@ body[data-panel-open] .side {
   background: var(--text-muted, #888);
   transition: width 0.3s ease-out;
 }
-[data-verdict='NO-GO'] .eva-bar-used { background: var(--hazard, #c0392b); }
-[data-verdict='GO']    .eva-bar-used { background: #0b3d91; }
+[data-verdict='NO-GO'] .eva-bar-used {
+  background: var(--hazard, #c0392b);
+}
+[data-verdict='GO'] .eva-bar-used {
+  background: #0b3d91;
+}
 .eva-bar-margin {
   height: 100%;
   background: #2aab96;
@@ -2627,7 +2635,9 @@ body.eva-mode #ui {
   cursor: pointer;
   color: var(--text-muted);
   padding: 0;
-  transition: background 150ms var(--ease-out), color 150ms var(--ease-out);
+  transition:
+    background 150ms var(--ease-out),
+    color 150ms var(--ease-out);
 }
 
 .dock-close:hover {
@@ -2948,7 +2958,15 @@ body[data-mode] .layer-list > li {
   opacity: 0.45;
   transition: opacity 180ms var(--ease-out);
 }
-body[data-mode] .layer-list > li[data-mode-group~='any'] { opacity: 1; }
-body[data-mode='plan'] .layer-list > li[data-mode-group~='plan'] { opacity: 1; }
-body[data-mode='explore'] .layer-list > li[data-mode-group~='explore'] { opacity: 1; }
-body[data-mode='science'] .layer-list > li[data-mode-group~='science'] { opacity: 1; }
+body[data-mode] .layer-list > li[data-mode-group~='any'] {
+  opacity: 1;
+}
+body[data-mode='plan'] .layer-list > li[data-mode-group~='plan'] {
+  opacity: 1;
+}
+body[data-mode='explore'] .layer-list > li[data-mode-group~='explore'] {
+  opacity: 1;
+}
+body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
+  opacity: 1;
+}

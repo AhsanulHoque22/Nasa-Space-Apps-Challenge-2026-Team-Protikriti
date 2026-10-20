@@ -276,7 +276,7 @@ export function openStreetView(
     const cvs = document.createElement('canvas')
     cvs.className = 'sv-flat'
     wrap.append(cvs)
-    const ctx = cvs.getContext('2d')!
+    const ctx = cvs.getContext('2d') as CanvasRenderingContext2D
 
     const loaded: Array<{
       img: HTMLImageElement

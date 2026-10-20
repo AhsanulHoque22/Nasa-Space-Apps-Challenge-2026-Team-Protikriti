@@ -72,9 +72,7 @@ export function computeBudget(modules: PlacedModule[]): ColonyBudget {
 
   const isruIceScores = isruMods.map((m) => m.score.ice ?? 0)
   const meanIce =
-    isruIceScores.length > 0
-      ? isruIceScores.reduce((a, b) => a + b, 0) / isruIceScores.length
-      : 0
+    isruIceScores.length > 0 ? isruIceScores.reduce((a, b) => a + b, 0) / isruIceScores.length : 0
   const waterLiterPerSol = activeIsru * ISRU_DRILL_RATE_L_SOL * (meanIce / 100) * ICE_DEPTH_FACTOR
 
   const crew = Math.floor(

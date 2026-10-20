@@ -49,9 +49,9 @@ ANCHOR_SITES: list[dict[str, Any]] = [
 ]
 
 _MARS_MAX_WIND_MS = 35.0  # normalisation ceiling: max recorded surface gust (VL1)
-_IDW_POWER = 2.0          # inverse-distance weighting exponent
-_MIN_DIST_KM = 1.0        # clamp distance floor to avoid division by zero
-_R_KM = 3396.19           # Mars sphere radius (IAU convention)
+_IDW_POWER = 2.0  # inverse-distance weighting exponent
+_MIN_DIST_KM = 1.0  # clamp distance floor to avoid division by zero
+_R_KM = 3396.19  # Mars sphere radius (IAU convention)
 
 # Expansion factor so scores near anchors reach close to 100
 # VL1 mean 6.0 m/s / 35.0 max * 1.8 * 100 = 30.9; not a very windy planet
@@ -76,7 +76,7 @@ def _wind_score(lon: float, lat: float) -> int:
     total_speed = 0.0
     for site in ANCHOR_SITES:
         dist = max(_MIN_DIST_KM, _dist_km(lon, lat, site["lon"], site["lat"]))
-        w = 1.0 / (dist ** _IDW_POWER)
+        w = 1.0 / (dist**_IDW_POWER)
         total_weight += w
         total_speed += w * site["mean_ms"]
     idw_speed = total_speed / total_weight if total_weight > 0 else 0.0
@@ -117,8 +117,7 @@ def build_wind(out_path: Path) -> dict[str, Any]:
         "grid": grid,
         "source": "IDW from REMS (Gale) and Viking Lander 1/2 surface measurements",
         "caveat": (
-            "Modeled from 3 surface measurement sites;"
-            " surface wind varies with local terrain"
+            "Modeled from 3 surface measurement sites; surface wind varies with local terrain"
         ),
         "grid_north": 90.0,
         "grid_south": -90.0,

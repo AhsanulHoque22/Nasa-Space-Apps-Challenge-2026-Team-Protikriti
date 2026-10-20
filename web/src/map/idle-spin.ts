@@ -13,7 +13,12 @@ export function startIdleSpin(viewer: Viewer, lon: number, lat: number): IdleSpi
     orientation: { heading: 0, pitch: CesiumMath.toRadians(OPENING_PITCH_DEG), roll: 0 },
   })
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (reduced) return { get spinning() { return false } }
+  if (reduced)
+    return {
+      get spinning() {
+        return false
+      },
+    }
 
   let last = performance.now()
 
