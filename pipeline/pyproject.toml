@@ -13,6 +13,7 @@ dependencies = [
     "numpy>=2.5.3",
     "opencv-python-headless>=4.12",
     "rasterio>=1.5.1",
+    "trimesh>=5.1.1",
 ]
 
 [build-system]
