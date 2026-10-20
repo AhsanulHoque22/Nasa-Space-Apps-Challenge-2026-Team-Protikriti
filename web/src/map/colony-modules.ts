@@ -54,14 +54,18 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
     const module: PlacedModule = { id, type, lon, lat, score }
     modules.push(module)
 
-    void Model.fromGltfAsync({
+    console.log('[colony] place', type, 'lon', lon.toFixed(4), 'lat', lat.toFixed(4), 'altM', altM.toFixed(1))
+    Model.fromGltfAsync({
       url: MODEL_URLS[type],
       modelMatrix: poseMatrix(lon, lat, altM),
       scale: MODULE_SCALE[type],
       scene: viewer.scene,
     }).then((model) => {
+      console.log('[colony] model ready, adding to scene', type)
       viewer.scene.primitives.add(model)
       modelMap.set(id, model)
+    }).catch((err: unknown) => {
+      console.error('[colony] fromGltfAsync failed', type, err)
     })
 
     return module
