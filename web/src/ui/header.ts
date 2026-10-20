@@ -19,6 +19,13 @@ export function renderHeader(
       <button type="button" data-view="mars" aria-pressed="${initialView === 'mars'}">Mars</button>
       ${sites.map((s) => `<button type="button" data-view="${s.id}" aria-pressed="${s.id === initialView}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`).join('')}
     </div>`
+  const colonyBtn = document.createElement('button')
+  colonyBtn.type = 'button'
+  colonyBtn.dataset.view = 'colony'
+  colonyBtn.setAttribute('aria-pressed', 'false')
+  colonyBtn.textContent = 'Colony'
+  header.querySelector('.view-switch')?.append(colonyBtn)
+
   const buttons = header.querySelectorAll<HTMLButtonElement>('button[data-view]')
   for (const button of buttons) {
     button.addEventListener('click', () => {
