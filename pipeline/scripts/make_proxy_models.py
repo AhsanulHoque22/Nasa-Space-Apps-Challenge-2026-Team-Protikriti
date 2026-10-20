@@ -55,13 +55,14 @@ def _rotate_z(mesh: trimesh.Trimesh, deg: float) -> trimesh.Trimesh:
 
 def make_habitat() -> None:
     print("habitat …")
-    # main body: cylinder R=1, H=2, standing upright
+    # main body: cylinder R=1, H=2 — translated +1 so base sits at z=0
     body = trimesh.creation.cylinder(radius=1.0, height=2.0, sections=32)
+    body.apply_translation([0, 0, 1.0])
     _colored(body, (230, 230, 235, 255))  # off-white / aluminium
 
     # orange end-rings (thin cylinders at top and bottom)
     ring_top = trimesh.creation.cylinder(radius=1.05, height=0.12, sections=32)
-    ring_top.apply_translation([0, 0, 0.94])
+    ring_top.apply_translation([0, 0, 1.94])
     _colored(ring_top, (210, 100, 30, 255))  # NASA orange
 
     ring_bot = ring_top.copy()
@@ -70,7 +71,7 @@ def make_habitat() -> None:
 
     # small airlock box on the side
     airlock = trimesh.creation.box([0.4, 0.5, 0.5])
-    airlock.apply_translation([1.0, 0, -0.5])
+    airlock.apply_translation([1.0, 0, 0.5])
     _colored(airlock, (180, 180, 190, 255))
 
     scene = trimesh.Scene([body, ring_top, ring_bot, airlock])
