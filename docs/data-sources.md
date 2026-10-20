@@ -269,6 +269,62 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 
 
 
+## Colony Intelligence Layer (`make colony-data`)
+
+### Solar irradiance — colony score channel 0
+
+| Item | Source |
+|---|---|
+| Model | Appelbaum & Flood 1990, "Solar radiation on Mars", NASA TM-102299 (https://ntrs.nasa.gov/citations/19910005490). Mean annual insolation derived from the mean orbital parameters and mean dust opacity τ = 0.5 (Table 1, direct + diffuse). Scaled to 0-100 per degree of latitude (equatorial max ≈ 3.0 kWh/m²/sol). |
+| Constants | Panel efficiency 20% (InSight spec), dust correction 0.85 (InSight sol-1..30 power curve). |
+| Coverage | All latitudes; longitude-invariant at 1°/cell resolution. |
+
+### Shallow water ice — colony score channel 1
+
+| Item | Source |
+|---|---|
+| Dataset | SWIM 2.0 combined ice consistency (Morgan et al. 2021, *Nature Astronomy*), same dataset as the Site Report. https://swim.psi.edu/. |
+| Coverage | ±60° latitude only (1,440 × 480 cells at 1/4°/cell). Polar regions marked nodata in the colony grid. |
+
+### Mineral resources — colony score channel 2
+
+| Item | Source |
+|---|---|
+| Zones | Static OMEGA-derived Noachian mineral-rich zones: Jezero crater (Fe/Mg smectites + carbonates, Ehlmann et al. 2008, *Nature* 455; Salvatore et al. 2021 CRISM map); broader Noachian highlands (70/100); rest of Mars (40/100). |
+
+### Lava-tube / cave shelter — colony score channel 3
+
+| Item | Source |
+|---|---|
+| Catalogue | Mars Global Cave Candidate Catalog v1 (MGC3), G. E. Cushing, USGS Astrogeology 2017 (same as the Cave layer). doi:10.17189/1519222. |
+| Score | Exponential falloff from each candidate (e^(−d/200 km)); priority-0/1 candidates use half the distance for a stronger score. Maximum 100 at the candidate location. |
+
+### Terrain stability — colony score channel 4
+
+| Item | Source |
+|---|---|
+| Proxy | MGS MOLA MEGDR (same as terrain). Std dev of elevation over each 1°×1° degree cell (4 × 4 MOLA posts). Lower std dev → flatter, more stable ground → higher score (score = clip(100 − std/5, 0, 100)). |
+| Polar exclusion | |lat| > 80° marked nodata (unfit for surface habitation). |
+
+### Wind exposure — colony score channel 5
+
+| Item | Source |
+|---|---|
+| Anchor measurements | Three Mars landers with wind records: Curiosity REMS at Gale (137.44°E, 4.59°S), mean 4.0 m/s, max 22 m/s; Viking 2 at Utopia (134.30°E, 47.97°N), mean 5.0 m/s, max 30 m/s; Viking 1 at Chryse (312.10°E, 22.48°N), mean 6.0 m/s, max 35 m/s. |
+| Method | Inverse Distance Weighting (IDW, power 2) over the three anchor sites; score = clip(100 − weighted_mean_ms / 35 × 100, 0, 100). Lower wind speed → higher (better) score. |
+
+### Module resource budget constants
+
+| Constant | Value | Source |
+|---|---|---|
+| O₂ production (MOXIE) | 6 g/hr at 300 W | Hecht et al. 2021, *Science* 372 |
+| MOXIE duty cycle | 50% | MOXIE demo operational assumption |
+| O₂ per person per sol | 840 g | NASA HRP baseline |
+| Water per person per sol | 3.5 L | NASA HRP baseline |
+| Power per person per sol | 2.0 kWh | NASA Habitat CoOps |
+| ISRU water rate | 3.0 L/sol at 300 W | NASA NTRS-20190002020 |
+| Dust storm power | 10% normal | 2018 MY34 global storm (Guzewich et al. 2019, *GRL* 46) |
+
 ## CRISM Jezero Mineralogy (`marsmap crism`)
 
 | Item | Detail |
