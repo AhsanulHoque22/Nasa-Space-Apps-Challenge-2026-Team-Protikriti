@@ -195,7 +195,7 @@ export function createMarsViewer(container: HTMLElement): {
   // Ensure the render loop runs every frame — required for the idle-spin preRender tick.
   viewer.scene.requestRenderMode = false
   // Debug handle — remove before ship
-  ;(window as Record<string, unknown>).__v = viewer
+  ;(window as unknown as Record<string, unknown>).__v = viewer
   return { viewer, hirise, offFoot }
 }
 
