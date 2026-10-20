@@ -487,7 +487,7 @@ async function main() {
       const score = colonyGrid
         ? colonyScoreAt(colonyGrid, lon, lat)
         : { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
-      colonyLayer.place(activeModuleType, lon, lat, c.height / viewer.scene.verticalExaggeration, score)
+      colonyLayer.place(activeModuleType, lon, lat, c.height + 1, score)
       colonySummaryCtrl.update(computeBudget(colonyLayer.modules as PlacedModule[]))
     },
     ScreenSpaceEventType.LEFT_CLICK,
