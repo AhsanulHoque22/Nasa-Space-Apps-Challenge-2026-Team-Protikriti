@@ -188,10 +188,10 @@ export function createMarsViewer(container: HTMLElement): {
   viewer.scene.skyAtmosphere = marsSky()
   // Light the sky glow from the Mars sun that map/sun.ts sets, not from the camera.
   viewer.scene.atmosphere.dynamicLighting = DynamicAtmosphereLightingType.SCENE_LIGHT
-  // Smooth the jagged globe horizon: FXAA post-pass + 4× MSAA + 1.5× render resolution.
+  // Smooth the jagged globe horizon: FXAA post-pass + 2× MSAA (4× was ~9× GPU load).
   viewer.scene.postProcessStages.fxaa.enabled = true
-  viewer.scene.msaaSamples = 4
-  viewer.resolutionScale = 1.5
+  viewer.scene.msaaSamples = 2
+  viewer.resolutionScale = 1.0
   // Ensure the render loop runs every frame — required for the idle-spin preRender tick.
   viewer.scene.requestRenderMode = false
   return { viewer, hirise, offFoot }

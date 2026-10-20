@@ -442,6 +442,10 @@ async function main() {
 
   // Colony mode: score grid, module placement layer, and panels
   const colonyScorePromise = loadColonyScore().catch(() => null)
+  let colonyGrid: Awaited<typeof colonyScorePromise> = null
+  void colonyScorePromise.then((g) => {
+    colonyGrid = g
+  })
   const colonyLayer = createColonyLayer(viewer)
   const colonyPanelCtrl = renderColonyPanel(side)
   const colonySummaryCtrl = renderColonySummary(side)
@@ -480,21 +484,24 @@ async function main() {
       const c = MARS_SPHERE.cartesianToCartographic(hit)
       const lon = (c.longitude * 180) / Math.PI
       const lat = (c.latitude * 180) / Math.PI
-      void colonyScorePromise.then((grid) => {
-        const score = grid
-          ? colonyScoreAt(grid, lon, lat)
-          : { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
-        colonyLayer.place(activeModuleType, lon, lat, score)
-        colonySummaryCtrl.update(computeBudget(colonyLayer.modules as PlacedModule[]))
-      })
+      const score = colonyGrid
+        ? colonyScoreAt(colonyGrid, lon, lat)
+        : { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
+      colonyLayer.place(activeModuleType, lon, lat, score)
+      colonySummaryCtrl.update(computeBudget(colonyLayer.modules as PlacedModule[]))
     },
     ScreenSpaceEventType.LEFT_CLICK,
   )
 
-  // Mouse-move in colony mode: show score at hover position
+  // Mouse-move in colony mode: show score at hover position (throttled to ~20fps)
+  let lastHoverMs = 0
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (move: ScreenSpaceEventHandler.MotionEvent) => {
       if (!colonyModeActive) return
+      const now = performance.now()
+      if (now - lastHoverMs < 50) return
+      lastHoverMs = now
+      if (!colonyGrid) return
       const ray = viewer.camera.getPickRay(move.endPosition)
       const hit = ray && viewer.scene.globe.pick(ray, viewer.scene)
       if (!hit) {
@@ -502,12 +509,9 @@ async function main() {
         return
       }
       const c = MARS_SPHERE.cartesianToCartographic(hit)
-      void colonyScorePromise.then((grid) => {
-        if (!colonyModeActive || !grid) return
-        colonyPanelCtrl.update(
-          colonyScoreAt(grid, (c.longitude * 180) / Math.PI, (c.latitude * 180) / Math.PI),
-        )
-      })
+      colonyPanelCtrl.update(
+        colonyScoreAt(colonyGrid, (c.longitude * 180) / Math.PI, (c.latitude * 180) / Math.PI),
+      )
     },
     ScreenSpaceEventType.MOUSE_MOVE,
   )
