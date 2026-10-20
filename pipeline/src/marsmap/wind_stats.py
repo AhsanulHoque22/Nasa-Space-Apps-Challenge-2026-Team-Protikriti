@@ -13,6 +13,9 @@ import math
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+from numpy.typing import NDArray
+
 # Grid dimensions: 1-degree cells, row 0 = 89.5 N, col 0 = -179.5 E
 GRID_ROWS = 180
 GRID_COLS = 360
@@ -60,7 +63,10 @@ def _dist_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     r = math.pi / 180.0
     d_lat = (lat2 - lat1) * r
     d_lon = (lon2 - lon1) * r
-    a = math.sin(d_lat / 2) ** 2 + math.cos(lat1 * r) * math.cos(lat2 * r) * math.sin(d_lon / 2) ** 2
+    a = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(lat1 * r) * math.cos(lat2 * r) * math.sin(d_lon / 2) ** 2
+    )
     return 2 * _R_KM * math.asin(min(1.0, math.sqrt(a)))
 
 
@@ -75,6 +81,17 @@ def _wind_score(lon: float, lat: float) -> int:
         total_speed += w * site["mean_ms"]
     idw_speed = total_speed / total_weight if total_weight > 0 else 0.0
     return int(min(100, round(idw_speed / _MARS_MAX_WIND_MS * 100 * _SCORE_SCALE)))
+
+
+def wind_score_grid() -> NDArray[np.uint8]:
+    """Return a (180, 360) uint8 IDW wind score grid (0-100) without writing to disk."""
+    grid = np.zeros((GRID_ROWS, GRID_COLS), dtype=np.uint8)
+    for row in range(GRID_ROWS):
+        lat = 89.5 - row
+        for col in range(GRID_COLS):
+            lon = -179.5 + col
+            grid[row, col] = _wind_score(lon, lat)
+    return grid
 
 
 def build_wind(out_path: Path) -> dict[str, Any]:
@@ -99,7 +116,10 @@ def build_wind(out_path: Path) -> dict[str, Any]:
         "anchors": ANCHOR_SITES,
         "grid": grid,
         "source": "IDW from REMS (Gale) and Viking Lander 1/2 surface measurements",
-        "caveat": "Modeled from 3 surface measurement sites; surface wind varies with local terrain",
+        "caveat": (
+            "Modeled from 3 surface measurement sites;"
+            " surface wind varies with local terrain"
+        ),
         "grid_north": 90.0,
         "grid_south": -90.0,
         "grid_west": -180.0,
