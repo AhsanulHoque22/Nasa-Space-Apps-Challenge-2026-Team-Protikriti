@@ -20,11 +20,11 @@ const MODEL_URLS: Record<ModuleType, string> = {
 }
 
 const MODULE_SCALE: Record<ModuleType, number> = {
-  habitat: 5.0,
-  solar: 3.0,
-  isru: 1.5,
-  greenhouse: 4.0,
-  garage: 3.5,
+  habitat: 40.0,
+  solar: 25.0,
+  isru: 20.0,
+  greenhouse: 35.0,
+  garage: 30.0,
 }
 
 export type ColonyLayer = {
