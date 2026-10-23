@@ -2,14 +2,13 @@
 Build recognisable colony module GLB proxies with trimesh.
 
 Each model fits in a ~2 m bounding box (colony-modules.ts multiplies by
-MODULE_SCALE, so 2 m × 5 = 10 m habitat on screen).  All geometry is
+MODULE_SCALE, so 2 m x 5 = 10 m habitat on screen).  All geometry is
 created from primitive operations — no external data files needed.
 
 Run from repo root:
     cd pipeline && uv run python scripts/make_proxy_models.py
 """
 
-import struct
 from pathlib import Path
 
 import numpy as np
