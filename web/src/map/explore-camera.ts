@@ -107,6 +107,7 @@ export function startExplore(
     msaa: scene.msaaSamples,
     fxaa: scene.postProcessStages.fxaa.enabled,
     near: (cam.frustum as { near?: number }).near,
+    tileCache: globe.tileCacheSize,
   }
   // Map pins, labels and lines don't exist on the real ground: hide every one, restore on exit.
   const markers: Array<{ show: boolean }> = []
@@ -122,8 +123,12 @@ export function startExplore(
   // The map's 20 m ground clearance would fight the 1.8 m eye; walking keeps its own footing.
   controller.enableCollisionDetection = false
   globe.maximumScreenSpaceError = WALK_SCREEN_SPACE_ERROR
+  // Load the maximum tile resolution and keep a large cache so underfoot tiles stay sharp.
+  globe.tileCacheSize = 1000
+  globe.preloadAncestors = true
+  globe.preloadSiblings = true
   // Small near-clip so terrain geometry right under the feet isn't skipped by the frustum.
-  ;(cam.frustum as { near?: number }).near = 0.1
+  ;(cam.frustum as { near?: number }).near = 0.01
   // Fog culls and coarsens distant tiles; the atmosphere pass draws the Mars haze, not Cesium.
   scene.fog.enabled = true
   scene.fog.renderable = false
@@ -463,6 +468,7 @@ export function startExplore(
       scene.msaaSamples = saved.msaa
       scene.postProcessStages.fxaa.enabled = saved.fxaa
       if (saved.near !== undefined) (cam.frustum as { near?: number }).near = saved.near
+      globe.tileCacheSize = saved.tileCache
       onExit()
     },
   }

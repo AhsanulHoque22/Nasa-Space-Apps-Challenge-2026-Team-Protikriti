@@ -170,7 +170,8 @@ void main() {
     float light = (direct * lambert + diffuse) / 0.75 + 0.03; // starlight and Phobos
     col *= light;
     // Aerial perspective: dust between the eye and the ground (Koschmieder).
-    float fog = 1.0 - exp(-3.9 * dist / u_visM);
+    // Clamp to distances > 5 m so the ground right at the walker's feet is never fogged.
+    float fog = 1.0 - exp(-3.9 * max(dist - 5.0, 0.0) / u_visM);
     col = mix(col, sky(normalize(vec3(d.xy, 0.03)), sun) * 0.95, fog);
   }
   // Blowing dust, stronger with wind and in storms.
