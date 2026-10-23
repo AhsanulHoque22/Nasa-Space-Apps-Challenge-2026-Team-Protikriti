@@ -3,8 +3,9 @@ import type { Viewer } from 'cesium'
 import { COORDINATE_FRAME, formatMarsPosition } from '../core/coords'
 import { type Site, sampleGrid } from '../core/elevation'
 import { formatDistance } from '../core/format'
-import { type ExploreSession, startExplore } from '../map/explore-camera'
+import { type ExploreColonyOpts, type ExploreSession, startExplore } from '../map/explore-camera'
 import { loadWeather } from '../map/weather-client'
+import type { ModuleType } from '../core/colony-budget'
 
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 
@@ -16,6 +17,7 @@ export function openExplore(
   site: Site,
   from: { lon: number; lat: number },
   onExit: () => void,
+  colony?: ExploreColonyOpts,
 ): ExploreSession {
   document.body.classList.add('exploring')
   const hud = document.createElement('section')
@@ -43,7 +45,23 @@ export function openExplore(
     <button type="button" class="quiet xh-haze-reset" hidden>Actual sky</button>
     <p class="xh-warn" role="status" aria-live="polite"></p>
     <p class="xh-help">W/S or ↑/↓ walk · Shift run · Space jump · A/D strafe · ←/→ turn · drag to look · the map clock sets the time · Mars gravity 3.72 m/s² · terrain from ${site.source.split(',')[0]} · ${COORDINATE_FRAME}</p>
-    <p class="xh-help" data-k="source"></p>`
+    <p class="xh-help" data-k="source"></p>
+    ${colony?.colonyLayer ? `
+    <hr class="xh-divider"/>
+    <div class="xh-build">
+      <button type="button" class="xh-build-toggle">Build Colony (B)</button>
+      <div class="xh-build-panel" hidden>
+        <div class="xh-build-types" role="group" aria-label="Module type">
+          <button data-build="habitat"    aria-pressed="true" >Habitat</button>
+          <button data-build="solar"      aria-pressed="false">Solar</button>
+          <button data-build="isru"       aria-pressed="false">ISRU</button>
+          <button data-build="greenhouse" aria-pressed="false">Greenhouse</button>
+          <button data-build="garage"     aria-pressed="false">Garage</button>
+        </div>
+        <p class="xh-build-hint">Aim at terrain · <kbd>E</kbd> place · <kbd>B</kbd> exit build mode</p>
+        <dl class="xh-budget" data-k="budget" hidden></dl>
+      </div>
+    </div>` : ''}`
   document.body.append(hud)
   const field = (k: string) => hud.querySelector(`[data-k="${k}"]`) as HTMLElement
   const compass = hud.querySelector('.xh-compass') as HTMLElement
@@ -53,6 +71,12 @@ export function openExplore(
   // seasonal climatology and says so, rather than showing another site's weather.
   const station = site.id === 'gale' ? 'rems' : site.id === 'jezero' ? 'meda' : null
   const weather = station ? loadWeather(station).then((r) => r.sols) : Promise.resolve([])
+
+  // Track placed-module count so the budget updates after each placement
+  const budgetEl = hud.querySelector<HTMLElement>('[data-k="budget"]')
+  const buildPanel = hud.querySelector<HTMLElement>('.xh-build-panel')
+  const buildToggle = hud.querySelector<HTMLButtonElement>('.xh-build-toggle')
+  let activeBuildType: ModuleType = 'habitat'
 
   const session = startExplore(
     viewer,
@@ -91,8 +115,37 @@ export function openExplore(
       document.body.classList.remove('exploring')
       onExit()
     },
+    colony ? {
+      ...colony,
+      onPlace() {
+        colony.onPlace?.()
+        if (budgetEl && colony.colonyLayer) {
+          const mods = colony.colonyLayer.modules
+          budgetEl.hidden = mods.length === 0
+          // Budget readout rows are updated by the caller via colony.onPlace
+        }
+      },
+    } : undefined,
   )
   hud.querySelector('.wx-close')?.addEventListener('click', () => session.stop())
+
+  // Build mode UI wiring
+  if (buildPanel && buildToggle && colony?.colonyLayer) {
+    buildToggle.addEventListener('click', () => {
+      const entering = buildPanel.hidden
+      buildPanel.hidden = !entering
+      buildToggle.setAttribute('aria-pressed', String(entering))
+      session.setBuildMode(entering ? activeBuildType : null)
+    })
+    for (const btn of buildPanel.querySelectorAll<HTMLButtonElement>('button[data-build]')) {
+      btn.addEventListener('click', () => {
+        activeBuildType = btn.dataset.build as ModuleType
+        for (const b of buildPanel.querySelectorAll<HTMLButtonElement>('button[data-build]'))
+          b.setAttribute('aria-pressed', String(b === btn))
+        session.setBuildMode(activeBuildType)
+      })
+    }
+  }
   const storm = hud.querySelector('.xh-storm') as HTMLButtonElement
   storm.addEventListener('click', () => {
     const on = storm.getAttribute('aria-pressed') !== 'true'

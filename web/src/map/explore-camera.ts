@@ -1,12 +1,16 @@
 /** First-person explore mode: walk the real terrain of a site at 1:1 scale, in Mars conditions. */
 import {
   BillboardCollection,
+  Cartesian2,
   Cartesian3,
   Cartographic,
   Math as CesiumMath,
   LabelCollection,
   type Viewer,
 } from 'cesium'
+import type { ColonyLayer } from './colony-modules'
+import type { ModuleType } from '../core/colony-budget'
+import type { ColonyScore } from '../core/colony-score'
 import { type Site, sampleGrid } from '../core/elevation'
 import { type Body, type MoveInput, restingBody, stepBody } from '../core/explore'
 import { localMeanSolarTimeHours, solarLongitudeDeg, sunPosition } from '../core/mars-time'
@@ -56,6 +60,14 @@ export type ExploreSession = {
   setStormReplay(on: boolean): void
   /** Dust opacity set by hand for the look of the sky, or null for the actual conditions. */
   setHaze(tau: number | null): void
+  /** Enter build mode for the given module type, or pass null to exit build mode. */
+  setBuildMode(type: ModuleType | null): void
+}
+
+export type ExploreColonyOpts = {
+  colonyLayer?: ColonyLayer
+  scoreAt?: (lon: number, lat: number) => ColonyScore
+  onPlace?: () => void
 }
 
 export function startExplore(
@@ -65,6 +77,7 @@ export function startExplore(
   weather: Promise<readonly SolWeather[]>,
   onUpdate: (f: ExploreFrame) => void,
   onExit: () => void,
+  colony?: ExploreColonyOpts,
 ): ExploreSession {
   const scene = viewer.scene
   const globe = scene.globe
@@ -119,6 +132,12 @@ export function startExplore(
   const startedAt = performance.now()
   let last = startedAt
   let frame = 0
+
+  // Build mode (aim-and-place colony modules)
+  let buildMode = false
+  let buildType: ModuleType = 'habitat'
+  let ghostPos: { lon: number; lat: number; altM: number } | null = null
+  if (colony?.colonyLayer) colony.colonyLayer.show = true
 
   let stormReplay = false
   let hazeTau: number | null = null
@@ -247,15 +266,45 @@ export function startExplore(
     atmosphere.setState(atmosphereState())
     place(dtS)
     onUpdate({ body, pitchDeg, ...now })
+    // Update ghost aim position every 3rd frame (terrain pick is ~1 ms; throttle anyway)
+    if (buildMode && colony?.colonyLayer && frame % 3 === 0) {
+      const canvas = scene.canvas
+      const center = new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2)
+      const ray = viewer.camera.getPickRay(center)
+      const hit = ray && globe.pick(ray, scene)
+      if (hit) {
+        const cg = MARS_SPHERE.cartesianToCartographic(hit)
+        ghostPos = {
+          lon: CesiumMath.toDegrees(cg.longitude),
+          lat: CesiumMath.toDegrees(cg.latitude),
+          altM: cg.height + 1,
+        }
+        colony.colonyLayer.setGhost(buildType, ghostPos.lon, ghostPos.lat, ghostPos.altM)
+      } else {
+        ghostPos = null
+        colony.colonyLayer.hideGhost()
+      }
+    }
     frame = requestAnimationFrame(tick)
   }
 
   const MOVE_KEYS = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift']
+  const EMPTY_SCORE: ColonyScore = {
+    solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null,
+  }
   const onKeyDown = (e: KeyboardEvent) => {
     const k = e.key.toLowerCase()
     if (k === 'escape') return session.stop()
     if (k === ' ') {
       if (!e.repeat) jumpQueued = true
+      e.preventDefault()
+    } else if (k === 'b') {
+      session.setBuildMode(buildMode ? null : buildType)
+      e.preventDefault()
+    } else if (k === 'e' && buildMode && ghostPos && colony?.colonyLayer) {
+      const score = colony.scoreAt?.(ghostPos.lon, ghostPos.lat) ?? EMPTY_SCORE
+      colony.colonyLayer.place(buildType, ghostPos.lon, ghostPos.lat, ghostPos.altM, score)
+      colony.onPlace?.()
       e.preventDefault()
     } else if (MOVE_KEYS.includes(k)) {
       keys.add(k)
@@ -296,6 +345,11 @@ export function startExplore(
       hazeTau = tau
       now = measure()
     },
+    setBuildMode(type) {
+      buildMode = type !== null
+      buildType = type ?? 'habitat'
+      if (!buildMode) colony?.colonyLayer?.hideGhost()
+    },
     stop() {
       cancelAnimationFrame(frame)
       window.removeEventListener('keydown', onKeyDown)
@@ -305,6 +359,7 @@ export function startExplore(
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       atmosphere.destroy()
+      if (colony?.colonyLayer) colony.colonyLayer.show = false
       markers.forEach((m, i) => (m.show = markersShown[i] ?? m.show))
       controller.enableInputs = true
       controller.enableCollisionDetection = saved.collision

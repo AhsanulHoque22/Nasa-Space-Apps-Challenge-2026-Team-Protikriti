@@ -73,7 +73,7 @@ import { renderCaveCard } from './ui/cave-card'
 import { iceAt } from './core/site-report'
 import { loadColonyScore, colonyScoreAt } from './core/colony-score'
 import { computeBudget } from './core/colony-budget'
-import type { ModuleType, PlacedModule } from './core/colony-budget'
+
 import { createColonyLayer } from './map/colony-modules'
 import { renderColonyPanel } from './ui/colony-panel'
 import { renderColonySummary } from './ui/colony-summary-panel'
@@ -130,14 +130,11 @@ async function main() {
     ui,
     sites,
     (view) => {
-      colonyModeActive = view === 'colony'
-      colonyToolbar.hidden = !colonyModeActive
-      if (!colonyModeActive) colonyPanelCtrl.update(null)
       const site = sites.find((s) => s.id === view)
       if (site) {
         viewAoi(viewer, site.grid)
         setLayer.current?.('imagery', true) // a site view is about its imagery
-      } else if (view !== 'colony')
+      } else
         viewGlobe(
           viewer,
           (home.grid.west + home.grid.east) / 2,
@@ -277,11 +274,16 @@ async function main() {
       const lmst = localMeanSolarTimeHours(sceneTimeMs(), arriveAt.lon)
       if (lmst < EXPLORE_DAY_START_H || lmst >= EXPLORE_DAY_END_H)
         clockRef.setTime(nextLocalHourMs(sceneTimeMs(), arriveAt.lon, EXPLORE_ARRIVAL_H))
+      const emptyScore = { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
       for (const hide of exploreHooks) hide(true)
       openExplore(viewer, walkSite, from, () => {
         for (const hide of exploreHooks) hide(false)
         viewAoi(viewer, g)
         b.focus()
+      }, {
+        colonyLayer,
+        scoreAt: (lon, lat) => colonyGrid ? colonyScoreAt(colonyGrid, lon, lat) : emptyScore,
+        onPlace: () => colonySummaryCtrl.update(computeBudget([...colonyLayer.modules])),
       })
     })
   }
@@ -440,81 +442,13 @@ async function main() {
   )
   renderDock(side)
 
-  // Colony mode: score grid, module placement layer, and panels
+  // Colony: score grid and placement layer (modules live in explore mode, not the map)
   const colonyScorePromise = loadColonyScore().catch(() => null)
   let colonyGrid: Awaited<typeof colonyScorePromise> = null
-  void colonyScorePromise.then((g) => {
-    colonyGrid = g
-  })
+  void colonyScorePromise.then((g) => { colonyGrid = g })
   const colonyLayer = createColonyLayer(viewer)
-  const colonyPanelCtrl = renderColonyPanel(side)
+  renderColonyPanel(side)
   const colonySummaryCtrl = renderColonySummary(side)
-
-  // Colony toolbar (floating buttons to select module type)
-  const colonyToolbar = document.createElement('div')
-  colonyToolbar.id = 'colony-toolbar'
-  colonyToolbar.className = 'colony-toolbar'
-  colonyToolbar.hidden = true
-  colonyToolbar.innerHTML = `
-    <button data-module-type="habitat"    aria-pressed="true" >🏠 Habitat</button>
-    <button data-module-type="solar"      aria-pressed="false">☀ Solar</button>
-    <button data-module-type="isru"       aria-pressed="false">⚗ ISRU</button>
-    <button data-module-type="greenhouse" aria-pressed="false">🌿 Greenhouse</button>
-    <button data-module-type="garage"     aria-pressed="false">🚗 Garage</button>`
-  ui.append(colonyToolbar)
-
-  let activeModuleType: ModuleType = 'habitat'
-  let colonyModeActive = false
-
-  for (const btn of colonyToolbar.querySelectorAll<HTMLButtonElement>('button[data-module-type]')) {
-    btn.addEventListener('click', () => {
-      activeModuleType = btn.dataset.moduleType as ModuleType
-      for (const b of colonyToolbar.querySelectorAll<HTMLButtonElement>('button'))
-        b.setAttribute('aria-pressed', String(b === btn))
-    })
-  }
-
-  // Left-click in colony mode: place a module
-  new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
-    (click: ScreenSpaceEventHandler.PositionedEvent) => {
-      if (!colonyModeActive || isExploring()) return
-      const ray = viewer.camera.getPickRay(click.position)
-      const hit = ray && viewer.scene.globe.pick(ray, viewer.scene)
-      if (!hit) return
-      const c = MARS_SPHERE.cartesianToCartographic(hit)
-      const lon = (c.longitude * 180) / Math.PI
-      const lat = (c.latitude * 180) / Math.PI
-      const score = colonyGrid
-        ? colonyScoreAt(colonyGrid, lon, lat)
-        : { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
-      colonyLayer.place(activeModuleType, lon, lat, c.height + 1, score)
-      colonySummaryCtrl.update(computeBudget(colonyLayer.modules as PlacedModule[]))
-    },
-    ScreenSpaceEventType.LEFT_CLICK,
-  )
-
-  // Mouse-move in colony mode: show score at hover position (throttled to ~20fps)
-  let lastHoverMs = 0
-  new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
-    (move: ScreenSpaceEventHandler.MotionEvent) => {
-      if (!colonyModeActive) return
-      const now = performance.now()
-      if (now - lastHoverMs < 50) return
-      lastHoverMs = now
-      if (!colonyGrid) return
-      const ray = viewer.camera.getPickRay(move.endPosition)
-      const hit = ray && viewer.scene.globe.pick(ray, viewer.scene)
-      if (!hit) {
-        colonyPanelCtrl.update(null)
-        return
-      }
-      const c = MARS_SPHERE.cartesianToCartographic(hit)
-      colonyPanelCtrl.update(
-        colonyScoreAt(colonyGrid, (c.longitude * 180) / Math.PI, (c.latitude * 180) / Math.PI),
-      )
-    },
-    ScreenSpaceEventType.MOUSE_MOVE,
-  )
 
   let thermalWasShown = false
   let crismWasShown = false
