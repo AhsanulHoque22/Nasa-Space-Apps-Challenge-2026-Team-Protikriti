@@ -34,10 +34,9 @@ const LOOK_DEG_PER_PX = 0.2
 const TURN_DEG_PER_S = 70
 const PITCH_LIMIT_DEG = 80
 const CONDITIONS_EVERY_MS = 1000
-// At eye height every screen-space-error step multiplies the tiles drawn: 1 drew ~1,200 tiles
-// (9 fps on Iris Xe), 3 with fog culling ~50 (27 fps) with the same near-ground detail, which
-// HiRISE's 25 cm pixels limit anyway.
-const WALK_SCREEN_SPACE_ERROR = 3
+// SSE 1 forces highest-res tiles to load right under the camera — crisp ground at feet.
+// On Iris Xe this costs ~9 fps vs 27 fps at SSE 3, but HiRISE clarity is worth it for demo.
+const WALK_SCREEN_SPACE_ERROR = 1
 // Daytime winds at Jezero blow mostly from the east-southeast (MEDA, Viúdez-Moreiras et al.
 // 2022), i.e. towards ~290°. ponytail: one direction for both sites.
 const WIND_TO_DEG = 290
@@ -97,6 +96,7 @@ export function startExplore(
   const scene = viewer.scene
   const globe = scene.globe
   const controller = scene.screenSpaceCameraController
+  const cam = scene.camera
   const saved = {
     sse: globe.maximumScreenSpaceError,
     fog: scene.fog.enabled,
@@ -106,6 +106,7 @@ export function startExplore(
     collision: controller.enableCollisionDetection,
     msaa: scene.msaaSamples,
     fxaa: scene.postProcessStages.fxaa.enabled,
+    near: (cam.frustum as { near?: number }).near,
   }
   // Map pins, labels and lines don't exist on the real ground: hide every one, restore on exit.
   const markers: Array<{ show: boolean }> = []
@@ -121,6 +122,8 @@ export function startExplore(
   // The map's 20 m ground clearance would fight the 1.8 m eye; walking keeps its own footing.
   controller.enableCollisionDetection = false
   globe.maximumScreenSpaceError = WALK_SCREEN_SPACE_ERROR
+  // Small near-clip so terrain geometry right under the feet isn't skipped by the frustum.
+  ;(cam.frustum as { near?: number }).near = 0.1
   // Fog culls and coarsens distant tiles; the atmosphere pass draws the Mars haze, not Cesium.
   scene.fog.enabled = true
   scene.fog.renderable = false
@@ -459,6 +462,7 @@ export function startExplore(
       viewer.useBrowserRecommendedResolution = saved.browserRes
       scene.msaaSamples = saved.msaa
       scene.postProcessStages.fxaa.enabled = saved.fxaa
+      if (saved.near !== undefined) (cam.frustum as { near?: number }).near = saved.near
       onExit()
     },
   }
