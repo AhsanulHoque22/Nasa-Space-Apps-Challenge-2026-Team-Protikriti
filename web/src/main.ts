@@ -274,17 +274,30 @@ async function main() {
       const lmst = localMeanSolarTimeHours(sceneTimeMs(), arriveAt.lon)
       if (lmst < EXPLORE_DAY_START_H || lmst >= EXPLORE_DAY_END_H)
         clockRef.setTime(nextLocalHourMs(sceneTimeMs(), arriveAt.lon, EXPLORE_ARRIVAL_H))
-      const emptyScore = { solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null }
+      const emptyScore = {
+        solar: null,
+        ice: null,
+        minerals: null,
+        shelter: null,
+        stability: null,
+        wind: null,
+      }
       for (const hide of exploreHooks) hide(true)
-      openExplore(viewer, walkSite, from, () => {
-        for (const hide of exploreHooks) hide(false)
-        viewAoi(viewer, g)
-        b.focus()
-      }, {
-        colonyLayer,
-        scoreAt: (lon, lat) => colonyGrid ? colonyScoreAt(colonyGrid, lon, lat) : emptyScore,
-        onPlace: () => colonySummaryCtrl.update(computeBudget([...colonyLayer.modules])),
-      })
+      openExplore(
+        viewer,
+        walkSite,
+        from,
+        () => {
+          for (const hide of exploreHooks) hide(false)
+          viewAoi(viewer, g)
+          b.focus()
+        },
+        {
+          colonyLayer,
+          scoreAt: (lon, lat) => (colonyGrid ? colonyScoreAt(colonyGrid, lon, lat) : emptyScore),
+          onPlace: () => colonySummaryCtrl.update(computeBudget([...colonyLayer.modules])),
+        },
+      )
     })
   }
   launcher.after(explore)
@@ -445,7 +458,9 @@ async function main() {
   // Colony: score grid and placement layer (modules live in explore mode, not the map)
   const colonyScorePromise = loadColonyScore().catch(() => null)
   let colonyGrid: Awaited<typeof colonyScorePromise> = null
-  void colonyScorePromise.then((g) => { colonyGrid = g })
+  void colonyScorePromise.then((g) => {
+    colonyGrid = g
+  })
   const colonyLayer = createColonyLayer(viewer)
   renderColonyPanel(side)
   const colonySummaryCtrl = renderColonySummary(side)

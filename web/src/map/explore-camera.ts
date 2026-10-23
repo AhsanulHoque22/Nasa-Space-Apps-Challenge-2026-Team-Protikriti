@@ -57,9 +57,9 @@ export type ExploreFrame = {
   suitO2Pct: number
   suitPowerPct: number
   // Radiation
-  radiationMsvPerHr: number   // current dose rate including SPE spike
-  cumulativeMsv: number        // accumulated this EVA
-  spe: boolean                 // Solar Particle Event active
+  radiationMsvPerHr: number // current dose rate including SPE spike
+  cumulativeMsv: number // accumulated this EVA
+  spe: boolean // Solar Particle Event active
   // Seismic
   marsquake: { mag: number; distKm: number } | null
   // Resources at current position
@@ -166,26 +166,26 @@ export function startExplore(
   // Depletion: base rate + activity factor proportional to walking speed
   let suitO2Pct = 100
   let suitPowerPct = 100
-  const O2_BASE_PCT_S = 100 / (8 * 3600)           // 8 h full charge
-  const PWR_BASE_PCT_S = 100 / (8 * 3600)           // 8 h full charge
-  const O2_WALK_PCT_S_PER_MS = O2_BASE_PCT_S * 2    // 2× base per 1 m/s of walking
+  const O2_BASE_PCT_S = 100 / (8 * 3600) // 8 h full charge
+  const PWR_BASE_PCT_S = 100 / (8 * 3600) // 8 h full charge
+  const O2_WALK_PCT_S_PER_MS = O2_BASE_PCT_S * 2 // 2× base per 1 m/s of walking
 
   // Radiation tracking
   let cumulativeMsv = 0
-  let spe = false            // Solar Particle Event active
-  let speRemainingS = 0      // seconds left in current SPE
+  let spe = false // Solar Particle Event active
+  let speRemainingS = 0 // seconds left in current SPE
   // SPE dose rate: median large event ~0.5 mSv/hr measured by Curiosity RAD
   // (e.g. Sep 2017 event; Zeitlin et al. 2018). Large events 5–50 mSv/hr.
   const SPE_DOSE_MSV_HR = 5.0
   // ponytail: demo frequency 1/5 min; real rate ~2 large SPEs/year (NASA HEOMD SPE table)
   const SPE_RATE_PER_S = 1 / 300
-  const SPE_DURATION_S = 20   // demo duration; real events last hours
+  const SPE_DURATION_S = 20 // demo duration; real events last hours
 
   // Marsquakes (InSight SEIS catalog, Giardini et al. 2020, Ceylan et al. 2022)
   // ~3/week above M2 in active seasons; ponytail: demo rate 1/3 min
   let marsquake: ExploreFrame['marsquake'] = null
   let marsquakeRemainingS = 0
-  const QUAKE_RATE_PER_S = 1 / 180   // ponytail: real 3/(7×86400) ≈ 5e-6/s; demo 1/180
+  const QUAKE_RATE_PER_S = 1 / 180 // ponytail: real 3/(7×86400) ≈ 5e-6/s; demo 1/180
   const QUAKE_DISPLAY_S = 8
 
   // Resources at walker position (refreshed every ~1 s)
@@ -321,12 +321,15 @@ export function startExplore(
 
     // Suit consumables
     const walkRate = body.grounded ? body.speedMs : 0
-    suitO2Pct = Math.max(0, suitO2Pct - (O2_BASE_PCT_S + O2_WALK_PCT_S_PER_MS * walkRate) * dtS * 100)
+    suitO2Pct = Math.max(
+      0,
+      suitO2Pct - (O2_BASE_PCT_S + O2_WALK_PCT_S_PER_MS * walkRate) * dtS * 100,
+    )
     suitPowerPct = Math.max(0, suitPowerPct - PWR_BASE_PCT_S * dtS * 100)
 
     // Radiation dose accumulation
     const activeDoseRate = spe ? SPE_DOSE_MSV_HR : GCR_SURFACE_MSV_HR
-    cumulativeMsv += activeDoseRate * dtS / 3600
+    cumulativeMsv += (activeDoseRate * dtS) / 3600
 
     // SPE lifecycle
     if (spe) {
@@ -343,7 +346,7 @@ export function startExplore(
       if (marsquakeRemainingS <= 0) marsquake = null
     } else if (Math.random() < QUAKE_RATE_PER_S * dtS) {
       // Magnitude from InSight catalog distribution: mostly 2.0–3.5, tail to 5.0
-      const mag = 2.0 + (-Math.log(1 - Math.random())) * 0.7
+      const mag = 2.0 + -Math.log(1 - Math.random()) * 0.7
       const distKm = 50 + Math.random() * 450
       marsquake = { mag: Math.min(5.0, mag), distKm }
       marsquakeRemainingS = QUAKE_DISPLAY_S
@@ -355,10 +358,15 @@ export function startExplore(
     }
 
     onUpdate({
-      body, pitchDeg, ...now,
-      suitO2Pct, suitPowerPct,
+      body,
+      pitchDeg,
+      ...now,
+      suitO2Pct,
+      suitPowerPct,
       radiationMsvPerHr: activeDoseRate,
-      cumulativeMsv, spe, marsquake,
+      cumulativeMsv,
+      spe,
+      marsquake,
       resourceScore,
       commsDelayMin: earthMarsDelayMin(Date.now()),
     })
@@ -386,7 +394,12 @@ export function startExplore(
 
   const MOVE_KEYS = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift']
   const EMPTY_SCORE: ColonyScore = {
-    solar: null, ice: null, minerals: null, shelter: null, stability: null, wind: null,
+    solar: null,
+    ice: null,
+    minerals: null,
+    shelter: null,
+    stability: null,
+    wind: null,
   }
   const onKeyDown = (e: KeyboardEvent) => {
     const k = e.key.toLowerCase()

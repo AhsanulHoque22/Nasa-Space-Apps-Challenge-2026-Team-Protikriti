@@ -24,11 +24,11 @@ import { MARS_SPHERE } from './mars'
 
 /** Width × Depth × Height (metres) and fill colour for each module type. */
 const MODULE_SPECS: Record<ModuleType, { dims: [number, number, number]; color: Color }> = {
-  habitat:    { dims: [12,  12,  8],  color: Color.fromCssColorString('#e0dfe4') },
-  solar:      { dims: [20,  10,  0.3],color: Color.fromCssColorString('#1428a0') },
-  isru:       { dims: [4,   4,   6],  color: Color.fromCssColorString('#c36e32') },
-  greenhouse: { dims: [15,  8,   5],  color: Color.fromCssColorString('#4ab95a') },
-  garage:     { dims: [18,  12,  4],  color: Color.fromCssColorString('#d2cdb8') },
+  habitat: { dims: [12, 12, 8], color: Color.fromCssColorString('#e0dfe4') },
+  solar: { dims: [20, 10, 0.3], color: Color.fromCssColorString('#1428a0') },
+  isru: { dims: [4, 4, 6], color: Color.fromCssColorString('#c36e32') },
+  greenhouse: { dims: [15, 8, 5], color: Color.fromCssColorString('#4ab95a') },
+  garage: { dims: [18, 12, 4], color: Color.fromCssColorString('#d2cdb8') },
 }
 
 /**
@@ -76,7 +76,7 @@ export type ColonyLayer = {
 
 export function createColonyLayer(viewer: Viewer): ColonyLayer {
   const scene = viewer.scene
-  const primMap  = new Map<string, Primitive>()
+  const primMap = new Map<string, Primitive>()
   const modelMap = new Map<string, Model>()
   let modules: PlacedModule[] = []
   let layerShow = false
@@ -91,10 +91,17 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
       scene.primitives.add(p)
       ghostMap.set(type, p)
     }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return ghostMap.get(type)!
   }
 
-  function place(type: ModuleType, lon: number, lat: number, altM: number, score: ColonyScore): PlacedModule {
+  function place(
+    type: ModuleType,
+    lon: number,
+    lat: number,
+    altM: number,
+    score: ColonyScore,
+  ): PlacedModule {
     const id = crypto.randomUUID()
     modules.push({ id, type, lon, lat, score })
     const { dims } = MODULE_SPECS[type]
@@ -104,35 +111,45 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
     scene.primitives.add(prim)
     primMap.set(id, prim)
     void Model.fromGltfAsync({ url: `models/${type}.glb`, modelMatrix: prim.modelMatrix })
-      .then(m => {
-        if (!primMap.has(id)) return  // removed before load finished
+      .then((m) => {
+        if (!primMap.has(id)) return // removed before load finished
         scene.primitives.remove(prim)
         primMap.delete(id)
         m.show = layerShow
         scene.primitives.add(m)
         modelMap.set(id, m)
       })
-      .catch(() => { /* keep coloured box placeholder on GLB load failure */ })
+      .catch(() => {
+        /* keep coloured box placeholder on GLB load failure */
+      })
     return { id, type, lon, lat, score }
   }
 
   function remove(id: string): void {
     const prim = primMap.get(id)
-    if (prim) { scene.primitives.remove(prim); primMap.delete(id) }
+    if (prim) {
+      scene.primitives.remove(prim)
+      primMap.delete(id)
+    }
     const model = modelMap.get(id)
-    if (model) { scene.primitives.remove(model); modelMap.delete(id) }
+    if (model) {
+      scene.primitives.remove(model)
+      modelMap.delete(id)
+    }
     modules = modules.filter((m) => m.id !== id)
   }
 
   function clear(): void {
-    for (const prim  of primMap.values())  scene.primitives.remove(prim)
+    for (const prim of primMap.values()) scene.primitives.remove(prim)
     for (const model of modelMap.values()) scene.primitives.remove(model)
-    primMap.clear(); modelMap.clear()
+    primMap.clear()
+    modelMap.clear()
     modules = []
   }
 
   function setGhost(type: ModuleType, lon: number, lat: number, altM: number): void {
     if (activeGhostType && activeGhostType !== type) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       ghostMap.get(activeGhostType)!.show = false
     }
     activeGhostType = type
@@ -155,11 +172,15 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
     clear,
     setGhost,
     hideGhost,
-    get modules(): readonly PlacedModule[] { return modules },
-    get show(): boolean { return layerShow },
+    get modules(): readonly PlacedModule[] {
+      return modules
+    },
+    get show(): boolean {
+      return layerShow
+    },
     set show(v: boolean) {
       layerShow = v
-      for (const prim  of primMap.values())  prim.show  = v
+      for (const prim of primMap.values()) prim.show = v
       for (const model of modelMap.values()) model.show = v
       if (!v) hideGhost()
     },

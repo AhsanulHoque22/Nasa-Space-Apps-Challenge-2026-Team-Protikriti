@@ -62,7 +62,9 @@ export function openExplore(
     <p class="xh-warn" role="status" aria-live="polite"></p>
     <p class="xh-help">W/S or ↑/↓ walk · Shift run · Space jump · A/D strafe · ←/→ turn · drag to look · the map clock sets the time · Mars gravity 3.72 m/s² · terrain from ${site.source.split(',')[0]} · ${COORDINATE_FRAME}</p>
     <p class="xh-help" data-k="source"></p>
-    ${colony?.colonyLayer ? `
+    ${
+      colony?.colonyLayer
+        ? `
     <hr class="xh-divider"/>
     <div class="xh-build">
       <button type="button" class="xh-build-toggle">Build Colony (B)</button>
@@ -77,7 +79,9 @@ export function openExplore(
         <p class="xh-build-hint">Aim at terrain · <kbd>E</kbd> place · <kbd>B</kbd> exit build mode</p>
         <dl class="xh-budget" data-k="budget" hidden></dl>
       </div>
-    </div>` : ''}`
+    </div>`
+        : ''
+    }`
   document.body.append(hud)
   const field = (k: string) => hud.querySelector(`[data-k="${k}"]`) as HTMLElement
   const compass = hud.querySelector('.xh-compass') as HTMLElement
@@ -102,7 +106,9 @@ export function openExplore(
     alertEl.textContent = msg
     alertEl.hidden = false
     if (alertTimeout) clearTimeout(alertTimeout)
-    alertTimeout = setTimeout(() => { if (alertEl) alertEl.hidden = true }, 8000)
+    alertTimeout = setTimeout(() => {
+      if (alertEl) alertEl.hidden = true
+    }, 8000)
   }
 
   const session = startExplore(
@@ -110,9 +116,20 @@ export function openExplore(
     site,
     from,
     weather,
-    ({ body, sunElDeg, lmstHours, conditions: c,
-       suitO2Pct, suitPowerPct, radiationMsvPerHr, cumulativeMsv,
-       spe, marsquake, resourceScore, commsDelayMin }) => {
+    ({
+      body,
+      sunElDeg,
+      lmstHours,
+      conditions: c,
+      suitO2Pct,
+      suitPowerPct,
+      radiationMsvPerHr,
+      cumulativeMsv,
+      spe,
+      marsquake,
+      resourceScore,
+      commsDelayMin,
+    }) => {
       const p = formatMarsPosition(body.lon, body.lat, sampleGrid(site.grid, body.lon, body.lat))
       compass.textContent = `${COMPASS[Math.round(body.headingDeg / 45) % 8]} ${Math.round(body.headingDeg)}°`
       field('pos').textContent = `${p.lat}, ${p.lon}`
@@ -155,15 +172,19 @@ export function openExplore(
       field('comms').textContent = `${commsDelayMin.toFixed(1)} min one-way to Earth`
 
       // Alerts (assertive — screen-reader + on-screen)
-      if (spe && radiationMsvPerHr > 1) showAlert('⚠ SOLAR PARTICLE EVENT — seek shielded shelter immediately')
-      if (marsquake) showAlert(`🌋 Marsquake M${marsquake.mag.toFixed(1)} · ~${Math.round(marsquake.distKm)} km away`)
+      if (spe && radiationMsvPerHr > 1)
+        showAlert('⚠ SOLAR PARTICLE EVENT — seek shielded shelter immediately')
+      if (marsquake)
+        showAlert(
+          `🌋 Marsquake M${marsquake.mag.toFixed(1)} · ~${Math.round(marsquake.distKm)} km away`,
+        )
       if (suitO2Pct < 10) showAlert('🔴 CRITICAL: Suit O₂ below 10 % — return to habitat now')
       else if (suitO2Pct < 20) showAlert('⚠ Suit O₂ below 20 % — return to habitat')
 
       // Resources at position
       if (resourceScore && resRows) {
         resRows.hidden = false
-        const score = (v: number | null) => v === null ? '–' : `${v}/100`
+        const score = (v: number | null) => (v === null ? '–' : `${v}/100`)
         field('r-solar').textContent = score(resourceScore.solar)
         field('r-ice').textContent = score(resourceScore.ice)
         field('r-min').textContent = score(resourceScore.minerals)
@@ -182,17 +203,19 @@ export function openExplore(
       document.body.classList.remove('exploring')
       onExit()
     },
-    colony ? {
-      ...colony,
-      onPlace() {
-        colony.onPlace?.()
-        if (budgetEl && colony.colonyLayer) {
-          const mods = colony.colonyLayer.modules
-          budgetEl.hidden = mods.length === 0
-          // Budget readout rows are updated by the caller via colony.onPlace
+    colony
+      ? {
+          ...colony,
+          onPlace() {
+            colony.onPlace?.()
+            if (budgetEl && colony.colonyLayer) {
+              const mods = colony.colonyLayer.modules
+              budgetEl.hidden = mods.length === 0
+              // Budget readout rows are updated by the caller via colony.onPlace
+            }
+          },
         }
-      },
-    } : undefined,
+      : undefined,
   )
   hud.querySelector('.wx-close')?.addEventListener('click', () => session.stop())
 
@@ -282,7 +305,10 @@ export function openExplore(
 
     // Clean up overlay when the HUD is removed from DOM (session ended)
     new MutationObserver((_, obs) => {
-      if (!document.body.contains(hud)) { overlay.remove(); obs.disconnect() }
+      if (!document.body.contains(hud)) {
+        overlay.remove()
+        obs.disconnect()
+      }
     }).observe(document.body, { childList: true })
   }
 

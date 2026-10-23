@@ -1294,7 +1294,9 @@ body.exploring #ui {
   line-height: 1;
   padding: 2px 4px;
 }
-.xh-sf-close:hover { color: var(--text); }
+.xh-sf-close:hover {
+  color: var(--text);
+}
 .xh-sf-iframe {
   flex: 1;
   width: 100%;
