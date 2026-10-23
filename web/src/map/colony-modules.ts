@@ -11,6 +11,7 @@ import {
   GeometryInstance,
   HeadingPitchRoll,
   Matrix4,
+  Model,
   PerInstanceColorAppearance,
   Primitive,
   Transforms,
@@ -75,6 +76,7 @@ export type ColonyLayer = {
 export function createColonyLayer(viewer: Viewer): ColonyLayer {
   const scene = viewer.scene
   const primMap = new Map<string, Primitive>()
+  const modelMap = new Map<string, Model>()
   let modules: PlacedModule[] = []
   let layerShow = false
 
@@ -100,22 +102,32 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
     prim.show = layerShow
     scene.primitives.add(prim)
     primMap.set(id, prim)
+    void Model.fromGltfAsync({ url: `models/${type}.glb`, modelMatrix: prim.modelMatrix })
+      .then(m => {
+        if (!primMap.has(id)) return  // module removed before GLB finished loading
+        scene.primitives.remove(prim)
+        primMap.delete(id)
+        m.show = layerShow
+        scene.primitives.add(m)
+        modelMap.set(id, m)
+      })
+      .catch(() => { /* keep geometry placeholder on load failure */ })
     return { id, type, lon, lat, score }
-    // GLB path (activate once models/ folder is ready):
-    // void Model.fromGltfAsync({ url: `models/${type}.glb`, modelMatrix: prim.modelMatrix })
-    //   .then(m => { scene.primitives.remove(prim); scene.primitives.add(m) })
-    //   .catch(() => { /* keep geometry placeholder */ })
   }
 
   function remove(id: string): void {
     const prim = primMap.get(id)
     if (prim) { scene.primitives.remove(prim); primMap.delete(id) }
+    const model = modelMap.get(id)
+    if (model) { scene.primitives.remove(model); modelMap.delete(id) }
     modules = modules.filter((m) => m.id !== id)
   }
 
   function clear(): void {
     for (const prim of primMap.values()) scene.primitives.remove(prim)
     primMap.clear()
+    for (const model of modelMap.values()) scene.primitives.remove(model)
+    modelMap.clear()
     modules = []
   }
 
@@ -148,6 +160,7 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
     set show(v: boolean) {
       layerShow = v
       for (const prim of primMap.values()) prim.show = v
+      for (const model of modelMap.values()) model.show = v
       if (!v) hideGhost()
     },
   }
