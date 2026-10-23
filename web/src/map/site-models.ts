@@ -18,14 +18,11 @@ type Spec = {
 
 // Perseverance landing: 77.4508°E 18.4446°N (Mars 2020 EDL, JPL)
 // Ingenuity deployed ~60 m east of Perseverance at the Wright Brothers Field
-// Habitat Demo Unit placed ~200 m NW as a future colony concept
 // Viking 2 placed at grid centre — actual landing (134.085°E 48.27°N) is outside the HiRISE patch
 const SPECS: Partial<Record<string, Spec[]>> = {
   jezero: [
     { url: 'models/perseverance.glb', lon: 77.4508, lat: 18.4446 },
     { url: 'models/ingenuity.glb', lon: 77.4514, lat: 18.4447 },
-    { url: 'models/habitat-demo-1.glb', lon: 77.449, lat: 18.4462 },
-    { url: 'models/habitat-demo-2.glb', lon: 77.4499, lat: 18.4462 },
   ],
   viking2: [{ url: 'models/viking-lander.glb', lon: 134.2856, lat: 47.6603 }],
 }

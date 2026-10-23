@@ -262,55 +262,5 @@ export function openExplore(
     haze.focus()
   })
 
-  // Mars Base 3D model viewer — only for Jezero (the reference colony site)
-  if (site.id === 'jezero') {
-    const overlay = document.createElement('div')
-    overlay.className = 'xh-sketchfab'
-    overlay.hidden = true
-    overlay.innerHTML = `
-      <div class="xh-sf-header">
-        <span>Mars Base — 3D Model</span>
-        <button type="button" class="xh-sf-close" aria-label="Close">✕</button>
-      </div>
-      <iframe
-        title="Mars Base"
-        class="xh-sf-iframe"
-        frameborder="0"
-        allowfullscreen
-        mozallowfullscreen="true"
-        webkitallowfullscreen="true"
-        allow="autoplay; fullscreen; xr-spatial-tracking"
-        src="https://sketchfab.com/models/2bc6660c63b24158bdded20ff5d2235e/embed">
-      </iframe>`
-    document.body.append(overlay)
-
-    const marsBaseBtn = document.createElement('button')
-    marsBaseBtn.type = 'button'
-    marsBaseBtn.className = 'xh-storm xh-marsbase-btn'
-    marsBaseBtn.setAttribute('aria-pressed', 'false')
-    marsBaseBtn.textContent = 'View Mars Base 3D Model'
-    hud.append(marsBaseBtn)
-
-    marsBaseBtn.addEventListener('click', () => {
-      const open = overlay.hidden
-      overlay.hidden = !open
-      marsBaseBtn.setAttribute('aria-pressed', String(open))
-      marsBaseBtn.textContent = open ? 'Hide Mars Base Model' : 'View Mars Base 3D Model'
-    })
-    overlay.querySelector('.xh-sf-close')?.addEventListener('click', () => {
-      overlay.hidden = true
-      marsBaseBtn.setAttribute('aria-pressed', 'false')
-      marsBaseBtn.textContent = 'View Mars Base 3D Model'
-    })
-
-    // Clean up overlay when the HUD is removed from DOM (session ended)
-    new MutationObserver((_, obs) => {
-      if (!document.body.contains(hud)) {
-        overlay.remove()
-        obs.disconnect()
-      }
-    }).observe(document.body, { childList: true })
-  }
-
   return session
 }
