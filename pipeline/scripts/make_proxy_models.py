@@ -23,6 +23,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _colored(mesh: trimesh.Trimesh, rgba: tuple[int, int, int, int]) -> trimesh.Trimesh:
     mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh, vertex_colors=rgba)
     return mesh
@@ -51,6 +52,7 @@ def _rotate_z(mesh: trimesh.Trimesh, deg: float) -> trimesh.Trimesh:
 # Habitat  — white pressure cylinder with two orange end-rings
 #            (represents an inflatable Mars habitat module like BEAM)
 # ---------------------------------------------------------------------------
+
 
 def make_habitat() -> None:
     print("habitat …")
@@ -81,6 +83,7 @@ def make_habitat() -> None:
 # Solar Array  — two dark-blue panels on a thin pole (like InSight/Phoenix)
 # ---------------------------------------------------------------------------
 
+
 def make_solar_array() -> None:
     print("solar-array …")
     # mast: thin cylinder
@@ -90,7 +93,7 @@ def make_solar_array() -> None:
 
     # two panels, one each side
     panel = trimesh.creation.box([1.8, 0.7, 0.04])  # flat panel
-    _colored(panel, (20, 40, 160, 255))   # deep blue (solar cell colour)
+    _colored(panel, (20, 40, 160, 255))  # deep blue (solar cell colour)
 
     panel_l = panel.copy()
     panel_l.apply_translation([-0.95, 0, 1.0])
@@ -113,6 +116,7 @@ def make_solar_array() -> None:
 # ---------------------------------------------------------------------------
 # ISRU  — MOXIE-style unit: main box + two small cylinders (O₂ tanks)
 # ---------------------------------------------------------------------------
+
 
 def make_isru() -> None:
     print("isru …")
@@ -144,20 +148,19 @@ def make_isru() -> None:
 # Greenhouse  — hemispherical dome on a cylindrical base (green glass)
 # ---------------------------------------------------------------------------
 
+
 def make_greenhouse() -> None:
     print("greenhouse …")
     # cylindrical base
     base = trimesh.creation.cylinder(radius=0.9, height=0.35, sections=32)
     base.apply_translation([0, 0, 0.175])
-    _colored(base, (160, 180, 155, 255))   # muted green base
+    _colored(base, (160, 180, 155, 255))  # muted green base
 
     # dome: top half of a sphere
     sphere = trimesh.creation.icosphere(subdivisions=3, radius=0.92)
     verts = sphere.vertices
     top_mask = verts[:, 2] >= 0
-    top_faces = np.array([
-        f for f in sphere.faces if all(top_mask[v] for v in f)
-    ])
+    top_faces = np.array([f for f in sphere.faces if all(top_mask[v] for v in f)])
     if len(top_faces):
         dome = trimesh.Trimesh(vertices=verts, faces=top_faces)
         dome.apply_translation([0, 0, 0.35])
@@ -176,6 +179,7 @@ def make_greenhouse() -> None:
 # Garage / Pressurised Rover Bay  — wide low box with a ridge-line roof
 # ---------------------------------------------------------------------------
 
+
 def make_garage() -> None:
     print("garage …")
     # main building body
@@ -185,15 +189,11 @@ def make_garage() -> None:
 
     # ridge roof (triangular prism approximated as a thin tilted box)
     roof_l = trimesh.creation.box([2.04, 0.76, 0.08])
-    roof_l.apply_transform(
-        tf.rotation_matrix(np.radians(25), [1, 0, 0], point=[0, -0.35, 0.80])
-    )
+    roof_l.apply_transform(tf.rotation_matrix(np.radians(25), [1, 0, 0], point=[0, -0.35, 0.80]))
     _colored(roof_l, (170, 165, 155, 255))
 
     roof_r = trimesh.creation.box([2.04, 0.76, 0.08])
-    roof_r.apply_transform(
-        tf.rotation_matrix(np.radians(-25), [1, 0, 0], point=[0, 0.35, 0.80])
-    )
+    roof_r.apply_transform(tf.rotation_matrix(np.radians(-25), [1, 0, 0], point=[0, 0.35, 0.80]))
     _colored(roof_r, (170, 165, 155, 255))
 
     # door (dark rectangle on front face)
