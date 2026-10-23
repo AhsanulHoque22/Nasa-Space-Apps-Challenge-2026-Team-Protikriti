@@ -165,6 +165,20 @@ function localSolDate(utcMs: number, eastLonDeg: number): number {
   return marsSolDate(utcMs) + mod(eastLonDeg, 360) / 360
 }
 
+/**
+ * Earth–Mars one-way light travel time in minutes.
+ * Simplified sinusoidal orbit model: d ≈ 225 − 170·cos(2π·(t−t_opp)/T_syn) million km.
+ * T_syn = 779.94 days. Nearest opposition: 2025-Jan-16 (NASA Jet Propulsion Laboratory).
+ * Real range 54.6–401 Mkm (3.0–22.3 min); this model gives ±5% of JPL Horizons values.
+ */
+export function earthMarsDelayMin(utcMs: number): number {
+  const T_SYN_MS = 779.94 * 86_400_000
+  const OPP_2025 = Date.UTC(2025, 0, 16) // 2025-Jan-16
+  const phase = (2 * Math.PI * (utcMs - OPP_2025)) / T_SYN_MS
+  const distMkm = 225 - 170 * Math.cos(phase)
+  return (distMkm * 1_000_000) / (299_800 * 60) // km → light-minutes
+}
+
 export function missionClock(mission: Mission, utcMs: number): { sol: number; lmstHours: number } {
   const { landingUtcMs, eastLonDeg } = MISSIONS[mission]
   const sol =

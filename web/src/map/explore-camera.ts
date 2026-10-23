@@ -8,6 +8,8 @@ import {
   LabelCollection,
   type Viewer,
 } from 'cesium'
+import { earthMarsDelayMin } from '../core/mars-time'
+import { GCR_SURFACE_MSV_HR } from '../core/surface-conditions'
 import type { ColonyLayer } from './colony-modules'
 import type { ModuleType } from '../core/colony-budget'
 import type { ColonyScore } from '../core/colony-score'
@@ -52,6 +54,19 @@ export type ExploreFrame = {
   sunElDeg: number
   lmstHours: number
   conditions: Conditions
+  // Suit consumables
+  suitO2Pct: number
+  suitPowerPct: number
+  // Radiation
+  radiationMsvPerHr: number   // current dose rate including SPE spike
+  cumulativeMsv: number        // accumulated this EVA
+  spe: boolean                 // Solar Particle Event active
+  // Seismic
+  marsquake: { mag: number; distKm: number } | null
+  // Resources at current position
+  resourceScore: ColonyScore | null
+  // Communications
+  commsDelayMin: number
 }
 
 export type ExploreSession = {
@@ -138,6 +153,36 @@ export function startExplore(
   let buildType: ModuleType = 'habitat'
   let ghostPos: { lon: number; lat: number; altM: number } | null = null
   if (colony?.colonyLayer) colony.colonyLayer.show = true
+
+  // Suit consumables — NASA xEMU PLSS baseline: 8-hour O2, 8-hour power (ESAS 2005)
+  // Depletion: base rate + activity factor proportional to walking speed
+  let suitO2Pct = 100
+  let suitPowerPct = 100
+  const O2_BASE_PCT_S = 100 / (8 * 3600)           // 8 h full charge
+  const PWR_BASE_PCT_S = 100 / (8 * 3600)           // 8 h full charge
+  const O2_WALK_PCT_S_PER_MS = O2_BASE_PCT_S * 2    // 2× base per 1 m/s of walking
+
+  // Radiation tracking
+  let cumulativeMsv = 0
+  let spe = false            // Solar Particle Event active
+  let speRemainingS = 0      // seconds left in current SPE
+  // SPE dose rate: median large event ~0.5 mSv/hr measured by Curiosity RAD
+  // (e.g. Sep 2017 event; Zeitlin et al. 2018). Large events 5–50 mSv/hr.
+  const SPE_DOSE_MSV_HR = 5.0
+  // ponytail: demo frequency 1/5 min; real rate ~2 large SPEs/year (NASA HEOMD SPE table)
+  const SPE_RATE_PER_S = 1 / 300
+  const SPE_DURATION_S = 20   // demo duration; real events last hours
+
+  // Marsquakes (InSight SEIS catalog, Giardini et al. 2020, Ceylan et al. 2022)
+  // ~3/week above M2 in active seasons; ponytail: demo rate 1/3 min
+  let marsquake: ExploreFrame['marsquake'] = null
+  let marsquakeRemainingS = 0
+  const QUAKE_RATE_PER_S = 1 / 180   // ponytail: real 3/(7×86400) ≈ 5e-6/s; demo 1/180
+  const QUAKE_DISPLAY_S = 8
+
+  // Resources at walker position (refreshed every ~1 s)
+  let resourceScore: ColonyScore | null = null
+  let resourceTick = 0
 
   let stormReplay = false
   let hazeTau: number | null = null
@@ -265,7 +310,50 @@ export function startExplore(
     updateDevils(dtS, Date.now())
     atmosphere.setState(atmosphereState())
     place(dtS)
-    onUpdate({ body, pitchDeg, ...now })
+
+    // Suit consumables
+    const walkRate = body.grounded ? body.speedMs : 0
+    suitO2Pct = Math.max(0, suitO2Pct - (O2_BASE_PCT_S + O2_WALK_PCT_S_PER_MS * walkRate) * dtS * 100)
+    suitPowerPct = Math.max(0, suitPowerPct - PWR_BASE_PCT_S * dtS * 100)
+
+    // Radiation dose accumulation
+    const activeDoseRate = spe ? SPE_DOSE_MSV_HR : GCR_SURFACE_MSV_HR
+    cumulativeMsv += activeDoseRate * dtS / 3600
+
+    // SPE lifecycle
+    if (spe) {
+      speRemainingS -= dtS
+      if (speRemainingS <= 0) spe = false
+    } else if (Math.random() < SPE_RATE_PER_S * dtS) {
+      spe = true
+      speRemainingS = SPE_DURATION_S
+    }
+
+    // Marsquakes
+    if (marsquakeRemainingS > 0) {
+      marsquakeRemainingS -= dtS
+      if (marsquakeRemainingS <= 0) marsquake = null
+    } else if (Math.random() < QUAKE_RATE_PER_S * dtS) {
+      // Magnitude from InSight catalog distribution: mostly 2.0–3.5, tail to 5.0
+      const mag = 2.0 + (-Math.log(1 - Math.random())) * 0.7
+      const distKm = 50 + Math.random() * 450
+      marsquake = { mag: Math.min(5.0, mag), distKm }
+      marsquakeRemainingS = QUAKE_DISPLAY_S
+    }
+
+    // Resources at position (update ~once per second)
+    if (++resourceTick % 60 === 0 && colony?.scoreAt) {
+      resourceScore = colony.scoreAt(body.lon, body.lat)
+    }
+
+    onUpdate({
+      body, pitchDeg, ...now,
+      suitO2Pct, suitPowerPct,
+      radiationMsvPerHr: activeDoseRate,
+      cumulativeMsv, spe, marsquake,
+      resourceScore,
+      commsDelayMin: earthMarsDelayMin(Date.now()),
+    })
     // Update ghost aim position every 3rd frame (terrain pick is ~1 ms; throttle anyway)
     if (buildMode && colony?.colonyLayer && frame % 3 === 0) {
       const canvas = scene.canvas

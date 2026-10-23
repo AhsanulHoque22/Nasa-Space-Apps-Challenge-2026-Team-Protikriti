@@ -35,11 +35,27 @@ export function openExplore(
       <div><dt>Local time</dt><dd data-k="time"></dd></div>
       <div><dt>Sky</dt><dd data-k="sky"></dd></div>
       <div><dt>Air</dt><dd data-k="air"></dd></div>
+      <div><dt>Frost</dt><dd data-k="frost">–</dd></div>
       <div><dt>Wind</dt><dd data-k="wind"></dd></div>
       <div><dt>Dust devils</dt><dd data-k="devils"></dd></div>
       <div><dt>Pace</dt><dd data-k="pace"></dd></div>
       <div><dt>Walked</dt><dd data-k="dist"></dd></div>
     </dl>
+    <dl class="clock-rows xh-rows xh-env">
+      <div class="xh-suit-row"><dt>Suit O₂</dt><dd data-k="o2"></dd></div>
+      <div class="xh-suit-row"><dt>Suit power</dt><dd data-k="pwr"></dd></div>
+      <div><dt>Radiation</dt><dd data-k="rad"></dd></div>
+      <div><dt>Dose (EVA)</dt><dd data-k="dose"></dd></div>
+      <div><dt>Earth comms</dt><dd data-k="comms"></dd></div>
+    </dl>
+    <dl class="clock-rows xh-rows xh-res" hidden>
+      <div><dt>Solar potential</dt><dd data-k="r-solar"></dd></div>
+      <div><dt>Ice proximity</dt><dd data-k="r-ice"></dd></div>
+      <div><dt>Minerals</dt><dd data-k="r-min"></dd></div>
+      <div><dt>Shelter score</dt><dd data-k="r-shelt"></dd></div>
+      <div><dt>Ground stability</dt><dd data-k="r-stab"></dd></div>
+    </dl>
+    <p class="xh-alert" role="alert" aria-live="assertive" hidden></p>
     <button type="button" class="xh-storm" aria-pressed="false">Replay the 2018 dust storm</button>
     <label class="xh-haze"><span>Haze by hand (look only)</span><input type="range" min="0.2" max="5" step="0.1" value="0.5"/><output>actual</output></label>
     <button type="button" class="quiet xh-haze-reset" hidden>Actual sky</button>
@@ -76,14 +92,27 @@ export function openExplore(
   const budgetEl = hud.querySelector<HTMLElement>('[data-k="budget"]')
   const buildPanel = hud.querySelector<HTMLElement>('.xh-build-panel')
   const buildToggle = hud.querySelector<HTMLButtonElement>('.xh-build-toggle')
+  const alertEl = hud.querySelector<HTMLElement>('.xh-alert')
+  const resRows = hud.querySelector<HTMLElement>('.xh-res')
   let activeBuildType: ModuleType = 'habitat'
+  let alertTimeout: ReturnType<typeof setTimeout> | null = null
+
+  function showAlert(msg: string): void {
+    if (!alertEl) return
+    alertEl.textContent = msg
+    alertEl.hidden = false
+    if (alertTimeout) clearTimeout(alertTimeout)
+    alertTimeout = setTimeout(() => { if (alertEl) alertEl.hidden = true }, 8000)
+  }
 
   const session = startExplore(
     viewer,
     site,
     from,
     weather,
-    ({ body, sunElDeg, lmstHours, conditions: c }) => {
+    ({ body, sunElDeg, lmstHours, conditions: c,
+       suitO2Pct, suitPowerPct, radiationMsvPerHr, cumulativeMsv,
+       spe, marsquake, resourceScore, commsDelayMin }) => {
       const p = formatMarsPosition(body.lon, body.lat, sampleGrid(site.grid, body.lon, body.lat))
       compass.textContent = `${COMPASS[Math.round(body.headingDeg / 45) % 8]} ${Math.round(body.headingDeg)}°`
       field('pos').textContent = `${p.lat}, ${p.lon}`
@@ -94,6 +123,7 @@ export function openExplore(
         `${c.sky} · dust τ ${c.tau.toFixed(1)} · visibility ${c.visibilityKm >= 10 ? Math.round(c.visibilityKm) : c.visibilityKm.toFixed(1)} km`
       field('air').textContent =
         `${Math.round(c.airTempC)} °C${c.pressurePa === null ? '' : ` · ${c.pressurePa} Pa`}`
+      field('frost').textContent = c.frost ?? 'none'
       field('wind').textContent = `${Math.round(c.windMs)} m/s`
       field('devils').textContent =
         c.dustDevilsPerHour >= 0.05 ? `~${c.dustDevilsPerHour.toFixed(1)} per hour` : 'none now'
@@ -104,6 +134,43 @@ export function openExplore(
       field('source').textContent = station
         ? `Conditions: ${c.source}; dust from rover sky records.`
         : `Conditions: stand-in seasonal climatology (Jezero's model). This app has no weather record for ${site.name.split(' (')[0]}, so sky, air and wind here are not measured.`
+
+      // Suit consumables
+      const o2El = field('o2')
+      o2El.textContent = `${suitO2Pct.toFixed(1)} %`
+      o2El.className = suitO2Pct < 10 ? 'critical' : suitO2Pct < 20 ? 'warn' : ''
+      const pwrEl = field('pwr')
+      pwrEl.textContent = `${suitPowerPct.toFixed(1)} %`
+      pwrEl.className = suitPowerPct < 10 ? 'critical' : suitPowerPct < 20 ? 'warn' : ''
+
+      // Radiation
+      const radEl = field('rad')
+      radEl.textContent = spe
+        ? `${radiationMsvPerHr.toFixed(2)} mSv/hr ⚠ SPE`
+        : `${radiationMsvPerHr.toFixed(4)} mSv/hr (GCR baseline)`
+      radEl.className = spe ? 'critical' : ''
+      field('dose').textContent = `${cumulativeMsv.toFixed(4)} mSv (career limit 600 mSv)`
+
+      // Comms
+      field('comms').textContent = `${commsDelayMin.toFixed(1)} min one-way to Earth`
+
+      // Alerts (assertive — screen-reader + on-screen)
+      if (spe && radiationMsvPerHr > 1) showAlert('⚠ SOLAR PARTICLE EVENT — seek shielded shelter immediately')
+      if (marsquake) showAlert(`🌋 Marsquake M${marsquake.mag.toFixed(1)} · ~${Math.round(marsquake.distKm)} km away`)
+      if (suitO2Pct < 10) showAlert('🔴 CRITICAL: Suit O₂ below 10 % — return to habitat now')
+      else if (suitO2Pct < 20) showAlert('⚠ Suit O₂ below 20 % — return to habitat')
+
+      // Resources at position
+      if (resourceScore && resRows) {
+        resRows.hidden = false
+        const score = (v: number | null) => v === null ? '–' : `${v}/100`
+        field('r-solar').textContent = score(resourceScore.solar)
+        field('r-ice').textContent = score(resourceScore.ice)
+        field('r-min').textContent = score(resourceScore.minerals)
+        field('r-shelt').textContent = score(resourceScore.shelter)
+        field('r-stab').textContent = score(resourceScore.stability)
+      }
+
       if (body.warning !== lastWarning) {
         warn.textContent = body.warning ?? ''
         warn.classList.toggle('active', !!body.warning)

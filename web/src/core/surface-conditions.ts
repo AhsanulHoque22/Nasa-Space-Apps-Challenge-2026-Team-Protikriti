@@ -107,6 +107,25 @@ export function windMs(lmstH: number, tau: number): number {
   return 2 + 6 * day + Math.min(12, 3 * Math.max(0, tau - 1))
 }
 
+/**
+ * GCR surface dose rate from Curiosity RAD instrument (Hassler et al. 2014, Science 343, 1244797).
+ * 0.64 mSv/day = 0.0267 mSv/hr. Jezero is slightly higher elevation but similar shield depth.
+ */
+export const GCR_SURFACE_MSV_HR = 0.0267
+
+/**
+ * CO₂ frost deposits when surface T < −125 °C (148 K); water ice sublimates visibly
+ * below −60 °C (213 K). Both values from Mars Climate Database / Forget et al. 1999.
+ */
+const CO2_FROST_C = -125
+const H2O_FROST_C = -60
+
+export function frostRisk(airTempC: number): 'CO₂ frost forming' | 'water ice sublimating' | null {
+  if (airTempC < CO2_FROST_C) return 'CO₂ frost forming'
+  if (airTempC < H2O_FROST_C) return 'water ice sublimating'
+  return null
+}
+
 export type Conditions = {
   tau: number
   event: string | null
@@ -117,6 +136,10 @@ export type Conditions = {
   airTempC: number
   pressurePa: number | null
   source: string
+  /** GCR surface dose rate (mSv/hr); Hassler et al. 2014 RAD baseline. */
+  radiationMsvPerHr: number
+  /** Ground frost state based on current air temperature. */
+  frost: ReturnType<typeof frostRisk>
 }
 
 // Typical sol extremes when no reading covers the date (MEDA at Jezero, REMS at Gale).
@@ -144,6 +167,7 @@ export function surfaceConditions(at: {
     reading?.minC != null && reading.maxC != null
       ? { minC: reading.minC, maxC: reading.maxC }
       : CLIMATE[at.site]
+  const tC = airTempC(range.minC, range.maxC, at.lmstHours)
   return {
     tau,
     event,
@@ -151,11 +175,13 @@ export function surfaceConditions(at: {
     visibilityKm: visibilityKm(tau),
     windMs: windMs(at.lmstHours, tau),
     dustDevilsPerHour: dustDevilsPerHour(at.site, at.ls, at.lmstHours),
-    airTempC: airTempC(range.minC, range.maxC, at.lmstHours),
+    airTempC: tC,
     pressurePa: reading?.pressurePa ?? null,
     source: reading
       ? `${at.site === 'gale' ? 'REMS' : 'MEDA'} station, sol ${reading.sol}`
       : 'Seasonal climatology',
+    radiationMsvPerHr: GCR_SURFACE_MSV_HR,
+    frost: frostRisk(tC),
   }
 }
 
@@ -172,6 +198,7 @@ export function underStorm(c: Conditions, lmstHours: number): Conditions {
     visibilityKm: visibilityKm(STORM_2018_TAU),
     windMs: windMs(lmstHours, STORM_2018_TAU),
     dustDevilsPerHour: 0, // storms shut down the convection that makes dust devils
+    // GCR is unaffected by dust; storm wind increases mechanical/electrostatic suit hazards
   }
 }
 
