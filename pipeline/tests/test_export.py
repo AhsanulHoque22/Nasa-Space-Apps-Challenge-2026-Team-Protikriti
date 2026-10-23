@@ -60,5 +60,5 @@ def test_overlay_safe_is_transparent_hazard_is_visible(tmp_path: Path) -> None:
     alpha = read_alpha(out)
     assert alpha[0, 0] == 0
     assert alpha[0, 1] > 0
-    assert alpha[1, 0] > 0  # nodata is a hazard, never "safe"
+    assert alpha[1, 0] == 0  # nodata (NaN slope) is transparent, not a hazard
     assert alpha[1, 1] == 0
