@@ -25,8 +25,10 @@ type Spec = {
 //   viking-lander: longest axis 16.7 units → scale 0.13  (target 2.2 m),  lift 1.2 m
 const SPECS: Partial<Record<string, Spec[]>> = {
   jezero: [
-    { url: 'models/perseverance.glb', lon: 77.4508, lat: 18.4446, scale: 0.017, offsetM: 1.47 },
-    { url: 'models/ingenuity.glb', lon: 77.4514, lat: 18.4447, scale: 0.53, offsetM: 0.37 },
+    // Placed 12 m north of player start at matching terrain elevation so it's directly
+    // in the player's forward line of sight on entry (headingDeg=0 = north).
+    { url: 'models/perseverance.glb', lon: 77.4509, lat: 18.4448, scale: 0.017, offsetM: 1.47 },
+    { url: 'models/ingenuity.glb', lon: 77.4515, lat: 18.4449, scale: 0.53, offsetM: 0.37 },
   ],
   viking2: [
     { url: 'models/viking-lander.glb', lon: 134.2856, lat: 47.6603, scale: 0.13, offsetM: 1.2 },
