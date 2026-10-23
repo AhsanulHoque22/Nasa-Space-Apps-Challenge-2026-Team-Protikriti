@@ -42,9 +42,9 @@ def export_grid(dem: Dem, out_dir: Path, max_safe_slope_deg: float) -> None:
 def export_slope_overlay(
     slope_deg: NDArray[np.float32], out_path: Path, max_safe_slope_deg: float
 ) -> None:
-    """RGBA PNG: transparent where safe; hatched hazard tint where too steep or nodata."""
+    """RGBA PNG: transparent where safe or nodata; hatched hazard tint where too steep."""
     height, width = slope_deg.shape
-    hazard = ~(slope_deg <= max_safe_slope_deg)  # NaN compares False -> hazard
+    hazard = slope_deg > max_safe_slope_deg  # NaN compares False -> transparent (not red)
     rows, cols = np.indices((height, width))
     stripe = ((rows + cols) // (STRIPE_PERIOD_PX // 2)) % 2 == 0
     alpha = np.where(stripe, HAZARD_ALPHA_STRONG, HAZARD_ALPHA_WEAK) * hazard
