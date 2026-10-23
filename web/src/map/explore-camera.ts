@@ -6,6 +6,7 @@ import {
   Cartographic,
   Math as CesiumMath,
   LabelCollection,
+  Model,
   type Viewer,
 } from 'cesium'
 import { earthMarsDelayMin } from '../core/mars-time'
@@ -26,6 +27,14 @@ import {
 import type { SolWeather } from '../core/weather'
 import { type DustDevil, createMarsAtmosphere } from './mars-atmosphere'
 import { loadSiteModels } from './site-models'
+import {
+  type VehicleState,
+  createVehicle,
+  stepVehicle,
+  vehicleMatrix,
+  distM as vehicleDistM,
+  WHEEL_RADIUS_M,
+} from './explore-vehicle'
 import { MARS_SPHERE } from './mars'
 import { sceneTimeMs } from './sun'
 import { VERTICAL_EXAGGERATION } from './viewer'
@@ -145,6 +154,23 @@ export function startExplore(
   void weather.then((s) => (sols = s)).catch(() => undefined) // climatology until it arrives
   const groundAt = (lon: number, lat: number) => sampleGrid(site.grid, lon, lat)
   const removeSiteModels = loadSiteModels(scene, site.id, groundAt)
+
+  // Driveable rover — spawned 20 m east of the player's start position
+  let vehicle: VehicleState | null = null
+  let inVehicle = false
+  let vehicleModel: Model | null = null
+  const roverLon = from.lon + 20 / (M_PER_DEG * Math.cos((from.lat * Math.PI) / 180))
+  const roverAlt = groundAt(roverLon, from.lat)
+  if (isFinite(roverAlt)) {
+    vehicle = createVehicle(roverLon, from.lat, roverAlt)
+    void Model.fromGltfAsync({ url: 'models/mars_rover.glb', modelMatrix: vehicleMatrix(vehicle) })
+      .then((m) => {
+        scene.primitives.add(m)
+        vehicleModel = m
+      })
+      .catch(() => undefined)
+  }
+
   let body = restingBody(
     { lon: from.lon, lat: from.lat, headingDeg: 0, distanceM: 0, warning: null },
     groundAt(from.lon, from.lat),
@@ -270,6 +296,23 @@ export function startExplore(
   }
 
   const place = (dtS: number) => {
+    if (inVehicle && vehicle) {
+      // Third-person camera: 12 m behind, 4 m above the rover
+      const hRad = CesiumMath.toRadians(vehicle.headingDeg)
+      const cosLat = Math.cos((vehicle.lat * Math.PI) / 180)
+      const camLon = vehicle.lon - (12 * Math.sin(hRad)) / (M_PER_DEG * cosLat)
+      const camLat = vehicle.lat - (12 * Math.cos(hRad)) / M_PER_DEG
+      viewer.camera.setView({
+        destination: Cartesian3.fromDegrees(
+          camLon,
+          camLat,
+          vehicle.altM + WHEEL_RADIUS_M + 4,
+          MARS_SPHERE,
+        ),
+        orientation: { heading: hRad, pitch: CesiumMath.toRadians(-12), roll: 0 },
+      })
+      return
+    }
     // The rendered mesh interpolates coarser than the DEM point; stand above whichever is higher
     // so the eye never ends up inside the terrain.
     const mesh = globe.getHeight(Cartographic.fromDegrees(body.lon, body.lat))
@@ -309,10 +352,16 @@ export function startExplore(
   const tick = (t: number) => {
     const dtS = Math.min(0.1, (t - last) / 1000) // clamp after tab switches
     last = t
-    const before = body
-    body = stepBody(body, input(dtS), dtS, site.grid)
-    jumpQueued = false
-    if (!before.grounded && body.grounded) landingDipM = Math.min(0.25, -before.vzMs * 0.05)
+
+    if (inVehicle && vehicle) {
+      vehicle = stepVehicle(vehicle, keys, dtS, groundAt, M_PER_DEG)
+      if (vehicleModel) vehicleModel.modelMatrix = vehicleMatrix(vehicle)
+    } else {
+      const before = body
+      body = stepBody(body, input(dtS), dtS, site.grid)
+      jumpQueued = false
+      if (!before.grounded && body.grounded) landingDipM = Math.min(0.25, -before.vzMs * 0.05)
+    }
     if (t - measuredAt > CONDITIONS_EVERY_MS) {
       now = measure()
       measuredAt = t
@@ -406,7 +455,27 @@ export function startExplore(
   const onKeyDown = (e: KeyboardEvent) => {
     const k = e.key.toLowerCase()
     if (k === 'escape') return session.stop()
-    if (k === ' ') {
+    if (k === 'f') {
+      if (!inVehicle && vehicle) {
+        if (vehicleDistM(body.lon, body.lat, vehicle.lon, vehicle.lat, M_PER_DEG) < 15) {
+          inVehicle = true
+        }
+      } else if (inVehicle && vehicle) {
+        inVehicle = false
+        // Drop the player just beside the rover on exit
+        body = restingBody(
+          {
+            lon: vehicle.lon,
+            lat: vehicle.lat,
+            headingDeg: vehicle.headingDeg,
+            distanceM: body.distanceM,
+            warning: null,
+          },
+          vehicle.altM,
+        )
+      }
+      e.preventDefault()
+    } else if (k === ' ') {
       if (!e.repeat) jumpQueued = true
       e.preventDefault()
     } else if (k === 'b') {
@@ -471,6 +540,7 @@ export function startExplore(
       window.removeEventListener('pointerup', onUp)
       atmosphere.destroy()
       removeSiteModels()
+      if (vehicleModel) scene.primitives.remove(vehicleModel)
       if (colony?.colonyLayer) colony.colonyLayer.show = false
       markers.forEach((m, i) => (m.show = markersShown[i] ?? m.show))
       controller.enableInputs = true
