@@ -19,12 +19,18 @@ type Spec = {
 // Perseverance landing: 77.4508°E 18.4446°N (Mars 2020 EDL, JPL)
 // Ingenuity deployed ~60 m east of Perseverance at the Wright Brothers Field
 // Viking 2 placed at grid centre — actual landing (134.085°E 48.27°N) is outside the HiRISE patch
+// Scale and offsetM computed from GLB accessor bounds to match real-world dimensions:
+//   perseverance: longest axis 175.6 units → scale 0.017 (target 2.93 m), lift 1.47 m
+//   ingenuity:    longest axis 2.27 units  → scale 0.53  (target 1.2 m),  lift 0.37 m
+//   viking-lander: longest axis 16.7 units → scale 0.13  (target 2.2 m),  lift 1.2 m
 const SPECS: Partial<Record<string, Spec[]>> = {
   jezero: [
-    { url: 'models/perseverance.glb', lon: 77.4508, lat: 18.4446 },
-    { url: 'models/ingenuity.glb', lon: 77.4514, lat: 18.4447 },
+    { url: 'models/perseverance.glb', lon: 77.4508, lat: 18.4446, scale: 0.017, offsetM: 1.47 },
+    { url: 'models/ingenuity.glb', lon: 77.4514, lat: 18.4447, scale: 0.53, offsetM: 0.37 },
   ],
-  viking2: [{ url: 'models/viking-lander.glb', lon: 134.2856, lat: 47.6603 }],
+  viking2: [
+    { url: 'models/viking-lander.glb', lon: 134.2856, lat: 47.6603, scale: 0.13, offsetM: 1.2 },
+  ],
 }
 
 function enuMatrix(lon: number, lat: number, altM: number, headingDeg: number) {

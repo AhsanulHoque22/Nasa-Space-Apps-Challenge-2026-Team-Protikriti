@@ -173,7 +173,11 @@ export function startExplore(
   const roverAlt = groundAt(roverSpawn.lon, roverSpawn.lat)
   if (isFinite(roverAlt)) {
     vehicle = createVehicle(roverSpawn.lon, roverSpawn.lat, roverAlt)
-    void Model.fromGltfAsync({ url: 'models/mars_rover.glb', modelMatrix: vehicleMatrix(vehicle) })
+    void Model.fromGltfAsync({
+      url: 'models/mars_rover.glb',
+      modelMatrix: vehicleMatrix(vehicle),
+      scale: 0.2,
+    })
       .then((m) => {
         scene.primitives.add(m)
         vehicleModel = m
