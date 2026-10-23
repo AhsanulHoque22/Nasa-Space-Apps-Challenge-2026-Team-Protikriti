@@ -25,6 +25,7 @@ import {
 } from '../core/surface-conditions'
 import type { SolWeather } from '../core/weather'
 import { type DustDevil, createMarsAtmosphere } from './mars-atmosphere'
+import { loadSiteModels } from './site-models'
 import { MARS_SPHERE } from './mars'
 import { sceneTimeMs } from './sun'
 import { VERTICAL_EXAGGERATION } from './viewer'
@@ -143,6 +144,7 @@ export function startExplore(
   let sols: readonly SolWeather[] = []
   void weather.then((s) => (sols = s)).catch(() => undefined) // climatology until it arrives
   const groundAt = (lon: number, lat: number) => sampleGrid(site.grid, lon, lat)
+  const removeSiteModels = loadSiteModels(scene, site.id, groundAt)
   let body = restingBody(
     { lon: from.lon, lat: from.lat, headingDeg: 0, distanceM: 0, warning: null },
     groundAt(from.lon, from.lat),
@@ -468,6 +470,7 @@ export function startExplore(
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       atmosphere.destroy()
+      removeSiteModels()
       if (colony?.colonyLayer) colony.colonyLayer.show = false
       markers.forEach((m, i) => (m.show = markersShown[i] ?? m.show))
       controller.enableInputs = true
