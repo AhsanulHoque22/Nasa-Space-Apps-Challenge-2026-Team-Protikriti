@@ -155,14 +155,24 @@ export function startExplore(
   const groundAt = (lon: number, lat: number) => sampleGrid(site.grid, lon, lat)
   const removeSiteModels = loadSiteModels(scene, site.id, groundAt)
 
-  // Driveable rover — spawned 20 m east of the player's start position
+  // Driveable rover — placed at the site's historical landing coordinates.
+  // jezero: Perseverance Mars 2020 landing (JPL EDL), offset 20 m south so it doesn't
+  //         overlap the static perseverance.glb placed by site-models.ts.
+  // viking2: DEM patch centre (actual Viking 2 lander at 48.27°N is outside the patch).
+  const ROVER_COORDS: Partial<Record<string, { lon: number; lat: number }>> = {
+    jezero: { lon: 77.4508, lat: 18.4444 }, // 20 m south of exact landing
+    viking2: { lon: 134.2856, lat: 47.6603 },
+  }
   let vehicle: VehicleState | null = null
   let inVehicle = false
   let vehicleModel: Model | null = null
-  const roverLon = from.lon + 20 / (M_PER_DEG * Math.cos((from.lat * Math.PI) / 180))
-  const roverAlt = groundAt(roverLon, from.lat)
+  const roverSpawn = ROVER_COORDS[site.id] ?? {
+    lon: from.lon + 20 / (M_PER_DEG * Math.cos((from.lat * Math.PI) / 180)),
+    lat: from.lat,
+  }
+  const roverAlt = groundAt(roverSpawn.lon, roverSpawn.lat)
   if (isFinite(roverAlt)) {
-    vehicle = createVehicle(roverLon, from.lat, roverAlt)
+    vehicle = createVehicle(roverSpawn.lon, roverSpawn.lat, roverAlt)
     void Model.fromGltfAsync({ url: 'models/mars_rover.glb', modelMatrix: vehicleMatrix(vehicle) })
       .then((m) => {
         scene.primitives.add(m)
