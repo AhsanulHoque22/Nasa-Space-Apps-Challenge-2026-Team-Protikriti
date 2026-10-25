@@ -70,8 +70,15 @@ baselined). We therefore use the two best-documented NASA studies and say so on 
 | Analog | CHAPEA 1: 4 crew, 378 days, 3D-printed habitat, JSC | NASA 2024 |
 | Dust storm | MY34 (2018) global storm, peak τ ≈ 8.5 at Gale | Guzewich et al. 2019 *GRL* 46 (already in app) |
 
-**Verify before coding (open items, §11):** BVAD crew consumables (O₂, water, packaged food
-per crew-day), ISS O₂ and water recovery rates, lander tilt limit.
+**Crew consumables (BVAD Rev2, 2022, Table 3-31 and §3.3):** O₂ 0.895 kg, drinking water
+3.217 kg, packed food 2.39 kg (incl. packaging) per crew member per day. These replace the
+secondary-source 0.84 kg O₂ used in earlier drafts.
+
+**Cargo units (Rucker et al. 2016, Tables 5–7):** Kilopower 1,754 kg each + 385 kg cabling;
+solar set 2,034 kg; Li-S battery bank 3,168 kg; oxygen plant ≈1,678 kg (derived from "about
+40%, or 671 kg").
+
+**Verify before coding (open items, §11):** ISS O₂ and water recovery rates, lander tilt limit.
 
 **Honest finding to show, not hide:** 180 days of cruise (324 mSv) plus 525 sols on the
 surface (352 mSv) is ~676 mSv, above the recommended 600 mSv limit. Dose is therefore tracked
@@ -297,14 +304,14 @@ modelling · extra EVA dose beyond the surface rate · cable mass and line losse
 colony panel constants (follow-up) · AI narration of results.
 
 ## 11. Open items (resolve before the relevant task)
-1. BVAD (NASA/TP-2015-218570/REV2) crew consumables: O₂, potable+hygiene water, packaged food
-   per crew-day. Use the table values, not secondary sources.
+1. ~~BVAD crew consumables~~ — resolved 2026-10-25 (see §3).
 2. ISS ECLSS O₂ and water recovery fractions (NASA 2023 water-recovery announcement; O₂ via
    Sabatier).
 3. Lander/habitat slope limit for pad placement (source needed; else reuse the app's walk
    limit and label it a team assumption).
-4. Sourced masses for ISRU plant, science lab, pressurised rover, spares (DRA 5.0 full
-   report NASA-SP-2009-566 addendum); items stay out until found.
+4. Sourced masses for science lab, pressurised rover, spares (DRA 5.0 full report
+   NASA-SP-2009-566 addendum); items stay out until found. ISRU plant resolved (derived,
+   Rucker 2016).
 5. Primary citation for the ±50° / +2 km MOLA landing bounds (found in a NASA surface field
    station presentation via search; pin the exact NTRS document before it goes on screen).
 6. Licence line for the chosen Perseverance EDL clip (NASA media guidelines; check the

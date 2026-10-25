@@ -337,3 +337,18 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 | Pipeline use | `crism.py` reads the uint8 class codes, maps them to 0–1 hazard weights (higher = more chemically hazardous for EVA crew contact), and writes `crism.json` + `crism.bin` per site |
 | Web use | Rendered as a semi-transparent red ramp overlay ("Chemical hazard"); also consumed by `eva-score.ts` as the chemical component of the EVA Safety Score |
 | Download | `python -m marsmap crism --tif data/raw/crism/jezeroFinal.tif --out web/public/data` (download tif from Zenodo first) |
+
+## Story mode (mission 1.1: cargo)
+| Item | Value | Source |
+|---|---|---|
+| Surface stay | 539 days = 525 sols | Drake (ed.), *Human Exploration of Mars DRA 5.0*, NASA 2009, https://ntrs.nasa.gov/citations/20090040343 |
+| Surface habitat | 21,500 kg; 12.1 kWe from an external source | DRA 5.0 (Commuter habitat) |
+| Landed payload per cargo lander | 30–50 t (ATLAS uses one 40 t lander, a team choice in that range) | DRA 5.0 |
+| Kilopower 10 kWe unit | 1,754 kg (8,769 kg for 4 + 1 spare, incl. 15% growth) + 385 kg cabling and controllers per farm | Rucker et al. 2016, *Solar Versus Fission Surface Power for Mars*, AIAA Space, Table 5, https://ntrs.nasa.gov/citations/20160010550 |
+| Solar array set | 2,034 kg: four 12 m UltraFlex wings, gimbals, regulators, structure and thermal for one lander | Rucker et al. 2016, Table 6 |
+| Battery bank | 3,168 kg (2,437 kg Li-S at 270 Wh/kg ≈ 658 kWh, + 30% growth) | Rucker et al. 2016, Table 7 |
+| Oxygen plant (ISRU, ~2.2 kg/h LOX) | ≈1,678 kg, **derived**: the study adds "about 40%, or 671 kg" to the ISRU system for Columbus Crater, so 671 / 0.4 | Rucker et al. 2016, §IV.D.4 |
+| Packed food | 2.39 kg per crew member per day incl. packaging (ISS planning value) | NASA BVAD Rev2 (NASA/TP-2015-218570/REV2, 2022), §3.3, https://ntrs.nasa.gov/citations/20210024855 |
+| Drinking water | 3.217 kg per crew member per day | BVAD Rev2, Table 3-31 |
+| Oxygen consumed | 0.895 kg per crew member per day | BVAD Rev2, Table 3-31 |
+| Sol length | 88,775.244 s | Allison & McEwen 2000 (Mars24) |
