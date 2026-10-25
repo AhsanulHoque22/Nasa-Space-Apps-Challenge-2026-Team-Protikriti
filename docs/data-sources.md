@@ -402,3 +402,11 @@ MOXIE comparison on the card: best rate 12 g/h (NASA, 2023) against the plant's 
 | One sol of power | darkest sol of the Mars year at the preview site (Jezero, 18.9°N 77.5°E as in Rucker et al. 2016), from local midnight; supply = reactors (8.75 kW each) + Sun-tracking arrays; demand = oxygen plant 19.7 kW + cooling 6.655 kW; shortfall and daytime surplus integrated per half-hour sample | Appelbaum & Flood (TM-103623); Rucker et al. 2016; `web/src/core/power-profile.ts` |
 | Oxygen tank over 420 days | the worst 420-day window from the cargo-phase verdict, summed sol by sol | `web/src/core/cargo-phase.ts` |
 | Palette | reactor #5b8def, solar #c27c22: passes the dataviz validator on the dock surface #121a2c (lightness band, CVD ΔE ≈ 28, contrast) | dataviz `validate_palette.js` |
+
+## Story mode 3D models (mission 1.1 cargo bay)
+Both CC BY 4.0, credited on screen. Optimised for the web with glTF-Transform 4.1.1 (`optimize`: textures 512 px WebP, mesh simplification, meshopt compression); shapes simplified, not altered in design.
+| Model | Author | Source | Use | Size |
+|---|---|---|---|---|
+| HAB – Mars Desert Research Station | The Mars Society | https://sketchfab.com/3d-models/hab-mars-desert-research-station-5c1f4c9726754652946098616b7614a1 | stands in for the 21.5 t surface habitat (an analog habitat, not the DRA 5.0 design) | 142 MB → 2.2 MB |
+| Space container – Mars mission | Hansalex | https://sketchfab.com/3d-models/space-container-mars-mission-ea0983b287ad49769e988107039c22a6 | one generic crate per packed item | 10.2 MB → 0.1 MB |
+No real cargo-lander model was available (none in the team's model folder or NASA 3D Resources), so the deck is a plain disc labelled as a stand-in.
