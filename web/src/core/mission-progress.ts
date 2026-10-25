@@ -16,6 +16,27 @@ export type Progress = {
   completed: string[]
   /** What mission 1.1 packed; later missions read it. */
   cargo?: CargoPlan
+  /** Where mission 1.2 landed. */
+  site?: LandingSite
+}
+
+export type LandingSite = { zone: string; siteId: string; lon: number; lat: number }
+
+const isLandingSite = (v: unknown): v is LandingSite => {
+  const s = v as Partial<LandingSite> | null
+  return (
+    !!s &&
+    typeof s.zone === 'string' &&
+    typeof s.siteId === 'string' &&
+    Number.isFinite(s.lon) &&
+    Number.isFinite(s.lat)
+  )
+}
+
+/** A mission whose result is saved only counts as done while that result passes its check. */
+const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
+  '1.1': (p) => isCargoPlan(p.cargo),
+  '1.2': (p) => isLandingSite(p.site),
 }
 
 export type MissionStatus =
@@ -60,6 +81,24 @@ export function recordCargo(
   return done === progress ? progress : { ...done, cargo }
 }
 
+/** Mission 1.2 done: keep the chosen site with it. */
+export function recordSite(
+  missions: readonly Mission[],
+  progress: Progress,
+  site: LandingSite,
+): Progress {
+  const done = completeMission(missions, progress, '1.2')
+  return done === progress ? progress : { ...done, site }
+}
+
+/** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
+export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
+  const index = missions.findIndex((x) => x.id === id)
+  if (index < 0) throw new Error(`No mission with id "${id}"`)
+  const later = new Set(missions.slice(index).map((x) => x.id))
+  return { ...progress, completed: progress.completed.filter((done) => !later.has(done)) }
+}
+
 function isProgress(v: unknown): v is Progress {
   const p = v as Partial<Progress> | null
   return (
@@ -80,12 +119,15 @@ export function loadProgress(
   const read = readStored(store, PROGRESS_KEY, isProgress)
   if (read.status === 'damaged') return { progress: fresh, note: DAMAGED_NOTE }
   if (!read.value || read.value.owner !== owner) return { progress: fresh, note: null }
-  const { cargo, ...rest } = read.value
-  const completed = rest.completed.filter((id) => knownIds.includes(id))
-  if (cargo !== undefined && isCargoPlan(cargo))
-    return { progress: { ...rest, completed, cargo }, note: null }
-  // No usable cargo plan: mission 1.1 has to be packed again, so it cannot count as done.
-  return { progress: { ...rest, completed: completed.filter((id) => id !== '1.1') }, note: null }
+  const saved = read.value
+  const progress: Progress = { version: 1, owner, completed: [] }
+  if (isCargoPlan(saved.cargo)) progress.cargo = saved.cargo
+  if (isLandingSite(saved.site)) progress.site = saved.site
+  // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
+  progress.completed = saved.completed.filter(
+    (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),
+  )
+  return { progress, note: null }
 }
 
 export function saveProgress(store: KeyValueStore | undefined, progress: Progress): boolean {

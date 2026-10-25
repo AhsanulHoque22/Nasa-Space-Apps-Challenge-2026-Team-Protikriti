@@ -29,3 +29,20 @@ export const HABITAT_KG = 21_500
  * that range; NASA's Jezero study (Rucker et al. 2016) spreads the same hardware over several landers.
  */
 export const CARGO_LIMIT_KG = 40_000
+
+/** Return-propellant oxygen the plant must make before the crew launches, kg (Rucker et al. 2016). */
+export const LOX_TARGET_KG = 22_728
+/** Time allowed for it: 14 Earth months, 420 days (Rucker et al. 2016). */
+export const LOX_WINDOW_DAYS = 420
+/** ISRU plant power at full rate during the cargo phase, kW (Rucker et al. 2016, Table 3). */
+export const ISRU_FULL_POWER_KW = 19.7
+/** Ascent-vehicle propellant conditioning, kW, always on (Rucker et al. 2016, Table 3). */
+export const MAV_CONDITIONING_KW = 6.655
+/** Delivered power per Kilopower unit: four units give "up to 35 kWe" (Rucker et al. 2016). */
+export const KILOPOWER_DELIVERED_KWE = 35 / 4
+/** One battery bank: 2,437 kg of Li-S cells at 270 Wh/kg (Rucker et al. 2016, Table 7). Nameplate. */
+export const BATTERY_KWH_PER_BANK = (2437 * 270) / 1000
+/** One solar set: four UltraFlex wings 12 m across (Rucker et al. 2016). Area in m². */
+export const SOLAR_SET_AREA_M2 = 4 * Math.PI * 6 ** 2
+/** Clear-season dust optical depth assumed at Jezero (Rucker et al. 2016). Applied to every site. */
+export const CLEAR_TAU = 1.0

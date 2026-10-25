@@ -3,6 +3,8 @@ import {
   PROGRESS_KEY,
   completeMission,
   recordCargo,
+  recordSite,
+  retryFrom,
   loadProgress,
   missionStatus,
   saveProgress,
@@ -81,8 +83,8 @@ describe('progress storage', () => {
 
   it('saves and restores completed missions', () => {
     const s = store()
-    expect(saveProgress(s, { version: 1, owner, completed: ['1.2'] })).toBe(true)
-    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.2'])
+    expect(saveProgress(s, { version: 1, owner, completed: ['2.1'] })).toBe(true)
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['2.1'])
   })
 
   it('starts fresh, without a warning, when the saved progress belongs to another profile', () => {
@@ -97,9 +99,9 @@ describe('progress storage', () => {
 
   it('drops mission ids that no longer exist instead of failing', () => {
     const s = store({
-      [PROGRESS_KEY]: JSON.stringify({ version: 1, owner, completed: ['1.2', '9.9'] }),
+      [PROGRESS_KEY]: JSON.stringify({ version: 1, owner, completed: ['2.1', '9.9'] }),
     })
-    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.2'])
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['2.1'])
   })
 
   it('keeps damaged progress aside and says so', () => {
@@ -156,5 +158,37 @@ describe('recordCargo', () => {
     const s = store()
     saveProgress(s, recordCargo(withCargo, fresh, plan))
     expect(loadProgress(s, owner, ids).progress.cargo).toEqual(plan)
+  })
+})
+
+describe('recordSite and retryFrom', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const plan = { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+  const list3 = [m('1.1', true), m('1.2', true), m('1.3', true)]
+  const site = { zone: 'Jezero-Syrtis-Isidis', siteId: 'jezero', lon: 77.5, lat: 18.4 }
+  const packed = recordCargo(list3, { version: 1, owner, completed: [] }, plan)
+
+  it('completes 1.2 and keeps the chosen site', () => {
+    const p = recordSite(list3, packed, site)
+    expect(p.completed).toEqual(['1.1', '1.2'])
+    expect(p.site).toEqual(site)
+  })
+
+  it('reopens a mission and every mission after it, keeping earlier choices as a starting point', () => {
+    const p = recordSite(list3, packed, site)
+    const again = retryFrom(list3, p, '1.1')
+    expect(again.completed).toEqual([])
+    expect(again.cargo).toEqual(plan)
+    expect(missionStatus(list3, again.completed, '1.1')).toEqual({ kind: 'open' })
+  })
+
+  it('drops a saved site that fails its check and reopens 1.2', () => {
+    const ids = list3.map((x) => x.id)
+    const s = store({
+      [PROGRESS_KEY]: JSON.stringify({ ...recordSite(list3, packed, site), site: { zone: 3 } }),
+    })
+    const p = loadProgress(s, owner, ids).progress
+    expect(p.site).toBeUndefined()
+    expect(p.completed).toEqual(['1.1'])
   })
 })
