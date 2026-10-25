@@ -58,7 +58,7 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
   controls.maxDistance = 16
   controls.target.set(0, 0.35, 0)
   controls.maxPolarAngle = Math.PI / 2.1 // never look from under the deck
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x553322, 1.4))
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8aea4, 1.6)) // near-neutral fill: no dark side
   const sunLight = new THREE.DirectionalLight(0xffffff, 2)
   sunLight.position.set(3, 5, 2)
   scene.add(sunLight)
