@@ -3,13 +3,20 @@
  * one profile (by its creation time), so a new crew name starts fresh. Missions unlock in list
  * order; a mission whose screen is not built yet never blocks the ones after it.
  */
+import { type CargoPlan, isCargoPlan } from './cargo'
 import { readStored, writeStored } from './local-store'
 import type { Mission } from './missions'
 import type { KeyValueStore } from './streetview'
 
 export const PROGRESS_KEY = 'atlas.progress'
 
-export type Progress = { version: 1; owner: string; completed: string[] }
+export type Progress = {
+  version: 1
+  owner: string
+  completed: string[]
+  /** What mission 1.1 packed; later missions read it. */
+  cargo?: CargoPlan
+}
 
 export type MissionStatus =
   { kind: 'done' } | { kind: 'open' } | { kind: 'locked'; after: string } | { kind: 'soon' }
@@ -43,6 +50,16 @@ export function completeMission(
   return { ...progress, completed: [...progress.completed, id] }
 }
 
+/** Mission 1.1 done: keep the packed plan with it. */
+export function recordCargo(
+  missions: readonly Mission[],
+  progress: Progress,
+  cargo: CargoPlan,
+): Progress {
+  const done = completeMission(missions, progress, '1.1')
+  return done === progress ? progress : { ...done, cargo }
+}
+
 function isProgress(v: unknown): v is Progress {
   const p = v as Partial<Progress> | null
   return (
@@ -63,8 +80,12 @@ export function loadProgress(
   const read = readStored(store, PROGRESS_KEY, isProgress)
   if (read.status === 'damaged') return { progress: fresh, note: DAMAGED_NOTE }
   if (!read.value || read.value.owner !== owner) return { progress: fresh, note: null }
-  const completed = read.value.completed.filter((id) => knownIds.includes(id))
-  return { progress: { ...read.value, completed }, note: null }
+  const { cargo, ...rest } = read.value
+  const completed = rest.completed.filter((id) => knownIds.includes(id))
+  if (cargo !== undefined && isCargoPlan(cargo))
+    return { progress: { ...rest, completed, cargo }, note: null }
+  // No usable cargo plan: mission 1.1 has to be packed again, so it cannot count as done.
+  return { progress: { ...rest, completed: completed.filter((id) => id !== '1.1') }, note: null }
 }
 
 export function saveProgress(store: KeyValueStore | undefined, progress: Progress): boolean {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   PROGRESS_KEY,
   completeMission,
+  recordCargo,
   loadProgress,
   missionStatus,
   saveProgress,
@@ -80,8 +81,8 @@ describe('progress storage', () => {
 
   it('saves and restores completed missions', () => {
     const s = store()
-    expect(saveProgress(s, { version: 1, owner, completed: ['1.1'] })).toBe(true)
-    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.1'])
+    expect(saveProgress(s, { version: 1, owner, completed: ['1.2'] })).toBe(true)
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.2'])
   })
 
   it('starts fresh, without a warning, when the saved progress belongs to another profile', () => {
@@ -96,9 +97,9 @@ describe('progress storage', () => {
 
   it('drops mission ids that no longer exist instead of failing', () => {
     const s = store({
-      [PROGRESS_KEY]: JSON.stringify({ version: 1, owner, completed: ['1.1', '9.9'] }),
+      [PROGRESS_KEY]: JSON.stringify({ version: 1, owner, completed: ['1.2', '9.9'] }),
     })
-    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.1'])
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.2'])
   })
 
   it('keeps damaged progress aside and says so', () => {
@@ -125,5 +126,35 @@ describe('mission registry', () => {
       expect(x.briefing.length).toBeGreaterThan(20)
       expect(x.hats.length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('recordCargo', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const fresh = { version: 1 as const, owner, completed: [] }
+  const plan = { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+  const withCargo = [m('1.1', true), m('1.2', false)]
+
+  it('completes 1.1 and keeps the packed plan', () => {
+    expect(recordCargo(withCargo, fresh, plan)).toEqual({
+      ...fresh,
+      completed: ['1.1'],
+      cargo: plan,
+    })
+  })
+
+  it('reopens 1.1 when the saved cargo plan is invalid', () => {
+    const ids = withCargo.map((x) => x.id)
+    const s = store({
+      [PROGRESS_KEY]: JSON.stringify({ ...fresh, completed: ['1.1'], cargo: { kilopower: 99 } }),
+    })
+    expect(loadProgress(s, owner, ids).progress).toEqual(fresh)
+  })
+
+  it('restores a valid saved cargo plan', () => {
+    const ids = withCargo.map((x) => x.id)
+    const s = store()
+    saveProgress(s, recordCargo(withCargo, fresh, plan))
+    expect(loadProgress(s, owner, ids).progress.cargo).toEqual(plan)
   })
 })
