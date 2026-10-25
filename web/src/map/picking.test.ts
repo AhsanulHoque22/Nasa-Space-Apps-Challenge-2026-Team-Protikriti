@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { Cartesian2, Cartesian3, Viewer } from 'cesium'
-import { addClickables, isInteractiveClick, pickedId } from './picking'
+import { addClickables, isExploring, isInteractiveClick, pickedId } from './picking'
 
 const R = 3_396_190
 // Planet-centred positions; the fake projection puts each on screen at (y, z) / 100 m.
@@ -43,7 +43,9 @@ describe('pickedId', () => {
   beforeEach(() => {
     stopsShown = true
     coarsePointer(false)
-    Object.assign(globalThis, { document: { body: { classList: { contains: () => false } } } })
+    Object.assign(globalThis, {
+      document: { body: { classList: { contains: () => false }, dataset: {} } },
+    })
   })
 
   it('finds the dot nearest the click', () => {
@@ -67,5 +69,27 @@ describe('pickedId', () => {
 
   it('treats a click on bare ground as not interactive', () => {
     expect(isInteractiveClick(viewer, click(500, 500))).toBe(false)
+  })
+})
+
+describe('isExploring', () => {
+  const body = (exploring: boolean, story?: string) =>
+    Object.assign(globalThis, {
+      document: { body: { classList: { contains: () => exploring }, dataset: { story } } },
+    })
+
+  it('is false on the plain map', () => {
+    body(false)
+    expect(isExploring()).toBe(false)
+  })
+
+  it('is true in explore mode', () => {
+    body(true)
+    expect(isExploring()).toBe(true)
+  })
+
+  it('is true while a story mission plays, so map tools ignore terrain clicks', () => {
+    body(false, 'mission')
+    expect(isExploring()).toBe(true)
   })
 })

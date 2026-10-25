@@ -52,7 +52,10 @@ export function isInteractiveClick(viewer: Viewer, position: Cartesian2): boolea
   return id !== undefined && INTERACTIVE_PREFIXES.some((p) => id.startsWith(p))
 }
 
-/** Explore mode owns input: map click tools must ignore the canvas while it runs. */
+/**
+ * Explore mode, or a story mission, owns input: map click tools must ignore the canvas meanwhile.
+ * A mission hides the map's panels, so a stray terrain click must not place hidden route stops.
+ */
 export function isExploring(): boolean {
-  return document.body.classList.contains('exploring')
+  return document.body.classList.contains('exploring') || document.body.dataset.story === 'mission'
 }
