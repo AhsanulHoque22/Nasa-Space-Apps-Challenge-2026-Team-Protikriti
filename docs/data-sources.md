@@ -407,6 +407,6 @@ MOXIE comparison on the card: best rate 12 g/h (NASA, 2023) against the plant's 
 Both CC BY 4.0, credited on screen. Optimised for the web with glTF-Transform 4.1.1 (`optimize`: textures 512 px WebP, mesh simplification, meshopt compression); shapes simplified, not altered in design.
 | Model | Author | Source | Use | Size |
 |---|---|---|---|---|
-| “Mars One” Mission – Base (modules only; terrain, panel field, antenna and flag removed) | admone | https://sketchfab.com/3d-models/none-83ced347037f47aba8473147d65df074 | stands in for the 21.5 t surface habitat (a concept base, not the DRA 5.0 design) | 75 MB zip (OBJ) → 1.1 MB |
+| Habitat Demonstration Unit (part 1) | NASA 3D Resources | https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Habitat%20Demonstration%20Unit | stands in for the 21.5 t surface habitat (NASA's prototype habitat, not the DRA 5.0 design itself) | 517 KB → 49 KB |
 | Space container – Mars mission | Hansalex | https://sketchfab.com/3d-models/space-container-mars-mission-ea0983b287ad49769e988107039c22a6 | one generic crate per packed item | 10.2 MB → 0.1 MB |
 No real cargo-lander model was available (none in the team's model folder or NASA 3D Resources), so the deck is a plain disc labelled as a stand-in.

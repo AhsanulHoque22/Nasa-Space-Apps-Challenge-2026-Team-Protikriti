@@ -1,6 +1,6 @@
 /**
  * The cargo bay in 3D, shown in front of the turning globe during mission 1.1's packing steps.
- * The Mars One base modules stand in for the 21.5 t habitat; every packed item appears as a cargo
+ * NASA's Habitat Demonstration Unit stands in for the 21.5 t habitat; every packed item appears as a cargo
  * container labelled with what it holds. No real cargo-lander model exists in our library, so the
  * deck is a plain disc and says so. three.js loads only when the bay first opens.
  */
@@ -9,7 +9,7 @@ import { applyRegion, freeRegion } from './stage-region'
 
 export type CargoBay = { update: (plan: CargoPlan) => void; remove: () => void }
 
-const HABITAT_URL = 'models/cargo/mars-one-base.glb'
+const HABITAT_URL = 'models/cargo/nasa-hdu.glb'
 const CONTAINER_URL = 'models/cargo/mars-cargo-container.glb'
 const DECK_RADIUS = 1.6
 const SPIN_RAD_PER_S = 0.12
@@ -30,7 +30,7 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
   const credit = document.createElement('p')
   credit.className = 'cargo-bay-credit'
   credit.innerHTML =
-    'Habitat: <a href="https://sketchfab.com/3d-models/none-83ced347037f47aba8473147d65df074" target="_blank" rel="noopener">“Mars One” Mission – Base</a>, admone (CC BY 4.0), terrain removed. Cargo: <a href="https://sketchfab.com/3d-models/space-container-mars-mission-ea0983b287ad49769e988107039c22a6" target="_blank" rel="noopener">Space container, Mars mission</a>, Hansalex (CC BY 4.0). The deck is a stand-in, not a real lander design.'
+    'Habitat: <a href="https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Habitat%20Demonstration%20Unit" target="_blank" rel="noopener">Habitat Demonstration Unit</a>, NASA 3D Resources. Cargo: <a href="https://sketchfab.com/3d-models/space-container-mars-mission-ea0983b287ad49769e988107039c22a6" target="_blank" rel="noopener">Space container, Mars mission</a>, Hansalex (CC BY 4.0). The deck is a stand-in, not a real lander design.'
   host.append(credit)
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }) // the globe shows through
@@ -92,10 +92,10 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
     return holder
   }
   const [habitat, container] = await Promise.all([
-    fitted(HABITAT_URL, 2.1),
+    fitted(HABITAT_URL, 1.4),
     fitted(CONTAINER_URL, 0.38),
   ])
-  habitat.add(label('Habitat · 21.5 t', 0.6))
+  habitat.add(label('Habitat · 21.5 t', 1.0))
   turntable.add(habitat)
 
   const cargo = new THREE.Group()
