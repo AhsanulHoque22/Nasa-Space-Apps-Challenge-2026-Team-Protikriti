@@ -404,9 +404,11 @@ MOXIE comparison on the card: best rate 12 g/h (NASA, 2023) against the plant's 
 | Palette | reactor #5b8def, solar #c27c22: passes the dataviz validator on the dock surface #121a2c (lightness band, CVD ΔE ≈ 28, contrast) | dataviz `validate_palette.js` |
 
 ## Story mode 3D models (mission 1.1 cargo bay)
-Both CC BY 4.0, credited on screen. Optimised for the web with glTF-Transform 4.1.1 (`optimize`: textures 512 px WebP, mesh simplification, meshopt compression); shapes simplified, not altered in design.
+NASA 3D Resources and CC BY 4.0 models, credited on screen. Optimised for the web with glTF-Transform 4.1.1 (`optimize`: WebP textures, mesh simplification, meshopt compression); shapes simplified, not altered in design.
 | Model | Author | Source | Use | Size |
 |---|---|---|---|---|
 | Habitat Demonstration Unit (part 1) | NASA 3D Resources | https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Habitat%20Demonstration%20Unit | stands in for the 21.5 t surface habitat (NASA's prototype habitat, not the DRA 5.0 design itself) | 517 KB → 49 KB |
 | Space container – Mars mission | Hansalex | https://sketchfab.com/3d-models/space-container-mars-mission-ea0983b287ad49769e988107039c22a6 | one generic crate per packed item | 10.2 MB → 0.1 MB |
-No real cargo-lander model was available (none in the team's model folder or NASA 3D Resources), so the deck is a plain disc labelled as a stand-in.
+| Jezero Crater (Mars) | Gaia | https://sketchfab.com/3d-models/jezero-crater-mars-f8501fbe652241b585f7734bee259ad3 | the ground the cargo stands on; relief halved so crates on the rim stay in view | 4.2 MB → 0.4 MB |
+| HAB – Mars Desert Research Station (embedded, not downloaded) | The Mars Society | https://sketchfab.com/3d-models/hab-mars-desert-research-station-5c1f4c9726754652946098616b7614a1 | full-screen interactive view when the habitat is clicked; Sketchfab's embed player, needs internet | – |
+No real cargo-lander model was available (none in the team's model folder or NASA 3D Resources), so the layout is labelled as a stand-in.

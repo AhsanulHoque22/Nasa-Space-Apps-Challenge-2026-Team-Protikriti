@@ -1,17 +1,24 @@
 /**
  * The cargo bay in 3D, shown in front of the turning globe during mission 1.1's packing steps.
  * NASA's Habitat Demonstration Unit stands in for the 21.5 t habitat; every packed item appears as a cargo
- * container labelled with what it holds. No real cargo-lander model exists in our library, so the
- * deck is a plain disc and says so. three.js loads only when the bay first opens.
+ * container labelled with what it holds, all set on a model of Jezero Crater's terrain. No real
+ * cargo-lander model exists in our library, so the credit says the layout is a stand-in. Clicking
+ * the habitat opens a full-screen, interactive habitat view. three.js loads only when the bay opens.
  */
 import { CARGO_ITEMS, type CargoPlan } from '../core/cargo'
+import { openHabitatViewer } from './habitat-viewer'
 import { applyRegion, freeRegion } from './stage-region'
 
 export type CargoBay = { update: (plan: CargoPlan) => void; remove: () => void }
 
 const HABITAT_URL = 'models/cargo/nasa-hdu.glb'
 const CONTAINER_URL = 'models/cargo/mars-cargo-container.glb'
-const DECK_RADIUS = 1.6
+const TERRAIN_URL = 'models/cargo/jezero-terrain.glb'
+const DECK_RADIUS = 1.6 // the ground the cargo stands on, scene units
+/** The terrain model's relief, squashed so crates on the crater rim stay in view. */
+const TERRAIN_RELIEF_SCALE = 0.5
+/** Pointer travel below this is a click, not a drag of the view. */
+const CLICK_SLOP_PX = 5
 const SPIN_RAD_PER_S = 0.12
 /** Radius the camera keeps in view: the deck plus room for crate labels. */
 const FIT_RADIUS = DECK_RADIUS + 0.5
@@ -26,16 +33,16 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
 
   const host = document.createElement('div')
   host.className = 'cargo-bay'
-  host.setAttribute('aria-hidden', 'true') // the dock lists every packed item in text
   const credit = document.createElement('p')
   credit.className = 'cargo-bay-credit'
   credit.innerHTML =
-    'Habitat: <a href="https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Habitat%20Demonstration%20Unit" target="_blank" rel="noopener">Habitat Demonstration Unit</a>, NASA 3D Resources. Cargo: <a href="https://sketchfab.com/3d-models/space-container-mars-mission-ea0983b287ad49769e988107039c22a6" target="_blank" rel="noopener">Space container, Mars mission</a>, Hansalex (CC BY 4.0). The deck is a stand-in, not a real lander design.'
+    'Habitat: <a href="https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Habitat%20Demonstration%20Unit" target="_blank" rel="noopener">Habitat Demonstration Unit</a>, NASA 3D Resources. Cargo: <a href="https://sketchfab.com/3d-models/space-container-mars-mission-ea0983b287ad49769e988107039c22a6" target="_blank" rel="noopener">Space container, Mars mission</a>, Hansalex (CC BY 4.0). Terrain: <a href="https://sketchfab.com/3d-models/jezero-crater-mars-f8501fbe652241b585f7734bee259ad3" target="_blank" rel="noopener">Jezero Crater (Mars)</a>, Gaia (CC BY 4.0), relief halved. A stand-in layout, not a real lander design.'
   host.append(credit)
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }) // the globe shows through
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.setClearColor(0x000000, 0)
+  renderer.domElement.setAttribute('aria-hidden', 'true') // the dock lists every packed item in text
   host.prepend(renderer.domElement)
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
@@ -58,19 +65,18 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
 
   const turntable = new THREE.Group()
   scene.add(turntable)
-  const deck = new THREE.Mesh(
-    new THREE.CylinderGeometry(DECK_RADIUS, DECK_RADIUS, 0.06, 64),
-    new THREE.MeshStandardMaterial({ color: 0x3a4357, roughness: 0.8, metalness: 0.3 }),
-  )
-  deck.position.y = -0.03
-  turntable.add(deck)
 
-  const label = (text: string, height = 0) => {
+  /** A crate label, or with `onClick` a button (the only label screen readers need). */
+  const label = (text: string, height = 0, onClick?: () => void) => {
     const div = document.createElement('div')
-    const span = document.createElement('span')
-    span.className = 'journey-label'
-    span.textContent = text
-    div.append(span)
+    const tagEl = document.createElement(onClick ? 'button' : 'span')
+    tagEl.className = 'journey-label'
+    tagEl.textContent = text
+    if (onClick) {
+      ;(tagEl as HTMLButtonElement).type = 'button'
+      tagEl.addEventListener('click', onClick)
+    } else div.setAttribute('aria-hidden', 'true')
+    div.append(tagEl)
     const tag = new CSS2DObject(div)
     tag.position.set(0, height, 0) // Object3D.position is read-only: set it, never assign it
     return tag
@@ -91,11 +97,22 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
     holder.add(model)
     return holder
   }
-  const [habitat, container] = await Promise.all([
+  const [habitat, container, terrain] = await Promise.all([
     fitted(HABITAT_URL, 1.4),
     fitted(CONTAINER_URL, 0.38),
+    fitted(TERRAIN_URL, DECK_RADIUS * 2.2),
   ])
-  habitat.add(label('Habitat · 21.5 t', 1.0))
+  terrain.scale.y = TERRAIN_RELIEF_SCALE
+  turntable.add(terrain)
+  terrain.updateMatrixWorld(true)
+  // Height of the ground at (x, z), so the habitat and crates stand on the terrain.
+  const down = new THREE.Raycaster()
+  const groundY = (x: number, z: number) => {
+    down.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0))
+    return down.intersectObject(terrain, true)[0]?.point.y ?? 0
+  }
+  habitat.position.y = groundY(0, 0)
+  habitat.add(label('Habitat · 21.5 t: view in 3D', 1.2, openHabitatViewer))
   turntable.add(habitat)
 
   const cargo = new THREE.Group()
@@ -117,7 +134,8 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
         crate.position.set(0, n * 0.3, 0) // stacked: one crate per unit packed
         group.add(crate)
       }
-      group.position.set(Math.cos(angle) * r, 0, Math.sin(angle) * r)
+      const [x, z] = [Math.cos(angle) * r, Math.sin(angle) * r]
+      group.position.set(x, groundY(x, z), z)
       group.lookAt(0, 0, 0)
       const text = count > 1 || item.unit === 'units' ? `${item.label} ×${p[item.id]}` : item.label
       group.add(label(text, count * 0.3 + 0.15))
@@ -146,6 +164,30 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
   const watchDock = new ResizeObserver(resize)
   if (dock) watchDock.observe(dock)
   resize()
+
+  // Click the habitat to open its full-screen view; a drag only turns the scene.
+  const aim = new THREE.Raycaster()
+  const pointer = new THREE.Vector2()
+  const onHabitat = (e: PointerEvent) => {
+    const box = renderer.domElement.getBoundingClientRect()
+    pointer.set(
+      ((e.clientX - box.left) / box.width) * 2 - 1,
+      -((e.clientY - box.top) / box.height) * 2 + 1,
+    )
+    aim.setFromCamera(pointer, camera)
+    return aim.intersectObject(habitat, true).length > 0
+  }
+  let downAt: { x: number; y: number } | null = null
+  const canvas = renderer.domElement
+  canvas.addEventListener('pointerdown', (e) => (downAt = { x: e.clientX, y: e.clientY }))
+  canvas.addEventListener('pointerup', (e) => {
+    const still = downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < CLICK_SLOP_PX
+    downAt = null
+    if (still && onHabitat(e)) openHabitatViewer()
+  })
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.buttons === 0) canvas.style.cursor = onHabitat(e) ? 'pointer' : ''
+  })
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   let last = performance.now()
