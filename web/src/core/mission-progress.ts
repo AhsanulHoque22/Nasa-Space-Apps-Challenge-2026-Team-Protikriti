@@ -16,6 +16,8 @@ export type Progress = {
   completed: string[]
   /** What mission 1.1 packed; later missions read it. */
   cargo?: CargoPlan
+  /** The crew's flight time to Mars chosen in mission 1.1, days. */
+  crewRouteDays?: number
   /** Where mission 1.2 landed. */
   site?: LandingSite
 }
@@ -33,9 +35,12 @@ const isLandingSite = (v: unknown): v is LandingSite => {
   )
 }
 
+const isRouteDays = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 60 && v <= 420
+
 /** A mission whose result is saved only counts as done while that result passes its check. */
 const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
-  '1.1': (p) => isCargoPlan(p.cargo),
+  '1.1': (p) => isCargoPlan(p.cargo) && isRouteDays(p.crewRouteDays),
   '1.2': (p) => isLandingSite(p.site),
 }
 
@@ -71,14 +76,15 @@ export function completeMission(
   return { ...progress, completed: [...progress.completed, id] }
 }
 
-/** Mission 1.1 done: keep the packed plan with it. */
+/** Mission 1.1 done: keep the packed plan and the crew's route with it. */
 export function recordCargo(
   missions: readonly Mission[],
   progress: Progress,
   cargo: CargoPlan,
+  crewRouteDays: number,
 ): Progress {
   const done = completeMission(missions, progress, '1.1')
-  return done === progress ? progress : { ...done, cargo }
+  return done === progress ? progress : { ...done, cargo, crewRouteDays }
 }
 
 /** Mission 1.2 done: keep the chosen site with it. */
@@ -122,6 +128,7 @@ export function loadProgress(
   const saved = read.value
   const progress: Progress = { version: 1, owner, completed: [] }
   if (isCargoPlan(saved.cargo)) progress.cargo = saved.cargo
+  if (isRouteDays(saved.crewRouteDays)) progress.crewRouteDays = saved.crewRouteDays
   if (isLandingSite(saved.site)) progress.site = saved.site
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(

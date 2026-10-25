@@ -138,10 +138,11 @@ describe('recordCargo', () => {
   const withCargo = [m('1.1', true), m('1.2', false)]
 
   it('completes 1.1 and keeps the packed plan', () => {
-    expect(recordCargo(withCargo, fresh, plan)).toEqual({
+    expect(recordCargo(withCargo, fresh, plan, 178)).toEqual({
       ...fresh,
       completed: ['1.1'],
       cargo: plan,
+      crewRouteDays: 178,
     })
   })
 
@@ -156,7 +157,7 @@ describe('recordCargo', () => {
   it('restores a valid saved cargo plan', () => {
     const ids = withCargo.map((x) => x.id)
     const s = store()
-    saveProgress(s, recordCargo(withCargo, fresh, plan))
+    saveProgress(s, recordCargo(withCargo, fresh, plan, 178))
     expect(loadProgress(s, owner, ids).progress.cargo).toEqual(plan)
   })
 })
@@ -166,7 +167,7 @@ describe('recordSite and retryFrom', () => {
   const plan = { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
   const list3 = [m('1.1', true), m('1.2', true), m('1.3', true)]
   const site = { zone: 'Jezero-Syrtis-Isidis', siteId: 'jezero', lon: 77.5, lat: 18.4 }
-  const packed = recordCargo(list3, { version: 1, owner, completed: [] }, plan)
+  const packed = recordCargo(list3, { version: 1, owner, completed: [] }, plan, 178)
 
   it('completes 1.2 and keeps the chosen site', () => {
     const p = recordSite(list3, packed, site)
@@ -190,5 +191,31 @@ describe('recordSite and retryFrom', () => {
     const p = loadProgress(s, owner, ids).progress
     expect(p.site).toBeUndefined()
     expect(p.completed).toEqual(['1.1'])
+  })
+})
+
+describe('crew route', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const plan = { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+  const list2 = [m('1.1', true), m('1.2', true)]
+  const fresh = { version: 1 as const, owner, completed: [] }
+
+  it('keeps the chosen crew route with the cargo', () => {
+    expect(recordCargo(list2, fresh, plan, 150).crewRouteDays).toBe(150)
+  })
+
+  it('reopens 1.1 when the saved route is missing or not a sensible flight time', () => {
+    const ids = list2.map((x) => x.id)
+    for (const crewRouteDays of [undefined, 5, 1.5, 'fast']) {
+      const s = store({
+        [PROGRESS_KEY]: JSON.stringify({
+          ...fresh,
+          completed: ['1.1'],
+          cargo: plan,
+          crewRouteDays,
+        }),
+      })
+      expect(loadProgress(s, owner, ids).progress.completed).toEqual([])
+    }
   })
 })
