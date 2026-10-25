@@ -5,7 +5,11 @@
  */
 import type { CargoPlan } from '../../core/cargo'
 import { type CargoPhaseResult, cargoPhase } from '../../core/cargo-phase'
-import { judgeZone } from '../../core/landing-sites'
+import {
+  LANDING_ELEVATION_LIMIT_M,
+  LANDING_LATITUDE_LIMIT_DEG,
+  judgeZone,
+} from '../../core/landing-sites'
 import type { LandingSite } from '../../core/mission-progress'
 import { CLEAR_TAU, LOX_TARGET_KG, MAV_CONDITIONING_KW } from '../../core/mission-constants'
 import { type SiteBrief, SITE_BRIEFS } from '../../core/site-features'
@@ -13,6 +17,7 @@ import { iceVerdict } from '../../core/site-report'
 import { sunYear } from '../../core/surface-solar'
 import type { ZoneRow } from '../../core/zone-rank'
 import type { FeaturePins } from '../../map/feature-pins'
+import { type ZonePoint, zoneChart } from '../charts'
 import { el } from '../dom'
 import type { DockStep } from '../mission-dock'
 
@@ -116,6 +121,27 @@ function siteStep(z: ZoneRow, brief: SiteBrief, map: SiteMap): DockStep {
             el('span', { className: 'feature-number', textContent: String(i + 1) }),
             f.name,
           ),
+          el(
+            'figure',
+            { className: 'feature-photo' },
+            el('img', {
+              src: f.photo.src,
+              alt: f.photo.alt,
+              loading: 'lazy',
+              decoding: 'async',
+            }),
+            el(
+              'figcaption',
+              {},
+              `${f.photo.caption} `,
+              el('a', {
+                href: f.photo.page,
+                target: '_blank',
+                rel: 'noopener',
+                textContent: f.photo.credit,
+              }),
+            ),
+          ),
           el('p', { textContent: f.finding }),
           el(
             'p',
@@ -204,6 +230,23 @@ export function siteSteps(
       el(
         'div',
         { className: 'site-step' },
+        zoneChart(
+          judged.flatMap(({ z, j }): ZonePoint[] =>
+            z.elevationM === null
+              ? []
+              : [
+                  {
+                    name: z.name,
+                    latDeg: z.lat,
+                    elevationM: z.elevationM,
+                    kind: j.excluded ? 'out' : j.siteId ? 'visit' : 'no-terrain',
+                  },
+                ],
+          ),
+          LANDING_LATITUDE_LIMIT_DEG,
+          LANDING_ELEVATION_LIMIT_M,
+          'Every proposed landing zone: a crew may land only inside the shaded box',
+        ),
         el('p', {
           className: 'dock-note',
           textContent: `NASA’s 2015 workshop proposed ${zones.length} Exploration Zones. ${out.length} break the limits, ${noTerrain.length} pass but have no detailed terrain in ATLAS, and ${certified.length} pass with detailed terrain: you will visit those next.`,

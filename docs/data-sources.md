@@ -381,6 +381,13 @@ Every pin's position comes from data, never placed by eye; the text and its sour
 | Distances in the text | measured between these positions on the 3,396,190 m sphere (Jezero landing to Three Forks 2.5 km; Bradbury to Pahrump Hills 5.8 km; Spirit landing to Home Plate 3.5 km) | ATLAS |
 | Surface radiation (Gale) | 0.67 mSv/day from cosmic rays, Aug 2012 to Jun 2013 | Hassler et al. 2014, *Science* 343, doi:10.1126/science.1244797, via SwRI press release |
 
+### Mission 1.2 photos and zone chart
+| Item | Detail | Source |
+|---|---|---|
+| Point-of-interest photos (15) | One NASA image per pin, public domain, cut to 960 px WebP (the two panoramas, PIA04184 and PIA08783, cropped to their centre at 16:9). IDs, captions (from NASA's descriptions) and credits are in `web/src/core/site-features.ts`; files in `web/public/media/sites/` | NASA Image and Video Library API (https://images-api.nasa.gov); PIA05117 "Empty Nest" via Wikimedia Commons (public domain, NASA/JPL/Cornell); each card links its NASA Photojournal page |
+| Rejected | PIA05136 and PIA05137 are computer-generated models, and the 3-D anaglyphs need glasses, so neither kind is used | |
+| Zone chart | every Exploration Zone with an elevation, by latitude and MOLA elevation, against the ±50° and +2 km limits; shapes as well as colour separate the three groups | zone rows as above |
+
 ## Story mode (mission 1.1: the journey to Mars)
 | Item | Value | Source |
 |---|---|---|

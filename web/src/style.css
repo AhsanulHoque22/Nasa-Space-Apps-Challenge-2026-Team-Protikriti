@@ -4444,3 +4444,76 @@ button.journey-label:focus-visible {
 .feature-source a {
   color: var(--nasa-blue-lift);
 }
+
+/* Mission 1.2: every proposed zone against the landing limits */
+.zone-allowed {
+  fill: rgb(91 141 239 / 0.08);
+}
+
+.zone-mark.visit circle:first-child {
+  fill: #5b8def;
+  stroke: #05070c;
+  stroke-width: 1.5;
+}
+
+.zone-mark.no-terrain circle:first-child {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+
+.zone-mark.out path {
+  stroke: #ff8a78;
+  stroke-width: 2.5;
+}
+
+.legend-key.zone-visit {
+  width: 10px;
+  border-radius: 50%;
+  background: #5b8def;
+}
+
+.legend-key.zone-plain {
+  width: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+}
+
+.legend-key.zone-out {
+  width: 10px;
+  background:
+    linear-gradient(45deg, transparent 42%, #ff8a78 42% 58%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, #ff8a78 42% 58%, transparent 58%);
+}
+
+.feature-photo {
+  margin: 0 var(--space-3) var(--space-3) calc(26px + 2 * var(--space-3));
+}
+
+.feature-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.feature-photo figcaption {
+  margin-top: var(--space-1);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.feature-photo a {
+  color: var(--nasa-blue-lift);
+}
+
+.zone-chart-label {
+  font-size: 12px;
+  paint-order: stroke;
+  stroke: #121a2c; /* a halo in the dock colour keeps labels readable over marks */
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}

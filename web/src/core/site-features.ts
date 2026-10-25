@@ -23,7 +23,28 @@ export type SiteFeature = {
   /** How the pin's position was found. */
   located: string
   source: { label: string; url: string }
+  /** A NASA image of the finding (public domain), from the NASA Image and Video Library. */
+  photo: SitePhoto
 }
+
+export type SitePhoto = {
+  /** Served path: a 960 px WebP made from the NASA original. */
+  src: string
+  alt: string
+  /** What the image shows, from NASA's own description. */
+  caption: string
+  credit: string
+  /** NASA Photojournal page for the original. */
+  page: string
+}
+
+const photo = (id: string, alt: string, caption: string, credit: string): SitePhoto => ({
+  src: `media/sites/${id.toLowerCase()}.webp`,
+  alt,
+  caption,
+  credit,
+  page: `https://photojournal.jpl.nasa.gov/catalog/${id}`,
+})
 
 export type SiteBrief = {
   siteId: string
@@ -57,6 +78,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Wikipedia: Octavia E. Butler Landing',
           url: 'https://en.wikipedia.org/wiki/Octavia_E._Butler_Landing',
         },
+        photo: photo(
+          'PIA24482',
+          "Perseverance's wheel and rocky ground of the crater floor through a fisheye camera",
+          'Hazcam view on 4 March 2021, as Perseverance drove for the first time, away from its landing site.',
+          'NASA/JPL-Caltech',
+        ),
       },
       {
         name: 'Rochette: the first rock core',
@@ -71,6 +98,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'CBS News: first rock sample confirmed',
           url: 'https://www.cbsnews.com/amp/news/nasa-perseverance-mars-rover-first-rock-sample-drilled-on-another-planet',
         },
+        photo: photo(
+          'PIA24840',
+          "The flat rock Rochette with two small drill holes, beside the rover's wheel",
+          'Rochette on 7 September 2021: the holes where the drill took the first samples, Montdenier and Montagnac.',
+          'NASA/JPL-Caltech',
+        ),
       },
       {
         name: 'Three Forks sample depot',
@@ -85,6 +118,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'NASA JPL: Perseverance deposits first sample',
           url: 'https://www.jpl.nasa.gov/news/nasas-perseverance-rover-deposits-first-sample-on-mars-surface',
         },
+        photo: photo(
+          'PIA25340',
+          "A sealed sample tube lying on sandy ground beside the rover's wheel",
+          'The 10th and last tube dropped at Three Forks, 28 January 2023 (sol 690), seen by the WATSON camera.',
+          'NASA/JPL-Caltech/MSSS',
+        ),
       },
       {
         name: 'Cheyava Falls',
@@ -98,6 +137,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'NASA JPL: Meet the Mars samples, Sapphire Canyon',
           url: 'https://www.jpl.nasa.gov/videos/meet-the-mars-samples-sapphire-canyon-sample-25/',
         },
+        photo: photo(
+          'PIA26368',
+          'Reddish rock crossed by white veins, with small dark-ringed spots',
+          'Cheyava Falls on 18 July 2024 (sol 1212): white calcium sulfate veins with reddish bands between them.',
+          'NASA/JPL-Caltech/MSSS',
+        ),
       },
     ],
   },
@@ -120,6 +165,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'SwRI: first radiation measurements from the surface of Mars',
           url: 'https://www.swri.org/press-release/swri-scientists-publish-first-radiation-measurements-surface-mars',
         },
+        photo: photo(
+          'PIA16068',
+          'Layered slopes of Mount Sharp rising beyond a dark plain',
+          'From Curiosity’s landing site toward the lower reaches of Mount Sharp.',
+          'NASA/JPL-Caltech/MSSS',
+        ),
       },
       {
         name: 'Yellowknife Bay: John Klein',
@@ -134,6 +185,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Sky & Telescope: habitable oasis on Mars',
           url: 'https://skyandtelescope.org/astronomy-news/habitable-oasis-on-mars/',
         },
+        photo: photo(
+          'PIA16726',
+          'A round drill hole in flat grey mudstone, with grey powder around it',
+          'The hole in John Klein from Curiosity’s first sample drilling on Mars.',
+          'NASA/JPL-Caltech/MSSS',
+        ),
       },
       {
         name: 'Pahrump Hills: the foot of Mount Sharp',
@@ -148,6 +205,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Space.com: Curiosity arrives at its mountain destination',
           url: 'https://www.space.com/27123-curiosity-rover-mars-mountain-destination.html',
         },
+        photo: photo(
+          'PIA19114',
+          'Pale outcrops and dunes seen from orbit, with the small rover among them',
+          'Curiosity at Pahrump Hills, seen from orbit by the HiRISE camera on Mars Reconnaissance Orbiter.',
+          'NASA/JPL-Caltech/Univ. of Arizona',
+        ),
       },
       {
         name: 'Gediz Vallis: pure sulfur',
@@ -162,6 +225,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Astrobiology.com: Curiosity discovers pure sulfur crystals',
           url: 'https://astrobiology.com/2024/07/22/curiosity-astrobiology-rover-discovers-pure-sulfur-crystals-on-mars/',
         },
+        photo: photo(
+          'PIA26307',
+          'Pale yellow crystals in broken rock fragments',
+          'Close-up of sulfur crystals inside the rock Curiosity crushed on 30 May 2024 (sol 4200), by its MAHLI camera.',
+          'NASA/JPL-Caltech/MSSS',
+        ),
       },
     ],
   },
@@ -184,6 +253,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Wikipedia: Spirit (rover)',
           url: 'https://en.wikipedia.org/wiki/Spirit_(rover)',
         },
+        photo: photo(
+          'PIA05117',
+          "Spirit's empty lander with deflated airbags on a flat plain",
+          '“Empty Nest”: Pancam mosaic of the landing site, the Columbia Memorial Station, with the lander Spirit drove off.',
+          'NASA/JPL/Cornell',
+        ),
       },
       {
         name: 'Husband Hill summit',
@@ -197,6 +272,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Phys.org: Spirit reaches true summit',
           url: 'https://phys.org/news/2005-10-spirit-true-summit.html',
         },
+        photo: photo(
+          'PIA04184',
+          'A wide view over hills and plains from a hilltop',
+          'Spirit’s view from the summit of Husband Hill (the centre of the panorama).',
+          'NASA/JPL-Caltech/Cornell',
+        ),
       },
       {
         name: 'Home Plate',
@@ -211,6 +292,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Wikipedia: Home Plate (Mars)',
           url: 'https://en.wikipedia.org/wiki/Home_Plate_(Mars)',
         },
+        photo: photo(
+          'PIA02055',
+          'Layered, platy rock on the edge of Home Plate',
+          'Spirit’s parting look at the layered rock of Home Plate (released 21 March 2006).',
+          'NASA/JPL-Caltech/Cornell',
+        ),
       },
       {
         name: 'Gertrude Weise: silica soil',
@@ -225,6 +312,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'NASA JPL: Spirit unearths surprise evidence of a wetter past',
           url: 'https://www.jpl.nasa.gov/news/mars-rover-spirit-unearths-surprise-evidence-of-wetter-past/',
         },
+        photo: photo(
+          'PIA09491',
+          'A streak of bright white soil in a wheel track',
+          'The silica-rich soil churned up by Spirit’s wheels.',
+          'NASA/JPL/Cornell',
+        ),
       },
       {
         name: 'Troy: where Spirit got stuck',
@@ -239,6 +332,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Space.com: stuck on Mars, Spirit does science',
           url: 'https://www.space.com/6892-stuck-mars-spirit-rover-science.html',
         },
+        photo: photo(
+          'PIA12007',
+          'A rover wheel sunk in pale, soft soil, seen through a fisheye camera',
+          'Spirit’s front Hazcam on 6 May 2009 (sol 1899): wheels partly buried in soft ground at Troy.',
+          'NASA/JPL-Caltech',
+        ),
       },
     ],
   },
@@ -261,6 +360,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Wikipedia: Victoria (crater)',
           url: 'https://en.wikipedia.org/wiki/Victoria_(crater)',
         },
+        photo: photo(
+          'PIA08812',
+          'A scalloped crater rim and dunes seen from orbit',
+          'The Opportunity rover at the rim of Victoria crater, seen from orbit by HiRISE.',
+          'NASA/JPL/University of Arizona',
+        ),
       },
       {
         name: 'West rim, Duck Bay side',
@@ -276,6 +381,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
           label: 'Wikipedia: Victoria (crater)',
           url: 'https://en.wikipedia.org/wiki/Victoria_(crater)',
         },
+        photo: photo(
+          'PIA08783',
+          'The far wall of a crater with layered cliffs',
+          'Victoria crater from Duck Bay, Opportunity’s first view into it (the centre of the panorama).',
+          'NASA/JPL-Caltech',
+        ),
       },
     ],
   },

@@ -10,6 +10,7 @@ const SVG = 'http://www.w3.org/2000/svg'
 const W = 640
 const H = 220
 const PAD = { left: 44, right: 16, top: 12, bottom: 30 }
+const ZONE_H = 290 // taller than the time charts: 30 zones cluster within a few km
 const COLOUR = { reactor: '#5b8def', solar: '#c27c22' } // validated pair (dark surface #121a2c)
 
 function svg<K extends keyof SVGElementTagNameMap>(
@@ -258,5 +259,173 @@ export function oxygenChart(
       }
     })
   }
+  return wrap
+}
+
+export type ZonePoint = {
+  name: string
+  latDeg: number
+  elevationM: number
+  kind: 'visit' | 'no-terrain' | 'out'
+}
+
+const ZONE_KIND_TEXT: Record<ZonePoint['kind'], string> = {
+  visit: 'detailed terrain: you visit it',
+  'no-terrain': 'inside the limits, no detailed terrain',
+  out: 'ruled out',
+}
+
+/**
+ * Every proposed zone by latitude and elevation, with the human-landing limits drawn: the shaded
+ * box is where a crew may land. Kinds differ by shape as well as colour.
+ */
+export function zoneChart(
+  points: readonly ZonePoint[],
+  latLimitDeg: number,
+  elevLimitM: number,
+  title: string,
+): HTMLElement {
+  const lats = points.map((p) => p.latDeg)
+  const elevs = points.map((p) => p.elevationM)
+  const xMin = Math.min(-latLimitDeg - 10, ...lats.map((l) => l - 5))
+  const xMax = Math.max(latLimitDeg + 10, ...lats.map((l) => l + 5))
+  const yMin = Math.floor((Math.min(...elevs) - 500) / 1000) * 1000
+  const yMax = Math.ceil((Math.max(elevLimitM, ...elevs) + 1000) / 1000) * 1000
+  const root = svg('svg', { viewBox: `0 0 ${W} ${ZONE_H}`, class: 'chart-svg', role: 'img' })
+  root.setAttribute('aria-label', title)
+  const x = (v: number) => PAD.left + ((v - xMin) / (xMax - xMin)) * (W - PAD.left - PAD.right)
+  const y = (v: number) =>
+    ZONE_H - PAD.bottom - ((v - yMin) / (yMax - yMin)) * (ZONE_H - PAD.top - PAD.bottom)
+
+  for (let v = yMin; v <= yMax; v += 2000) {
+    root.append(
+      svg('line', { x1: PAD.left, x2: W - PAD.right, y1: y(v), y2: y(v), class: 'chart-grid' }),
+    )
+    const t = svg('text', {
+      x: PAD.left - 6,
+      y: y(v) + 4,
+      class: 'chart-tick',
+      'text-anchor': 'end',
+    })
+    t.textContent = `${v / 1000}`
+    root.append(t)
+  }
+  for (const v of [-60, -30, 0, 30, 60].filter((t) => t >= xMin && t <= xMax)) {
+    const t = svg('text', {
+      x: x(v),
+      y: ZONE_H - PAD.bottom + 16,
+      class: 'chart-tick',
+      'text-anchor': 'middle',
+    })
+    t.textContent = `${Math.abs(v)}°${v < 0 ? 'S' : v > 0 ? 'N' : ''}`
+    root.append(t)
+  }
+  const xl = svg('text', {
+    x: W - PAD.right,
+    y: ZONE_H - 2,
+    class: 'chart-axis',
+    'text-anchor': 'end',
+  })
+  xl.textContent = 'latitude'
+  const yl = svg('text', { x: 4, y: PAD.top + 2, class: 'chart-axis' })
+  yl.textContent = 'km'
+  root.append(xl, yl)
+
+  // Where a crew may land: inside both latitude limits and below the elevation limit.
+  root.append(
+    svg('rect', {
+      x: x(-latLimitDeg),
+      y: y(elevLimitM),
+      width: x(latLimitDeg) - x(-latLimitDeg),
+      height: y(yMin) - y(elevLimitM),
+      class: 'zone-allowed',
+    }),
+  )
+  for (const lat of [-latLimitDeg, latLimitDeg]) {
+    root.append(
+      svg('line', { x1: x(lat), x2: x(lat), y1: PAD.top, y2: y(yMin), class: 'chart-target' }),
+    )
+  }
+  root.append(
+    svg('line', {
+      x1: PAD.left,
+      x2: W - PAD.right,
+      y1: y(elevLimitM),
+      y2: y(elevLimitM),
+      class: 'chart-target',
+    }),
+  )
+  const limitText = svg('text', {
+    x: x(latLimitDeg) - 6,
+    y: y(elevLimitM) - 6,
+    class: 'chart-label',
+    'text-anchor': 'end',
+  })
+  limitText.textContent = `+${elevLimitM / 1000} km and ±${latLimitDeg}°`
+  root.append(limitText)
+
+  const wrap = el(
+    'figure',
+    { className: 'chart' },
+    el('figcaption', { className: 'chart-title', textContent: title }),
+    el(
+      'ul',
+      { className: 'chart-legend' },
+      legendItem('Visited next (detailed terrain)', 'zone-visit'),
+      legendItem('Inside the limits, no detailed terrain', 'zone-plain'),
+      legendItem('Ruled out', 'zone-out'),
+      legendItem('Limits', 'demand'),
+    ),
+    root,
+  )
+  const tip = el('div', { className: 'chart-tip', hidden: true })
+  wrap.append(tip)
+
+  const labels: SVGTextElement[] = []
+  const placed: Array<{ x: number; y: number; left: boolean }> = []
+  // Draw the plain zones first so the labelled ones sit on top.
+  const order = { 'no-terrain': 0, out: 1, visit: 2 } as const
+  for (const p of [...points].sort((a, b) => order[a.kind] - order[b.kind])) {
+    const cx = x(p.latDeg)
+    const cy = y(p.elevationM)
+    const g = svg('g', { class: `zone-mark ${p.kind}` })
+    if (p.kind === 'out') {
+      g.append(
+        svg('path', {
+          d: `M${cx - 5},${cy - 5}L${cx + 5},${cy + 5}M${cx + 5},${cy - 5}L${cx - 5},${cy + 5}`,
+        }),
+      )
+    } else {
+      g.append(svg('circle', { cx, cy, r: p.kind === 'visit' ? 6 : 4.5 }))
+    }
+    g.append(svg('circle', { cx, cy, r: 11, fill: 'transparent' })) // a target bigger than the mark
+    g.addEventListener('pointerenter', () => {
+      tip.hidden = false
+      tip.textContent = `${p.name}: ${Math.abs(p.latDeg).toFixed(1)}°${p.latDeg < 0 ? 'S' : 'N'}, ${(p.elevationM / 1000).toFixed(1)} km, ${ZONE_KIND_TEXT[p.kind]}`
+      tip.style.left = `${(cx / W) * 100}%`
+    })
+    g.addEventListener('pointerleave', () => (tip.hidden = true))
+    root.append(g)
+    if (p.kind !== 'no-terrain') {
+      // Direct labels for the few zones that matter: southern ones to the left of their mark,
+      // northern ones to the right, nudged down past a label already on that side.
+      const left = p.latDeg < -2
+      let ly = cy + 4
+      while (
+        placed.some((q) => q.left === left && Math.abs(q.x - cx) < 130 && Math.abs(q.y - ly) < 15)
+      )
+        ly += 15
+      placed.push({ x: cx, y: ly, left })
+      const label = svg('text', {
+        x: left ? cx - 10 : cx + 10,
+        y: ly,
+        class: 'chart-label zone-chart-label',
+        'text-anchor': left ? 'end' : 'start',
+      })
+      label.textContent = p.name
+      labels.push(label)
+    }
+  }
+  root.append(...labels) // labels last, over every mark
   return wrap
 }

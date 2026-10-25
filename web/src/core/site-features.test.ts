@@ -42,3 +42,24 @@ describe('SITE_BRIEFS', () => {
     }
   })
 })
+
+const PHOTO_FILES = Object.keys(import.meta.glob('../../public/media/sites/*.webp')).map((p) =>
+  p.replace('../../public/', ''),
+)
+
+describe('point-of-interest photos', () => {
+  it('gives every pin a NASA photo that is on disk, with alt text, a caption and a credit', () => {
+    for (const brief of SITE_BRIEFS) {
+      for (const f of brief.features) {
+        expect(f.photo.src, f.name).toMatch(/^media\/sites\/pia\d{5}\.webp$/)
+        expect(PHOTO_FILES, f.name).toContain(f.photo.src)
+        expect(f.photo.alt.length, f.name).toBeGreaterThan(15)
+        expect(f.photo.caption.length, f.name).toBeGreaterThan(30)
+        expect(f.photo.credit, f.name).toMatch(/^NASA\/JPL/)
+        expect(f.photo.page, f.name).toMatch(
+          /^https:\/\/photojournal\.jpl\.nasa\.gov\/catalog\/PIA\d{5}$/,
+        )
+      }
+    }
+  })
+})
