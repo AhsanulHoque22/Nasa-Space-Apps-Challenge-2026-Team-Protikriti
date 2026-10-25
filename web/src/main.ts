@@ -34,6 +34,7 @@ import { renderConnectionBadge } from './ui/connection-badge'
 import { openExplore } from './ui/explore-hud'
 import { renderDock } from './ui/dock'
 import { renderHeader } from './ui/header'
+import { openProfileGate } from './ui/profile-gate'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
 import { renderSiteReport } from './ui/site-report'
@@ -115,10 +116,21 @@ async function loadMola(): Promise<Grid> {
   return parseMola(meta, bin)
 }
 
+/** localStorage, or undefined where touching it throws (some private windows). */
+function browserStorage(): Storage | undefined {
+  try {
+    return globalThis.localStorage
+  } catch {
+    return undefined
+  }
+}
+
 async function main() {
   const globe = document.getElementById('globe')
   const ui = document.getElementById('ui')
   if (!globe || !ui) throw new Error('#globe / #ui elements missing')
+  // A shared map link goes straight to the map; everyone else starts at the profile and mode choice.
+  if (!decodeView(window.location.search)) openProfileGate(browserStorage(), [globe, ui], () => {})
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
   const [sites, mola] = await Promise.all([loadSites(), loadMola()])

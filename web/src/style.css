@@ -3022,3 +3022,196 @@ body[data-mode='explore'] .layer-list > li[data-mode-group~='explore'] {
 body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
   opacity: 1;
 }
+
+/* Start screen: profile, then mode. Sits over the live globe; the app behind is inert. */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 0.5); /* the globe stays visible but quiet behind the choice */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.gate-panel {
+  width: min(440px, 100%);
+  margin-left: clamp(0px, 6vw, 96px);
+  padding: 28px;
+  box-sizing: border-box;
+  background: var(--surface-raised);
+}
+
+.gate-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.gate-brand span {
+  display: flex;
+}
+
+.gate-brand h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.gate-lede {
+  margin: var(--space-3) 0 24px;
+  font-size: 16px;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.gate-heading {
+  margin: 0 0 var(--space-3);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.gate-text {
+  margin: 0 0 var(--space-4);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.gate-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.gate-form label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gate-form input {
+  font: 16px var(--font); /* 16px stops iOS zooming on focus */
+  color: var(--text);
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 10px 12px;
+  caret-color: var(--nasa-blue-lift);
+}
+
+.gate-form input:focus-visible {
+  border-color: var(--nasa-blue-lift);
+}
+
+.gate-form input[aria-invalid='true'] {
+  border-color: var(--nasa-red);
+}
+
+.gate-hint,
+.gate-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.gate-note {
+  margin-bottom: var(--space-3);
+}
+
+.gate-error {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: 13px;
+  color: #ff8a78; /* NASA red lifted to 5.6:1 on the raised surface */
+}
+
+.gate-primary {
+  justify-self: start;
+  font: 600 14px var(--font);
+  color: #fff;
+  background: var(--nasa-blue);
+  border: 0;
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 0 20px;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.gate-primary:hover {
+  background: #1450b8;
+}
+
+.gate-modes {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.gate-mode {
+  display: grid;
+  gap: var(--space-1);
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: rgb(255 255 255 / 0.05);
+  border: 0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.gate-mode:hover {
+  background: rgb(91 141 239 / 0.18);
+}
+
+.gate-mode-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.gate-mode-detail {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.gate-link {
+  display: block;
+  margin-top: var(--space-3);
+  font: 13px var(--font);
+  color: var(--nasa-blue-lift);
+  background: none;
+  border: 0;
+  padding: var(--space-2) 0;
+  min-height: 44px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.gate-link:hover {
+  color: var(--text);
+}
+
+@media (max-width: 480px) {
+  .gate {
+    align-items: flex-end;
+  }
+
+  .gate-panel {
+    margin-left: 0;
+    padding: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate-primary,
+  .gate-mode {
+    transition: none;
+  }
+}
