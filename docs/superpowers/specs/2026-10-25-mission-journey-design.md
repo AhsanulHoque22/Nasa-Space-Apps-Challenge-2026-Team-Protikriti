@@ -384,3 +384,9 @@ dock sits beside the stage (3D left / dock right for the journey step; dock left
 otherwise), not along the bottom. Mission 1.2 became a visit to each certified site with pinned,
 sourced points of interest and photos. The current state, methods and rules for developers are in
 `docs/story-mode-guide.md`.
+
+**Update 2026-10-26 (help and explanation):** a Flight Director (deterministic, computed) offers
+options after a NO-GO, only when the user asks; it never plans the mission. A chatbot that explains
+the what, why and how of the planning is a later phase, under the rules in
+`docs/story-mode-guide.md` §14 (explains only, never computes; offline fallback).
+

@@ -4517,3 +4517,63 @@ button.journey-label:focus-visible {
   stroke-width: 4px;
   stroke-linejoin: round;
 }
+
+/* Flight Director: hidden help under a NO-GO, opened on request */
+.fd {
+  margin: var(--space-3) 0;
+}
+
+.fd-ask {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--nasa-blue-lift);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fd-ask:hover {
+  background: rgb(91 141 239 / 0.16);
+}
+
+.fd-ask:focus-visible {
+  outline: 2px solid var(--nasa-blue-lift);
+  outline-offset: 2px;
+}
+
+.fd-panel {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-left: 3px solid var(--nasa-blue-lift);
+  border-radius: 6px;
+  background: rgb(91 141 239 / 0.08);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.fd-panel p {
+  margin: 0 0 var(--space-2);
+}
+
+.fd-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.fd-options {
+  margin: 0 0 var(--space-2);
+  padding-left: 1.2em;
+}
+
+.fd-options li {
+  margin-bottom: var(--space-1);
+}
+
+.fd-note {
+  font-size: 13px;
+  color: var(--text-muted);
+}

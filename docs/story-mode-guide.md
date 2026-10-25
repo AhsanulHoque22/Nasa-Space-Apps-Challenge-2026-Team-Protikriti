@@ -50,7 +50,7 @@ problem-solving mission built on real NASA plans, real data and real maths.
 
 1. **Never invent a fact or a number.** Every figure on screen traces to a source in
    `docs/data-sources.md`. If a value is not sourced yet, the feature waits or the value is
-   labelled a team assumption (and listed as an open item, section 12).
+   labelled a team assumption (and listed as an open item, section 13).
 2. **Positions come from data, never by eye.** Map pins use rover positions from NASA image
    metadata, PDS traverses or our terrain models (section 5.3).
 3. **AI only explains, never computes.** All science lives in tested pure code in `web/src/core/`.
@@ -161,7 +161,7 @@ mission reopens every later mission (their results depended on it): `recordCargo
 ### 4.3 Checklist for a new mission
 
 1. **Sources first.** List every number and fact the mission needs, with its source, in
-   `docs/data-sources.md`. Missing sources go to section 12 of this guide; the mission waits.
+   `docs/data-sources.md`. Missing sources go to section 13 of this guide; the mission waits.
 2. **Core, test first.** Write the failing Vitest test, watch it fail, write the pure function,
    watch it pass. Edge cases: empty input, zero, limits, NaN.
 3. **Progress.** Add the `record…` function and the saved-result validator, with tests.
@@ -169,9 +169,9 @@ mission reopens every later mission (their results depended on it): `recordCargo
 5. **Wire it.** `mission-play.ts` (a `play…` function), `story.ts` (route the id to `onPlay`),
    and set `built: true` in `core/missions.ts`.
 6. **Visuals.** Photos and models (section 6), credited on screen and in `docs/data-sources.md`.
-7. **Browser test** at 1440 px and 390 px (section 8).
+7. **Browser test** at 1440 px and 390 px (section 9).
 8. **Docs.** `docs/data-sources.md`, `docs/AI_USE.md`, and this guide's status table.
-9. **Commit** in small pieces (section 9).
+9. **Commit** in small pieces (section 10).
 
 ---
 
@@ -250,7 +250,26 @@ tile and has all of these.
 
 ---
 
-## 7. Charts and design
+## 7. The Flight Director (help when stuck)
+
+`core/flight-director.ts` (pure, tested) and `ui/flight-director.ts`. When a cargo plan gets a
+NO-GO, a "Stuck? Ask the Flight Director" button appears under the verdict (mission 1.2) and under
+the oxygen preview (mission 1.1). Rules, agreed with the team:
+
+- **The user tries first.** Nothing shows until there is a NO-GO, and nothing opens until the user
+  asks. Verdict text gives no hints of its own.
+- **Options, never a plan.** It names the problem (night cooling or seasonal energy), how far short
+  the tanks are, and up to three *changes* (e.g. "+1 Solar array set") with the mass each adds and
+  how much must come off other cargo to stay under 40 t. There is no "apply" button: the user makes
+  the change.
+- **Computed, not generated.** It tries every addition of up to three power units (reactors, solar
+  sets, batteries, oxygen plants) within each item's maximum, keeps only changes that pass the
+  same `cargoPhase` model as the verdict, drops any change that contains a smaller passing one,
+  and lists the lightest first. The search runs only when the user asks.
+- New missions with a pass/fail check get the same pattern: a pure `…Options()` function with
+  tests proving every option passes when applied, and the shared `flightDirectorHelp` UI.
+
+## 8. Charts and design
 
 - Inline SVG in `ui/charts.ts`. One y-axis per chart, a legend for two or more series, direct
   labels for the few marks that matter, a hover readout, an `aria-label` summary.
@@ -262,7 +281,7 @@ tile and has all of these.
 
 ---
 
-## 8. Testing and verification
+## 9. Testing and verification
 
 - **Unit tests:** `make test` (pytest + vitest) must be green. TDD for every pure function and
   every bug fix: the failing test comes first.
@@ -280,7 +299,7 @@ tile and has all of these.
 
 ---
 
-## 9. Git workflow
+## 10. Git workflow
 
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `style:`, `test:`, `chore:`, `refactor:`),
   one logical change per commit. Style changes never share a commit with behaviour changes.
@@ -293,7 +312,7 @@ tile and has all of these.
 
 ---
 
-## 10. Known traps (each cost us time)
+## 11. Known traps (each cost us time)
 
 | Trap | What happens | Do this |
 |---|---|---|
@@ -310,12 +329,13 @@ tile and has all of these.
 
 ---
 
-## 11. Status (2026-10-26)
+## 12. Status (2026-10-26)
 
 | Mission | Status |
 |---|---|
 | Start screen, profile, mission list, Play again | Done |
 | 1.1 Briefing and cargo | Done: journey (3D trajectories, routes with resources), power, oxygen plant, supplies, review; live charts with Show the maths; 3D cargo bay (NASA habitat, crates, Jezero terrain); full-screen habitat viewer |
+| Flight Director (help after a NO-GO) | Done in 1.1 and 1.2 |
 | 1.2 Choose the landing site | Done: limits chart of all 30 zones; visit to 4 certified sites with zone numbers and 15 sourced, pinned points of interest with NASA photos; oxygen verdict at the chosen site |
 | 1.3 Landing | Next. Needs the EDL clip licence check (open item 6) and the lander pod model |
 | 1.4–1.8 | Planned (see the spec, section 4). 1.6 Greenhouse is blocked until its parameters are sourced |
@@ -328,7 +348,7 @@ still image with facts, base placement → auto-place with checks shown.
 
 ---
 
-## 12. Open items (resolve before the mission that needs them)
+## 13. Open items (resolve before the mission that needs them)
 
 1. ISS ECLSS oxygen and water recovery fractions.
 2. Lander slope limit for pad placement (else reuse the walk limit, labelled a team assumption).
@@ -345,7 +365,22 @@ layers while a mission plays.
 
 ---
 
-## 13. Working with an AI assistant on this repo
+## 14. Later phase: the mission explainer (chatbot)
+
+Planned for after the freeze-critical missions; not built yet. A chatbot that explains the what,
+why and how of everything in Story mode: the planning, the physics, the data and why a verdict came
+out as it did. Rules it must follow:
+
+- **It explains, it never computes.** Every number it uses comes from the app's pure core (the
+  verdict, the Flight Director's options, `docs/data-sources.md`), passed to it as context. It does
+  not make up numbers or plans, and it does not give away a full plan (same rule as section 7).
+- **It cites.** Answers point to the source of each fact (the cited documents and datasets).
+- **Offline fallback.** A language model needs a server holding the API key (never in the repo)
+  and internet. Without them the app falls back to its own written explanations ("Show the maths",
+  the Flight Director), so the offline demo still works.
+- Logged in `docs/AI_USE.md` like every AI use; judges must see that the science is deterministic.
+
+## 15. Working with an AI assistant on this repo
 
 We use Claude Code. Every AI contribution is logged in `docs/AI_USE.md` (what it did, what the
 team decided). The assistant follows `CLAUDE.md`, this guide and the rules in section 2: it

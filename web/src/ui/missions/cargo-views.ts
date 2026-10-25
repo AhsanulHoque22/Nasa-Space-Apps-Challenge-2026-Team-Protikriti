@@ -15,7 +15,9 @@ import {
 import { CARGO_DEMAND_KW, powerProfile } from '../../core/power-profile'
 import { ARRAY_DUST_FACTOR, ARRAY_EFFICIENCY } from '../../core/surface-solar'
 import { oxygenChart, powerChart } from '../charts'
+import { powerOptions } from '../../core/flight-director'
 import { el } from '../dom'
+import { flightDirectorHelp } from '../flight-director'
 import { previewSun } from './preview-sun'
 
 const kwh = (n: number) => `${Math.round(n).toLocaleString('en-US')} kWh`
@@ -68,6 +70,12 @@ export function powerView(plan: CargoPlan): HTMLElement {
   )
 }
 
+const help = (plan: CargoPlan) =>
+  flightDirectorHelp(
+    () => powerOptions(plan, previewSun().year),
+    `Checked at ${PREVIEW_SITE.name}, the preview site. Make the change in the Power or Oxygen plant step.`,
+  )
+
 export function oxygenView(plan: CargoPlan): HTMLElement {
   const r = cargoPhase(plan, previewSun().year)
   if (r.reason === 'night') {
@@ -75,9 +83,10 @@ export function oxygenView(plan: CargoPlan): HTMLElement {
       'div',
       { className: 'view' },
       note(
-        `No oxygen yet: at night nothing powers the ${MAV_CONDITIONING_KW} kW of propellant cooling. Add batteries or a reactor in the Power step.`,
+        `No oxygen yet: at night nothing powers the ${MAV_CONDITIONING_KW} kW of propellant cooling.`,
         'bad',
       ),
+      help(plan),
     )
   }
   const share = (r.loxKg / LOX_TARGET_KG) * 100
@@ -96,6 +105,7 @@ export function oxygenView(plan: CargoPlan): HTMLElement {
         : `Only ${kg(r.loxKg)} of ${kg(LOX_TARGET_KG)} (${share.toFixed(0)}%): the crew could not launch.`,
       r.verdict === 'go' ? 'good' : 'bad',
     ),
+    r.verdict === 'go' ? '' : help(plan),
     maths(
       `Full rate: ${kg(LOX_TARGET_KG)} ÷ (${LOX_WINDOW_DAYS} days × 24 h) = ${rate.toFixed(2)} kg an hour, drawing ${ISRU_FULL_POWER_KW} kW`,
       `Each sol the plant gets the power left after cooling, by day directly and by night from reactors or batteries.`,

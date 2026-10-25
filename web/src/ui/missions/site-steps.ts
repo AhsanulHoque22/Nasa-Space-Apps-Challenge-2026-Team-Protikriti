@@ -12,6 +12,7 @@ import {
 } from '../../core/landing-sites'
 import type { LandingSite } from '../../core/mission-progress'
 import { CLEAR_TAU, LOX_TARGET_KG, MAV_CONDITIONING_KW } from '../../core/mission-constants'
+import { powerOptions } from '../../core/flight-director'
 import { type SiteBrief, SITE_BRIEFS } from '../../core/site-features'
 import { iceVerdict } from '../../core/site-report'
 import { sunYear } from '../../core/surface-solar'
@@ -19,6 +20,7 @@ import type { ZoneRow } from '../../core/zone-rank'
 import type { FeaturePins } from '../../map/feature-pins'
 import { type ZonePoint, zoneChart } from '../charts'
 import { el } from '../dom'
+import { flightDirectorHelp } from '../flight-director'
 import type { DockStep } from '../mission-dock'
 
 export type SiteMap = {
@@ -335,6 +337,12 @@ export function siteSteps(
           { className: 'site-assumptions' },
           `Assumptions: dust optical depth ${CLEAR_TAU} at every site (NASA’s Jezero study value); arrays track the Sun with 33% cells; cell packing on the wings is not modelled, so solar output may be optimistic; batteries at nameplate capacity.`,
         ),
+        r.verdict === 'go'
+          ? ''
+          : flightDirectorHelp(
+              () => powerOptions(cargo, yearAt(chosen.z)),
+              `Checked at ${chosen.z.name}. To change the cargo, repack the lander in mission 1.1.`,
+            ),
         next,
       )
       view.focus()
