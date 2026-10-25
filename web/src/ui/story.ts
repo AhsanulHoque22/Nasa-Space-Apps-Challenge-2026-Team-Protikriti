@@ -1,22 +1,13 @@
 /** Story mode inside the start screen: the mission list, opening a mission, saving the result. */
-import {
-  type Progress,
-  loadProgress,
-  recordSite,
-  retryFrom,
-  saveProgress,
-} from '../core/mission-progress'
+import { type Progress, loadProgress } from '../core/mission-progress'
 import { EXPEDITIONS, MISSIONS } from '../core/missions'
 import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
 import type { ZoneRow } from '../core/zone-rank'
+import type { FeaturePins } from '../map/feature-pins'
 import { el } from './dom'
 import { loadJourneys } from './journey-client'
 import { renderMissionList } from './mission-list'
-import { renderSiteScreen } from './missions/site-screen'
-
-const NOT_SAVED_NOTE =
-  'This browser did not save your progress, so it lasts until you close the page.'
 
 /** What Story mode needs from the map app, which may still be loading. */
 export type StoryServices = {
@@ -25,6 +16,8 @@ export type StoryServices = {
   showSite: (siteId: string) => void
   /** Back to the whole planet, turning slowly (before the crew has landed anywhere). */
   showGlobe: () => void
+  /** Mission 1.2's numbered pins on the terrain. */
+  pins: FeaturePins
 }
 
 export type StoryContext = {
@@ -49,39 +42,14 @@ export function showStory(ctx: StoryContext): void {
       ctx.profile.createdAt,
       MISSIONS.map((m) => m.id),
     )
-  let progress = loaded.progress
-  let note = loaded.note
-
-  const commit = (next: Progress, result: string) => {
-    progress = next
-    note = saveProgress(ctx.store, next) ? result : `${result} ${NOT_SAVED_NOTE}`
-    showList()
-  }
+  const progress = loaded.progress
+  const note = loaded.note
 
   function showMission(id: string) {
     const mission = MISSIONS.find((m) => m.id === id)
     if (!mission) throw new Error(`No mission with id "${id}"`)
-    if (id === '1.1') {
+    if (id === '1.1' || id === '1.2') {
       ctx.onPlay(id, progress)
-      return
-    }
-    if (id === '1.2' && progress.cargo) {
-      ctx.body.replaceChildren(
-        renderSiteScreen(mission, progress.cargo, ctx.services.loadZones(), {
-          onLand: (site) =>
-            commit(
-              recordSite(MISSIONS, progress, site),
-              `Landed at ${site.zone}. Mission 1.2 is done.`,
-            ),
-          onRepack: () => {
-            progress = retryFrom(MISSIONS, progress, '1.1')
-            note = saveProgress(ctx.store, progress) ? null : NOT_SAVED_NOTE
-            showMission('1.1')
-          },
-          onBack: showList,
-        }),
-      )
-      ctx.body.querySelector<HTMLElement>('h2')?.focus()
       return
     }
     throw new Error(`Mission ${id} has no screen yet`)

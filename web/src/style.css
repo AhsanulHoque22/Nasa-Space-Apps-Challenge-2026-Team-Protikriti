@@ -3386,13 +3386,6 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 /* Mission 1.1: cargo packing */
-.cargo-context {
-  margin: 0 0 var(--space-4);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-muted);
-}
-
 .cargo-issues:empty {
   display: none;
 }
@@ -3430,18 +3423,6 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 /* Mission 1.2: landing site and cargo-phase verdict */
-.site-form fieldset {
-  margin: 0 0 var(--space-3);
-  padding: 0;
-  border: 0;
-}
-
-.site-form legend {
-  margin-bottom: var(--space-2);
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .zone-options {
   margin: 0;
   padding: 0;
@@ -3477,15 +3458,6 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 .zone-option-name {
   font-size: 14px;
   font-weight: 600;
-}
-
-.zone-evidence {
-  margin: var(--space-1) 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text-muted);
 }
 
 .zone-group {
@@ -4366,5 +4338,109 @@ button.journey-label:focus-visible {
 }
 
 .habitat-viewer-credit a {
+  color: var(--nasa-blue-lift);
+}
+
+/* Mission 1.2: each certified site, its numbers and its pinned points of interest */
+.site-step fieldset {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 0;
+}
+
+.zone-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
+.zone-facts div {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.zone-facts dt {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.zone-facts dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.feature-heading {
+  margin: 0 0 var(--space-1);
+  font-size: 17px;
+}
+
+.feature-list {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.feature-card {
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.04);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.feature-card[open] {
+  background: rgb(252 61 33 / 0.1);
+  box-shadow: inset 3px 0 0 var(--nasa-red); /* the pin being read is red on the map too */
+}
+
+.feature-card summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.feature-card summary:focus-visible {
+  outline: 2px solid var(--nasa-blue-lift);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.feature-number {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--text);
+  color: #05070c;
+  font-size: 14px;
+}
+
+.feature-card[open] .feature-number {
+  background: var(--nasa-red);
+  color: #fff;
+}
+
+.feature-card p {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2) calc(26px + 2 * var(--space-3));
+}
+
+.feature-source {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.feature-source a {
   color: var(--nasa-blue-lift);
 }

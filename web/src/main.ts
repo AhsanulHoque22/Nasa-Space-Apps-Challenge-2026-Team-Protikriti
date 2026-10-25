@@ -1,3 +1,4 @@
+import { type FeaturePins, createFeaturePins } from './map/feature-pins'
 import './style.css'
 import { type Site, elevationAt, parseMola } from './core/elevation'
 import { type Grid, lonLatToCell, parseGrid } from './core/grid'
@@ -140,6 +141,7 @@ async function main() {
     globe?: () => void
     pending?: string
     imageryWanted?: boolean
+    pins?: FeaturePins
   } = {}
   const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
   const openStart = () =>
@@ -148,6 +150,10 @@ async function main() {
       showSite,
       // Before the viewer exists the opening view is already the turning globe.
       showGlobe: () => siteView.globe?.(),
+      pins: {
+        show: (features, onPick) => siteView.pins?.show(features, onPick),
+        select: (index) => siteView.pins?.select(index),
+      },
     })
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
@@ -194,6 +200,7 @@ async function main() {
   // CLAMP_TO_GROUND left most of them km above the terrain, off the draped lines and clicks.
   const surfaceM = (lon: number, lat: number) =>
     (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration
+  siteView.pins = createFeaturePins(viewer, surfaceM)
   installWheelZoom(viewer, surfaceM)
   installKeyboardCamera(viewer, () =>
     document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),

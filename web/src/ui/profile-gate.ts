@@ -159,7 +159,7 @@ export function openProfileGate(
         playMission(id, {
           store,
           progress,
-          showGlobe: services.showGlobe,
+          services,
           onDone: (after, note) =>
             openProfileGate(store, behind, onMap, services, { progress: after, note }),
         })

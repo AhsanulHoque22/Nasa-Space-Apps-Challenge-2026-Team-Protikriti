@@ -358,7 +358,7 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 |---|---|---|
 | Landing limits | latitude within ±50°, elevation ≤ +2 km above the MOLA areoid (preliminary human-landing bounds) | NASA Mars surface field-station constraints; MSL EDL engineering guide (+2 km), https://marsoweb.nas.nasa.gov/landingsites/msl/memoranda/MSL_Eng_User_Guide_v2.pdf |
 | Zones | 30 Exploration Zones, elevation from MOLA MEGDR, shallow ice from SWIM 2.0 (as in the Martian Map zone panel) | LPI Contribution 1879; Smith et al.; Morgan et al. 2021 |
-| Choosable zones | the 4 zones on ATLAS terrain sites: Jezero-Syrtis-Isidis, Gale Crater, Gusev Crater, Meridiani Planum | ATLAS terrain sites (this table, Terrain) |
+| Choosable zones | the 4 zones on ATLAS terrain sites: Jezero-Syrtis-Isidis, Gale Crater, Gusev Crater, Meridiani Planum; each is visited on the map with its zone numbers and pinned points of interest | ATLAS terrain sites (this table, Terrain) |
 | Surface sunlight | normalised net flux f(z, τ), albedo 0.1 table | Appelbaum & Flood, *Solar radiation on Mars: Update 1990*, NASA TM-103623, https://ntrs.nasa.gov/citations/19910005804, digitised in CRAN package marsrad 1.0.1 (G. Labrèche, GPL-3) |
 | Tracking array | direct beam by Beer's law + diffuse sky treated as isotropic on the Sun-facing panel | Appelbaum, Flood & Crutchik, tracking-array study, NASA TM-105216 (1991) |
 | Array parameters | 33% IMM cells (1 AU, 28 °C, BOL); 0.95 permanent dust factor; wings 12 m across | Rucker et al. 2016 |
@@ -368,6 +368,17 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 | Battery | 658 kWh per bank at nameplate (depth-of-discharge limits not modelled) | Rucker et al. 2016, Table 7 |
 | Method | energy balanced once per sol over a Mars year (every second sol computed, then repeated); worst 420-day window decides; cell packing on the wings not modelled, so solar output may be optimistic | ATLAS `web/src/core/cargo-phase.ts`, `surface-solar.ts` |
 | Check | Rucker's demonstrator (four 5.6 m arrays, 6.45 kW for 10 h a sol at the equator) is met: the model gives ≈98 kWh/sol against 64.5 needed | `surface-solar.test.ts` |
+
+### Mission 1.2 points of interest (pins on the map)
+Every pin's position comes from data, never placed by eye; the text and its source are in `web/src/core/site-features.ts`.
+| Rover / site | How the pin is located | Source |
+|---|---|---|
+| Perseverance (Jezero) | rover position at the stop nearest the event's sol, from NASA raw-image metadata (`web/public/data/stops/m20.json`); sols counted from the dates in the cited articles (landing 18 Feb 2021 20:55 UTC, 1 sol = 1.0275 days) | NASA Mars 2020 raw-image API |
+| Curiosity (Gale) | the same, from `stops/msl.json` (landing 6 Aug 2012 05:17 UTC) | NASA MSL raw-image API |
+| Spirit (Gusev, Columbia Hills) | PDS interpolated, science-team-corrected traverse, at the event's sol; equirectangular about 175.5°E, 0°N on the 3,396,190 m sphere. Landing point comes out within ~200 m of the published coordinates; Home Plate at 14.600°S matches 14°36′S | `MERA_traverse.csv`, PDS Geosciences Node / Washington University (traverse by T. Parker), https://an.rsl.wustl.edu/mera/AN/pages/mer/mer_traverse.htm |
+| Opportunity (Victoria crater) | lowest and highest points of the site's terrain model (floor to rim 76 m; published depth ~70 m). The Opportunity traverse (`MERB_traverse_5130.csv`) is relative to the landing point; anchored on published landing coordinates it put Duck Bay ~370 m off the rim, so rover positions are not pinned here | site DEM (this table, Terrain); PDS Geosciences Node |
+| Distances in the text | measured between these positions on the 3,396,190 m sphere (Jezero landing to Three Forks 2.5 km; Bradbury to Pahrump Hills 5.8 km; Spirit landing to Home Plate 3.5 km) | ATLAS |
+| Surface radiation (Gale) | 0.67 mSv/day from cosmic rays, Aug 2012 to Jun 2013 | Hassler et al. 2014, *Science* 343, doi:10.1126/science.1244797, via SwRI press release |
 
 ## Story mode (mission 1.1: the journey to Mars)
 | Item | Value | Source |
