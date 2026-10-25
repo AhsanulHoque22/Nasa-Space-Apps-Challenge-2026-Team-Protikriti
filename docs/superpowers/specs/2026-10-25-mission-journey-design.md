@@ -11,30 +11,34 @@
 ATLAS has many strong tools (route planner, colony placement, storm replay, Street View,
 site reports) but no story connecting them. Judges score Presentation and Impact, and the
 challenge is a *survival guide*. This spec turns the tools into one guided, learning-first
-journey: choose where to land, pack what NASA would send, build the base, and keep a crew
-alive until the return window opens. Users fail, read why, and retry.
+journey in **Story mode**: expeditions made of many missions. Choose where to land, pack what
+NASA would send, build the base, and keep a crew alive until the return window opens; later
+expeditions build on the same base. Users fail, read why, and retry. The existing app stays as
+the second mode, **Martian Map**.
 
 **Audience:** students and science enthusiasts, not flight crews. (Mars has no internet; no
 astronaut will use a website on the surface.)
 
 **Tone rule: a mission, not a game.** No points, coins, lives, timers-for-drama or loot.
 Words used: briefing, decision, consequence, debrief. The only outcomes are *sols survived*
-and *margin*. Every number on screen shows its source. Models and one intro video per chapter
+and *margin*. Every number on screen shows its source. Models and one intro video per mission
 are the only illustrative content, and are labelled as such.
 
 ## 2. Decisions taken (2026-10-25)
 
 | Topic | Decision |
 |---|---|
+| Modes | Two: **Story mode** (this spec) and **Martian Map** (the current app, unchanged). |
 | Login | Local profile (name + chosen hat badge), progress in the browser. No backend, works offline. |
 | Roles | Crew roles: Commander, Engineer, Scientist, Medic. |
 | Role play | "Switch hats": one user leads all four; every decision is tagged with the role that owns it. |
 | Baseline | NASA DRA 5.0 architecture, with power/ISRU numbers from NASA's Jezero solar-vs-fission study (Rucker et al. 2016, EMC operations). |
 | Crew | 4 (CHAPEA analog, EMC ops). |
 | Finish line | Survive the 539-day surface stay until the Earth-return window (DRA 5.0). No resupply is possible in between: launch windows are ~26 months apart. |
-| Failure | Debrief names the failing resource, sol and cause; retry from the chapter where the fatal decision was made. |
-| Screen | Globe stays the stage; a left **mission rail** shows chapter, objective and the life ledger; existing panels appear only when a chapter needs them. |
-| Scope by freeze (14 Nov 12:00) | Core 5 chapters. Chapters 6–9 shown as locked "next missions". |
+| Failure | Debrief names the failing resource, sol and cause; retry from the mission where the fatal decision was made (checkpoint at every mission start). |
+| Screen | Globe stays the stage; a left **mission rail** shows expedition, mission, objective and the life ledger; existing panels appear only when a mission needs them. |
+| Structure | **Expeditions made of many missions.** 3 expeditions to one site (NASA EMC basis); each expedition is one crew, one 525-sol stay, one ledger; missions unlock in order. |
+| Scope by freeze (14 Nov 12:00) | **8 playable missions** (Expedition 1, missions 1.1–1.8); every other mission listed and locked with its briefing readable. |
 
 ## 3. Research basis (what the numbers come from)
 
@@ -76,71 +80,72 @@ human Mars planning, and saying so is good science communication.
 
 ## 4. The journey
 
+### Two modes
+- **Story mode** — this spec: expeditions made of missions, unlocked in order.
+- **Martian Map** — the current app (map, layers, route planner, Street View, colony tools),
+  unchanged and always available.
+
 ### Entry
-Landing page → **Create profile** (name; no password) → choose **Begin mission** or
-**Free explore** (the current app, unchanged). Profile and progress are saved in
-localStorage; every read/write is wrapped so a blocked browser still runs (progress then
-lasts for the session only).
+Landing page → **Create profile** (name; no password) → **Story mode** or **Martian Map**.
+Profile and progress are saved in localStorage; every read/write is wrapped so a blocked
+browser still runs (progress then lasts for the session only).
 
-### Chapter 1 — Briefing and cargo (Commander, Engineer)
-- Briefing card: the DRA 5.0 plan in 5 lines, the 26-month window, why cargo goes first.
-- **Pack the cargo lander, 40 t limit.** Fixed: surface habitat 21.5 t. Choose from the
-  catalogue (§6.2): Kilopower units, solar arrays, batteries, ISRU plants (1 or 2), food,
-  water reserve, spares, science lab, pressurised rover. Each row: mass, power, source.
-- **Cargo-phase simulation** runs with the chosen site from Chapter 2 (see order below):
-  does ISRU make 22,728 kg of LOX before the crew's launch window (420 days)?
-  Result: *GO for crew launch* or *NO-GO: tanks 61% full by the window, crew waits 26 months*
-  (mission failure, retry Chapter 1).
-- Order: the user packs first, Chapter 2 picks the site, and the cargo-phase verdict is
-  shown at the end of Chapter 2 (it needs latitude for solar). This is the first
-  consequence the user sees.
+### Structure: expeditions → missions
+Basis: NASA's Evolvable Mars Campaign reuses one site for **three crewed expeditions in the
+first decade**, each ~500 days on the surface, with new landers adding to the same base;
+fission units reach end of life after ~12 years (Rucker et al. 2016). DRA 5.0 likewise plans a
+minimum of three consecutive opportunities.
 
-### Chapter 2 — Choose the landing site (Scientist, Commander)
-- All 30 NASA Exploration Zones on the globe, ranked by the existing `zone-rank` (ice,
-  elevation, latitude).
-- Hard rules drop zones: beyond ±50° latitude, above +2 km MOLA. The reason is shown.
-- **Final pick is one of the four zones with high-resolution terrain in ATLAS** (Jezero,
-  Gale, Gusev, Meridiani). The others show "not certified: no high-resolution terrain";
-  this is how NASA works too (no crew to an unimaged site).
-- The site sets latitude (insolation, night length), seasonal τ, SWIM ice (recorded for
-  later chapters), and elevation (shown as EDL margin).
-- Ends with the cargo-phase verdict from Chapter 1.
+- An **expedition** = one crew of 4, one stay of 525 sols, one life ledger.
+- A **mission** = one problem inside an expedition, with its own briefing, decision(s),
+  consequence and debrief. Missions unlock one after another.
+- The ledger **carries across missions**: each mission starts from the sol and stores the
+  previous one ended with, and advances it to its own end sol. A checkpoint (ledger state +
+  decisions) is saved at the start of every mission; retry restores it.
+- Expedition 2 starts with what Expedition 1 left on the surface (base, power farm, remaining
+  stores), plus a new cargo lander the user packs.
 
-### Chapter 3 — Landing (no decision)
-- 45–60 s NASA Perseverance EDL footage (NASA/JPL-Caltech, credited, English captions),
-  self-hosted so it plays offline, with three facts: entry speed, time to land, why
-  elevation matters. Skippable. Labelled "Perseverance, 2021, the closest real footage of
-  a Mars landing".
+### Mission list
+**P** = playable by the freeze (8). **L** = shown locked ("coming next"), with its briefing
+readable so the arc is visible.
 
-### Chapter 4 — Build the base (Engineer, Medic)
-- On the real terrain of the chosen site: place the habitat, power farm and ISRU/MAV area.
-- Checks (from existing slope grid and geometry):
-  - habitat and lander pads below the slope limit (value: open item §11);
-  - Kilopower farm ≥ 1 km from the habitat (Rucker 2016); closer → Medic flags it and the
-    placement is rejected with the distance shortfall in metres;
-  - solar arrays not in permanent shadow (existing `sunlitMask`).
-- Commit → **the life ledger starts at sol 1**. The mission rail now shows O₂, water, food,
-  battery, power margin and crew dose.
+**Expedition 1 — First Footprints** (crew of 4, sols 1–525)
 
-### Chapter 5 — Dust storm, then the return window (Commander, Engineer)
-- At the season of the 2018 storm (existing storm replay) τ rises. Solar users see power
-  fall; fission users see it hold (the honest lesson).
-- Decisions while the storm lasts: habitat at **nominal (14.9 kW)** or **keep-alive
-  (8.0 kW: science stops, Marswalks suspended)**; science lab on or off.
-- After the storm the ledger runs forward to **sol 525**. Pass → debrief and the Earth-return
-  window. Fail → debrief.
+| # | Mission | Hat | Status | Decision → consequence | Reuses |
+|---|---|---|---|---|---|
+| 1.1 | Briefing and cargo | Commander, Engineer | P | Pack a 40 t lander (habitat fixed 21.5 t) → starting stores and power | new |
+| 1.2 | Choose the landing site | Scientist, Commander | P | 1 of 30 NASA zones; hard rules ±50°, ≤ +2 km; final pick among the 4 zones with high-res terrain → latitude, τ, ice, EDL margin. Ends with the **cargo-phase verdict**: did ISRU fill the ascent tanks (22,728 kg LOX in 420 days)? | `zone-rank`, zones, MOLA, SWIM |
+| 1.3 | Landing | — | P | No decision: 45–60 s NASA Perseverance EDL footage, captioned, offline, skippable | new |
+| 1.4 | Build the base | Engineer, Medic | P | Place habitat, power farm, ISRU/MAV on real terrain: slope limit, reactor ≥ 1 km, arrays not shadowed → ledger starts at sol 1 | `colony-modules`, slope grid, `sunlitMask` |
+| 1.5 | First Marswalk | Scientist, Medic | P | Plan a walk to a science stop: slope limit, walk time, return margin, dose → GO/NO-GO; walk cost drawn from the ledger | route planner, EVA card, dose |
+| 1.6 | Water from ice | Engineer, Scientist | P | Find shallow ice inside the zone (SWIM) and plan the haul → water added to the ledger at a sourced rate | SWIM, haul tool |
+| 1.7 | Dust storm | Commander, Engineer | P | Storm season of the site (2018 storm profile): habitat nominal 14.9 kW or keep-alive 8.0 kW, lab on/off → survive or fail | storm replay, `surface-conditions` |
+| 1.8 | Return window | Commander | P | Ledger runs to sol 525; MAV tanks must still be conditioned → expedition debrief | new |
+| 1.9 | Greenhouse trial | Scientist | L | Small crop unit vs power and food store | — |
+| 1.10 | Long traverse | Scientist, Commander | L | Pressurised rover, 100 km in 15 days, crew of 2 (DRA 5.0); 2 crew stay in the habitat | route planner |
+| 1.11 | Power unit failure | Engineer | L | One Kilopower unit fails; spare activation and load shedding | ledger |
 
-### Debrief (every end)
-- Line 1: outcome. *"Oxygen ran out on sol 214."*
+**Expedition 2 — Second Crew** (reuses the base; all L)
+2.1 Pack the second lander · 2.2 Wake the base (what survived dormancy) · 2.3 Greenhouse
+scale-up (~20–25 m²/person for O₂, ~50 m²/person for food) · 2.4 Ice mining at scale ·
+2.5 Cave and lava-tube scouting (existing caves layer) · 2.6 Sample campaign · 2.7 Return.
+
+**Expedition 3 — Toward Permanence** (all L)
+3.1 Power farm end-of-life planning (~12-year life) · 3.2 Food independence trial ·
+3.3 Radiation budget across three crews · 3.4 Handover to a permanent outpost.
+
+Order note for 1.1 → 1.2: the user packs first, then picks the site; the cargo-phase verdict
+appears at the end of 1.2 because solar output depends on latitude. A NO-GO is a failure of
+1.1 (retry packing).
+
+### Debrief (after every mission, and at expedition end)
+- Line 1: outcome. *"Oxygen ran out on sol 214."* or *"Mission complete, sol 142, margin:
+  O₂ 61 days, water 48 days, battery 1.4 nights."*
 - Line 2: cause chain from the ledger. *"Storm cut solar to 31% for 96 sols; battery empty on
   sol 198; ECLSS offline; O₂ drawn from reserve."*
-- Line 3: the decision that caused it and its chapter, with a **Retry Chapter N** button.
-- Dose line from the Medic (always shown), with the 600 mSv note.
+- Line 3: the decision that caused it and its mission, with **Retry mission X.Y**.
+- Medic's dose line (always), with the 600 mSv note.
 - Every figure links to its source (existing provenance view).
-
-### Locked next missions (shown, not built)
-6 First Marswalk (existing route planner), 7 Water from ice (SWIM + haul tool),
-8 Greenhouse, 9 Second crew arrives.
 
 ## 5. The life ledger (pure core)
 
@@ -148,16 +153,22 @@ Deterministic, sol-step simulation. No randomness. Same inputs → same outputs.
 
 ```
 simulateCargoPhase(manifest, site) -> { solsToFill: number | null, lox_kg_at_window: number, verdict }
-simulateCrewed(manifest, site, placement, decisions) -> SolRecord[]   // 1..525 or until failure
+initialState(manifest, site, placement, cargoResult) -> LedgerState            // sol 0
+advance(state, site, decisions, toSol) -> { state: LedgerState, records: SolRecord[] }
+applyDraw(state, draw) -> LedgerState      // one-off costs/gains: a Marswalk, a water haul
 firstFailure(records) -> Failure | null
 ```
+
+The ledger is **resumable**: each mission calls `advance` from where the last one stopped,
+and the `LedgerState` it starts from is the mission's checkpoint. Expedition 2 builds its
+`initialState` from Expedition 1's final state plus the new manifest.
 
 `SolRecord`: sol, Ls, τ, power generated (kWh), load (kWh), battery (kWh), O₂ store (kg),
 water store (kg), food store (kg), MAV conditioned (bool), crew dose (mSv), ECLSS on (bool).
 
 **Per sol:**
 1. **Generation.** Fission: units × 10 kWe × 24.66 h (spare activates if a unit is marked
-   failed; not in core 5). Solar: existing `solar.ts` physics (insolation by latitude and Ls,
+   failed; locked mission 1.11). Solar: existing `solar.ts` physics (insolation by latitude and Ls,
    atmospheric attenuation by τ) × array area. A test pins it to Rucker: 4 × 5.6 m arrays
    ≈ 8 kW daylight at the equator, τ = 1; τ = 5 → ~35% of nominal energy.
 2. **Loads.** MAV conditioning 6.655 kW (must-run) + habitat (14.9 or 8.0 kW by decision) +
@@ -171,6 +182,8 @@ water store (kg), food store (kg), MAV conditioned (bool), crew dose (mSv), ECLS
    stores lose the full need. Starting stores = packed food/water/O₂ + cargo-phase ISRU
    products (water from 400 kg H₂ + ISRU O₂ = 3,600 kg by stoichiometry, DRA 5.0).
 6. **Dose.** 0.67 mSv per sol per crew member (tracked, not a fail rule).
+   **One-off draws** (`applyDraw`): a Marswalk subtracts suit O₂/power from the existing EVA
+   card's numbers; a water haul adds water at a sourced extraction rate (§11).
 7. **Failure** = first store at zero or a power failure above; `firstFailure` returns the
    resource, sol and the chain of preceding causes for the debrief.
 
@@ -180,7 +193,7 @@ day-by-day for 420 days with solar daylight/battery rules; ≥22,728 kg → GO.
 ## 6. Architecture
 
 Follows the project's functional core / imperative shell rule. New code sits beside what
-exists; the current app stays as **Free explore**.
+exists; the current app stays as **Martian Map**.
 
 ### 6.1 New pure modules (`web/src/core/`)
 | File | Job |
@@ -188,10 +201,11 @@ exists; the current app stays as **Free explore**.
 | `mission-constants.ts` | Every rate and limit above as a named constant with a source comment. |
 | `manifest.ts` | Catalogue of packable items (mass, power, Wh, source); `manifestMass`, `validateManifest(limit_kg)`. |
 | `ledger.ts` | `simulateCargoPhase`, `simulateCrewed`, `firstFailure`. |
-| `mission.ts` | Chapter state machine as a pure reducer: unlocks, checkpoints, retry target. |
+| `missions.ts` | The mission registry as data: id, expedition, title, hats, status (playable/locked), briefing text, end sol rule, unlock rule. Adding a mission = adding a row + its screen. |
+| `mission.ts` | Story state machine as a pure reducer over the registry: unlocks, checkpoints, retry target, expedition carry-over. |
 | `profile.ts` | Profile type, `parseProfile(unknown)` (validate at the boundary), serialise. |
 
-### 6.2 Manifest catalogue (core 5)
+### 6.2 Manifest catalogue (Expedition 1)
 Habitat (fixed, 21.5 t) · Kilopower 10 kWe (1,754 kg) · Solar array 5.6 m (30 kg, plus
 structure/PMAD allowance from Rucker) · Battery block (kg → kWh at 270 Wh/kg) · ISRU plant ·
 Food (kg) · Water reserve (kg) · Science lab · Pressurised rover · Spares. Items without a
@@ -201,21 +215,25 @@ user is never shown an invented mass.
 ### 6.3 New UI (`web/src/ui/`)
 | File | Job |
 |---|---|
-| `profile-gate.ts` | Create/continue profile; Begin mission / Free explore. |
-| `mission-rail.ts` | Left rail: chapter, objective, role badge, ledger gauges with sources. |
-| `chapter-cargo.ts` | Manifest packing table with live mass bar. |
-| `chapter-site.ts` | Zone picker on the globe (reuses `zone-rank`, zone layer). |
-| `chapter-landing.ts` | Video player with captions, skip. |
-| `chapter-base.ts` | Placement on terrain (reuses `colony-modules`, slope grid, `sunlitMask`). |
-| `chapter-storm.ts` | Storm timeline (reuses storm replay, `surface-conditions`) and power decisions. |
+| `profile-gate.ts` | Create/continue profile; Story mode / Martian Map. |
+| `mission-map.ts` | The expedition/mission list: playable, done, locked; locked briefings readable. |
+| `mission-rail.ts` | Left rail: expedition, mission, objective, hat badge, ledger gauges with sources. |
+| `missions/cargo.ts` | 1.1 manifest packing table with live mass bar. |
+| `missions/site.ts` | 1.2 zone picker on the globe (reuses `zone-rank`, zone layer) + cargo-phase verdict. |
+| `missions/landing.ts` | 1.3 video player with captions, skip. |
+| `missions/base.ts` | 1.4 placement on terrain (reuses `colony-modules`, slope grid, `sunlitMask`). |
+| `missions/marswalk.ts` | 1.5 wraps the existing route planner and EVA card; result → `applyDraw`. |
+| `missions/water.ts` | 1.6 SWIM ice inside the zone + haul tool; result → `applyDraw`. |
+| `missions/storm.ts` | 1.7 storm timeline (reuses storm replay, `surface-conditions`) and power decisions. |
+| `missions/return.ts` | 1.8 run to sol 525, MAV check, expedition debrief. |
 | `debrief.ts` | Outcome, cause chain, retry, provenance links. |
 
-`main.ts` routes between Free explore and Mission. `colony-budget.ts` has constants that
+`main.ts` routes between Martian Map and Story mode. `colony-budget.ts` has constants that
 disagree with Rucker (2 kWh/sol per person vs 14.9 kW habitat); mission mode uses the ledger,
-and reconciling Free explore's colony panel is a follow-up (§10).
+and reconciling Martian Map's colony panel is a follow-up (§10).
 
 ### 6.4 Data
-- No new datasets for core 5; all site inputs exist (zones, MOLA, SWIM, dust, slope grids).
+- No new datasets for the 8 playable missions; all site inputs exist (zones, MOLA, SWIM, dust, slope grids).
 - One video file in `web/public/media/` (compressed MP4 ≤ 10 MB, poster, `.vtt` captions),
   credited in `docs/data-sources.md`.
 
@@ -223,7 +241,7 @@ and reconciling Free explore's colony panel is a follow-up (§10).
 - Profile JSON from localStorage is untrusted: parse and validate; on failure start fresh
   and say so (never crash, never silently lose progress without telling the user).
 - localStorage unavailable → session-only progress with a visible note.
-- Video fails to load → poster + facts, chapter continues.
+- Video fails to load → poster + facts, mission continues.
 - Placement off the site terrain → rejected at the click with a message.
 
 ## 8. Testing (TDD)
@@ -236,21 +254,26 @@ and reconciling Free explore's colony panel is a follow-up (§10).
   - ECLSS off doubles store draw;
   - exact finish at sol 525; start == finish edge (zero-length run);
   - cargo phase: fission GO, daylight-only solar NO-GO (Rucker: 1,098 sols for demo scale).
-- `mission`: unlock order, retry goes to the right chapter, checkpoint restore.
+- `ledger` resumability: advancing 0→200 then 200→525 equals 0→525 in one call; `applyDraw`
+  never goes below zero silently (it fails with the resource named).
+- `missions`: every playable mission has a screen; ids unique; unlock rules reference real ids.
+- `mission`: unlock order, retry restores the right checkpoint, Expedition 2 carry-over.
 - `profile`: corrupt JSON, missing fields, old version.
-- Playwright end-to-end before freeze: fission path survives; undersized solar fails in the
-  storm with the right debrief text; offline run with wifi off.
+- Playwright end-to-end before freeze: missions 1.1–1.8 in order on the fission path
+  (survives); undersized solar fails in 1.7 with the right debrief text; retry restores the
+  1.7 checkpoint; Martian Map still works; offline run with wifi off.
 
 ## 9. Demo (240 s video beat)
 Create profile → pack 40 t (choose solar to save mass) → pick Jezero (Rucker's own study
-site) → cargo-phase GO → landing footage (10 s) → place base → storm: power falls, keep-alive
+site) → cargo-phase GO → landing footage (10 s) → place base → first Marswalk GO → storm: power falls, keep-alive
 decision → debrief *"Oxygen ran out on sol 2xx"* → retry with one Kilopower → survives to
 sol 525. Names datasets aloud: MOLA, SWIM, HiRISE/CTX, RAD, MEDA/REMS, plus NASA DRA 5.0 and
 Rucker 2016.
 
-## 10. Out of scope (core 5)
-Real accounts and multi-user crews · chapters 6–9 · random failures/events · greenhouse
-modelling · EVA dose from walks · cable mass and line losses · reconciling Free explore's
+## 10. Out of scope (by the freeze)
+Real accounts and multi-user crews · locked missions (1.9–1.11, Expeditions 2 and 3) beyond
+their readable briefings · random failures/events · greenhouse
+modelling · extra EVA dose beyond the surface rate · cable mass and line losses · reconciling Martian Map's
 colony panel constants (follow-up) · AI narration of results.
 
 ## 11. Open items (resolve before the relevant task)
@@ -266,15 +289,19 @@ colony panel constants (follow-up) · AI narration of results.
    station presentation via search; pin the exact NTRS document before it goes on screen).
 6. Licence line for the chosen Perseverance EDL clip (NASA media guidelines; check the
    NASA Image and Video Library credit).
+7. Water extraction rate from shallow ice for mission 1.6 (the app cites NTRS-20190002020 for
+   3 L/sol; read the source and confirm before reuse).
+8. Suit consumables per Marswalk for mission 1.5 (confirm the EVA card's numbers are sourced).
 
 ## 12. Schedule and cut order
-- By 31 Oct: constants, manifest, ledger, mission reducer (tests green).
-- By 5 Nov: profile gate, mission rail, chapters 1–2.
-- By 9 Nov: chapters 3–5, debrief.
+- By 31 Oct: constants, manifest, resumable ledger, mission registry and reducer (tests green).
+- By 4 Nov: profile gate, mission map, mission rail, debrief, missions 1.1–1.3.
+- By 9 Nov: missions 1.4–1.8; locked briefings for all other missions.
 - 10–12 Nov: polish, accessibility pass, offline rehearsal, 240 s recording.
 - Freeze 14 Nov 12:00.
-- **Cut order if behind:** landing video → still image with facts; base placement → auto-place
-  with checks shown; storm decisions → fixed keep-alive. Never cut the ledger or the debrief.
+- **Cut order if behind:** 1.6 water → locked; 1.5 Marswalk → locked; landing video → still
+  image with facts; base placement → auto-place with checks shown; storm decisions → fixed
+  keep-alive. Never cut the ledger, the mission map or the debrief.
 
 ## Sources
 - Drake (ed.), *Human Exploration of Mars Design Reference Architecture 5.0*, NASA 2009. https://ntrs.nasa.gov/citations/20090040343
