@@ -352,3 +352,19 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 | Drinking water | 3.217 kg per crew member per day | BVAD Rev2, Table 3-31 |
 | Oxygen consumed | 0.895 kg per crew member per day | BVAD Rev2, Table 3-31 |
 | Sol length | 88,775.244 s | Allison & McEwen 2000 (Mars24) |
+
+## Story mode (mission 1.2: landing site and cargo phase)
+| Item | Value | Source |
+|---|---|---|
+| Landing limits | latitude within ±50°, elevation ≤ +2 km above the MOLA areoid (preliminary human-landing bounds) | NASA Mars surface field-station constraints; MSL EDL engineering guide (+2 km), https://marsoweb.nas.nasa.gov/landingsites/msl/memoranda/MSL_Eng_User_Guide_v2.pdf |
+| Zones | 30 Exploration Zones, elevation from MOLA MEGDR, shallow ice from SWIM 2.0 (as in the Martian Map zone panel) | LPI Contribution 1879; Smith et al.; Morgan et al. 2021 |
+| Choosable zones | the 4 zones on ATLAS terrain sites: Jezero-Syrtis-Isidis, Gale Crater, Gusev Crater, Meridiani Planum | ATLAS terrain sites (this table, Terrain) |
+| Surface sunlight | normalised net flux f(z, τ), albedo 0.1 table | Appelbaum & Flood, *Solar radiation on Mars: Update 1990*, NASA TM-103623, https://ntrs.nasa.gov/citations/19910005804, digitised in CRAN package marsrad 1.0.1 (G. Labrèche, GPL-3) |
+| Tracking array | direct beam by Beer's law + diffuse sky treated as isotropic on the Sun-facing panel | Appelbaum, Flood & Crutchik, tracking-array study, NASA TM-105216 (1991) |
+| Array parameters | 33% IMM cells (1 AU, 28 °C, BOL); 0.95 permanent dust factor; wings 12 m across | Rucker et al. 2016 |
+| Dust optical depth | τ = 1.0 at every site (the study's clear-season Jezero value; `dust.json` covers only Jezero and Gale) | Rucker et al. 2016 |
+| Cargo-phase target | 22,728 kg of oxygen in 420 days; plant 19.7 kW at full rate; ascent-vehicle cooling 6.655 kW always on | Rucker et al. 2016, §IV.B.4 and Table 3 |
+| Reactor output | 8.75 kWe delivered per unit ("four units provide up to 35 kWe") | Rucker et al. 2016 |
+| Battery | 658 kWh per bank at nameplate (depth-of-discharge limits not modelled) | Rucker et al. 2016, Table 7 |
+| Method | energy balanced once per sol over a Mars year (every second sol computed, then repeated); worst 420-day window decides; cell packing on the wings not modelled, so solar output may be optimistic | ATLAS `web/src/core/cargo-phase.ts`, `surface-solar.ts` |
+| Check | Rucker's demonstrator (four 5.6 m arrays, 6.45 kW for 10 h a sol at the equator) is met: the model gives ≈98 kWh/sol against 64.5 needed | `surface-solar.test.ts` |
