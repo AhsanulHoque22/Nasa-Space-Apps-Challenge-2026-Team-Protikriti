@@ -382,3 +382,16 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 | Crew supplies in transit | food 2.39, water 3.217, oxygen 0.895 kg per person per day, crew of 4, before recycling | BVAD Rev2 (2022) |
 | Radiation context | faster transfers and solar-maximum timing keep crews under NASA's 600 mSv limit | Zhang et al. 2026, *Space Weather*, doi:10.1029/2025SW004724 (CC BY-NC-ND 4.0; cited, figure not reproduced). Visual concept after ESA image "Earth to Mars trajectories for radiation study" (credit Chao Zhang et al.; no ESA licence, so not reused) |
 | Constants | Sun μ = 1.32712440018×10¹¹ km³/s² (IAU 2015); 1 AU = 149,597,870.7 km (IAU 2012) | IAU |
+
+## Story mode photos (mission 1.1 cards)
+All from the NASA Image and Video Library (https://images.nasa.gov), NASA media not subject to copyright in the US; credited on each card. Stored as 640×400 WebP in `web/public/media/cargo/`.
+| Card | NASA ID | Title | Credit |
+|---|---|---|---|
+| Kilopower reactor | GRC-2015-C-06315 | Fission Surface Power Technology Demonstration Unit (10 kW Stirling power converter) | NASA Glenn |
+| Solar array set | PIA22205 | InSight Lander Solar Array Test (UltraFlex arrays) | NASA/JPL-Caltech/Lockheed Martin |
+| Battery bank | iss063e049941 | Spacewalk installing lithium-ion batteries on the ISS, 16 July 2020 | NASA |
+| Oxygen plant | PIA24176 | Engineers Lower MOXIE into Perseverance | NASA/JPL-Caltech |
+| Food | iss068e008036 | Expedition 68 astronaut eating a meal aboard the ISS | NASA |
+| Water reserve | iss072e143163 | Replacing filters on the ISS water recovery system | NASA |
+
+MOXIE comparison on the card: best rate 12 g/h (NASA, 2023) against the plant's ~2.2 kg/h (Rucker et al. 2016), about 180 times.

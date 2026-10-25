@@ -9,6 +9,7 @@ import {
 import { CARGO_LIMIT_KG, SURFACE_STAY_SOLS } from '../../core/mission-constants'
 import { type DockStep, stepper } from '../mission-dock'
 import { el } from '../dom'
+import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
 import { type JourneyChoice, journeyStep } from './journey-step'
 
 const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
@@ -17,9 +18,36 @@ const tonnes = (n: number) =>
 const item = (id: CargoItem['id']) => CARGO_ITEMS.find((x) => x.id === id) as CargoItem
 
 function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElement {
+  const photo = CARGO_PHOTOS[i.id]
+  const picture = photo
+    ? el('img', {
+        className: 'item-photo',
+        src: photo.src,
+        alt: photo.alt,
+        width: 640,
+        height: 400,
+        loading: 'lazy',
+        decoding: 'async',
+      })
+    : ''
+  // The caption closes the card so the controls sit right under the picture.
+  const caption = photo
+    ? el(
+        'p',
+        { className: 'item-photo-caption' },
+        `${photo.caption} `,
+        el('a', {
+          href: photoUrl(photo),
+          target: '_blank',
+          rel: 'noopener',
+          textContent: photo.credit,
+        }),
+      )
+    : ''
   return el(
     'article',
     { className: 'item-card' },
+    picture,
     el('h3', { className: 'item-name', textContent: i.label }),
     el('p', { className: 'item-detail', textContent: i.detail }),
     stepper({
@@ -40,6 +68,7 @@ function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElem
       i.confidence === 'medium' ? 'derived value · ' : '',
       el('a', { href: i.url, target: '_blank', rel: 'noopener', textContent: 'Source' }),
     ),
+    caption,
   )
 }
 

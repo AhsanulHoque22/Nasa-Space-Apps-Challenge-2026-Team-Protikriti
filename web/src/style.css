@@ -3569,7 +3569,7 @@ body[data-story='mission'] .line-legend {
   z-index: 90;
   transform: translateX(-50%);
   width: min(920px, calc(100% - 2 * var(--space-4)));
-  max-height: min(56dvh, 560px);
+  max-height: min(60dvh, 600px);
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   box-sizing: border-box;
@@ -4045,4 +4045,28 @@ body[data-story='mission'] .line-legend {
   .journey-credit {
     display: none; /* the dock's sources list carries the same credits on phones */
   }
+}
+
+/* Photos on the mission 1.1 item cards */
+.item-photo {
+  display: block;
+  width: calc(100% + 2 * var(--space-4));
+  height: auto;
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) var(--space-1);
+  aspect-ratio: 21 / 9; /* a strip: the controls stay in view under it */
+  object-fit: cover;
+  border-radius: 8px 8px 0 0;
+  background: rgb(255 255 255 / 0.06); /* holds the space while the photo loads */
+}
+
+.item-photo-caption {
+  margin: var(--space-1) 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.item-photo-caption a {
+  color: var(--nasa-blue-lift);
+  text-underline-offset: 2px;
 }
