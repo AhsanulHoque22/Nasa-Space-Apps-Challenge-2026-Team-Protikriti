@@ -146,6 +146,18 @@ describe('recordCargo', () => {
     })
   })
 
+  it('replaying 1.1 keeps the new plan and reopens the missions after it', () => {
+    const list3 = [m('1.1', true), m('1.2', true), m('1.3', true)]
+    const done = { ...fresh, completed: ['1.1', '1.2'], cargo: plan, crewRouteDays: 178 }
+    const replan = { ...plan, kilopower: 3 }
+    expect(recordCargo(list3, done, replan, 150)).toEqual({
+      ...fresh,
+      completed: ['1.1'],
+      cargo: replan,
+      crewRouteDays: 150,
+    })
+  })
+
   it('reopens 1.1 when the saved cargo plan is invalid', () => {
     const ids = withCargo.map((x) => x.id)
     const s = store({
@@ -173,6 +185,14 @@ describe('recordSite and retryFrom', () => {
     const p = recordSite(list3, packed, site)
     expect(p.completed).toEqual(['1.1', '1.2'])
     expect(p.site).toEqual(site)
+  })
+
+  it('replaying 1.2 keeps the new site and reopens the missions after it', () => {
+    const gale = { zone: 'Gale Crater', siteId: 'gale', lon: 137.4, lat: -4.6 }
+    const landed = { ...recordSite(list3, packed, site), completed: ['1.1', '1.2', '1.3'] }
+    const p = recordSite(list3, landed, gale)
+    expect(p.completed).toEqual(['1.1', '1.2'])
+    expect(p.site).toEqual(gale)
   })
 
   it('reopens a mission and every mission after it, keeping earlier choices as a starting point', () => {

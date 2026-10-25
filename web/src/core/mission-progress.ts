@@ -83,8 +83,10 @@ export function recordCargo(
   cargo: CargoPlan,
   crewRouteDays: number,
 ): Progress {
-  const done = completeMission(missions, progress, '1.1')
-  return done === progress ? progress : { ...done, cargo, crewRouteDays }
+  // A replay changes the cargo every later mission was judged on, so those missions reopen.
+  const reopened = retryFrom(missions, progress, '1.1')
+  const done = completeMission(missions, reopened, '1.1')
+  return done === reopened ? progress : { ...done, cargo, crewRouteDays }
 }
 
 /** Mission 1.2 done: keep the chosen site with it. */
@@ -93,8 +95,9 @@ export function recordSite(
   progress: Progress,
   site: LandingSite,
 ): Progress {
-  const done = completeMission(missions, progress, '1.2')
-  return done === progress ? progress : { ...done, site }
+  const reopened = retryFrom(missions, progress, '1.2') // a replay reopens what came after
+  const done = completeMission(missions, reopened, '1.2')
+  return done === reopened ? progress : { ...done, site }
 }
 
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */

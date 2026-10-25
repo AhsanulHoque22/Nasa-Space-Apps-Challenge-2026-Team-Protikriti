@@ -56,6 +56,18 @@ function missionRow(
     })
     start.addEventListener('click', () => onStart(m.id))
     details.append(start)
+  } else if (status.kind === 'done' && m.built) {
+    const again = Object.assign(document.createElement('button'), {
+      type: 'button',
+      className: 'gate-link mission-start',
+      textContent: 'Play again',
+    })
+    again.addEventListener('click', () => onStart(m.id))
+    const warn = Object.assign(document.createElement('p'), {
+      className: 'mission-hats',
+      textContent: 'Finishing it again reopens the missions after it.',
+    })
+    details.append(again, warn)
   }
   li.append(details)
   return li
