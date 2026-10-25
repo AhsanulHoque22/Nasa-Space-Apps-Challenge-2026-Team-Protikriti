@@ -132,7 +132,15 @@ export function sunPosition(
   eastLonDeg: number,
   latDeg: number,
 ): { elevationDeg: number; azimuthDeg: number } {
-  const t = marsTime(utcMs)
+  return sunPositionAt(marsTime(utcMs), eastLonDeg, latDeg)
+}
+
+/** The same, from an already computed Mars time (saves recomputing it in tight loops). */
+export function sunPositionAt(
+  t: MarsTime,
+  eastLonDeg: number,
+  latDeg: number,
+): { elevationDeg: number; azimuthDeg: number } {
   const H = (westLon(eastLonDeg) - t.subSolarWestLonDeg) * DEG
   const d = t.declinationDeg * DEG
   const phi = latDeg * DEG

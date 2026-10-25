@@ -1,6 +1,6 @@
 /** Clear-sky sunlight on the terrain over one sol: slope, aspect and cast shadows. Geometry only. */
 import type { Grid } from './grid'
-import { marsTime, sunPosition } from './mars-time'
+import { type MarsTime, marsTime, sunPosition } from './mars-time'
 
 /** Total solar irradiance at 1 AU (Kopp & Lean 2011, Geophysical Research Letters 38). */
 export const SOLAR_CONSTANT_W_M2 = 1361
@@ -12,7 +12,12 @@ const DEG = Math.PI / 180
 
 /** Sun-Mars distance in AU (Mars24 algorithm, Allison & McEwen 2000). */
 export function heliocentricDistanceAu(utcMs: number): number {
-  const M = marsTime(utcMs).meanAnomalyDeg * DEG
+  return heliocentricDistanceAt(marsTime(utcMs))
+}
+
+/** The same, from an already computed Mars time. */
+export function heliocentricDistanceAt(t: MarsTime): number {
+  const M = t.meanAnomalyDeg * DEG
   return (
     1.523679 *
     (1.00436 -
