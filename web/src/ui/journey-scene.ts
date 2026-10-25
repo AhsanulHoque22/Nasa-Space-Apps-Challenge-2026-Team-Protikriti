@@ -7,6 +7,7 @@
 import { type Vec3, planetPosition } from '../core/ephemeris'
 import type { Journey } from '../core/journey'
 import type { Journeys } from './journey-client'
+import { applyRegion, freeRegion } from './stage-region'
 
 const DAY_MS = 86_400_000
 const FLIGHT_SECONDS = 7 // one crossing on screen
@@ -180,11 +181,7 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
   // Fill only the screen the mission dock leaves free, so the planets are never hidden behind it.
   const dock = document.querySelector<HTMLElement>('.mission-dock')
   const resize = () => {
-    // Side by side (wide screens): the view ends where the dock begins; stacked: it ends above it.
-    const box = dock?.getBoundingClientRect()
-    const beside = !!box && box.left > window.innerWidth * 0.3
-    view.style.right = beside && box ? `${window.innerWidth - box.left}px` : '0'
-    view.style.bottom = !beside && box ? `${Math.max(0, window.innerHeight - box.top)}px` : '0'
+    applyRegion(view, freeRegion(dock))
     const w = view.clientWidth
     const h = Math.max(1, view.clientHeight)
     renderer.setSize(w, h, false)

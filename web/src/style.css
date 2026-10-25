@@ -4251,3 +4251,47 @@ body[data-story='mission'] .line-legend {
     left: 25%;
   }
 }
+
+/* Mission 1.1: the cargo bay in front of the turning globe */
+.cargo-bay {
+  position: fixed;
+  top: 0;
+  inset-inline: 0;
+  bottom: 0; /* left, right and bottom are set from the dock by the scene */
+  z-index: 85; /* above the globe, below the mission dock (90) */
+}
+
+.cargo-bay canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.cargo-bay-credit {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-4);
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 2 * var(--space-4)));
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 4px;
+  background: rgb(2 4 10 / 0.75);
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.cargo-bay-credit a {
+  color: var(--nasa-blue-lift);
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .cargo-bay-credit {
+    bottom: var(--space-2);
+    font-size: 10px;
+  }
+}

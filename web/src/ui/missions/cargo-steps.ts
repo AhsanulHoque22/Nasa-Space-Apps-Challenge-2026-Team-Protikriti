@@ -8,6 +8,7 @@ import {
 } from '../../core/cargo'
 import { CARGO_LIMIT_KG, SURFACE_STAY_SOLS } from '../../core/mission-constants'
 import { type DockStep, stepper } from '../mission-dock'
+import { type CargoBay, openCargoBay } from '../cargo-bay'
 import { el } from '../dom'
 import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
 import { foodView, oxygenView, powerView } from './cargo-views'
@@ -104,7 +105,35 @@ export function cargoSteps(
     views = [...views.filter(([s]) => s.isConnected), [slot, make]] // drop views of steps left behind
     return slot
   }
+  // One cargo bay across the packing steps: moving between them must not reload the models.
+  let bay: CargoBay | null = null
+  let bayWanted = false
+  let bayOpening = false
+  const showBay = () => {
+    bayWanted = true
+    if (bay || bayOpening) return
+    bayOpening = true
+    openCargoBay(plan).then(
+      (b) => {
+        bayOpening = false
+        if (bayWanted) (bay = b).update(plan)
+        else b.remove()
+      },
+      () => (bayOpening = false), // no WebGL or the models failed: the cards and charts still work
+    )
+  }
+  const hideBay = () => {
+    bayWanted = false
+    // The dock hides one step and shows the next in the same task; only remove if none wants it.
+    queueMicrotask(() => {
+      if (!bayWanted && bay) {
+        bay.remove()
+        bay = null
+      }
+    })
+  }
   const changed = () => {
+    bay?.update(plan)
     refresh()
     for (const [slot, make] of views) if (slot.isConnected) slot.replaceChildren(make(plan))
   }
@@ -117,21 +146,29 @@ export function cargoSteps(
     journeyStep(journey),
     {
       title: 'Power',
+      onShow: showBay,
+      onHide: hideBay,
       why: 'The habitat needs 12.1 kW, and the oxygen plant needs 19.7 kW more. Reactors run day and night; solar arrays only by day.',
       render: () => el('div', {}, cards('kilopower', 'solar', 'battery'), view(powerView)),
     },
     {
       title: 'Oxygen plant',
+      onShow: showBay,
+      onHide: hideBay,
       why: 'It splits carbon dioxide from the air into oxygen for the trip home. NASA’s plan carries two, so one can fail.',
       render: () => el('div', {}, cards('isru'), view(oxygenView)),
     },
     {
       title: 'Supplies',
+      onShow: showBay,
+      onHide: hideBay,
       why: `The crew stays ${SURFACE_STAY_SOLS} sols with no resupply. Food that runs out early has to come from somewhere else.`,
       render: () => el('div', {}, cards('foodSols', 'waterKg'), view(foodView)),
     },
     {
       title: 'Review and load',
+      onShow: showBay,
+      onHide: hideBay,
       why: 'Check the lander before it leaves. Anything here can still be changed.',
       nextLabel: 'Load the lander',
       onNext: () => {
