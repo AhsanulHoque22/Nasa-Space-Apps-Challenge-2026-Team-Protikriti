@@ -100,6 +100,11 @@ export function recordSite(
   return done === reopened ? progress : { ...done, site }
 }
 
+/** Mission 1.3 done (the crew has landed). A replay reopens what came after. */
+export function recordLanding(missions: readonly Mission[], progress: Progress): Progress {
+  return completeMission(missions, retryFrom(missions, progress, '1.3'), '1.3')
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)

@@ -51,6 +51,8 @@ export type SiteBrief = {
   rover: string
   /** The site in two or three sentences. */
   summary: string
+  /** Where the lander sets down (mission 1.3): a spot where a rover already landed safely. */
+  touchdown: { name: string; lon: number; lat: number; located: string }
   features: readonly SiteFeature[]
 }
 
@@ -64,6 +66,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
     rover: 'Perseverance',
     summary:
       'A 45 km crater that once held a lake. A river built a delta on its west side; Perseverance has driven from the flat floor onto that delta and up the valley that fed it.',
+    touchdown: {
+      name: 'Octavia E. Butler Landing, where Perseverance landed',
+      lon: 77.450886,
+      lat: 18.444627,
+      located: `${M20_STOPS}, sol 13`,
+    },
     features: [
       {
         name: 'Octavia E. Butler Landing',
@@ -151,6 +159,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
     rover: 'Curiosity',
     summary:
       'A 154 km crater with Mount Sharp, a 5.5 km mound of layered rock, in the middle. Curiosity landed on the plain to the north in 2012 and has been climbing the mountain since 2014.',
+    touchdown: {
+      name: 'Bradbury Landing, where Curiosity landed',
+      lon: 137.441633,
+      lat: -4.589467,
+      located: `${MSL_STOPS}, sol 3`,
+    },
     features: [
       {
         name: 'Bradbury Landing',
@@ -239,6 +253,12 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
     rover: 'Spirit',
     summary:
       'Gusev crater, 166 km across, was chosen as a possible ancient lake. Spirit landed on its plains in 2004 and drove to the Columbia Hills, where it found the evidence for water it was sent for.',
+    touchdown: {
+      name: 'Columbia Memorial Station, where Spirit landed',
+      lon: 175.475837,
+      lat: -14.565828,
+      located: `${SPIRIT_PDS}, sol 1`,
+    },
     features: [
       {
         name: 'Spirit’s landing site',
@@ -346,6 +366,13 @@ export const SITE_BRIEFS: readonly SiteBrief[] = [
     rover: 'Opportunity',
     summary:
       'Flat, smooth plains near the equator, picked from orbit for grey hematite, a mineral that usually forms in water. At Eagle crater, about 6 km north of here, Opportunity found hematite “blueberries” and jarosite, a salt that forms only in acidic water.',
+    touchdown: {
+      name: 'Challenger Memorial Station, where Opportunity landed',
+      lon: -5.5266,
+      lat: -1.9462,
+      located:
+        'Published landing coordinates, 1.9462°S 354.4734°E (Wikipedia: Opportunity rover); about 6 km north of Victoria crater',
+    },
     features: [
       {
         name: 'Victoria crater floor',

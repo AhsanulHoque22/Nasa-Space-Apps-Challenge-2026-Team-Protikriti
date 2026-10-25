@@ -247,6 +247,12 @@ tile and has all of these.
 - Inspect materials after export: the NASA habitat was marked glass-like (transmission) and
   metallic, which rendered black or see-through. Fix the file (matte, non-metal), not the code.
 - Credit every model on screen and in `docs/data-sources.md`.
+- **Adding the Starship cargo rocket (mission 1.3):** download "SpaceX Starship Cargo" by
+  AllThingsSpace (CC BY 4.0) from Sketchfab as glTF/GLB (needs a free account), put it in
+  `3D models/`, then run
+  `gltf-transform optimize "3D models/<file>.glb" web/public/models/landing/starship-cargo.glb --compress meshopt --texture-compress webp --texture-size 1024`.
+  The landing stage shows it automatically, with its credit; check its size and materials.
+  If you choose a different model, update the credit in `ui/landing-stage.ts` and `docs/data-sources.md`.
 
 ---
 
@@ -325,6 +331,7 @@ the oxygen preview (mission 1.1). Rules, agreed with the team:
 | Map clicks during a mission | Hidden tools reacted to terrain clicks | Keep `body.dataset.story = 'mission'`; new map click handlers must check `isExploring()` |
 | Model materials | Exported glass/metal flags render black or see-through | Inspect and fix the GLB material |
 | HiRISE zeros | 0.0 means failed stereo, not ground at datum | `zero_is_nodata` (section 5.4) |
+| Cesium models on the live map | At close range the drawn terrain keeps refining (hundreds of metres at Gale), so models at the DEM height get buried, clamping jumps between tiles, and in headless Chrome they never showed | Show 3D hardware on a three.js stage in front of the map (cargo bay, landing stage) and only fly the map camera |
 | Prettier reformatting | Exact-text edits fail after Prettier rewraps lines | Re-read the file before editing |
 
 ---
@@ -337,7 +344,7 @@ the oxygen preview (mission 1.1). Rules, agreed with the team:
 | 1.1 Briefing and cargo | Done: journey (3D trajectories, routes with resources), power, oxygen plant, supplies, review; live charts with Show the maths; 3D cargo bay (NASA habitat, crates, Jezero terrain); full-screen habitat viewer |
 | Flight Director (help after a NO-GO) | Done in 1.1 and 1.2 |
 | 1.2 Choose the landing site | Done: limits chart of all 30 zones; visit to 4 certified sites with zone numbers and 15 sourced, pinned points of interest with NASA photos; oxygen verdict at the chosen site |
-| 1.3 Landing | Next. Needs the EDL clip licence check (open item 6) and the lander pod model |
+| 1.3 Landing | Done: Perseverance's landing explained with NASA photos; the real onboard footage (offline, captioned); air pressure against elevation for the four sites; touchdown with the lander pod in 3D in front of the real site. The Starship cargo rocket appears once its model file is added (section 6.2) |
 | 1.4–1.8 | Planned (see the spec, section 4). 1.6 Greenhouse is blocked until its parameters are sourced |
 | Spec B cores (farming score, greenhouse budget, Phobos transits) | Planned |
 | Everything else | Locked, briefings shown |
@@ -354,11 +361,10 @@ still image with facts, base placement → auto-place with checks shown.
 2. Lander slope limit for pad placement (else reuse the walk limit, labelled a team assumption).
 3. Sourced masses for the science lab, pressurised rover and spares (DRA 5.0 addendum).
 4. Primary NTRS citation for the ±50° / +2 km landing bounds (on screen already; pin the document).
-5. Licence line for the Perseverance EDL clip (mission 1.3).
-6. Water extraction rate from shallow ice (locked 1.9; the app cites NTRS-20190002020 for 3 L/sol).
-7. Suit consumables per Marswalk (mission 1.5).
-8. Greenhouse parameters (mission 1.6): lighting, photoperiod, crop water, recycling, yield, mass.
-9. Mission epoch: crew landing date from a published conjunction-class trajectory.
+5. Water extraction rate from shallow ice (locked 1.9; the app cites NTRS-20190002020 for 3 L/sol).
+6. Suit consumables per Marswalk (mission 1.5).
+7. Greenhouse parameters (mission 1.6): lighting, photoperiod, crop water, recycling, yield, mass.
+8. Mission epoch: crew landing date from a published conjunction-class trajectory.
 
 Map clutter to decide: during 1.2 the map's own sample labels crowd Jezero; we may hide those
 layers while a mission plays.

@@ -4577,3 +4577,83 @@ button.journey-label:focus-visible {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* Mission 1.3: air pressure against landing elevation */
+.pressure-site {
+  fill: #121a2c;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+}
+
+.pressure-site.chosen {
+  fill: #5b8def;
+  stroke: #05070c;
+}
+
+/* Mission 1.3: landing photos and the real footage */
+.edl-photo {
+  margin: 0 0 var(--space-3);
+}
+
+.edl-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.edl-photo figcaption {
+  margin-top: var(--space-1);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.edl-photo a {
+  color: var(--nasa-blue-lift);
+}
+
+.edl-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.edl-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #000;
+}
+
+.pressure-table {
+  width: 100%;
+  margin: var(--space-3) 0 0;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pressure-table th,
+.pressure-table td {
+  padding: 6px var(--space-2);
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+}
+
+.pressure-table th[scope='row'],
+.pressure-table thead th:first-child {
+  text-align: left;
+}
+
+.pressure-table thead th {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pressure-table tr.chosen {
+  background: rgb(91 141 239 / 0.14);
+}

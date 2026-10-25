@@ -3,6 +3,7 @@ import {
   PROGRESS_KEY,
   completeMission,
   recordCargo,
+  recordLanding,
   recordSite,
   retryFrom,
   loadProgress,
@@ -237,5 +238,20 @@ describe('crew route', () => {
       })
       expect(loadProgress(s, owner, ids).progress.completed).toEqual([])
     }
+  })
+})
+
+describe('recordLanding', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list4 = [m('1.1', true), m('1.2', true), m('1.3', true), m('1.4', true)]
+
+  it('completes 1.3 once 1.2 is done', () => {
+    const p = recordLanding(list4, { version: 1, owner, completed: ['1.1', '1.2'] })
+    expect(p.completed).toEqual(['1.1', '1.2', '1.3'])
+  })
+
+  it('a replay of 1.3 reopens the missions after it', () => {
+    const p = recordLanding(list4, { version: 1, owner, completed: ['1.1', '1.2', '1.3', '1.4'] })
+    expect(p.completed).toEqual(['1.1', '1.2', '1.3'])
   })
 })

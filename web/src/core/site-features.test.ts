@@ -63,3 +63,21 @@ describe('point-of-interest photos', () => {
     }
   })
 })
+
+describe('touchdown points', () => {
+  it('gives every site a proven landing spot near its terrain, with how it was located', () => {
+    for (const brief of SITE_BRIEFS) {
+      const b = sites.find((s) => s.id === brief.siteId)
+      expect(b, brief.siteId).toBeDefined()
+      if (!b) continue
+      const t = brief.touchdown
+      // Opportunity landed 6 km north of the Victoria crater tile, so allow ~0.15° (9 km).
+      expect(t.lon).toBeGreaterThan(b.west - 0.15)
+      expect(t.lon).toBeLessThan(b.east + 0.15)
+      expect(t.lat).toBeGreaterThan(b.south - 0.15)
+      expect(t.lat).toBeLessThan(b.north + 0.15)
+      expect(t.name.length).toBeGreaterThan(5)
+      expect(t.located.length).toBeGreaterThan(10)
+    }
+  })
+})

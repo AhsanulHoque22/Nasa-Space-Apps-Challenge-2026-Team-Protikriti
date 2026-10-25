@@ -429,3 +429,111 @@ export function zoneChart(
   root.append(...labels) // labels last, over every mark
   return wrap
 }
+
+export type PressureSite = { name: string; elevationM: number; chosen: boolean }
+
+/**
+ * Air pressure against landing elevation (one curve from the NASA Glenn model), with each
+ * certified site marked on it and the +2 km landing limit dashed.
+ */
+export function pressureChart(
+  sites: readonly PressureSite[],
+  pressureKpa: (heightM: number) => number,
+  limitM: number,
+  title: string,
+): HTMLElement {
+  const xMin = -8000
+  const xMax = 6000
+  const yMax = niceMax(pressureKpa(xMin))
+  const root = svg('svg', { viewBox: `0 0 ${W} ${ZONE_H}`, class: 'chart-svg', role: 'img' })
+  root.setAttribute('aria-label', title)
+  const x = (v: number) => PAD.left + ((v - xMin) / (xMax - xMin)) * (W - PAD.left - PAD.right)
+  const y = (v: number) => ZONE_H - PAD.bottom - (v / yMax) * (ZONE_H - PAD.top - PAD.bottom)
+  for (let i = 0; i <= 4; i++) {
+    const v = (yMax / 4) * i
+    root.append(
+      svg('line', { x1: PAD.left, x2: W - PAD.right, y1: y(v), y2: y(v), class: 'chart-grid' }),
+    )
+    const t = svg('text', {
+      x: PAD.left - 6,
+      y: y(v) + 4,
+      class: 'chart-tick',
+      'text-anchor': 'end',
+    })
+    t.textContent = v.toFixed(1)
+    root.append(t)
+  }
+  for (let v = xMin; v <= xMax; v += 2000) {
+    const t = svg('text', {
+      x: x(v),
+      y: ZONE_H - PAD.bottom + 16,
+      class: 'chart-tick',
+      'text-anchor': 'middle',
+    })
+    t.textContent = `${v > 0 ? '+' : ''}${v / 1000}`
+    root.append(t)
+  }
+  const xl = svg('text', {
+    x: W - PAD.right,
+    y: ZONE_H - 2,
+    class: 'chart-axis',
+    'text-anchor': 'end',
+  })
+  xl.textContent = 'landing elevation, km'
+  root.append(xl)
+
+  const steps = 70
+  const d = Array.from({ length: steps + 1 }, (_, i) => {
+    const h = xMin + ((xMax - xMin) * i) / steps
+    return `${i ? 'L' : 'M'}${x(h)},${y(pressureKpa(h))}`
+  }).join('')
+  root.append(svg('path', { d, stroke: COLOUR.reactor, 'stroke-width': 2, fill: 'none' }))
+  root.append(
+    svg('line', { x1: x(limitM), x2: x(limitM), y1: PAD.top, y2: y(0), class: 'chart-target' }),
+  )
+  const lt = svg('text', { x: x(limitM) + 6, y: PAD.top + 12, class: 'chart-label' })
+  lt.textContent = `+${limitM / 1000} km limit`
+  root.append(lt)
+
+  // The certified sites sit within about 1 km of each other: only the chosen one is labelled on
+  // the curve; the table under the chart names them all.
+  let chosenLabel: SVGTextElement | null = null
+  for (const s of [...sites].sort((a, b) => Number(a.chosen) - Number(b.chosen))) {
+    const cx = x(s.elevationM)
+    const cy = y(pressureKpa(s.elevationM))
+    const dot = svg('circle', {
+      cx,
+      cy,
+      r: s.chosen ? 7 : 5,
+      class: `pressure-site${s.chosen ? ' chosen' : ''}`,
+    })
+    const tip = svg('title')
+    tip.textContent = `${s.name}: ${(s.elevationM / 1000).toFixed(1)} km, ${pressureKpa(s.elevationM).toFixed(3)} kPa`
+    dot.append(tip)
+    root.append(dot)
+    if (s.chosen) {
+      chosenLabel = svg('text', {
+        x: cx,
+        y: cy - 14,
+        class: 'chart-label zone-chart-label',
+        'text-anchor': 'middle',
+      })
+      chosenLabel.textContent = `${s.name} (yours)`
+    }
+  }
+  if (chosenLabel) root.append(chosenLabel)
+  return el(
+    'figure',
+    { className: 'chart' },
+    el('figcaption', { className: 'chart-title', textContent: title }),
+    el(
+      'ul',
+      { className: 'chart-legend' },
+      legendItem('Air pressure, kPa (NASA Glenn model)', 'reactor'),
+      legendItem('Your landing site', 'zone-visit'),
+      legendItem('Other certified sites', 'zone-plain'),
+      legendItem('Landing limit', 'demand'),
+    ),
+    root,
+  )
+}

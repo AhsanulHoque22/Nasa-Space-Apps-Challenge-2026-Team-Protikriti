@@ -5,6 +5,7 @@ import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
 import type { ZoneRow } from '../core/zone-rank'
 import type { FeaturePins } from '../map/feature-pins'
+import type { LandingScene } from '../map/landing-scene'
 import { el } from './dom'
 import { loadJourneys } from './journey-client'
 import { renderMissionList } from './mission-list'
@@ -18,6 +19,8 @@ export type StoryServices = {
   showGlobe: () => void
   /** Mission 1.2's numbered pins on the terrain. */
   pins: FeaturePins
+  /** Mission 1.3's touchdown: the lander models at the landing spot. */
+  landing: LandingScene
 }
 
 export type StoryContext = {
@@ -48,7 +51,7 @@ export function showStory(ctx: StoryContext): void {
   function showMission(id: string) {
     const mission = MISSIONS.find((m) => m.id === id)
     if (!mission) throw new Error(`No mission with id "${id}"`)
-    if (id === '1.1' || id === '1.2') {
+    if (id === '1.1' || id === '1.2' || id === '1.3') {
       ctx.onPlay(id, progress)
       return
     }

@@ -6,6 +6,7 @@ import type { CargoPlan } from '../core/cargo'
 import {
   type Progress,
   recordCargo,
+  recordLanding,
   recordSite,
   retryFrom,
   saveProgress,
@@ -15,6 +16,7 @@ import type { KeyValueStore } from '../core/streetview'
 import { openDock } from './mission-dock'
 import { cargoSteps, massGauge } from './missions/cargo-steps'
 import type { JourneyChoice } from './missions/journey-step'
+import { landingSteps } from './missions/landing-steps'
 import { siteSteps } from './missions/site-steps'
 import type { StoryServices } from './story'
 
@@ -34,6 +36,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   const title = `${mission.id} ${mission.title}`
   if (id === '1.1') playCargo(title, ctx)
   else if (id === '1.2') playSite(title, ctx)
+  else if (id === '1.3') playLanding(title, ctx)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -102,6 +105,36 @@ function playSite(title: string, ctx: PlayContext): void {
         steps,
         status: () => massGauge(cargo),
         onFinish: () => undefined, // the verdict's own button lands the cargo
+        onLeave: () => end(ctx.progress, null),
+      })
+    },
+    () =>
+      ctx.onDone(
+        ctx.progress,
+        'The landing zones could not be loaded. Check the connection and start the mission again.',
+      ),
+  )
+}
+
+function playLanding(title: string, ctx: PlayContext): void {
+  const site = ctx.progress.site
+  if (!site) throw new Error('Mission 1.3 needs the landing site chosen in mission 1.2')
+  ctx.services.loadZones().then(
+    (zones) => {
+      document.body.dataset.story = 'mission'
+      const end = (progress: Progress, note: string | null) => {
+        dock.remove()
+        delete document.body.dataset.story
+        ctx.onDone(progress, note)
+      }
+      const steps = landingSteps(zones, site, ctx.progress.crewRouteDays, ctx.services, () => {
+        const next = recordLanding(MISSIONS, ctx.progress)
+        end(next, saved(ctx, next, `The crew has landed at ${site.zone}. Mission 1.3 is done.`))
+      })
+      const dock = openDock({
+        missionTitle: title,
+        steps,
+        onFinish: () => undefined, // the last step's own button lands the crew
         onLeave: () => end(ctx.progress, null),
       })
     },

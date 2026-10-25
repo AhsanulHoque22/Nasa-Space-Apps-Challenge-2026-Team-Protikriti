@@ -62,7 +62,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Landing',
     hats: ['Commander'],
-    built: false,
+    built: true,
     briefing:
       'The closest real footage of a Mars landing: Perseverance in 2021. Why the entry is so hard, and why landing elevation matters.',
   },

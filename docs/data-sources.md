@@ -388,6 +388,20 @@ Every pin's position comes from data, never placed by eye; the text and its sour
 | Rejected | PIA05136 and PIA05137 are computer-generated models, and the 3-D anaglyphs need glasses, so neither kind is used | |
 | Zone chart | every Exploration Zone with an elevation, by latitude and MOLA elevation, against the ±50° and +2 km limits; shapes as well as colour separate the three groups | zone rows as above |
 
+## Story mode (mission 1.3: landing)
+| Item | Value | Source |
+|---|---|---|
+| Landing footage | "Perseverance Rover's Descent and Touchdown on Mars: Onboard Camera Views", 18 Feb 2021, 3 min 25 s, re-encoded to 720p H.264 (15 MB) for offline use; NASA's own caption file converted to WebVTT | NASA Image and Video Library, nasa_id `JPL-20210222-M2020f-0001-…`, NASA/JPL-Caltech (public domain) |
+| EDL facts | entry at nearly 20,000 km/h, about seven minutes to stand still, radio signal more than 11 minutes, fully autonomous | NASA PIA24285 (Perseverance EDL profile) |
+| Stage photos | heat shield falling away and first terrain-relative navigation at Mars (PIA24446); Perseverance under its parachute seen by HiRISE from 700 km (PIA24270); first colour Hazcam image after touchdown (PIA24430) | NASA Image and Video Library; credits on screen |
+| Perseverance mass | about 1,025 kg | Wikipedia: Perseverance (rover) |
+| Heavy landers | Viking-era entry technology is reaching its limits; payloads above ~10 t need new methods such as supersonic retropropulsion | NASA NTRS 20100026017 |
+| Air pressure | p = 0.699 e^(−0.00009 h) kPa, h in metres (the same pressure law above and below 7 km) | NASA Glenn Research Center Mars atmosphere model, https://www.grc.nasa.gov/www/k-12/airplane/atmosmrm.html |
+| Touchdown spots | where a rover already landed: Octavia E. Butler Landing (Perseverance stop, sol 13), Bradbury Landing (Curiosity stop, sol 3), Columbia Memorial Station (PDS Spirit traverse, sol 1), Challenger Memorial Station (1.9462°S 354.4734°E, Wikipedia: Opportunity rover) | as in mission 1.2 |
+| Cruise dose | days on the crew's route × 1.8 mSv/day | Zeitlin et al. 2013, as in mission 1.1 |
+| Crew lander model | "Habitat Lander Pod", jmleach1987, CC BY 4.0 (Sketchfab 9a55af34f7654097bd72f0642d83ccce), 11.2 MB → 1.05 MB; materials already matte. A stand-in, at its own size (about 12.5 m × 10 m) | team's 3D models folder |
+| Cargo rocket model (optional) | "SpaceX Starship Cargo", AllThingsSpace, CC BY 4.0 (Sketchfab 0c0b3a7708d04ee995e304f899d7b52b): a different design shown for illustration only; every number uses DRA 5.0 vehicles. Shown only when `web/public/models/landing/starship-cargo.glb` exists | to be downloaded by the team (Sketchfab requires a login) |
+
 ## Story mode (mission 1.1: the journey to Mars)
 | Item | Value | Source |
 |---|---|---|

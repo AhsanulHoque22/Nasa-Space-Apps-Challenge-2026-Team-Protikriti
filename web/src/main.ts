@@ -1,3 +1,4 @@
+import { type LandingScene, createLandingScene } from './map/landing-scene'
 import { type FeaturePins, createFeaturePins } from './map/feature-pins'
 import './style.css'
 import { type Site, elevationAt, parseMola } from './core/elevation'
@@ -142,6 +143,7 @@ async function main() {
     pending?: string
     imageryWanted?: boolean
     pins?: FeaturePins
+    landing?: LandingScene
   } = {}
   const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
   const openStart = () =>
@@ -153,6 +155,10 @@ async function main() {
       pins: {
         show: (features, onPick) => siteView.pins?.show(features, onPick),
         select: (index) => siteView.pins?.select(index),
+      },
+      landing: {
+        show: (t) => siteView.landing?.show(t),
+        clear: () => siteView.landing?.clear(),
       },
     })
   if (!decodeView(window.location.search)) openStart()
@@ -201,6 +207,7 @@ async function main() {
   const surfaceM = (lon: number, lat: number) =>
     (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration
   siteView.pins = createFeaturePins(viewer, surfaceM)
+  siteView.landing = createLandingScene(viewer, surfaceM)
   installWheelZoom(viewer, surfaceM)
   installKeyboardCamera(viewer, () =>
     document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),
