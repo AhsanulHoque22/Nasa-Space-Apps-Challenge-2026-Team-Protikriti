@@ -351,3 +351,30 @@ colony panel constants (follow-up) · AI narration of results.
 - MSL EDL engineering guide (elevation limit). https://marsoweb.nas.nasa.gov/landingsites/msl/memoranda/MSL_Eng_User_Guide_v2.pdf
 - CHAPEA Mission 1 (Space.com). https://space.com/nasa-simulated-mars-mission-chapea-1-end
 - NASA media guidelines. https://www.nasa.gov/nasa-brand-center/images-and-media
+
+## 13. Visual redesign of missions (approved 2026-10-25)
+
+User test of mission 1.1: "no visuals at all… all text… boring". Missions are rebuilt so the
+hardware is seen and the maths is shown.
+
+- **Stage + dock.** A mission closes the start screen and runs on the live map. The map's own
+  controls are hidden; the 3D terrain is the stage. A bottom **mission dock** holds the step
+  header, picture cards, one live chart, "Show the maths" and Back / Next (lower half on phones).
+- **Guided steps.** One decision per step with a one-line "why it matters" and a picture; a final
+  review step lists every choice and lets the user go back.
+- **Mission 1.1 steps:** (1) The plan: lander photo and timeline (cargo launch → landing → oxygen
+  made → crew launch 26 months later). (2) Power: Kilopower, solar wings, batteries, with the chart
+  **One sol of power** (solar rising and setting, reactors flat, demand line, battery state).
+  (3) Oxygen plant: MOXIE photo, with the chart **Oxygen tank over 420 days**. (4) Supplies: food
+  and water against the 525-sol stay. (5) Review: lander mass gauge, checks, Load.
+- **Preview site.** Steps 2–3 use Jezero (the Rucker study site) as a labelled preview so power
+  choices get feedback early; mission 1.2 recomputes at the chosen site.
+- **Show the maths:** every chart fills its formula with the user's numbers.
+- **Pictures:** NASA public-domain photos (NASA Image and Video Library), stored in the app for
+  offline use, each with a credit line. 3D models only where their licence is known and credited;
+  hardware without a model gets a plain stand-in shape labelled as such.
+- **3D on the stage:** packed items appear as models beside the lander on the terrain.
+- **Mission 1.2** follows: the globe flies to each zone as it is selected, evidence as cards, the
+  verdict as the oxygen-tank chart.
+- **Build order:** stage + dock + step flow → steps with picture cards → charts + Show the maths →
+  3D models → mission 1.2. Each piece is browser-tested and shown before the next.
