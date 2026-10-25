@@ -3894,7 +3894,8 @@ body[data-story='mission'] .line-legend {
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
-  transform: translateY(-16px);
+  position: relative;
+  top: -16px;
   white-space: nowrap;
 }
 
@@ -3908,11 +3909,11 @@ body[data-story='mission'] .line-legend {
 }
 
 .journey-label.below {
-  transform: translateY(18px); /* keeps the ship's label clear of Earth's at launch */
+  top: 18px; /* keeps the ship's label clear of Earth's at launch and Mars's on arrival */
 }
 
 .journey-label.sun {
-  transform: translateY(-28px);
+  top: -30px;
 }
 
 .journey-caption {
@@ -4214,4 +4215,39 @@ body[data-story='mission'] .line-legend {
 
 .meter-fill[data-short='true'] {
   background: #c27c22;
+}
+
+/* Wide screens: mission dock and stage side by side instead of stacked. */
+@media (min-width: 900px) {
+  body[data-story-layout] .mission-dock {
+    top: var(--space-4);
+    bottom: var(--space-4);
+    transform: none;
+    width: calc(50% - 1.5 * var(--space-4));
+    max-height: none;
+  }
+
+  /* Cargo steps: the console on the left, the turning globe on the right. */
+  body[data-story-layout='map'] .mission-dock {
+    left: var(--space-4);
+  }
+
+  body[data-story-layout='map'] #globe {
+    left: 50%;
+  }
+
+  /* The journey: the 3D trajectory on the left, the console on the right. */
+  body[data-story-layout='scene'] .mission-dock {
+    left: auto;
+    right: var(--space-4);
+  }
+
+  body[data-story-layout] .journey-credit {
+    left: 25%;
+    width: min(520px, calc(50% - 2 * var(--space-4)));
+  }
+
+  body[data-story-layout] .journey-caption {
+    left: 25%;
+  }
 }

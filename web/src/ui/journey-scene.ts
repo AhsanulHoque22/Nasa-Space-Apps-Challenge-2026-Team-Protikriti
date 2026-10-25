@@ -11,6 +11,8 @@ import type { Journeys } from './journey-client'
 const DAY_MS = 86_400_000
 const FLIGHT_SECONDS = 7 // one crossing on screen
 const HOLD_SECONDS = 1.5
+/** Radius the camera keeps in view: Mars's aphelion (1.67 AU) plus room for labels. */
+const FIT_RADIUS_AU = 1.9
 const COLOURS = {
   sun: 0xffc861,
   earth: 0x5b8def, // --nasa-blue-lift
@@ -69,21 +71,24 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x02040a)
   const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 50)
-  camera.position.set(0.3, 2.4, 3.6)
+  const VIEW_DIRECTION = new THREE.Vector3(0.1, 0.82, 0.56).normalize() // looking down at ~55°, still 3D
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
   controls.enablePan = false
   controls.minDistance = 1.5
-  controls.maxDistance = 7
+  controls.maxDistance = 14
   controls.target.set(0.1, 0, -0.1)
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.35))
   scene.add(new THREE.PointLight(0xffffff, 2.2, 0, 0))
 
   const label = (text: string, kind = '') => {
+    // CSS2DRenderer owns the outer element's transform, so the offset lives on an inner span.
     const div = document.createElement('div')
-    div.className = `journey-label ${kind}`
-    div.textContent = text
+    const span = document.createElement('span')
+    span.className = `journey-label ${kind}`
+    span.textContent = text
+    div.append(span)
     return new CSS2DObject(div)
   }
   const ball = (radius: number, colour: number, emissive = false) =>
@@ -172,17 +177,24 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
     caption.textContent = `${dateText(t)} · day ${Math.round(fraction * route.days)} of ${route.days}`
   }
 
-  // Fill only the screen above the mission dock, so the planets are never hidden behind it.
+  // Fill only the screen the mission dock leaves free, so the planets are never hidden behind it.
   const dock = document.querySelector<HTMLElement>('.mission-dock')
   const resize = () => {
-    const dockTop = dock ? dock.getBoundingClientRect().top : window.innerHeight
-    view.style.bottom = `${Math.max(0, window.innerHeight - dockTop)}px`
+    // Side by side (wide screens): the view ends where the dock begins; stacked: it ends above it.
+    const box = dock?.getBoundingClientRect()
+    const beside = !!box && box.left > window.innerWidth * 0.3
+    view.style.right = beside && box ? `${window.innerWidth - box.left}px` : '0'
+    view.style.bottom = !beside && box ? `${Math.max(0, window.innerHeight - box.top)}px` : '0'
     const w = view.clientWidth
     const h = Math.max(1, view.clientHeight)
     renderer.setSize(w, h, false)
     labels.setSize(w, h)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
+    // Step back far enough that Mars's orbit (out to 1.67 AU) fits the narrower side of the view.
+    const halfFov = ((camera.fov / 2) * Math.PI) / 180
+    const fit = FIT_RADIUS_AU / (Math.tan(halfFov) * Math.min(1, camera.aspect))
+    camera.position.copy(controls.target).add(VIEW_DIRECTION.clone().multiplyScalar(fit))
   }
   window.addEventListener('resize', resize)
   const watchDock = new ResizeObserver(resize)

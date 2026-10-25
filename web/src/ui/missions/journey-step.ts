@@ -173,6 +173,7 @@ export function journeyStep(choice: JourneyChoice): DockStep {
 
   return {
     title: 'The journey',
+    layout: 'scene',
     why: 'Mars and Earth line up for a launch only every 26 months. The cargo takes the first window; the crew the next.',
     render: () => {
       if (choice.journeys) paint(choice.journeys)

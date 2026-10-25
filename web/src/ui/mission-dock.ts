@@ -14,6 +14,8 @@ export type DockStep = {
   nextLabel?: string
   /** Runs when the main button is pressed; return false to stay on the step. */
   onNext?: () => boolean
+  /** On wide screens: 'scene' puts this step's 3D scene left and the dock right; default is dock left, map right. */
+  layout?: 'scene' | 'map'
   /** Runs when the step opens and when it closes (for example a scene behind the dock). */
   onShow?: () => void
   onHide?: () => void
@@ -81,6 +83,7 @@ export function openDock(opts: DockOptions): Dock {
     next.textContent = step.nextLabel ?? 'Next'
     if (opts.status) statusSlot.replaceChildren(opts.status())
     content.scrollTop = 0
+    document.body.dataset.storyLayout = step.layout ?? 'map'
     heading.focus()
     step.onShow?.()
   }
@@ -103,6 +106,7 @@ export function openDock(opts: DockOptions): Dock {
     goTo: show,
     remove: () => {
       shown?.onHide?.()
+      delete document.body.dataset.storyLayout
       root.remove()
     },
   }
@@ -124,7 +128,7 @@ export function stepper(o: {
   minus.setAttribute('aria-label', `Less ${o.label.toLowerCase()}`)
   plus.setAttribute('aria-label', `More ${o.label.toLowerCase()}`)
   const paint = () => {
-    out.textContent = `${value.toLocaleString('en-US')} ${o.unit}`
+    out.textContent = `${value.toLocaleString('en-US')} ${value === 1 ? o.unit.replace(/s$/, '') : o.unit}`
     minus.disabled = value <= 0
     plus.disabled = value >= o.max
   }
