@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CargoPlan } from './cargo'
-import { cargoPhase } from './cargo-phase'
+import { WINDOW_SOLS, cargoPhase } from './cargo-phase'
 import { LOX_TARGET_KG } from './mission-constants'
 
 const base: CargoPlan = { kilopower: 0, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
@@ -40,6 +40,20 @@ describe('cargoPhase', () => {
     const dark = cargoPhase({ ...base, solar: 2, battery: 1 }, sols)
     const bright = cargoPhase({ ...base, solar: 2, battery: 1 }, year(3))
     expect(dark.loxKg).toBeLessThan(bright.loxKg)
+  })
+
+  it('keeps the worst window sol by sol, adding up to the oxygen made', () => {
+    const sols = year(3)
+    for (let i = 0; i < 300; i++) sols[i] = { kwhPerM2: 1.5, dayHours: 12.3 }
+    const r = cargoPhase({ ...base, solar: 2, battery: 1 }, sols)
+    expect(r.windowKgPerSol).toHaveLength(WINDOW_SOLS)
+    expect(r.windowKgPerSol.reduce((a, b) => a + b, 0)).toBeCloseTo(r.loxKg, 6)
+  })
+
+  it('makes no oxygen without an oxygen plant, however much power there is', () => {
+    const r = cargoPhase({ ...base, isru: 0, kilopower: 5 }, year(0))
+    expect(r.loxKg).toBe(0)
+    expect(r.verdict).toBe('no-go')
   })
 
   it('reports the power on hand so the screen can explain it', () => {

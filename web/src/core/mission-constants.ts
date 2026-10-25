@@ -46,3 +46,6 @@ export const BATTERY_KWH_PER_BANK = (2437 * 270) / 1000
 export const SOLAR_SET_AREA_M2 = 4 * Math.PI * 6 ** 2
 /** Clear-season dust optical depth assumed at Jezero (Rucker et al. 2016). Applied to every site. */
 export const CLEAR_TAU = 1.0
+
+/** Preview site before mission 1.2 picks the real one: Jezero, as in NASA's power study (Rucker et al. 2016: 18.9°N, 77.5°E). */
+export const PREVIEW_SITE = { name: 'Jezero', latDeg: 18.9, lonDeg: 77.5 } as const

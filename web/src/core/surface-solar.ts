@@ -54,6 +54,33 @@ export function trackingIrradianceWm2(topWm2: number, zenithDeg: number, tau: nu
   return beam + diffuseH * ((1 + cosZ) / 2)
 }
 
+export type SolSample = {
+  /** Hours since the sol started. */
+  hour: number
+  /** Sunlight on a Sun-tracking panel, W/m² (0 with the Sun down). */
+  panelWm2: number
+}
+
+/** Sunlight on 1 m² of tracking panel through the sol starting at `utcMs`, every ~31 minutes. */
+export function solProfile(
+  latDeg: number,
+  eastLonDeg: number,
+  utcMs: number,
+  tau: number,
+): SolSample[] & { stepHours: number } {
+  const stepHours = SOL_SECONDS / SAMPLES_PER_SOL / 3600
+  const samples = Array.from({ length: SAMPLES_PER_SOL }, (_, s) => {
+    const t = utcMs + ((s + 0.5) * SOL_SECONDS * 1000) / SAMPLES_PER_SOL
+    const mt = marsTime(t)
+    const sun = sunPositionAt(mt, eastLonDeg, latDeg)
+    const top = SOLAR_CONSTANT_W_M2 / heliocentricDistanceAt(mt) ** 2
+    const panelWm2 =
+      sun.elevationDeg > 0 ? trackingIrradianceWm2(top, 90 - sun.elevationDeg, tau) : 0
+    return { hour: (s + 0.5) * stepHours, panelWm2 }
+  })
+  return Object.assign(samples, { stepHours })
+}
+
 /** Sunlight on 1 m² of tracking panel over the sol starting at `utcMs`, and the hours of daylight. */
 export function solEnergy(
   latDeg: number,
@@ -61,19 +88,12 @@ export function solEnergy(
   utcMs: number,
   tau: number,
 ): { kwhPerM2: number; dayHours: number } {
-  const dtHours = SOL_SECONDS / SAMPLES_PER_SOL / 3600
-  let kwh = 0
-  let dayHours = 0
-  for (let s = 0; s < SAMPLES_PER_SOL; s++) {
-    const t = utcMs + ((s + 0.5) * SOL_SECONDS * 1000) / SAMPLES_PER_SOL
-    const mt = marsTime(t)
-    const sun = sunPositionAt(mt, eastLonDeg, latDeg)
-    if (sun.elevationDeg <= 0) continue
-    dayHours += dtHours
-    const top = SOLAR_CONSTANT_W_M2 / heliocentricDistanceAt(mt) ** 2
-    kwh += (trackingIrradianceWm2(top, 90 - sun.elevationDeg, tau) * dtHours) / 1000
+  const p = solProfile(latDeg, eastLonDeg, utcMs, tau)
+  const lit = p.filter((x) => x.panelWm2 > 0)
+  return {
+    kwhPerM2: p.reduce((sum, x) => sum + (x.panelWm2 * p.stepHours) / 1000, 0),
+    dayHours: lit.length * p.stepHours,
   }
-  return { kwhPerM2: kwh, dayHours }
 }
 
 /** Sols in a Mars year (668.6, rounded). */
@@ -87,9 +107,12 @@ const YEAR_REFERENCE_UTC = Date.UTC(2030, 0, 1)
  */
 const SOL_STEP = 2
 
+/** When the climatological year used by `sunYear` starts (northern spring, Ls 0). */
+export const yearStartUtc = () => utcForLs(0, YEAR_REFERENCE_UTC)
+
 /** Sunlight on 1 m² of tracking panel for every sol of one Mars year, from northern spring. */
 export function sunYear(latDeg: number, eastLonDeg: number, tau: number) {
-  const start = utcForLs(0, YEAR_REFERENCE_UTC)
+  const start = yearStartUtc()
   const year: ReturnType<typeof solEnergy>[] = []
   for (let i = 0; i < SOLS_PER_YEAR; i += SOL_STEP) {
     const sol = solEnergy(latDeg, eastLonDeg, start + i * SOL_SECONDS * 1000, tau)

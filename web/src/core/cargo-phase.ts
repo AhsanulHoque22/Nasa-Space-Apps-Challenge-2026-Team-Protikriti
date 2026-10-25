@@ -33,6 +33,8 @@ export type CargoPhaseResult = {
   reason: 'none' | 'night' | 'short'
   /** Oxygen made in the worst 420-day stretch, kg. */
   loxKg: number
+  /** That stretch sol by sol, kg (empty when propellant cooling fails at night). */
+  windowKgPerSol: number[]
   fissionKwe: number
   /** Mean solar energy per sol from the packed arrays, kWh. */
   solarKwhPerSol: number
@@ -58,7 +60,8 @@ function solOxygen(plan: CargoPlan, sun: SunSol): number | null {
   const nightDirect = Math.max(0, fissionKw * nightHours - coolNight)
   const nightStored = Math.min(battery - coolNightFromBattery, daySurplus)
   const plantNight = Math.min(ISRU_FULL_POWER_KW * nightHours, nightDirect + nightStored)
-  return (plantDay + plantNight) * LOX_KG_PER_KWH
+  // Two plants are for redundancy (DRA 5.0): one runs at the full rate, none makes nothing.
+  return plan.isru > 0 ? (plantDay + plantNight) * LOX_KG_PER_KWH : 0
 }
 
 export function cargoPhase(plan: CargoPlan, year: readonly SunSol[]): CargoPhaseResult {
@@ -74,17 +77,28 @@ export function cargoPhase(plan: CargoPlan, year: readonly SunSol[]): CargoPhase
     batteryKwh: plan.battery * BATTERY_KWH_PER_BANK,
   }
   if (perSol.some((kg) => kg === null)) {
-    return { verdict: 'no-go', reason: 'night', loxKg: 0, ...summary }
+    return { verdict: 'no-go', reason: 'night', loxKg: 0, windowKgPerSol: [], ...summary }
   }
   const kg = perSol as number[]
   // Worst run of WINDOW_SOLS consecutive sols, wrapping round the Mars year.
   let run = 0
   for (let i = 0; i < WINDOW_SOLS; i++) run += kg[i % kg.length] as number
   let worst = run
+  let worstStart = 0
   for (let start = 1; start < kg.length; start++) {
     run += (kg[(start + WINDOW_SOLS - 1) % kg.length] as number) - (kg[start - 1] as number)
-    worst = Math.min(worst, run)
+    if (run < worst) [worst, worstStart] = [run, start]
   }
+  const windowKgPerSol = Array.from(
+    { length: WINDOW_SOLS },
+    (_, i) => kg[(worstStart + i) % kg.length] as number,
+  )
   const go = worst >= LOX_TARGET_KG
-  return { verdict: go ? 'go' : 'no-go', reason: go ? 'none' : 'short', loxKg: worst, ...summary }
+  return {
+    verdict: go ? 'go' : 'no-go',
+    reason: go ? 'none' : 'short',
+    loxKg: worst,
+    windowKgPerSol,
+    ...summary,
+  }
 }
