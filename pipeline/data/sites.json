@@ -83,8 +83,9 @@
         175.5548,
         -14.4926
       ],
-      "pixel_m": 20,
-      "source": "HiRISE DTEEC_001513_1655_001777_1650_U01, MRO HiRISE, 1 m/px native, read at 20 m/px — Spirit rover, Gusev crater"
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_001513_1655_001777_1650_U01, MRO HiRISE, 1 m/px native, read at 5 m/px — Spirit rover, Gusev crater",
+      "zero_is_nodata": true
     },
     {
       "id": "viking2",
@@ -97,8 +98,9 @@
         134.3788,
         47.7679
       ],
-      "pixel_m": 20,
-      "source": "HiRISE DTEEC_002055_2280_001976_2280_A01, MRO HiRISE, 1 m/px native, read at 20 m/px — Viking 2 landing site, Utopia Planitia"
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_002055_2280_001976_2280_A01, MRO HiRISE, 1 m/px native, read at 5 m/px — Viking 2 landing site, Utopia Planitia",
+      "zero_is_nodata": true
     },
     {
       "id": "pathfinder",
@@ -108,11 +110,12 @@
       "bounds": [
         -33.3051,
         18.9389,
-        -33.1890,
+        -33.189,
         19.1822
       ],
-      "pixel_m": 20,
-      "source": "HiRISE DTEEC_002391_1995_001890_1995_A01, MRO HiRISE, 1 m/px native, read at 20 m/px — Mars Pathfinder / Sojourner, Ares Vallis"
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_002391_1995_001890_1995_A01, MRO HiRISE, 1 m/px native, read at 5 m/px — Mars Pathfinder / Sojourner, Ares Vallis",
+      "zero_is_nodata": true
     },
     {
       "id": "ius_chasma",
@@ -125,8 +128,9 @@
         -76.8733,
         -6.3778
       ],
-      "pixel_m": 20,
-      "source": "HiRISE DTEEC_001918_1735_001984_1735_U01, MRO HiRISE, 1 m/px native, read at 20 m/px — Ius Chasma, western Valles Marineris"
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_001918_1735_001984_1735_U01, MRO HiRISE, 1 m/px native, read at 5 m/px — Ius Chasma, western Valles Marineris",
+      "zero_is_nodata": true
     },
     {
       "id": "meridiani",

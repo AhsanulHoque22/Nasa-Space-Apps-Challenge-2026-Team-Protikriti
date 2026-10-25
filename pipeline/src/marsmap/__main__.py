@@ -290,8 +290,9 @@ def _build_site(
     pixel_m: float,
     max_slope: float,
     out: Path,
+    zero_is_nodata: bool = False,
 ) -> tuple[int, int]:
-    dem = load_dem(dem_path, bounds, target_pixel_m=pixel_m)
+    dem = load_dem(dem_path, bounds, target_pixel_m=pixel_m, zero_is_nodata=zero_is_nodata)
     export_grid(dem, out, max_slope)
     export_slope_overlay(
         slope_deg(dem.elevation_m, dem.pixel_size_m), out / "slope_hazard.png", max_slope
@@ -306,7 +307,12 @@ def _sites(args: argparse.Namespace) -> None:
     for site in config["sites"]:
         out = args.out / "sites" / site["id"]
         width, height = _build_site(
-            site["dem"], tuple(site["bounds"]), site["pixel_m"], args.max_slope, out
+            site["dem"],
+            tuple(site["bounds"]),
+            site["pixel_m"],
+            args.max_slope,
+            out,
+            zero_is_nodata=site.get("zero_is_nodata", False),
         )
         meta = json.loads((out / "grid.json").read_text())
         index.append(

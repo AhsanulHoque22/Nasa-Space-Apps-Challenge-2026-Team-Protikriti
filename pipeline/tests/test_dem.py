@@ -84,3 +84,42 @@ def test_load_dem_can_decimate_to_a_coarser_resolution(dem_path: Path) -> None:
 def test_load_dem_never_upsamples(dem_path: Path) -> None:
     dem = load_dem(dem_path, lonlat_box(0, 0, 10, 10), target_pixel_m=5.0)
     assert dem.pixel_size_m == PIXEL_M
+
+
+def _write(path: Path, elevation: np.ndarray) -> Path:
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=elevation.shape[1],
+        height=elevation.shape[0],
+        count=1,
+        dtype="float32",
+        crs=JEZERO_EQC,
+        transform=from_origin(X0, Y0, PIXEL_M, PIXEL_M),
+        nodata=NODATA,
+    ) as dst:
+        dst.write(elevation.astype(np.float32), 1)
+    return path
+
+
+def test_zero_is_nodata_keeps_failed_stereo_out_of_the_average(tmp_path: Path) -> None:
+    # HiRISE DTEEC DTMs write 0.0 where stereo matching failed. Averaged into a coarser cell
+    # beside real ground at -2000 m, those zeros made cells km too high: walls in 3D.
+    elevation = np.full((4, 8), -2000.0)
+    elevation[:, :3] = 0.0  # failed stereo: columns 0-2
+    path = _write(tmp_path / "strip.tif", elevation)
+    dem = load_dem(path, lonlat_box(0, 0, 8, 4), target_pixel_m=40.0, zero_is_nodata=True)
+    assert dem.elevation_m.shape == (2, 4)
+    assert np.isnan(dem.elevation_m[:, :2]).all()  # all zeros, then a block mixing 0 and -2000
+    assert dem.elevation_m[:, 2:] == pytest.approx(-2000.0)
+    assert dem.pixel_size_m == 40.0
+
+
+def test_zero_is_nodata_also_honours_the_files_nodata(tmp_path: Path) -> None:
+    elevation = np.full((4, 4), -2000.0)
+    elevation[0, 0] = NODATA
+    path = _write(tmp_path / "hole.tif", elevation)
+    dem = load_dem(path, lonlat_box(0, 0, 4, 4), target_pixel_m=40.0, zero_is_nodata=True)
+    assert np.isnan(dem.elevation_m[0, 0])
+    assert dem.elevation_m[1, 1] == pytest.approx(-2000.0)
