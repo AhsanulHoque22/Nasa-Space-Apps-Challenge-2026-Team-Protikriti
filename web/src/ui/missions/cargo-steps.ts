@@ -10,6 +10,7 @@ import { CARGO_LIMIT_KG, SURFACE_STAY_SOLS } from '../../core/mission-constants'
 import { type DockStep, stepper } from '../mission-dock'
 import { el } from '../dom'
 import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
+import { foodView, oxygenView, powerView } from './cargo-views'
 import { type JourneyChoice, journeyStep } from './journey-step'
 
 const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
@@ -96,8 +97,19 @@ export function cargoSteps(
   goTo: (step: number) => void,
   onLoad: () => void,
 ): DockStep[] {
+  // Each step's live view redraws whenever a card changes the plan.
+  let views: Array<[HTMLElement, (p: CargoPlan) => HTMLElement]> = []
+  const view = (make: (p: CargoPlan) => HTMLElement) => {
+    const slot = el('div', { className: 'view-slot' }, make(plan))
+    views = [...views.filter(([s]) => s.isConnected), [slot, make]] // drop views of steps left behind
+    return slot
+  }
+  const changed = () => {
+    refresh()
+    for (const [slot, make] of views) if (slot.isConnected) slot.replaceChildren(make(plan))
+  }
   const cards = (...ids: CargoItem['id'][]) =>
-    el('div', { className: 'item-cards' }, ...ids.map((id) => itemCard(item(id), plan, refresh)))
+    el('div', { className: 'item-cards' }, ...ids.map((id) => itemCard(item(id), plan, changed)))
   const issues = el('div', { className: 'cargo-issues', tabIndex: -1 })
   issues.setAttribute('aria-live', 'polite')
 
@@ -106,17 +118,17 @@ export function cargoSteps(
     {
       title: 'Power',
       why: 'The habitat needs 12.1 kW, and the oxygen plant needs 19.7 kW more. Reactors run day and night; solar arrays only by day.',
-      render: () => cards('kilopower', 'solar', 'battery'),
+      render: () => el('div', {}, cards('kilopower', 'solar', 'battery'), view(powerView)),
     },
     {
       title: 'Oxygen plant',
       why: 'It splits carbon dioxide from the air into oxygen for the trip home. NASA’s plan carries two, so one can fail.',
-      render: () => cards('isru'),
+      render: () => el('div', {}, cards('isru'), view(oxygenView)),
     },
     {
       title: 'Supplies',
       why: `The crew stays ${SURFACE_STAY_SOLS} sols with no resupply. Food that runs out early has to come from somewhere else.`,
-      render: () => cards('foodSols', 'waterKg'),
+      render: () => el('div', {}, cards('foodSols', 'waterKg'), view(foodView)),
     },
     {
       title: 'Review and load',

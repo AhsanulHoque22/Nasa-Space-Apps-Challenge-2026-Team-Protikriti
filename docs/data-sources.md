@@ -395,3 +395,10 @@ All from the NASA Image and Video Library (https://images.nasa.gov), NASA media 
 | Water reserve | iss072e143163 | Replacing filters on the ISS water recovery system | NASA |
 
 MOXIE comparison on the card: best rate 12 g/h (NASA, 2023) against the plant's ~2.2 kg/h (Rucker et al. 2016), about 180 times.
+
+## Story mode charts (mission 1.1)
+| Chart | Method | Source |
+|---|---|---|
+| One sol of power | darkest sol of the Mars year at the preview site (Jezero, 18.9°N 77.5°E as in Rucker et al. 2016), from local midnight; supply = reactors (8.75 kW each) + Sun-tracking arrays; demand = oxygen plant 19.7 kW + cooling 6.655 kW; shortfall and daytime surplus integrated per half-hour sample | Appelbaum & Flood (TM-103623); Rucker et al. 2016; `web/src/core/power-profile.ts` |
+| Oxygen tank over 420 days | the worst 420-day window from the cargo-phase verdict, summed sol by sol | `web/src/core/cargo-phase.ts` |
+| Palette | reactor #5b8def, solar #c27c22: passes the dataviz validator on the dock surface #121a2c (lightness band, CVD ΔE ≈ 28, contrast) | dataviz `validate_palette.js` |
