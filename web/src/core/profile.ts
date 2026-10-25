@@ -2,6 +2,7 @@
  * The local crew profile: a name for the mission log, kept in the browser. No password and no
  * server, so the demo runs offline. Stored data is untrusted: it is re-checked on every load.
  */
+import { readStored, writeStored } from './local-store'
 import type { KeyValueStore } from './streetview'
 
 export const PROFILE_KEY = 'atlas.profile'
@@ -37,30 +38,17 @@ function isProfile(v: unknown): v is Profile {
 }
 
 export function loadProfile(store: KeyValueStore | undefined): LoadedProfile {
-  let text: string | null
-  try {
-    if (!store) return { profile: null, note: NO_STORAGE_NOTE }
-    text = store.getItem(PROFILE_KEY)
-  } catch {
-    return { profile: null, note: NO_STORAGE_NOTE }
-  }
-  if (text === null) return { profile: null, note: null }
-  try {
-    const parsed: unknown = JSON.parse(text)
-    if (isProfile(parsed)) return { profile: parsed, note: null }
-  } catch {
-    // fall through: a damaged value is reported, not hidden
-  }
-  return { profile: null, note: DAMAGED_NOTE }
+  const read = readStored(store, PROFILE_KEY, isProfile)
+  const note =
+    read.status === 'unavailable'
+      ? NO_STORAGE_NOTE
+      : read.status === 'damaged'
+        ? DAMAGED_NOTE
+        : null
+  return { profile: read.value, note }
 }
 
 /** False when the browser will not keep it (blocked or full storage): progress is session-only. */
 export function saveProfile(store: KeyValueStore | undefined, profile: Profile): boolean {
-  if (!store) return false
-  try {
-    store.setItem(PROFILE_KEY, JSON.stringify(profile))
-    return true
-  } catch {
-    return false
-  }
+  return writeStored(store, PROFILE_KEY, profile)
 }
