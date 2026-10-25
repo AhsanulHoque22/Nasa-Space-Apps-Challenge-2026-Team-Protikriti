@@ -1,16 +1,29 @@
 /** Story mode inside the start screen: the mission list, opening a mission, saving the result. */
-import { type Progress, loadProgress, recordCargo, saveProgress } from '../core/mission-progress'
+import {
+  type Progress,
+  loadProgress,
+  recordCargo,
+  recordSite,
+  retryFrom,
+  saveProgress,
+} from '../core/mission-progress'
 import { EXPEDITIONS, MISSIONS } from '../core/missions'
 import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
+import type { ZoneRow } from '../core/zone-rank'
 import { el } from './dom'
 import { renderMissionList } from './mission-list'
 import { renderCargoScreen } from './missions/cargo-screen'
+import { renderSiteScreen } from './missions/site-screen'
 
 const NOT_SAVED_NOTE =
   'This browser did not save your progress, so it lasts until you close the page.'
 
+/** Data Story mode needs from the map app, which may still be loading. */
+export type StoryServices = { loadZones: () => Promise<ZoneRow[]> }
+
 export type StoryContext = {
+  services: StoryServices
   store: KeyValueStore | undefined
   profile: Profile
   /** The start screen's content area; Story mode owns it while open. */
@@ -46,6 +59,25 @@ export function showStory(ctx: StoryContext): void {
             commit(recordCargo(MISSIONS, progress, plan), 'Cargo loaded. Mission 1.1 is done.'),
           showList,
         ),
+      )
+      ctx.body.querySelector<HTMLElement>('h2')?.focus()
+      return
+    }
+    if (id === '1.2' && progress.cargo) {
+      ctx.body.replaceChildren(
+        renderSiteScreen(mission, progress.cargo, ctx.services.loadZones(), {
+          onLand: (site) =>
+            commit(
+              recordSite(MISSIONS, progress, site),
+              `Landed at ${site.zone}. Mission 1.2 is done.`,
+            ),
+          onRepack: () => {
+            progress = retryFrom(MISSIONS, progress, '1.1')
+            note = saveProgress(ctx.store, progress) ? null : NOT_SAVED_NOTE
+            showMission('1.1')
+          },
+          onBack: showList,
+        }),
       )
       ctx.body.querySelector<HTMLElement>('h2')?.focus()
       return

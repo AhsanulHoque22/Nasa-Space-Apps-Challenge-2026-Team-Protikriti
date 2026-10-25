@@ -53,7 +53,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Choose the landing site',
     hats: ['Scientist', 'Commander'],
-    built: false,
+    built: true,
     briefing:
       'Weigh the evidence for 30 NASA candidate zones: ice, terrain, science. Orbital data is evidence, not ground truth. Then learn whether the oxygen plant filled the return tanks in time.',
   },

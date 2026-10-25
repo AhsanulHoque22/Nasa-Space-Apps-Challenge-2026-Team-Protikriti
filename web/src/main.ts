@@ -56,6 +56,7 @@ import { positionAtSol } from './core/timeline'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
 import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
+import type { ZoneRow } from './core/zone-rank'
 import { renderDustPanel } from './ui/dust-panel'
 import { renderScenarioPanel } from './ui/scenario-panel'
 import { renderSyncPanel } from './ui/sync-panel'
@@ -130,7 +131,11 @@ async function main() {
   const ui = document.getElementById('ui')
   if (!globe || !ui) throw new Error('#globe / #ui elements missing')
   // A shared map link goes straight to the map; everyone else starts at the profile and mode choice.
-  const openStart = () => openProfileGate(browserStorage(), [globe, ui], () => {})
+  // Story mode opens before the map data arrives; its zone list resolves once data is in.
+  let resolveZones: (rows: ZoneRow[] | Promise<ZoneRow[]>) => void = () => undefined
+  const zonesReady = new Promise<ZoneRow[]>((resolve) => (resolveZones = resolve))
+  const openStart = () =>
+    openProfileGate(browserStorage(), [globe, ui], () => {}, { loadZones: () => zonesReady })
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
@@ -338,22 +343,20 @@ async function main() {
       thermal: (await thermalReady).map((t) => t.grid),
     })
   }
-  renderZonePanel(
-    side,
-    async () => {
-      const [places, swimGrid] = await Promise.all([placesReady, getSwim()])
-      return places
-        .filter((p) => p.kind === 'zone')
-        .map((p) => ({
-          name: p.name,
-          lon: p.lon,
-          lat: p.lat,
-          elevationM: elevationAt(sites, mola, p.lon, p.lat).m ?? null,
-          ice: swimGrid ? iceAt(swimGrid, p.lon, p.lat) : null,
-        }))
-    },
-    (zone) => flyToPlace(viewer, zone.lon, zone.lat, 200),
-  )
+  const loadZoneRows = async (): Promise<ZoneRow[]> => {
+    const [places, swimGrid] = await Promise.all([placesReady, getSwim()])
+    return places
+      .filter((p) => p.kind === 'zone')
+      .map((p) => ({
+        name: p.name,
+        lon: p.lon,
+        lat: p.lat,
+        elevationM: elevationAt(sites, mola, p.lon, p.lat).m ?? null,
+        ice: swimGrid ? iceAt(swimGrid, p.lon, p.lat) : null,
+      }))
+  }
+  resolveZones(loadZoneRows())
+  renderZonePanel(side, loadZoneRows, (zone) => flyToPlace(viewer, zone.lon, zone.lat, 200))
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
       if (isExploring()) return // explore mode owns input

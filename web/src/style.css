@@ -3054,7 +3054,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 .gate {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 100; /* a full-screen dialog: above every map control, including the dock bar (60) */
   display: flex;
   align-items: center;
   padding: var(--space-4);
@@ -3270,9 +3270,9 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .expedition-title {
-  display: flex;
-  align-items: center;
+  display: list-item; /* keeps the native open/closed arrow */
   min-height: 44px;
+  line-height: 44px;
   margin: 0 calc(-1 * var(--space-2));
   padding: 0 var(--space-2);
   border-radius: 6px;
@@ -3280,6 +3280,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .expedition-title h3 {
+  display: inline;
   margin: 0;
   font-size: 15px;
   font-weight: 600;
@@ -3571,4 +3572,130 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
   .cargo-bar-fill {
     transition: none;
   }
+}
+
+/* Mission 1.2: landing site and cargo-phase verdict */
+.site-form fieldset {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 0;
+}
+
+.site-form legend {
+  margin-bottom: var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.zone-options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.zone-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.zone-option:has(input:checked) {
+  background: rgb(91 141 239 / 0.16);
+}
+
+.zone-option input {
+  margin: 3px 0 0;
+  width: 18px;
+  height: 18px;
+}
+
+.zone-option label {
+  cursor: pointer;
+}
+
+.zone-option-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.zone-evidence {
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.zone-group {
+  margin-top: var(--space-2);
+  font-size: 13px;
+}
+
+.zone-group summary {
+  min-height: 44px;
+  line-height: 44px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.zone-group ul {
+  margin: 0 0 var(--space-2);
+  padding-left: 1.2em;
+  line-height: 1.6;
+}
+
+.site-result:empty {
+  display: none;
+}
+
+.site-result {
+  margin-top: var(--space-4);
+}
+
+.site-verdict {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.05);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.site-verdict:focus-visible {
+  outline: 2px solid var(--nasa-blue-lift);
+  outline-offset: 2px;
+}
+
+.site-verdict p {
+  margin: 0 0 var(--space-2);
+}
+
+.site-verdict-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.site-verdict.go .site-verdict-title {
+  color: #8fd19e; /* green lifted to 7:1 on the raised surface; the words carry the meaning */
+}
+
+.site-verdict.no-go .site-verdict-title {
+  color: #ff8a78;
+}
+
+.site-verdict-power,
+.site-assumptions {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.site-assumptions {
+  margin: var(--space-2) 0;
+  line-height: 1.5;
 }

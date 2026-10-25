@@ -5,7 +5,7 @@
 import { type Profile, checkName, loadProfile, saveProfile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
 import { el } from './dom'
-import { showStory } from './story'
+import { type StoryServices, showStory } from './story'
 
 const BRAND_MARK = `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B3D91"/><path d="M4 15c5-4 11-6 17-6" stroke="#FC3D21" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="8" r="1.4" fill="#fff"/></svg>`
 
@@ -14,6 +14,7 @@ export function openProfileGate(
   store: KeyValueStore | undefined,
   behind: readonly HTMLElement[],
   onMap: () => void,
+  services: StoryServices,
 ): void {
   if (document.querySelector('.gate')) return // already showing
   const loaded = loadProfile(store)
@@ -147,6 +148,7 @@ export function openProfileGate(
       store,
       profile: p,
       body,
+      services,
       onBack: () => showModes(p),
       onMap: () => {
         close()
