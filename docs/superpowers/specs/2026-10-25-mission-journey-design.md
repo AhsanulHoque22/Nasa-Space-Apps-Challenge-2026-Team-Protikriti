@@ -114,14 +114,14 @@ readable so the arc is visible.
 | # | Mission | Hat | Status | Decision → consequence | Reuses |
 |---|---|---|---|---|---|
 | 1.1 | Briefing and cargo | Commander, Engineer | P | Pack a 40 t lander (habitat fixed 21.5 t) → starting stores and power | new |
-| 1.2 | Choose the landing site | Scientist, Commander | P | 1 of 30 NASA zones; hard rules ±50°, ≤ +2 km; final pick among the 4 zones with high-res terrain → latitude, τ, ice, EDL margin. Ends with the **cargo-phase verdict**: did ISRU fill the ascent tanks (22,728 kg LOX in 420 days)? | `zone-rank`, zones, MOLA, SWIM |
+| 1.2 | Choose the landing site | Scientist, Commander | P | Per-zone **evidence card** (water potential, landing safety, science value, farming suitability from Spec B, confidence, mission/instrument behind each line; "orbital data is evidence, not ground truth"). 1 of 30 NASA zones; hard rules ±50°, ≤ +2 km; final pick among the 4 zones with high-res terrain → latitude, τ, ice, EDL margin. Ends with the **cargo-phase verdict**: did ISRU fill the ascent tanks (22,728 kg LOX in 420 days)? | `zone-rank`, zones, MOLA, SWIM |
 | 1.3 | Landing | — | P | No decision: 45–60 s NASA Perseverance EDL footage, captioned, offline, skippable | new |
-| 1.4 | Build the base | Engineer, Medic | P | Place habitat, power farm, ISRU/MAV on real terrain: slope limit, reactor ≥ 1 km, arrays not shadowed → ledger starts at sol 1 | `colony-modules`, slope grid, `sunlitMask` |
+| 1.4 | Build the base | Engineer, Medic | P | Place habitat, power farm, ISRU/MAV on real terrain: slope limit, reactor ≥ 1 km, arrays not shadowed → ledger starts at sol 1. **Event:** the next Phobos transit at the site (SPICE, Spec B): "Phobos covers up to X% of the Sun for Y s; solar dip up to X% (approximate)" — then the contrast with a months-long dust storm. | `colony-modules`, slope grid, `sunlitMask` |
 | 1.5 | First Marswalk | Scientist, Medic | P | Plan a walk to a science stop: slope limit, walk time, return margin, dose → GO/NO-GO; walk cost drawn from the ledger | route planner, EVA card, dose |
-| 1.6 | Water from ice | Engineer, Scientist | P | Find shallow ice inside the zone (SWIM) and plan the haul → water added to the ledger at a sourced rate | SWIM, haul tool |
+| 1.6 | Greenhouse trial | Scientist, Engineer | P | Choose crop unit area and crop (crop picker, perchlorate card: grow without local soil) → lighting power, net water and food kcal enter the ledger; the food calculator shows how far the trial is from NASA's ~50 m²/person | Spec B farming core |
 | 1.7 | Dust storm | Commander, Engineer | P | Storm season of the site (2018 storm profile): habitat nominal 14.9 kW or keep-alive 8.0 kW, lab on/off → survive or fail | storm replay, `surface-conditions` |
 | 1.8 | Return window | Commander | P | Ledger runs to sol 525; MAV tanks must still be conditioned → expedition debrief | new |
-| 1.9 | Greenhouse trial | Scientist | L | Small crop unit vs power and food store | — |
+| 1.9 | Water from ice | Engineer, Scientist | L | Find shallow ice inside the zone (SWIM) and plan the haul → water at a sourced rate | SWIM, haul tool |
 | 1.10 | Long traverse | Scientist, Commander | L | Pressurised rover, 100 km in 15 days, crew of 2 (DRA 5.0); 2 crew stay in the habitat | route planner |
 | 1.11 | Power unit failure | Engineer | L | One Kilopower unit fails; spare activation and load shedding | ledger |
 
@@ -132,11 +132,22 @@ scale-up (~20–25 m²/person for O₂, ~50 m²/person for food) · 2.4 Ice mini
 
 **Expedition 3 — Toward Permanence** (all L)
 3.1 Power farm end-of-life planning (~12-year life) · 3.2 Food independence trial ·
-3.3 Radiation budget across three crews · 3.4 Handover to a permanent outpost.
+3.3 Radiation budget across three crews · 3.4 Phobos waypoint: what MMX's samples (due on Earth 2031) tell a crew about using Phobos · 3.5 Handover to a permanent outpost.
 
 Order note for 1.1 → 1.2: the user packs first, then picks the site; the cargo-phase verdict
 appears at the end of 1.2 because solar output depends on latitude. A NO-GO is a failure of
 1.1 (retry packing).
+
+### Shared parts (adopted from the extension brief, used on every Story screen)
+- **Source chip** on every number (mission, instrument, product, link).
+- **Confidence label** (High / Medium / Low + data resolution).
+- **Assumptions drawer**: every parameter a mission used, with value, range, unit, source,
+  confidence; editable where the mission allows; Reset.
+- **"Assumption pending" guard**: a parameter whose value is null in the production build
+  blocks the mission that needs it and says why. No unsourced number can reach the screen.
+- **Simple / Expert view**: Simple = verdict and one line; Expert = factors, rates, ledger table.
+- **Wording guide**: use "planning aid", "estimate", "approximate", "based on [source]";
+  never "Mars can be farmed", "guaranteed", "safe to land" without the stated checks.
 
 ### Debrief (after every mission, and at expedition end)
 - Line 1: outcome. *"Oxygen ran out on sol 214."* or *"Mission complete, sol 142, margin:
@@ -183,7 +194,10 @@ water store (kg), food store (kg), MAV conditioned (bool), crew dose (mSv), ECLS
    products (water from 400 kg H₂ + ISRU O₂ = 3,600 kg by stoichiometry, DRA 5.0).
 6. **Dose.** 0.67 mSv per sol per crew member (tracked, not a fail rule).
    **One-off draws** (`applyDraw`): a Marswalk subtracts suit O₂/power from the existing EVA
-   card's numbers; a water haul adds water at a sourced extraction rate (§11).
+   card's numbers.
+   **Greenhouse** (from 1.6 on): daily lighting load = area × W/m² × photoperiod; net water =
+   area × crop water × (1 − recycling); food produced = area × yield kcal/m²/day, offsetting the
+   food store. Formulas and parameters come from Spec B's farming core and `assumptions.json`.
 7. **Failure** = first store at zero or a power failure above; `firstFailure` returns the
    resource, sol and the chain of preceding causes for the debrief.
 
@@ -223,7 +237,7 @@ user is never shown an invented mass.
 | `missions/landing.ts` | 1.3 video player with captions, skip. |
 | `missions/base.ts` | 1.4 placement on terrain (reuses `colony-modules`, slope grid, `sunlitMask`). |
 | `missions/marswalk.ts` | 1.5 wraps the existing route planner and EVA card; result → `applyDraw`. |
-| `missions/water.ts` | 1.6 SWIM ice inside the zone + haul tool; result → `applyDraw`. |
+| `missions/greenhouse.ts` | 1.6 crop unit choice using Spec B's budget, crop picker and perchlorate card; adds the greenhouse terms to the ledger. |
 | `missions/storm.ts` | 1.7 storm timeline (reuses storm replay, `surface-conditions`) and power decisions. |
 | `missions/return.ts` | 1.8 run to sol 525, MAV check, expedition debrief. |
 | `debrief.ts` | Outcome, cause chain, retry, provenance links. |
@@ -233,7 +247,11 @@ disagree with Rucker (2 kWh/sol per person vs 14.9 kW habitat); mission mode use
 and reconciling Martian Map's colony panel is a follow-up (§10).
 
 ### 6.4 Data
-- No new datasets for the 8 playable missions; all site inputs exist (zones, MOLA, SWIM, dust, slope grids).
+- Depends on Spec B outputs: `phobos_transits.json` (4 terrain sites), `assumptions.json`,
+  `crops.json`, and the farming score core.
+- **Mission calendar:** sols map to dates through one mission epoch (crew landing date) so Ls,
+  storm season and Phobos transits line up. Epoch from a published trajectory (open item).
+- No other new datasets for the 8 playable missions; all site inputs exist (zones, MOLA, SWIM, dust, slope grids).
 - One video file in `web/public/media/` (compressed MP4 ≤ 10 MB, poster, `.vtt` captions),
   credited in `docs/data-sources.md`.
 
@@ -256,6 +274,8 @@ and reconciling Martian Map's colony panel is a follow-up (§10).
   - cargo phase: fission GO, daylight-only solar NO-GO (Rucker: 1,098 sols for demo scale).
 - `ledger` resumability: advancing 0→200 then 200→525 equals 0→525 in one call; `applyDraw`
   never goes below zero silently (it fails with the resource named).
+- Greenhouse terms: zero area adds nothing; null parameter → mission blocked ("Assumption
+  pending"), not a zero.
 - `missions`: every playable mission has a screen; ids unique; unlock rules reference real ids.
 - `mission`: unlock order, retry restores the right checkpoint, Expedition 2 carry-over.
 - `profile`: corrupt JSON, missing fields, old version.
@@ -289,17 +309,24 @@ colony panel constants (follow-up) · AI narration of results.
    station presentation via search; pin the exact NTRS document before it goes on screen).
 6. Licence line for the chosen Perseverance EDL clip (NASA media guidelines; check the
    NASA Image and Video Library credit).
-7. Water extraction rate from shallow ice for mission 1.6 (the app cites NTRS-20190002020 for
-   3 L/sol; read the source and confirm before reuse).
+7. Water extraction rate from shallow ice for locked mission 1.9 (the app cites
+   NTRS-20190002020 for 3 L/sol; confirm before reuse).
 8. Suit consumables per Marswalk for mission 1.5 (confirm the EVA card's numbers are sourced).
+9. Greenhouse parameters for 1.6: lighting W/m² and photoperiod, crop water L/m²/day, water
+   recycling fraction, edible yield kcal/m²/day per crop, crop-unit mass for the manifest.
+   Start from Wheeler's Biomass Production Chamber papers (NTRS); 1.6 stays blocked until set.
+10. Mission epoch: crew landing date from a published conjunction-class trajectory (2033 or
+   2035 opportunity), so Ls and Phobos transit dates are real.
 
 ## 12. Schedule and cut order
 - By 31 Oct: constants, manifest, resumable ledger, mission registry and reducer (tests green).
+- By 4 Nov: Spec B cores Story mode depends on: farming score + greenhouse budget (pure),
+  `phobos_transits.json` for the 4 terrain sites, sourced `assumptions.json` values.
 - By 4 Nov: profile gate, mission map, mission rail, debrief, missions 1.1–1.3.
 - By 9 Nov: missions 1.4–1.8; locked briefings for all other missions.
 - 10–12 Nov: polish, accessibility pass, offline rehearsal, 240 s recording.
 - Freeze 14 Nov 12:00.
-- **Cut order if behind:** 1.6 water → locked; 1.5 Marswalk → locked; landing video → still
+- **Cut order if behind:** 1.6 greenhouse → locked (if its parameters are not sourced by 5 Nov); 1.5 Marswalk → locked; landing video → still
   image with facts; base placement → auto-place with checks shown; storm decisions → fixed
   keep-alive. Never cut the ledger, the mission map or the debrief.
 
