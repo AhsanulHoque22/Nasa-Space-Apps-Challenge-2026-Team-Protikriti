@@ -81,6 +81,7 @@ export function createFeaturePins(
 
   return {
     show: (features, onPick) => {
+      viewer.camera.cancelFlight() // a step's flight must not land after the next step has moved on
       source.entities.removeAll()
       current = features
       pick = onPick
