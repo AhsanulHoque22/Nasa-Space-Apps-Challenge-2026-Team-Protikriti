@@ -3860,3 +3860,189 @@ body[data-story='mission'] .line-legend {
     transition: none;
   }
 }
+
+/* Mission 1.1: the journey in 3D, behind the dock */
+.journey-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 80; /* above the globe, below the mission dock (90) */
+  background: #02040a;
+}
+
+.journey-view {
+  position: absolute;
+  inset: 0; /* bottom is set from the dock's height by the scene */
+}
+
+.journey-scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.journey-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.journey-label {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgb(2 4 10 / 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  transform: translateY(-16px);
+  white-space: nowrap;
+}
+
+.journey-label.muted {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.journey-label.accent {
+  color: #ff8a78;
+}
+
+.journey-label.below {
+  transform: translateY(18px); /* keeps the ship's label clear of Earth's at launch */
+}
+
+.journey-label.sun {
+  transform: translateY(-28px);
+}
+
+.journey-caption {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  background: rgb(18 26 44 / 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.journey-credit {
+  position: absolute;
+  top: calc(var(--space-4) + 44px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 2 * var(--space-4)));
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.route-set {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.route-cards {
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-2);
+}
+
+.route-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.route-card:has(input:checked) {
+  background: rgb(252 61 33 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(252 61 33 / 0.6);
+}
+
+.route-card input {
+  margin: 3px 0 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--nasa-red);
+}
+
+.route-card label {
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.route-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.route-dates {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.route-facts {
+  margin: var(--space-2) 0 0;
+  display: grid;
+  gap: 2px;
+}
+
+.route-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 12px;
+}
+
+.route-facts dt {
+  color: var(--text-muted);
+}
+
+.route-facts dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.show-maths {
+  margin-top: var(--space-3);
+  font-size: 13px;
+}
+
+.show-maths summary {
+  min-height: 44px;
+  line-height: 44px;
+  cursor: pointer;
+  color: var(--nasa-blue-lift);
+  font-weight: 600;
+}
+
+.show-maths ul {
+  margin: 0 0 var(--space-2);
+  padding-left: 1.2em;
+  display: grid;
+  gap: var(--space-1);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .journey-credit {
+    display: none; /* the dock's sources list carries the same credits on phones */
+  }
+}

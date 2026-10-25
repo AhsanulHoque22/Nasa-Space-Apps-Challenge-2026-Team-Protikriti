@@ -14,6 +14,9 @@ export type DockStep = {
   nextLabel?: string
   /** Runs when the main button is pressed; return false to stay on the step. */
   onNext?: () => boolean
+  /** Runs when the step opens and when it closes (for example a scene behind the dock). */
+  onShow?: () => void
+  onHide?: () => void
 }
 
 export type DockOptions = {
@@ -63,10 +66,13 @@ export function openDock(opts: DockOptions): Dock {
     el('footer', { className: 'dock-footer' }, back, next),
   )
 
+  let shown: DockStep | undefined
   const show = (i: number) => {
-    index = i
     const step = opts.steps[i]
     if (!step) return
+    shown?.onHide?.()
+    index = i
+    shown = step
     stepLabel.textContent = `Step ${i + 1} of ${opts.steps.length}`
     heading.textContent = step.title
     why.textContent = step.why
@@ -76,6 +82,7 @@ export function openDock(opts: DockOptions): Dock {
     if (opts.status) statusSlot.replaceChildren(opts.status())
     content.scrollTop = 0
     heading.focus()
+    step.onShow?.()
   }
 
   back.addEventListener('click', () => show(Math.max(0, index - 1)))
@@ -94,7 +101,10 @@ export function openDock(opts: DockOptions): Dock {
       if (opts.status) statusSlot.replaceChildren(opts.status())
     },
     goTo: show,
-    remove: () => root.remove(),
+    remove: () => {
+      shown?.onHide?.()
+      root.remove()
+    },
   }
 }
 

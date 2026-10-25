@@ -6,9 +6,10 @@ import {
   cargoMassKg,
   checkCargo,
 } from '../../core/cargo'
-import { CARGO_LIMIT_KG, HABITAT_KG, SURFACE_STAY_SOLS } from '../../core/mission-constants'
+import { CARGO_LIMIT_KG, SURFACE_STAY_SOLS } from '../../core/mission-constants'
 import { type DockStep, stepper } from '../mission-dock'
 import { el } from '../dom'
+import { type JourneyChoice, journeyStep } from './journey-step'
 
 const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
 const tonnes = (n: number) =>
@@ -61,6 +62,7 @@ export function massGauge(plan: CargoPlan): HTMLElement {
 
 export function cargoSteps(
   plan: CargoPlan,
+  journey: JourneyChoice,
   refresh: () => void,
   goTo: (step: number) => void,
   onLoad: () => void,
@@ -71,49 +73,7 @@ export function cargoSteps(
   issues.setAttribute('aria-live', 'polite')
 
   return [
-    {
-      title: 'The plan',
-      why: 'Nothing waits on Mars for the crew, so their power, oxygen plant and food go first.',
-      render: () =>
-        el(
-          'div',
-          {},
-          el(
-            'ol',
-            { className: 'plan-timeline' },
-            el(
-              'li',
-              {},
-              el('strong', { textContent: 'Cargo launches' }),
-              el('span', { textContent: 'About 2 years before the crew' }),
-            ),
-            el(
-              'li',
-              {},
-              el('strong', { textContent: 'Lands on Mars' }),
-              el('span', { textContent: 'Power switches on by itself' }),
-            ),
-            el(
-              'li',
-              {},
-              el('strong', { textContent: 'Oxygen plant runs' }),
-              el('span', { textContent: '22,728 kg for the return rocket within 420 days' }),
-            ),
-            el(
-              'li',
-              {},
-              el('strong', { textContent: 'Crew launches' }),
-              el('span', {
-                textContent: 'Only if the tanks are full: the next window is 26 months away',
-              }),
-            ),
-          ),
-          el('p', {
-            className: 'dock-note',
-            textContent: `You pack one ${tonnes(CARGO_LIMIT_KG)} lander. The ${tonnes(HABITAT_KG)} habitat is already on it. Based on NASA’s DRA 5.0 and its Jezero power study (Rucker et al. 2016).`,
-          }),
-        ),
-    },
+    journeyStep(journey),
     {
       title: 'Power',
       why: 'The habitat needs 12.1 kW, and the oxygen plant needs 19.7 kW more. Reactors run day and night; solar arrays only by day.',
@@ -171,12 +131,14 @@ export function cargoSteps(
             change,
           )
         }
+        const route = journey.journeys?.routes[journey.routeIndex]
         return el(
           'div',
           {},
           el(
             'ul',
             { className: 'review-list' },
+            row('Crew route', route ? `${route.days} days` : 'not chosen', 0),
             row('Kilopower reactors', String(plan.kilopower), 1),
             row('Solar array sets', String(plan.solar), 1),
             row('Battery banks', String(plan.battery), 1),

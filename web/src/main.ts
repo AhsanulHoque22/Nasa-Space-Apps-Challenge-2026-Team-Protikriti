@@ -135,12 +135,19 @@ async function main() {
   let resolveZones: (rows: ZoneRow[] | Promise<ZoneRow[]>) => void = () => undefined
   const zonesReady = new Promise<ZoneRow[]>((resolve) => (resolveZones = resolve))
   // Missions can ask for a site before the terrain data has loaded; remember the latest ask.
-  const siteView: { show?: (id: string) => void; pending?: string; imageryWanted?: boolean } = {}
+  const siteView: {
+    show?: (id: string) => void
+    globe?: () => void
+    pending?: string
+    imageryWanted?: boolean
+  } = {}
   const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
   const openStart = () =>
     openProfileGate(browserStorage(), [globe, ui], () => {}, {
       loadZones: () => zonesReady,
       showSite,
+      // Before the viewer exists the opening view is already the turning globe.
+      showGlobe: () => siteView.globe?.(),
     })
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
@@ -159,6 +166,12 @@ async function main() {
     else siteView.imageryWanted = true
   }
   if (siteView.pending) siteView.show(siteView.pending)
+  siteView.globe = () =>
+    viewGlobe(
+      viewer,
+      (home.grid.west + home.grid.east) / 2,
+      (home.grid.south + home.grid.north) / 2,
+    )
   renderHeader(ui, sites, {
     onView: (view) => {
       const site = sites.find((s) => s.id === view)

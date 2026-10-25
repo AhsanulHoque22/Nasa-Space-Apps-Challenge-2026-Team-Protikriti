@@ -11,6 +11,7 @@ import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
 import type { ZoneRow } from '../core/zone-rank'
 import { el } from './dom'
+import { loadJourneys } from './journey-client'
 import { renderMissionList } from './mission-list'
 import { renderSiteScreen } from './missions/site-screen'
 
@@ -22,6 +23,8 @@ export type StoryServices = {
   loadZones: () => Promise<ZoneRow[]>
   /** Point the camera at an ATLAS terrain site. */
   showSite: (siteId: string) => void
+  /** Back to the whole planet, turning slowly (before the crew has landed anywhere). */
+  showGlobe: () => void
 }
 
 export type StoryContext = {
@@ -85,6 +88,8 @@ export function showStory(ctx: StoryContext): void {
   }
 
   function showList() {
+    // Start the Earth–Mars transfer search now, so mission 1.1's routes are ready when it opens.
+    void loadJourneys().catch(() => undefined)
     const back = el('button', { type: 'button', className: 'gate-link', textContent: 'Back' })
     back.addEventListener('click', ctx.onBack)
     const map = el('button', {
