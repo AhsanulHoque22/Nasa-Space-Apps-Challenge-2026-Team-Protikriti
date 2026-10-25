@@ -44,7 +44,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Briefing and cargo',
     hats: ['Commander', 'Engineer'],
-    built: false,
+    built: true,
     briefing:
       'Cargo goes first, about two years ahead of the crew. Pack one lander: the 21.5 t habitat is fixed, and every other kilogram is your choice of power, oxygen plant, food and spares.',
   },

@@ -15,7 +15,11 @@ function statusText(s: MissionStatus): string {
   }
 }
 
-function missionRow(m: Mission, status: MissionStatus): HTMLLIElement {
+function missionRow(
+  m: Mission,
+  status: MissionStatus,
+  onStart: (id: string) => void,
+): HTMLLIElement {
   const li = document.createElement('li')
   li.className = 'mission'
   li.dataset.status = status.kind
@@ -43,6 +47,16 @@ function missionRow(m: Mission, status: MissionStatus): HTMLLIElement {
     textContent: `Decisions: ${m.hats.join(', ')}`,
   })
   details.append(summary, briefing, hats)
+  if (status.kind === 'open') {
+    details.open = true // the next mission to play is shown with its start button
+    const start = Object.assign(document.createElement('button'), {
+      type: 'button',
+      className: 'gate-primary mission-start',
+      textContent: 'Start mission',
+    })
+    start.addEventListener('click', () => onStart(m.id))
+    details.append(start)
+  }
   li.append(details)
   return li
 }
@@ -51,6 +65,7 @@ export function renderMissionList(
   expeditions: readonly Expedition[],
   missions: readonly Mission[],
   completed: readonly string[],
+  onStart: (id: string) => void,
 ): HTMLElement {
   const root = document.createElement('div')
   root.className = 'missions'
@@ -82,7 +97,7 @@ export function renderMissionList(
     const list = document.createElement('ol')
     list.className = 'mission-list'
     for (const m of missions.filter((x) => x.expedition === e.n)) {
-      list.append(missionRow(m, missionStatus(missions, completed, m.id)))
+      list.append(missionRow(m, missionStatus(missions, completed, m.id), onStart))
     }
     section.append(heading, summary, list)
     root.append(section)

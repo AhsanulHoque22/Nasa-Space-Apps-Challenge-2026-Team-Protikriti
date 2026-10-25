@@ -2,23 +2,12 @@
  * Start screen: create a local profile, then choose Story mode or Martian Map. It sits over the
  * live globe (which keeps loading behind it) and makes the app underneath inert until closed.
  */
-import { loadProgress } from '../core/mission-progress'
-import { EXPEDITIONS, MISSIONS } from '../core/missions'
 import { type Profile, checkName, loadProfile, saveProfile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
-import { renderMissionList } from './mission-list'
+import { el } from './dom'
+import { showStory } from './story'
 
 const BRAND_MARK = `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B3D91"/><path d="M4 15c5-4 11-6 17-6" stroke="#FC3D21" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="8" r="1.4" fill="#fff"/></svg>`
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  props: Partial<HTMLElementTagNameMap[K]> = {},
-  ...children: (Node | string)[]
-): HTMLElementTagNameMap[K] {
-  const node = Object.assign(document.createElement(tag), props)
-  node.append(...children)
-  return node
-}
 
 /** Show the start screen. `onMap` runs when the visitor opens Martian Map. */
 export function openProfileGate(
@@ -129,7 +118,7 @@ export function openProfileGate(
     const story = modeButton(
       'Story mode',
       'Land a crew of four on Mars and keep them alive until the trip home.',
-      () => showStory(p),
+      () => openStory(p),
     )
     body.replaceChildren(
       noteLine(),
@@ -152,31 +141,18 @@ export function openProfileGate(
     story.focus()
   }
 
-  function showStory(p: Profile) {
-    const loaded = loadProgress(
-      store,
-      p.createdAt,
-      MISSIONS.map((m) => m.id),
-    )
-    const back = el('button', { type: 'button', className: 'gate-link', textContent: 'Back' })
-    back.addEventListener('click', () => showModes(p))
-    const map = el('button', {
-      type: 'button',
-      className: 'gate-link',
-      textContent: 'Open Martian Map instead',
-    })
-    map.addEventListener('click', () => {
-      close()
-      onMap()
-    })
+  function openStory(p: Profile) {
     panel.classList.add('gate-panel-wide')
-    body.replaceChildren(
-      el('h2', { className: 'gate-heading', textContent: 'Story mode' }),
-      loaded.note ? el('p', { className: 'gate-note', textContent: loaded.note }) : '',
-      renderMissionList(EXPEDITIONS, MISSIONS, loaded.progress.completed),
-      el('div', { className: 'gate-actions' }, back, map),
-    )
-    body.querySelector<HTMLElement>('summary')?.focus()
+    showStory({
+      store,
+      profile: p,
+      body,
+      onBack: () => showModes(p),
+      onMap: () => {
+        close()
+        onMap()
+      },
+    })
   }
 
   if (profile) showModes(profile)
