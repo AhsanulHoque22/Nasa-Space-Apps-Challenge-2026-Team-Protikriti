@@ -5,6 +5,8 @@
 import { type Profile, checkName, loadProfile, saveProfile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
 import { el } from './dom'
+import type { Progress } from '../core/mission-progress'
+import { playMission } from './mission-play'
 import { type StoryServices, showStory } from './story'
 
 const BRAND_MARK = `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B3D91"/><path d="M4 15c5-4 11-6 17-6" stroke="#FC3D21" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="8" r="1.4" fill="#fff"/></svg>`
@@ -15,6 +17,8 @@ export function openProfileGate(
   behind: readonly HTMLElement[],
   onMap: () => void,
   services: StoryServices,
+  /** Reopen straight on the mission list, after a mission ends. */
+  resume?: { progress: Progress; note: string | null },
 ): void {
   if (document.querySelector('.gate')) return // already showing
   const loaded = loadProfile(store)
@@ -142,13 +146,24 @@ export function openProfileGate(
     story.focus()
   }
 
-  function openStory(p: Profile) {
+  function openStory(p: Profile, back?: { progress: Progress; note: string | null }) {
     panel.classList.add('gate-panel-wide')
     showStory({
       store,
       profile: p,
       body,
       services,
+      resume: back,
+      onPlay: (id, progress) => {
+        close()
+        playMission(id, {
+          store,
+          progress,
+          showSite: services.showSite,
+          onDone: (after, note) =>
+            openProfileGate(store, behind, onMap, services, { progress: after, note }),
+        })
+      },
       onBack: () => showModes(p),
       onMap: () => {
         close()
@@ -157,6 +172,7 @@ export function openProfileGate(
     })
   }
 
-  if (profile) showModes(profile)
+  if (profile && resume) openStory(profile, resume)
+  else if (profile) showModes(profile)
   else showCreate()
 }

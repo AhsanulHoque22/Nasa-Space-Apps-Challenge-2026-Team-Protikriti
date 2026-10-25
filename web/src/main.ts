@@ -134,8 +134,14 @@ async function main() {
   // Story mode opens before the map data arrives; its zone list resolves once data is in.
   let resolveZones: (rows: ZoneRow[] | Promise<ZoneRow[]>) => void = () => undefined
   const zonesReady = new Promise<ZoneRow[]>((resolve) => (resolveZones = resolve))
+  // Missions can ask for a site before the terrain data has loaded; remember the latest ask.
+  const siteView: { show?: (id: string) => void; pending?: string; imageryWanted?: boolean } = {}
+  const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
   const openStart = () =>
-    openProfileGate(browserStorage(), [globe, ui], () => {}, { loadZones: () => zonesReady })
+    openProfileGate(browserStorage(), [globe, ui], () => {}, {
+      loadZones: () => zonesReady,
+      showSite,
+    })
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
@@ -144,6 +150,15 @@ async function main() {
   if (!home) throw new Error('sites.json lists no sites')
   const shared = decodeView(window.location.search)
   const setLayer: { current?: (id: LayerId, visible: boolean) => void } = {}
+  siteView.show = (id) => {
+    const site = sites.find((x) => x.id === id)
+    if (!site) return
+    viewAoi(viewer, site.grid)
+    // As the header's site buttons do: a site view needs its imagery.
+    if (setLayer.current) setLayer.current('imagery', true)
+    else siteView.imageryWanted = true
+  }
+  if (siteView.pending) siteView.show(siteView.pending)
   renderHeader(ui, sites, {
     onView: (view) => {
       const site = sites.find((s) => s.id === view)
@@ -511,6 +526,8 @@ async function main() {
     },
     shared ? {} : { imagery: false },
   )
+  // A mission asked for imagery before the layer controls existed: switch it on now.
+  if (siteView.imageryWanted) setLayer.current?.('imagery', true)
   const timeline = renderTimelineBar(ui, streetView.stops, createReplay(viewer, streetView.stops))
   exploreHooks.push((on) => {
     if (on) timeline.pauseForExplore()

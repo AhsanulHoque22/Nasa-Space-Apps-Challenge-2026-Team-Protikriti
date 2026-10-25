@@ -1,0 +1,192 @@
+/** Mission 1.1 as guided steps: the plan, power, oxygen plant, supplies, review. */
+import {
+  CARGO_ITEMS,
+  type CargoItem,
+  type CargoPlan,
+  cargoMassKg,
+  checkCargo,
+} from '../../core/cargo'
+import { CARGO_LIMIT_KG, HABITAT_KG, SURFACE_STAY_SOLS } from '../../core/mission-constants'
+import { type DockStep, stepper } from '../mission-dock'
+import { el } from '../dom'
+
+const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
+const tonnes = (n: number) =>
+  `${(n / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })} t`
+const item = (id: CargoItem['id']) => CARGO_ITEMS.find((x) => x.id === id) as CargoItem
+
+function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElement {
+  return el(
+    'article',
+    { className: 'item-card' },
+    el('h3', { className: 'item-name', textContent: i.label }),
+    el('p', { className: 'item-detail', textContent: i.detail }),
+    stepper({
+      label: i.label,
+      unit: i.unit,
+      value: plan[i.id],
+      max: i.max,
+      step: i.step,
+      onChange: (v) => {
+        plan[i.id] = v
+        onChange()
+      },
+    }),
+    el(
+      'p',
+      { className: 'item-meta' },
+      i.unitKg === 1 ? '' : `${kg(i.unitKg)} each · `,
+      i.confidence === 'medium' ? 'derived value · ' : '',
+      el('a', { href: i.url, target: '_blank', rel: 'noopener', textContent: 'Source' }),
+    ),
+  )
+}
+
+/** Lander mass as a compact gauge for the dock header. */
+export function massGauge(plan: CargoPlan): HTMLElement {
+  const mass = cargoMassKg(plan)
+  const fill = el('span', { className: 'gauge-fill' })
+  fill.style.width = `${Math.min(100, (mass / CARGO_LIMIT_KG) * 100)}%`
+  fill.dataset.over = String(mass > CARGO_LIMIT_KG)
+  return el(
+    'div',
+    { className: 'gauge' },
+    el('span', {
+      className: 'gauge-label',
+      textContent: `Lander ${tonnes(mass)} of ${tonnes(CARGO_LIMIT_KG)}`,
+    }),
+    el('span', { className: 'gauge-track' }, fill),
+  )
+}
+
+export function cargoSteps(
+  plan: CargoPlan,
+  refresh: () => void,
+  goTo: (step: number) => void,
+  onLoad: () => void,
+): DockStep[] {
+  const cards = (...ids: CargoItem['id'][]) =>
+    el('div', { className: 'item-cards' }, ...ids.map((id) => itemCard(item(id), plan, refresh)))
+  const issues = el('div', { className: 'cargo-issues', tabIndex: -1 })
+  issues.setAttribute('aria-live', 'polite')
+
+  return [
+    {
+      title: 'The plan',
+      why: 'Nothing waits on Mars for the crew, so their power, oxygen plant and food go first.',
+      render: () =>
+        el(
+          'div',
+          {},
+          el(
+            'ol',
+            { className: 'plan-timeline' },
+            el(
+              'li',
+              {},
+              el('strong', { textContent: 'Cargo launches' }),
+              el('span', { textContent: 'About 2 years before the crew' }),
+            ),
+            el(
+              'li',
+              {},
+              el('strong', { textContent: 'Lands on Mars' }),
+              el('span', { textContent: 'Power switches on by itself' }),
+            ),
+            el(
+              'li',
+              {},
+              el('strong', { textContent: 'Oxygen plant runs' }),
+              el('span', { textContent: '22,728 kg for the return rocket within 420 days' }),
+            ),
+            el(
+              'li',
+              {},
+              el('strong', { textContent: 'Crew launches' }),
+              el('span', {
+                textContent: 'Only if the tanks are full: the next window is 26 months away',
+              }),
+            ),
+          ),
+          el('p', {
+            className: 'dock-note',
+            textContent: `You pack one ${tonnes(CARGO_LIMIT_KG)} lander. The ${tonnes(HABITAT_KG)} habitat is already on it. Based on NASA’s DRA 5.0 and its Jezero power study (Rucker et al. 2016).`,
+          }),
+        ),
+    },
+    {
+      title: 'Power',
+      why: 'The habitat needs 12.1 kW, and the oxygen plant needs 19.7 kW more. Reactors run day and night; solar arrays only by day.',
+      render: () => cards('kilopower', 'solar', 'battery'),
+    },
+    {
+      title: 'Oxygen plant',
+      why: 'It splits carbon dioxide from the air into oxygen for the trip home. NASA’s plan carries two, so one can fail.',
+      render: () => cards('isru'),
+    },
+    {
+      title: 'Supplies',
+      why: `The crew stays ${SURFACE_STAY_SOLS} sols with no resupply. Food that runs out early has to come from somewhere else.`,
+      render: () => cards('foodSols', 'waterKg'),
+    },
+    {
+      title: 'Review and load',
+      why: 'Check the lander before it leaves. Anything here can still be changed.',
+      nextLabel: 'Load the lander',
+      onNext: () => {
+        if (checkCargo(plan).blocking.length) {
+          issues.focus()
+          return false
+        }
+        onLoad()
+        return false // the mission ends; the dock is removed by the caller
+      },
+      render: () => {
+        const { blocking, warnings } = checkCargo(plan)
+        const group = (title: string, lines: string[], kind: string) =>
+          lines.length
+            ? el(
+                'div',
+                { className: `cargo-issue-group ${kind}` },
+                el('p', { className: 'cargo-issue-title', textContent: title }),
+                el('ul', {}, ...lines.map((l) => el('li', { textContent: l }))),
+              )
+            : ''
+        issues.replaceChildren(
+          group('Must fix before loading', blocking, 'blocking'),
+          group('Worth a second look', warnings, 'warning'),
+        )
+        const row = (label: string, value: string, step: number) => {
+          const change = el('button', {
+            type: 'button',
+            className: 'gate-link',
+            textContent: 'Change',
+          })
+          change.addEventListener('click', () => goTo(step))
+          return el(
+            'li',
+            {},
+            el('span', { textContent: label }),
+            el('strong', { textContent: value }),
+            change,
+          )
+        }
+        return el(
+          'div',
+          {},
+          el(
+            'ul',
+            { className: 'review-list' },
+            row('Kilopower reactors', String(plan.kilopower), 1),
+            row('Solar array sets', String(plan.solar), 1),
+            row('Battery banks', String(plan.battery), 1),
+            row('Oxygen plants', String(plan.isru), 2),
+            row('Food', `${plan.foodSols} sols`, 3),
+            row('Water reserve', kg(plan.waterKg), 3),
+          ),
+          issues,
+        )
+      },
+    },
+  ]
+}

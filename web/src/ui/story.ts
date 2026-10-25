@@ -2,7 +2,6 @@
 import {
   type Progress,
   loadProgress,
-  recordCargo,
   recordSite,
   retryFrom,
   saveProgress,
@@ -13,14 +12,17 @@ import type { KeyValueStore } from '../core/streetview'
 import type { ZoneRow } from '../core/zone-rank'
 import { el } from './dom'
 import { renderMissionList } from './mission-list'
-import { renderCargoScreen } from './missions/cargo-screen'
 import { renderSiteScreen } from './missions/site-screen'
 
 const NOT_SAVED_NOTE =
   'This browser did not save your progress, so it lasts until you close the page.'
 
-/** Data Story mode needs from the map app, which may still be loading. */
-export type StoryServices = { loadZones: () => Promise<ZoneRow[]> }
+/** What Story mode needs from the map app, which may still be loading. */
+export type StoryServices = {
+  loadZones: () => Promise<ZoneRow[]>
+  /** Point the camera at an ATLAS terrain site. */
+  showSite: (siteId: string) => void
+}
 
 export type StoryContext = {
   services: StoryServices
@@ -30,14 +32,20 @@ export type StoryContext = {
   body: HTMLElement
   onBack: () => void
   onMap: () => void
+  /** Play a mission over the map (the start screen closes meanwhile). */
+  onPlay: (id: string, progress: Progress) => void
+  /** Progress and note handed back by a mission that just ended. */
+  resume?: { progress: Progress; note: string | null }
 }
 
 export function showStory(ctx: StoryContext): void {
-  const loaded = loadProgress(
-    ctx.store,
-    ctx.profile.createdAt,
-    MISSIONS.map((m) => m.id),
-  )
+  const loaded =
+    ctx.resume ??
+    loadProgress(
+      ctx.store,
+      ctx.profile.createdAt,
+      MISSIONS.map((m) => m.id),
+    )
   let progress = loaded.progress
   let note = loaded.note
 
@@ -51,16 +59,7 @@ export function showStory(ctx: StoryContext): void {
     const mission = MISSIONS.find((m) => m.id === id)
     if (!mission) throw new Error(`No mission with id "${id}"`)
     if (id === '1.1') {
-      ctx.body.replaceChildren(
-        renderCargoScreen(
-          mission,
-          progress.cargo,
-          (plan) =>
-            commit(recordCargo(MISSIONS, progress, plan), 'Cargo loaded. Mission 1.1 is done.'),
-          showList,
-        ),
-      )
-      ctx.body.querySelector<HTMLElement>('h2')?.focus()
+      ctx.onPlay(id, progress)
       return
     }
     if (id === '1.2' && progress.cargo) {
