@@ -130,7 +130,8 @@ async function main() {
   const ui = document.getElementById('ui')
   if (!globe || !ui) throw new Error('#globe / #ui elements missing')
   // A shared map link goes straight to the map; everyone else starts at the profile and mode choice.
-  if (!decodeView(window.location.search)) openProfileGate(browserStorage(), [globe, ui], () => {})
+  const openStart = () => openProfileGate(browserStorage(), [globe, ui], () => {})
+  if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
   const [sites, mola] = await Promise.all([loadSites(), loadMola()])
@@ -138,10 +139,8 @@ async function main() {
   if (!home) throw new Error('sites.json lists no sites')
   const shared = decodeView(window.location.search)
   const setLayer: { current?: (id: LayerId, visible: boolean) => void } = {}
-  renderHeader(
-    ui,
-    sites,
-    (view) => {
+  renderHeader(ui, sites, {
+    onView: (view) => {
       const site = sites.find((s) => s.id === view)
       if (site) {
         viewAoi(viewer, site.grid)
@@ -153,8 +152,9 @@ async function main() {
           (home.grid.south + home.grid.north) / 2,
         )
     },
-    shared ? undefined : 'mars',
-  )
+    onStart: openStart,
+    initialView: shared ? undefined : 'mars',
+  })
   const ground = createWalkGround(viewer, sites, mola)
   const groundM = ground.height
   // Height of the ground as drawn (terrain x vertical exaggeration). Markers sit on it directly:

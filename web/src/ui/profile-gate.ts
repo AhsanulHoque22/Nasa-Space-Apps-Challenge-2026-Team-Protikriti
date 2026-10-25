@@ -2,8 +2,11 @@
  * Start screen: create a local profile, then choose Story mode or Martian Map. It sits over the
  * live globe (which keeps loading behind it) and makes the app underneath inert until closed.
  */
+import { loadProgress } from '../core/mission-progress'
+import { EXPEDITIONS, MISSIONS } from '../core/missions'
 import { type Profile, checkName, loadProfile, saveProfile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
+import { renderMissionList } from './mission-list'
 
 const BRAND_MARK = `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B3D91"/><path d="M4 15c5-4 11-6 17-6" stroke="#FC3D21" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="8" r="1.4" fill="#fff"/></svg>`
 
@@ -23,29 +26,26 @@ export function openProfileGate(
   behind: readonly HTMLElement[],
   onMap: () => void,
 ): void {
+  if (document.querySelector('.gate')) return // already showing
   const loaded = loadProfile(store)
   let profile = loaded.profile
   let note = loaded.note
 
   const body = el('div', { className: 'gate-body' })
-  const root = el(
-    'section',
-    { className: 'gate', ariaLabel: 'Start' },
+  const panel = el('div', { className: 'gate-panel panel' })
+  const root = el('section', { className: 'gate', ariaLabel: 'Start' }, panel)
+  panel.append(
     el(
-      'div',
-      { className: 'gate-panel panel' },
-      el(
-        'header',
-        { className: 'gate-brand' },
-        el('span', { innerHTML: BRAND_MARK }),
-        el('h1', { textContent: 'ATLAS' }),
-      ),
-      el('p', {
-        className: 'gate-lede',
-        textContent: 'A survival guide for Mars, built on NASA mission data.',
-      }),
-      body,
+      'header',
+      { className: 'gate-brand' },
+      el('span', { innerHTML: BRAND_MARK }),
+      el('h1', { textContent: 'ATLAS' }),
     ),
+    el('p', {
+      className: 'gate-lede',
+      textContent: 'A survival guide for Mars, built on NASA mission data.',
+    }),
+    body,
   )
   root.setAttribute('role', 'dialog')
   root.setAttribute('aria-modal', 'true')
@@ -116,6 +116,7 @@ export function openProfileGate(
   }
 
   function showModes(p: Profile) {
+    panel.classList.remove('gate-panel-wide')
     const change = el('button', {
       type: 'button',
       className: 'gate-link',
@@ -128,7 +129,7 @@ export function openProfileGate(
     const story = modeButton(
       'Story mode',
       'Land a crew of four on Mars and keep them alive until the trip home.',
-      showStory,
+      () => showStory(p),
     )
     body.replaceChildren(
       noteLine(),
@@ -151,29 +152,31 @@ export function openProfileGate(
     story.focus()
   }
 
-  function showStory() {
+  function showStory(p: Profile) {
+    const loaded = loadProgress(
+      store,
+      p.createdAt,
+      MISSIONS.map((m) => m.id),
+    )
     const back = el('button', { type: 'button', className: 'gate-link', textContent: 'Back' })
-    back.addEventListener('click', () => profile && showModes(profile))
+    back.addEventListener('click', () => showModes(p))
     const map = el('button', {
       type: 'button',
-      className: 'gate-primary',
-      textContent: 'Open Martian Map',
+      className: 'gate-link',
+      textContent: 'Open Martian Map instead',
     })
     map.addEventListener('click', () => {
       close()
       onMap()
     })
+    panel.classList.add('gate-panel-wide')
     body.replaceChildren(
-      el('h2', { className: 'gate-heading', textContent: 'Expedition 1: First Footprints' }),
-      el('p', {
-        className: 'gate-text',
-        textContent:
-          'The missions are being built and arrive in the next updates. Until then, the map is open.',
-      }),
-      map,
-      back,
+      el('h2', { className: 'gate-heading', textContent: 'Story mode' }),
+      loaded.note ? el('p', { className: 'gate-note', textContent: loaded.note }) : '',
+      renderMissionList(EXPEDITIONS, MISSIONS, loaded.progress.completed),
+      el('div', { className: 'gate-actions' }, back, map),
     )
-    map.focus()
+    body.querySelector<HTMLElement>('summary')?.focus()
   }
 
   if (profile) showModes(profile)

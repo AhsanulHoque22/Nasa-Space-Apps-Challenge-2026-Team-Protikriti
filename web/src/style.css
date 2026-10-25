@@ -82,24 +82,51 @@ body {
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
 }
 
-.brand {
-  display: flex;
+.brand-heading {
+  margin: 0;
   flex-shrink: 0;
-  align-items: center;
-  gap: var(--space-2);
+  font: inherit;
 }
 
-.brand h1 {
-  margin: 0;
+/* The brand doubles as the way back to the start screen (profile and mode choice). */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 6px 4px 0;
+  min-height: 44px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.brand > span {
+  display: grid;
+}
+
+.brand-name {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-.brand p {
-  margin: 0;
+.brand-sub {
   font-size: 12px;
   color: var(--text-muted);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 180ms var(--ease-out);
+}
+
+.brand:hover .brand-sub,
+.brand:focus-visible .brand-sub {
+  color: var(--text);
+  text-decoration-color: currentColor;
 }
 
 .view-switch {
@@ -1508,7 +1535,7 @@ body.exploring #ui {
     gap: var(--space-2);
   }
 
-  .brand p {
+  .brand-sub {
     display: none;
   }
 
@@ -3212,6 +3239,138 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 @media (prefers-reduced-motion: reduce) {
   .gate-primary,
   .gate-mode {
+    transition: none;
+  }
+}
+
+/* Story mode inside the start screen: the mission list needs more room and scrolls inside. */
+.gate-panel-wide {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-4);
+}
+
+.missions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.expedition {
+  background: rgb(255 255 255 / 0.04);
+  border-radius: 8px;
+  padding: var(--space-1) var(--space-3) var(--space-3);
+}
+
+.expedition-title {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0 calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.expedition-title h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.expedition-summary {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mission-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.mission summary {
+  display: grid;
+  grid-template-columns: 2.75em 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border-radius: 6px;
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.mission summary::-webkit-details-marker {
+  display: none;
+}
+
+.mission summary:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+
+.mission-id {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.mission-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mission-status {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mission[data-status='open'] .mission-status {
+  color: #fff;
+  font-weight: 600;
+}
+
+.mission[data-status='done'] .mission-status {
+  color: var(--nasa-blue-lift);
+  font-weight: 600;
+}
+
+.mission-briefing,
+.mission-hats {
+  margin: var(--space-1) var(--space-2) 0 calc(2.75em + var(--space-4));
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mission-hats {
+  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .gate-panel-wide {
+    max-height: calc(100dvh - 2 * var(--space-4));
+  }
+
+  .mission-briefing,
+  .mission-hats {
+    margin-left: var(--space-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission summary,
+  .brand-sub {
     transition: none;
   }
 }
