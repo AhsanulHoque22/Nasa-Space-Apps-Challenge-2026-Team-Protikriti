@@ -368,3 +368,17 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 | Battery | 658 kWh per bank at nameplate (depth-of-discharge limits not modelled) | Rucker et al. 2016, Table 7 |
 | Method | energy balanced once per sol over a Mars year (every second sol computed, then repeated); worst 420-day window decides; cell packing on the wings not modelled, so solar output may be optimistic | ATLAS `web/src/core/cargo-phase.ts`, `surface-solar.ts` |
 | Check | Rucker's demonstrator (four 5.6 m arrays, 6.45 kW for 10 h a sol at the equator) is met: the model gives ≈98 kWh/sol against 64.5 needed | `surface-solar.test.ts` |
+
+## Story mode (mission 1.1: the journey to Mars)
+| Item | Value | Source |
+|---|---|---|
+| Planet positions | Earth–Moon barycentre and Mars, Keplerian elements and rates, Table 1 (1800–2050); heliocentric J2000 ecliptic | JPL / E. M. Standish, *Approximate Positions of the Planets*, https://ssd.jpl.nasa.gov/planets/approx_pos.html. Checked against the independent Mars24 Sun distance to 0.005 AU. |
+| Transfers | Lambert's problem by universal variables; propagation by the universal Kepler equation | H. D. Curtis, *Orbital Mechanics for Engineering Students*, Algorithms 3.3, 3.4, 5.2; reproduces Curtis Example 5.2 |
+| Windows | cargo: departures Nov 2030–Aug 2031 (found 28 Jan 2031 → 6 Aug 2031, 190 d, C3 9.0 km²/s²); crew: Dec 2032–Sep 2033 | computed in `web/src/core/journey.ts` |
+| Crew routes | minimum energy (178 d, C3 8.4); 150 d (C3 9.7); 120 d (C3 15.3), each the lowest-C3 launch date in the 2033 window. The 150/120-day steps are a team choice; minimum energy matches DRA 5.0's ~6-month transits | computed; DRA 5.0 |
+| Departure burn | from a 407 km circular orbit: Δv = √(C3 + 2μ/r) − √(μ/r); μ = 398,600.4418 km³/s², R = 6,378.137 km | DRA 5.0 ("all vehicles depart from a 407-km circular orbit"); WGS 84 |
+| Propellant share | rocket equation with nuclear thermal Isp 875 s (low end of DRA 5.0's 875–950 s); Earth departure only, Mars arrival not costed | DRA 5.0 |
+| Transit dose | 1.8 mSv/day | Zeitlin et al. 2013, *Science* 340, doi:10.1126/science.1235989 (MSL RAD cruise) |
+| Crew supplies in transit | food 2.39, water 3.217, oxygen 0.895 kg per person per day, crew of 4, before recycling | BVAD Rev2 (2022) |
+| Radiation context | faster transfers and solar-maximum timing keep crews under NASA's 600 mSv limit | Zhang et al. 2026, *Space Weather*, doi:10.1029/2025SW004724 (CC BY-NC-ND 4.0; cited, figure not reproduced). Visual concept after ESA image "Earth to Mars trajectories for radiation study" (credit Chao Zhang et al.; no ESA licence, so not reused) |
+| Constants | Sun μ = 1.32712440018×10¹¹ km³/s² (IAU 2015); 1 AU = 149,597,870.7 km (IAU 2012) | IAU |
