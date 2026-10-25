@@ -79,6 +79,7 @@ The app fetches live data with a 6 s timeout and falls back to `marsmap weather`
 |---|---|
 | Jezero site terrain | USGS Mars 2020 Science Investigation CTX DEM Mosaic, 20 m/px |
 | Gale site terrain | USGS **MSL Gale Merged DEM Mosaic v3** (1 m/px, Parker & Calef 2016), read remotely at 32 m/px through its internal overviews (~15 s, a few MB of a 3.9 GB file). https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m |
+| HiRISE site terrain (Columbia Hills, Viking 2, Pathfinder, Ius Chasma) | HiRISE DTEEC stereo DTMs (1 m/px native; product IDs in `pipeline/data/sites.json`), read at 5 m/px. These DTMs also write **0.0 where stereo matching failed**; with `zero_is_nodata` the pipeline reads them at full resolution, masks the zeros and averages each 5 m cell only when every 1 m pixel in it is valid. Averaging zeros into real ground had made walls up to 4.3 km high along the strip edges. Check: Columbia Hills' highest cell is now 106 m above the median plain, matching Husband Hill's summit, 106 m above Spirit's landing site. |
 | Global relief | **MGS MOLA MEGDR** `megt90n000cb` (4 px/deg, metres above the MOLA areoid), NASA PDS Geosciences Node. https://pds-geosciences.wustl.edu/missions/mgs/megdr.html. Verified: Olympus Mons 20,009 m (at 15 km cells), Valles Marineris floor −4,850 m, Hellas −6,028 m. |
 
 Site DEMs take precedence inside their bounds; MOLA covers the rest of the planet (terrain, and the readout's elevation, which always names its source).
