@@ -378,3 +378,9 @@ hardware is seen and the maths is shown.
   verdict as the oxygen-tank chart.
 - **Build order:** stage + dock + step flow → steps with picture cards → charts + Show the maths →
   3D models → mission 1.2. Each piece is browser-tested and shown before the next.
+
+**Update 2026-10-26:** the build now differs from this section in two ways. On wide screens the
+dock sits beside the stage (3D left / dock right for the journey step; dock left / map right
+otherwise), not along the bottom. Mission 1.2 became a visit to each certified site with pinned,
+sourced points of interest and photos. The current state, methods and rules for developers are in
+`docs/story-mode-guide.md`.
