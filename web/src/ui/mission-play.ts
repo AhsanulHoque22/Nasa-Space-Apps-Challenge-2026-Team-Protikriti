@@ -231,7 +231,7 @@ function playMarswalk(title: string, ctx: PlayContext): void {
       delete document.body.dataset.story
       ctx.onDone(progress, note)
     }
-    const steps = marswalkSteps(grid, home, features, ctx.services, (walk) => {
+    const steps = marswalkSteps(site.siteId, grid, home, features, ctx.services, (walk) => {
       const next = recordMarswalk(MISSIONS, ctx.progress, walk)
       end(next, saved(ctx, next, 'The crew is back inside. Mission 1.5 is done.'))
     })

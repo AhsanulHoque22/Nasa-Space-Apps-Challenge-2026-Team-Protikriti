@@ -1,6 +1,6 @@
 /**
- * Mission 1.5 as guided steps: learn the Marswalk rules, choose a science stop near the base (a
- * known place or any point on the map), read the GO / NO-GO card, then watch the crew walk it.
+ * Mission 1.5 as guided steps: learn the Marswalk rules, choose science stops near the base (known
+ * places or any points on the map), read the GO / NO-GO card, then watch the crew walk it.
  */
 import { CAREER_LIMIT_MSV } from '../../core/dose'
 import { EVA_LIMITS, type EvaCard, evaCard } from '../../core/eva-card'
@@ -11,25 +11,25 @@ import type { Marswalk } from '../../core/mission-progress'
 import { nearbyStops, walkClock, walkDoseMsv } from '../../core/marswalk'
 import { MAX_SUIT_SPEED_KMH } from '../../core/route'
 import type { SiteFeature } from '../../core/site-features'
-import { distanceKm } from '../../core/site-report'
 import { summarizeRoute } from '../../core/summary'
 import type { BasePlacer } from '../../map/base-placer'
 import type { FeaturePins } from '../../map/feature-pins'
 import type { WalkMap } from '../../map/marswalk-map'
 import { el } from '../dom'
 import type { DockStep } from '../mission-dock'
+import { type Stop, scienceCards } from './science-cards'
 
 export type MarswalkMap = { pins: FeaturePins; base: BasePlacer; walk: WalkMap }
 
-const SUGGESTED = 3
+const SUGGESTED = 6
 const STAY_CHOICES_MIN = [30, 60, 90, 120]
 const DEFAULT_STAY_MIN = 60
 
-type Stop = { name: string; lon: number; lat: number; feature?: SiteFeature }
 type Planned = {
-  stop: Stop
+  stops: Stop[]
   path: Cell[]
-  stopIndex: number
+  /** Path index of each stop, in walking order. */
+  stopIndices: number[]
   card: EvaCard
   /** Seconds of the fastest walk home from each point of the walk out. */
   homeS: number[]
@@ -65,6 +65,7 @@ function evaBar(parts: Array<{ label: string; min: number; kind: string }>): HTM
 }
 
 export function marswalkSteps(
+  siteId: string,
   grid: Grid,
   home: LonLat,
   features: readonly SiteFeature[],
@@ -80,57 +81,80 @@ export function marswalkSteps(
     feature: f,
   }))
   let stayMin = DEFAULT_STAY_MIN
-  let chosen: Stop | null = null
+  let chosen: Stop[] = []
+  let own: Stop[] = []
   let planned: Planned | null = null
   let planning = 0
   const status = el('p', { className: 'dock-note', ariaLive: 'polite' })
 
-  /** Route there and back, and judge it with the EVA card. */
-  const plan = async (stop: Stop): Promise<Planned | string> => {
-    const cell = lonLatToCell(grid, stop.lon, stop.lat)
-    if (!cell) return 'That point is outside the mapped terrain.'
-    const reply = await map.walk.client(grid).route([homeCell, cell, homeCell])
+  /** Route out through every stop in order and back home, and judge it with the EVA card. */
+  const plan = async (stops: readonly Stop[]): Promise<Planned | string> => {
+    const cells: Cell[] = []
+    for (const stop of stops) {
+      const cell = lonLatToCell(grid, stop.lon, stop.lat)
+      if (!cell) return `${stop.name} is outside the mapped terrain.`
+      cells.push(cell)
+    }
+    const reply = await map.walk.client(grid).route([homeCell, ...cells, homeCell])
     if (reply.type === 'error') return reply.message
-    if (!reply.path || !reply.homeS)
-      return 'No safe walking route reaches that point: every way there crosses ground steeper than 15°.'
-    const stopIndex = reply.path.findIndex(
-      (c, i) => i > 0 && c.row === cell.row && c.col === cell.col,
-    )
-    const out = reply.path.slice(0, stopIndex + 1)
-    const homeS = reply.homeS.slice(0, stopIndex + 1)
-    const card = evaCard(grid, out, [homeCell, cell], { homeS, stopMin: stayMin })
+    if (!reply.path || !reply.homeS) {
+      const leg = reply.failedLeg ?? 0
+      const where = leg < stops.length ? (stops[leg]?.name ?? 'a stop') : 'home'
+      return `No safe walking route reaches ${where}: every way crosses ground steeper than ${grid.maxSafeSlopeDeg}°.`
+    }
+    const path = reply.path
+    let from = 1
+    const stopIndices = cells.map((cell) => {
+      const k = path.findIndex((c, n) => n >= from && c.row === cell.row && c.col === cell.col)
+      from = k + 1
+      return k
+    })
+    const last = stopIndices.at(-1) ?? 0
+    const homeS = reply.homeS.slice(0, last + 1)
+    const card = evaCard(grid, path.slice(0, last + 1), [homeCell, ...cells], {
+      homeS,
+      stopMin: stayMin,
+    })
     return {
-      stop,
-      path: reply.path,
-      stopIndex,
+      stops: [...stops],
+      path,
+      stopIndices,
       card,
       homeS,
       totalMin: card.evaMin + card.walkbackMin,
-      distanceM: summarizeRoute(grid, reply.path).distanceM,
+      distanceM: summarizeRoute(grid, path).distanceM,
     }
   }
 
-  const choose = async (stop: Stop, refresh: () => void) => {
-    chosen = stop
+  /** Plan the chosen stops again and draw the result; a newer change wins over an older one. */
+  const replan = async (refresh: () => void) => {
     planned = null
     const id = ++planning
-    status.textContent = `Finding the safest walk to ${stop.name}…`
-    const result = await plan(stop)
-    if (id !== planning) return // a newer choice replaced this one
     const layer = map.walk.layer(grid)
+    refresh()
+    if (!chosen.length) {
+      status.textContent = 'Add one or more stops to plan the walk.'
+      layer.setPath(null)
+      layer.setStops([])
+      layer.setFail(null)
+      return
+    }
+    status.textContent = `Finding the safest walk through ${chosen.length} stop${chosen.length > 1 ? 's' : ''}…`
+    const result = await plan(chosen)
+    if (id !== planning) return
     if (typeof result === 'string') {
       status.textContent = result
       layer.setPath(null)
       return
     }
     planned = result
-    layer.setStops([homeCell, result.path[result.stopIndex] as Cell])
+    layer.setStops([homeCell, ...result.stopIndices.map((k) => result.path[k] as Cell)])
     layer.setPath(result.path)
     map.walk.view(result.path.map((c) => cellToLonLat(grid, c)))
     layer.setFail(
       result.card.failIndex === null ? null : (result.path[result.card.failIndex] ?? null),
     )
-    status.textContent = `${stop.name}: ${formatDistance(result.distanceM)} there and back, ${hm(result.totalMin)} outside.`
+    status.textContent = `${chosen.length} stop${chosen.length > 1 ? 's' : ''}: ${formatDistance(result.distanceM)} out and back, ${hm(result.totalMin)} outside.`
     refresh()
   }
 
@@ -205,84 +229,72 @@ export function marswalkSteps(
     },
   }
 
+  let refreshPick: () => void = () => undefined
+  const toggle = (stop: Stop) => {
+    chosen = chosen.includes(stop) ? chosen.filter((x) => x !== stop) : [...chosen, stop]
+    void replan(refreshPick)
+  }
+
   const pickStop: DockStep = {
-    title: 'Choose a science stop',
-    why: 'Pick a place a rover found something, or any point on the map. Farther and steeper means less time to spare.',
+    title: 'Choose science stops',
+    why: 'Add the places the crew should study, in the order to visit them. More stops and steeper ground mean less time to spare.',
     layout: 'map',
     nextLabel: 'Check GO / NO-GO',
     render: () => {
       const root = el('div', { className: 'site-step' })
-      const refresh = () => root.replaceChildren(...body())
-      const body = () => [
-        el('h3', { className: 'feature-heading', textContent: 'Places near your base' }),
-        el(
-          'ul',
-          { className: 'walk-stops' },
-          ...suggested.map((s) => {
-            const km = distanceKm(home.lon, home.lat, s.lon, s.lat)
-            const pick = el('button', {
-              type: 'button',
-              className: 'gate-secondary',
-              textContent: chosen === s ? 'Chosen' : 'Walk here',
-            })
-            pick.setAttribute('aria-pressed', String(chosen === s))
-            pick.addEventListener('click', () => void choose(s, refresh))
-            return el(
-              'li',
-              { className: chosen === s ? 'walk-stop chosen' : 'walk-stop' },
-              ...(s.feature
-                ? [
-                    el('img', {
-                      src: s.feature.photo.src,
-                      alt: s.feature.photo.alt,
-                      loading: 'lazy',
-                    }),
-                  ]
-                : []),
-              el(
-                'div',
-                {},
-                el('strong', { textContent: s.name }),
-                el('p', {
-                  textContent: `${formatDistance(km * 1000)} from the habitat in a straight line`,
-                }),
-              ),
-              pick,
-            )
-          }),
-        ),
-        (() => {
-          const free = el('button', {
-            type: 'button',
-            className: 'gate-link',
-            textContent: 'Or click any point on the map',
+      const body = () => {
+        const free = el('button', {
+          type: 'button',
+          className: 'gate-secondary',
+          textContent: 'Add a point from the map',
+        })
+        free.addEventListener('click', () => {
+          status.textContent = 'Click the ground where the crew should go.'
+          map.base.pick((p) => {
+            const point: Stop = { name: `Your point ${own.length + 1}`, ...p }
+            own = [...own, point]
+            toggle(point)
           })
-          free.addEventListener('click', () => {
-            status.textContent = 'Click the ground where the crew should go.'
-            map.base.pick((p) => void choose({ name: 'Your chosen point', ...p }, refresh))
-          })
-          return free
-        })(),
-        (() => {
-          const select = el('select', { id: 'walk-stay' })
-          for (const m of STAY_CHOICES_MIN)
-            select.append(
-              el('option', { value: String(m), textContent: hm(m), selected: m === stayMin }),
-            )
-          select.addEventListener('change', () => {
-            stayMin = Number(select.value)
-            if (chosen) void choose(chosen, refresh)
-          })
-          return el(
-            'p',
-            { className: 'walk-stay' },
-            el('label', { htmlFor: 'walk-stay', textContent: 'Time at the stop: ' }),
-            select,
+        })
+        const select = el('select', { id: 'walk-stay' })
+        for (const m of STAY_CHOICES_MIN)
+          select.append(
+            el('option', { value: String(m), textContent: hm(m), selected: m === stayMin }),
           )
-        })(),
-        status,
-      ]
-      refresh()
+        select.addEventListener('change', () => {
+          stayMin = Number(select.value)
+          void replan(refreshPick)
+        })
+        return [
+          el(
+            'div',
+            { className: 'walk-plan-bar' },
+            el(
+              'p',
+              { className: 'walk-stay' },
+              el('label', { htmlFor: 'walk-stay', textContent: 'Time at each stop: ' }),
+              select,
+            ),
+            free,
+          ),
+          status,
+          scienceCards({
+            siteId,
+            home,
+            places: suggested,
+            own,
+            chosen,
+            toggle,
+            removeOwn: (s) => {
+              own = own.filter((x) => x !== s)
+              chosen = chosen.filter((x) => x !== s)
+              void replan(refreshPick)
+            },
+          }),
+        ]
+      }
+      refreshPick = () => root.replaceChildren(...body())
+      refreshPick()
       return root
     },
     onShow: () => {
@@ -290,16 +302,16 @@ export function marswalkSteps(
         suggested.flatMap((s) => (s.feature ? [s.feature] : [])),
         (i) => {
           const s = suggested[i]
-          if (s) void choose(s, () => undefined)
+          if (s) toggle(s)
         },
       )
     },
     onHide: () => map.base.pick(null),
     onNext: () => {
       if (planned) return true
-      status.textContent = chosen
-        ? 'Wait for the route, or choose a stop it can reach.'
-        : 'Choose a stop first.'
+      status.textContent = chosen.length
+        ? 'Wait for the route, or change the stops so a route exists.'
+        : 'Add a stop first.'
       return false
     },
   }
@@ -342,8 +354,12 @@ export function marswalkSteps(
             : `After ${formatDistance(failAt)} on the way out, the crew could no longer get home in time: ${hm(-c.tightestMarginMin)} short.`,
         }),
         evaBar([
-          { label: 'Walk out', min: c.evaMin - stayMin, kind: 'out' },
-          { label: 'Science stop', min: stayMin, kind: 'stay' },
+          { label: 'Walk out', min: c.evaMin - stayMin * p.stops.length, kind: 'out' },
+          {
+            label: p.stops.length > 1 ? 'Science stops' : 'Science stop',
+            min: stayMin * p.stops.length,
+            kind: 'stay',
+          },
           { label: 'Walk home', min: c.walkbackMin, kind: 'back' },
           { label: '+20%', min: pad, kind: 'pad' },
           { label: 'Spare', min: spare, kind: 'spare' },
@@ -353,8 +369,8 @@ export function marswalkSteps(
           'dl',
           { className: 'zone-facts' },
           ...[
-            ['Stop', p.stop.name],
-            ['There and back', formatDistance(p.distanceM)],
+            [p.stops.length > 1 ? 'Stops' : 'Stop', p.stops.map((x) => x.name).join(' → ')],
+            ['Out and back', formatDistance(p.distanceM)],
             ['Time outside', hm(p.totalMin)],
             [
               'Radiation',
@@ -377,16 +393,26 @@ export function marswalkSteps(
   const advise = async (p: Planned, into: HTMLElement) => {
     into.replaceChildren(el('p', { className: 'fd-note', textContent: 'Checking options…' }))
     const options: string[] = []
+    const last = p.stopIndices.at(-1) ?? 0
+    const cells = p.stopIndices.map((k) => p.path[k] as Cell)
     for (const m of STAY_CHOICES_MIN.filter((m) => m < stayMin)) {
-      const out = p.path.slice(0, p.stopIndex + 1)
-      const c = evaCard(grid, out, [homeCell, out.at(-1) as Cell], { homeS: p.homeS, stopMin: m })
-      if (c.verdict === 'GO')
-        options.push(`Stay ${hm(m)} at ${p.stop.name} instead of ${hm(stayMin)}.`)
+      const c = evaCard(grid, p.path.slice(0, last + 1), [homeCell, ...cells], {
+        homeS: p.homeS,
+        stopMin: m,
+      })
+      if (c.verdict === 'GO') options.push(`Stay ${hm(m)} at each stop instead of ${hm(stayMin)}.`)
     }
-    for (const s of suggested.filter((s) => s !== p.stop)) {
-      const r = await plan(s)
+    // Dropping one stop: each shorter walk is planned and checked the same way.
+    if (p.stops.length > 1)
+      for (const drop of p.stops) {
+        const r = await plan(p.stops.filter((x) => x !== drop))
+        if (typeof r !== 'string' && r.card.verdict === 'GO')
+          options.push(`Leave out ${drop.name} (${formatDistance(r.distanceM)} out and back).`)
+      }
+    for (const s of suggested.filter((s) => !p.stops.includes(s))) {
+      const r = await plan([s])
       if (typeof r !== 'string' && r.card.verdict === 'GO')
-        options.push(`Walk to ${s.name} (${formatDistance(r.distanceM)} there and back).`)
+        options.push(`Walk to ${s.name} alone (${formatDistance(r.distanceM)} out and back).`)
     }
     into.replaceChildren(
       el(
@@ -400,7 +426,8 @@ export function marswalkSteps(
               ...options.map((o) => el('li', { textContent: o })),
             )
           : el('p', {
-              textContent: 'No shorter stay or nearby stop passes. Try a closer point on the map.',
+              textContent:
+                'No shorter stay, fewer stops or nearby stop passes. Try a closer point on the map.',
             }),
         el('p', {
           className: 'fd-note',
@@ -414,7 +441,7 @@ export function marswalkSteps(
   let stopWalk: (() => void) | null = null
   const walk: DockStep = {
     title: 'The walk',
-    why: 'Two crew walk out, work at the stop and walk home. The clock runs fast: the whole walk plays in half a minute.',
+    why: 'Two crew walk out, work at each stop and walk home. The clock runs fast: the whole walk plays in half a minute.',
     layout: 'map',
     nextLabel: 'Finish: back in the airlock',
     render: () => {
@@ -422,22 +449,24 @@ export function marswalkSteps(
       const p = planned
       const clock = el('p', { className: 'walk-clock', ariaLive: 'off' })
       const phase = el('p', { className: 'dock-note' })
-      const minutes = walkClock(grid, p.path, p.stopIndex, stayMin)
-      const arrive = minutes[p.stopIndex] ?? 0
-      const leave = arrive + stayMin
+      const minutes = walkClock(grid, p.path, p.stopIndices, stayMin)
+      // Which stop the crew is at or walking to, from the clock.
+      const arrive = p.stopIndices.map((k) => minutes[k] ?? 0)
       stopWalk?.()
       stopWalk = map.walk.play(
         p.path.map((c) => cellToLonLat(grid, c)),
         minutes,
         (m, done) => {
           clock.textContent = `${hm(m)} outside`
+          const next = arrive.findIndex((a) => m < a + stayMin)
+          const stop = p.stops[next]
           phase.textContent = done
             ? `Back in the airlock after ${hm(m)}.`
-            : m < arrive
-              ? `Walking out to ${p.stop.name}`
-              : m < leave
-                ? `Working at ${p.stop.name}`
-                : 'Walking home'
+            : !stop
+              ? 'Walking home'
+              : m < (arrive[next] ?? 0)
+                ? `Walking to ${stop.name}`
+                : `Working at ${stop.name}`
         },
       )
       return el('div', { className: 'site-step' }, clock, phase)
@@ -448,7 +477,7 @@ export function marswalkSteps(
       if (!p) return false
       map.walk.clear()
       onDone({
-        stop: p.stop.name,
+        stop: p.stops.map((x) => x.name).join(' → '),
         distanceM: Math.round(p.distanceM),
         evaMin: Math.round(p.totalMin),
         doseMsv: walkDoseMsv(p.totalMin),

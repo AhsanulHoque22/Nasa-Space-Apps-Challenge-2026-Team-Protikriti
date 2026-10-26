@@ -30,12 +30,12 @@ export function nearbyStops<T extends Place>(
 
 /**
  * Minutes into the walk at each point of `path`: suited walking time step by step, plus `stopMin`
- * spent at the science stop (path index `stopIndex`) before walking on.
+ * spent at each science stop (path indices `stopIndices`) before walking on.
  */
 export function walkClock(
   g: Grid,
   path: readonly Cell[],
-  stopIndex: number,
+  stopIndices: readonly number[],
   stopMin: number,
   speedFactor = DEFAULT_SUIT_FACTOR,
 ): number[] {
@@ -43,7 +43,7 @@ export function walkClock(
   for (let i = 1; i < path.length; i++) {
     const a = path[i - 1] as Cell
     const b = path[i] as Cell
-    const stay = i - 1 === stopIndex ? stopMin : 0
+    const stay = stopIndices.includes(i - 1) ? stopMin : 0
     out.push((out[i - 1] ?? 0) + stay + stepTimeS(g, a, b, speedFactor) / 60)
   }
   return out

@@ -5040,3 +5040,99 @@ button.journey-label:focus-visible {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* Mission 1.5: science cards */
+.walk-plan-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.science-cards {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.science-card {
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.04);
+  border: 2px solid transparent;
+}
+
+.science-card.chosen {
+  border-color: var(--nasa-blue-lift);
+}
+
+.science-card figure {
+  margin: 0;
+}
+
+.science-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.science-card figcaption {
+  padding: 4px var(--space-3);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.science-body {
+  padding: var(--space-3);
+}
+
+.science-body h4 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.science-away {
+  margin: 2px 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.science-body dl {
+  margin: 0 0 var(--space-2);
+}
+
+.science-body dt {
+  margin-top: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.science-body dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.science-links {
+  font-size: 14px;
+}
+
+.science-links a,
+.science-card figcaption a {
+  color: var(--nasa-blue-lift);
+}
+
+.science-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.science-add {
+  margin-top: var(--space-2);
+}
