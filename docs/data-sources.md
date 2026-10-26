@@ -481,3 +481,20 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 - Sampling tools in the walk briefing: J. H. Allton, "Catalog of Apollo Lunar Surface Geological Sampling Tools and Containers", NASA JSC-23454 (1989), NTRS 19890008919.
 - Science card "learn more" links: NASA mission pages for Curiosity, Perseverance, and Spirit and Opportunity (science.nasa.gov).
 - Mission 1.5 walk (team choices, labelled in the app): two crew walk and two stay as base crew; the first walk starts at 09:00 local time; warning thresholds on the wrist (30 min spare, oxygen and battery 40% / 25%, within 3° of the slope limit, 15 min behind plan, hazard within 300 m). Weather during the walk is the app's seasonal climatology (no station reading exists for 2033). The storm warning is a drill the base crew issue with their own warning time.
+
+## Mission 1.6 Greenhouse trial
+
+| Value | Source |
+|---|---|
+| Perchlorate 0.4–0.6% of the soil by mass at the Phoenix site | Hecht et al. 2009, Science 325, doi:10.1126/science.1172466 |
+| Phoenix pin: centre of the app's HiRISE mosaic of the landing site (68.21° N, 125.78° W) | `web/src/core/hirise.ts` (phoenix_hirise_mosaic) |
+| Edible yield (g fresh/m²/day), light (mol/m²/day), photoperiod, days to harvest, height at harvest | NASA BVAD Rev2 (NASA/TP-2015-218570/REV2, 2022), Tables 4-89 and 4-90, https://ntrs.nasa.gov/citations/20210024855 |
+| Water uptake (kg/m²/day) and oxygen made (g/m²/day) | BVAD Rev2 Table 4-91 |
+| LED 1.66 µmol/J; 0.8 light delivery | BVAD Rev2 §4 (Nelson & Bugbee 2014) and Table 4-86 |
+| LED panels 0.15–0.3 m above the canopy | BVAD Rev2 Table 4-87 |
+| kcal per 100 g: lettuce 15 (FDC 169249), potato 77 (170026), wheat 329 (168889), soybean 446 (174270), tomato 18 (170457) | USDA FoodData Central, SR Legacy |
+| Crew food need 12.707 MJ/crew member/day; O2 0.895 kg/crew member/day | BVAD Rev2 |
+| ~50 m² per person to feed a crew | Wheeler, NASA 2022 (see the journey spec) |
+| Spare reactor power = units × 8.75 kWe − habitat 12.1 kWe − ascent-vehicle cooling 6.655 kW | DRA 5.0; Rucker et al. 2016 |
+| Photos: KSC-391c6479-10, KSC-95pc1196, KSC-388c2096-08 (Biomass Production Chamber), 0201977 (ISS soybeans), iss068e045014 (ISS Veggie tomatoes), KSC-20171017-PH_ISS01_0001 (Veg-03D), PIA10916 (Phoenix WCL cell) | NASA Image and Video Library, images.nasa.gov/details/<id> |
+| Team layout, not NASA: beds 1.2 m wide, 0.8 m aisles, single tier; wheat uses the low end of BVAD's 20–24 h and 75–90 days; plants drawn growing evenly to harvest height (illustration) | Team assumptions |

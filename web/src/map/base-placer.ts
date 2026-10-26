@@ -31,7 +31,8 @@ export type BasePlacer = {
   /** The next click on the ground calls `onPick` once; null cancels. */
   pick: (onPick: ((p: LonLat) => void) | null) => void
   draw: (layout: Layout, failing: ReadonlySet<BasePart>) => void
-  view: (centre: LonLat) => void
+  /** Fly to a place; `rangeM` is how far away to look from (default: the whole 1 km ring). */
+  view: (centre: LonLat, rangeM?: number) => void
   clear: () => void
 }
 
@@ -141,12 +142,15 @@ export function createBasePlacer(
         })
       }
     },
-    view: (centre) => {
+    view: (centre, rangeM = VIEW_RANGE_M) => {
       viewer.camera.cancelFlight()
-      viewer.camera.flyToBoundingSphere(new BoundingSphere(at(centre), REACTOR_STANDOFF_M), {
-        offset: new HeadingPitchRange(0, CesiumMath.toRadians(VIEW_PITCH_DEG), VIEW_RANGE_M),
-        duration: 2,
-      })
+      viewer.camera.flyToBoundingSphere(
+        new BoundingSphere(at(centre), Math.min(rangeM, REACTOR_STANDOFF_M)),
+        {
+          offset: new HeadingPitchRange(0, CesiumMath.toRadians(VIEW_PITCH_DEG), rangeM),
+          duration: 2,
+        },
+      )
     },
     clear: () => {
       onPick = null

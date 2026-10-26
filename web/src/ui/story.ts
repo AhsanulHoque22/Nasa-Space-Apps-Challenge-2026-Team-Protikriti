@@ -64,7 +64,7 @@ export function showStory(ctx: StoryContext): void {
   function showMission(id: string) {
     const mission = MISSIONS.find((m) => m.id === id)
     if (!mission) throw new Error(`No mission with id "${id}"`)
-    if (['1.1', '1.2', '1.3', '1.4', '1.5'].includes(id)) {
+    if (['1.1', '1.2', '1.3', '1.4', '1.5', '1.6'].includes(id)) {
       ctx.onPlay(id, progress)
       return
     }

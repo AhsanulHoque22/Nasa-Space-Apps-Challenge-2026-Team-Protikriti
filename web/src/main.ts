@@ -202,7 +202,7 @@ async function main() {
       base: {
         pick: (cb) => siteView.base?.pick(cb),
         draw: (layout, failing) => siteView.base?.draw(layout, failing),
-        view: (c) => siteView.base?.view(c),
+        view: (c, r) => siteView.base?.view(c, r),
         clear: () => siteView.base?.clear(),
       },
       declutter: (on) => siteView.declutter?.(on),

@@ -25,6 +25,7 @@ import {
   WING_MAST_M,
   WING_TILT_DEG,
 } from '../core/hardware'
+import { AISLE_M, type Areas, BED_WIDTH_M, bedLayout } from '../core/greenhouse'
 
 const METAL = Color.fromCssColorString('#9aa3ad')
 const RADIATOR = Color.fromCssColorString('#c9ced4')
@@ -127,4 +128,37 @@ export function powerBoxShape(id: string): (frame: Matrix4) => Primitive {
         BOX,
       ),
     ])
+}
+
+const TRAY = Color.fromCssColorString('#d8d4c8')
+const LEAVES = Color.fromCssColorString('#5fae4a')
+const LED = Color.fromCssColorString('#ff5ad8')
+const TRAY_M = 0.2
+const LED_GAP_M = 0.3 // BVAD Rev2 Table 4-87: lighting 0.15-0.3 m above the canopy
+
+/** The greenhouse beds at true size (mission 1.6): tray, crop canopy at harvest, LED panel. */
+export function greenhouseShape(id: string, areas: Areas): (frame: Matrix4) => Primitive {
+  const beds = bedLayout(areas)
+  const width = beds.length * (BED_WIDTH_M + AISLE_M) - AISLE_M
+  return (frame) =>
+    primitive(
+      beds.flatMap((b) => {
+        const x = b.xM + BED_WIDTH_M / 2 - width / 2
+        const h = b.crop.matureHeightM
+        const box = (height: number, z: number, colour: Color) =>
+          piece(
+            id,
+            BoxGeometry.fromDimensions({
+              dimensions: new Cartesian3(BED_WIDTH_M, b.lengthM, height),
+            }),
+            at(frame, x, 0, z),
+            colour,
+          )
+        return [
+          box(TRAY_M, TRAY_M / 2, TRAY),
+          box(h, TRAY_M + h / 2, LEAVES),
+          box(0.04, TRAY_M + h + LED_GAP_M, LED),
+        ]
+      }),
+    )
 }

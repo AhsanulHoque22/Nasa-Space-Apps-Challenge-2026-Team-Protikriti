@@ -25,6 +25,21 @@ export type Progress = {
   base?: Layout
   /** Mission 1.5's first Marswalk. */
   walk?: Marswalk
+  /** Mission 1.6's greenhouse: square metres of each crop, and where it stands. */
+  greenhouse?: Greenhouse
+}
+
+export type Greenhouse = { areas: Record<string, number>; at: { lon: number; lat: number } }
+
+const isGreenhouse = (v: unknown): v is Greenhouse => {
+  const g = v as Partial<Greenhouse> | null
+  return (
+    !!g &&
+    typeof g.areas === 'object' &&
+    g.areas !== null &&
+    Object.values(g.areas).every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0) &&
+    isLonLat(g.at)
+  )
 }
 
 export type Marswalk = { stop: string; distanceM: number; evaMin: number; doseMsv: number }
@@ -75,6 +90,7 @@ const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
   '1.2': (p) => isLandingSite(p.site),
   '1.4': (p) => isLayout(p.base),
   '1.5': (p) => isMarswalk(p.walk),
+  '1.6': (p) => isGreenhouse(p.greenhouse),
 }
 
 export type MissionStatus =
@@ -160,6 +176,17 @@ export function recordMarswalk(
   return done === reopened ? progress : { ...done, walk }
 }
 
+/** Mission 1.6 done: keep the greenhouse. A replay reopens what came after. */
+export function recordGreenhouse(
+  missions: readonly Mission[],
+  progress: Progress,
+  greenhouse: Greenhouse,
+): Progress {
+  const reopened = retryFrom(missions, progress, '1.6')
+  const done = completeMission(missions, reopened, '1.6')
+  return done === reopened ? progress : { ...done, greenhouse }
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)
@@ -195,6 +222,7 @@ export function loadProgress(
   if (isLandingSite(saved.site)) progress.site = saved.site
   if (isLayout(saved.base)) progress.base = saved.base
   if (isMarswalk(saved.walk)) progress.walk = saved.walk
+  if (isGreenhouse(saved.greenhouse)) progress.greenhouse = saved.greenhouse
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(
     (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),

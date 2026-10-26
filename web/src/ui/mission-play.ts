@@ -9,6 +9,7 @@ import {
   recordBase,
   recordCargo,
   recordLanding,
+  recordGreenhouse,
   recordMarswalk,
   recordSite,
   retryFrom,
@@ -25,6 +26,7 @@ import { baseSteps } from './missions/base-steps'
 import { landingSteps } from './missions/landing-steps'
 import { siteSteps } from './missions/site-steps'
 import { marswalkSteps } from './missions/marswalk-steps'
+import { greenhouseSteps } from './missions/greenhouse-steps'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { StoryServices } from './story'
 
@@ -47,6 +49,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   else if (id === '1.3') playLanding(title, ctx)
   else if (id === '1.4') playBase(title, ctx)
   else if (id === '1.5') playMarswalk(title, ctx)
+  else if (id === '1.6') playGreenhouse(title, ctx)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -249,6 +252,39 @@ function playMarswalk(title: string, ctx: PlayContext): void {
         end(next, saved(ctx, next, 'The crew is back inside. Mission 1.5 is done.'))
       },
     )
+    const dock = openDock({
+      missionTitle: title,
+      steps,
+      onFinish: () => undefined, // the last step's own button finishes the mission
+      onLeave: () => end(ctx.progress, null),
+    })
+  })
+}
+
+function playGreenhouse(title: string, ctx: PlayContext): void {
+  const { site, base } = ctx.progress
+  if (!site || !base?.habitat)
+    throw new Error('Mission 1.6 needs the landing site (1.2) and the base (1.4)')
+  ctx.services.siteGrid(site.siteId).then((grid) => {
+    if (!grid) {
+      ctx.onDone(ctx.progress, 'The site’s terrain could not be loaded. Start the mission again.')
+      return
+    }
+    ctx.services.declutter(true)
+    document.body.dataset.story = 'mission'
+    const end = (progress: Progress, note: string | null) => {
+      dock.remove()
+      ctx.services.base.pick(null)
+      ctx.services.pins.show([], () => undefined)
+      ctx.services.showBase(progress) // drop a preview that was not kept
+      ctx.services.declutter(false)
+      delete document.body.dataset.story
+      ctx.onDone(progress, note)
+    }
+    const steps = greenhouseSteps(grid, ctx.progress, ctx.services, (greenhouse) => {
+      const next = recordGreenhouse(MISSIONS, ctx.progress, greenhouse)
+      end(next, saved(ctx, next, 'The greenhouse trial is planted. Mission 1.6 is done.'))
+    })
     const dock = openDock({
       missionTitle: title,
       steps,

@@ -89,7 +89,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Greenhouse trial',
     hats: ['Scientist', 'Engineer'],
-    built: false,
+    built: true,
     briefing:
       'Grow food without local soil, which holds toxic perchlorate. Every square metre costs light, power and water. See how far a trial is from feeding a crew.',
   },

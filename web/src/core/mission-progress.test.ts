@@ -5,6 +5,7 @@ import {
   recordCargo,
   recordBase,
   recordMarswalk,
+  recordGreenhouse,
   recordLanding,
   recordSite,
   retryFrom,
@@ -330,5 +331,33 @@ describe('recordMarswalk', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.5']).progress.completed).toEqual([])
+  })
+})
+
+describe('recordGreenhouse', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list7 = ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7'].map((id) => m(id, true))
+  const greenhouse = { areas: { potato: 10, lettuce: 4 }, at: { lon: 137.44, lat: -4.59 } }
+
+  it('completes 1.6 and keeps the greenhouse', () => {
+    const p = recordGreenhouse(
+      list7,
+      { version: 1, owner, completed: ['1.1', '1.2', '1.3', '1.4', '1.5'] },
+      greenhouse,
+    )
+    expect(p.completed.at(-1)).toBe('1.6')
+    expect(p.greenhouse).toEqual(greenhouse)
+  })
+
+  it('drops a saved 1.6 whose greenhouse cannot be read', () => {
+    const s = store({
+      'atlas.progress': JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.6'],
+        greenhouse: { areas: { potato: 'lots' }, at: { lon: 1, lat: 2 } },
+      }),
+    })
+    expect(loadProgress(s, owner, ['1.6']).progress.completed).toEqual([])
   })
 })

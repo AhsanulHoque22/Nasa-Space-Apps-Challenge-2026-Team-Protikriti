@@ -15,7 +15,7 @@ import {
 import type { Progress } from '../core/mission-progress'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { HardwareLayer } from './hardware-layer'
-import { kilopowerShape, powerBoxShape, wingShape } from './hardware-shapes'
+import { greenhouseShape, kilopowerShape, powerBoxShape, wingShape } from './hardware-shapes'
 
 type StopLike = { sol: number; lon: number; lat: number; yawDeg: number | null }
 
@@ -102,6 +102,16 @@ export function placeBase(layer: HardwareLayer, progress: Progress | null): void
       layer.cable(`base:cable-kilopower-${i}`, [p, hub])
     }
     if (base.habitat) layer.cable('base:cable-habitat', [hub, base.habitat])
+  }
+  const gh = done.has('1.6') ? progress.greenhouse : undefined
+  if (gh) {
+    const m2 = Object.values(gh.areas).reduce((a, b) => a + b, 0)
+    layer.shape('base:greenhouse', greenhouseShape('base:greenhouse#shape', gh.areas), {
+      ...gh.at,
+      scale: 1,
+      label: `Greenhouse · ${m2} m² of beds`,
+    })
+    if (base.habitat) layer.cable('base:cable-greenhouse', [base.habitat, gh.at])
   }
   const sets = progress.cargo?.solar ?? 0
   if (base.arrays && sets > 0) {
