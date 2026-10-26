@@ -477,3 +477,6 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 - 1 h reserve, the 0.8 suit factor on Tobler's function and the 15° walking slope limit are team assumptions (15° is stricter than the 20° above).
 - Walk dose: Curiosity RAD surface rate 0.64 mSv/day (Hassler et al. 2014); NASA-STD-3001 600 mSv career limit.
 - Suggested science stops are the mission 1.2 points of interest on the site's terrain grid, nearest the habitat first.
+- Suit oxygen and battery model (mission 1.5): a full suit lasts 8 h (EVA-EXP-0075) at Apollo's 1200 BTU/hr design metabolic rate; oxygen use scales with metabolic rate, walking 1200 and working 1050 BTU/hr (Bellcomm B70-10028); the battery drains evenly, as Apollo PLSS battery current held steady. M. A. Carson, "Apollo Portable Life Support System Performance Report", NASA MSC (1972), NTRS 19720019460, also Table 4.1: Apollo crews averaged 750–1118 BTU/hr. A model, labelled as such in the app.
+- Sampling tools in the walk briefing: J. H. Allton, "Catalog of Apollo Lunar Surface Geological Sampling Tools and Containers", NASA JSC-23454 (1989), NTRS 19890008919.
+- Science card "learn more" links: NASA mission pages for Curiosity, Perseverance, and Spirit and Opportunity (science.nasa.gov).

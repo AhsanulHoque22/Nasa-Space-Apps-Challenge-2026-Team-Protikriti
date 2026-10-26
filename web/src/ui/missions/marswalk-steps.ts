@@ -18,6 +18,7 @@ import type { WalkMap } from '../../map/marswalk-map'
 import { el } from '../dom'
 import type { DockStep } from '../mission-dock'
 import { type Stop, scienceCards } from './science-cards'
+import { type WalkTasks, briefing, makeTasks } from './walk-briefing'
 
 export type MarswalkMap = { pins: FeaturePins; base: BasePlacer; walk: WalkMap }
 
@@ -84,6 +85,8 @@ export function marswalkSteps(
   let chosen: Stop[] = []
   let own: Stop[] = []
   let planned: Planned | null = null
+  let tasks: WalkTasks = makeTasks([])
+  let tasksFor = ''
   let planning = 0
   const status = el('p', { className: 'dock-note', ariaLive: 'polite' })
 
@@ -148,6 +151,8 @@ export function marswalkSteps(
       return
     }
     planned = result
+    const key = result.stops.map((x) => x.name).join('|')
+    if (key !== tasksFor) [tasks, tasksFor] = [makeTasks(result.stops), key] // new stops, new lists
     layer.setStops([homeCell, ...result.stopIndices.map((k) => result.path[k] as Cell)])
     layer.setPath(result.path)
     map.walk.view(result.path.map((c) => cellToLonLat(grid, c)))
@@ -316,9 +321,10 @@ export function marswalkSteps(
     },
   }
 
+  const gate = el('p', { className: 'walk-gate', role: 'alert' })
   const verdict: DockStep = {
-    title: 'GO / NO-GO',
-    why: 'The card checks every point of the walk out: could the crew turn round there and still be home in time?',
+    title: 'Walk briefing: GO / NO-GO',
+    why: 'The card checks every point of the walk out: could the crew turn round there and still be home in time? Then prepare the walk.',
     layout: 'map',
     nextLabel: 'Start the walk',
     render: () => {
@@ -381,12 +387,27 @@ export function marswalkSteps(
           ),
         ),
         help,
+        ...(go
+          ? [
+              briefing(p.stops, tasks, () => {
+                gate.textContent = ''
+              }),
+              gate,
+            ]
+          : []),
       )
     },
     onShow: () => {
       if (planned) map.walk.view(planned.path.map((c) => cellToLonLat(grid, c)))
     },
-    onNext: () => planned?.card.verdict === 'GO',
+    onNext: () => {
+      if (planned?.card.verdict !== 'GO') return false
+      const open = tasks.before.filter((t) => !t.done).length
+      gate.textContent = open
+        ? `Tick the ${open} remaining item${open > 1 ? 's' : ''} under “Before the airlock opens” first.`
+        : ''
+      return open === 0
+    },
   }
 
   /** Flight Director: only options that the same card passes, never a plan. */
