@@ -273,11 +273,14 @@ export type Wrist = {
 }
 
 const ARM_SRC = 'assets/wrist-console.webp'
-const MAX_WIDTH_FRAC = 0.98
-const MAX_HEIGHT_FRAC = 0.54 // the arm may fill at most this much of the window's height
+// Above 1: the glove at the photo's right edge may run off the screen; the screens stay in view.
+const MAX_WIDTH_FRAC = 1.3
+/** The screens' centre, from the photo's left edge (main glass left to side glass right). */
+const GLASS_CENTRE_X = (MAIN_GLASS[0][0] + SIDE_GLASS[2][0]) / 2
+const MAX_HEIGHT_FRAC = 0.64 // the arm may fill at most this much of the window's height
 // Sink the arm below the bottom edge by this much of the window's height: the forearm under the
 // screens is hidden and the screens sit low, leaving the map in view.
-const SINK_FRAC = 0.07
+const SINK_FRAC = 0.09
 const DISMISS_FALLBACK_MS = 700
 
 /** The part of the window the arm is centred in and sized to (default: all of it). */
@@ -324,11 +327,12 @@ export function mountWrist(
   let sdeg = 0
   const place = () => {
     const a = area()
-    arm.style.left = `${a.left + a.width / 2}px`
     const k = Math.min(
       (a.width * MAX_WIDTH_FRAC) / ARM_W,
       (window.innerHeight * MAX_HEIGHT_FRAC) / ARM_H,
     )
+    // Centre the screens, not the photo, on the area.
+    arm.style.left = `${a.left + a.width / 2 + (ARM_W / 2 - GLASS_CENTRE_X) * k}px`
     const sink = window.innerHeight * SINK_FRAC
     arm.style.transform = `translate(-50%, 0) translate(${sx.toFixed(2)}px, ${(sy + sink).toFixed(2)}px) rotate(${sdeg.toFixed(3)}deg) scale(${k.toFixed(4)})`
   }
