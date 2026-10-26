@@ -4657,3 +4657,92 @@ button.journey-label:focus-visible {
 .pressure-table tr.chosen {
   background: rgb(91 141 239 / 0.14);
 }
+
+/* Mission 1.4: placing the base */
+.base-rules {
+  margin: 0 0 var(--space-3);
+  padding-left: 1.2em;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.base-parts {
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.base-part {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.base-part.ok {
+  border-left-color: #5b8def;
+}
+
+.base-part.bad {
+  border-left-color: #fc3d21;
+  background: rgb(252 61 33 / 0.08);
+}
+
+.base-part-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 16px;
+}
+
+.base-part-mark {
+  width: 1.2em;
+  text-align: center;
+  font-weight: 700;
+}
+
+.base-part.ok .base-part-mark {
+  color: #5b8def;
+}
+
+.base-part.bad .base-part-mark {
+  color: #ff8a78;
+}
+
+.base-place {
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--nasa-blue-lift);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.base-place[aria-pressed='true'] {
+  background: var(--nasa-blue);
+}
+
+.base-place:focus-visible {
+  outline: 2px solid var(--nasa-blue-lift);
+  outline-offset: 2px;
+}
+
+.base-part-why {
+  margin: var(--space-1) 0 0 calc(1.2em + var(--space-2));
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.base-part-problem {
+  margin: var(--space-1) 0 0 calc(1.2em + var(--space-2));
+  font-size: 14px;
+  color: #ff8a78;
+}

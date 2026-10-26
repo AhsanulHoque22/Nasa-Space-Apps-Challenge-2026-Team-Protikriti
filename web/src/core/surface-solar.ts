@@ -120,3 +120,35 @@ export function sunYear(latDeg: number, eastLonDeg: number, tau: number) {
   }
   return year
 }
+
+/** Start (UTC ms) of the sol with the least tracking-panel sunlight in the year at a place. */
+export function darkestSolStartUtc(latDeg: number, eastLonDeg: number, tau: number): number {
+  const year = sunYear(latDeg, eastLonDeg, tau)
+  let darkest = 0
+  year.forEach((sol, i) => {
+    if (sol.kwhPerM2 < (year[darkest]?.kwhPerM2 ?? Infinity)) darkest = i
+  })
+  return yearStartUtc() + darkest * SOL_SECONDS * 1000
+}
+
+/**
+ * The sun's daylight positions through the sol starting at `utcMs` (every ~31 minutes), each
+ * weighted by the sunlight a tracking panel gets then, W/m². Used to measure terrain shadow.
+ */
+export function daylightSun(
+  latDeg: number,
+  eastLonDeg: number,
+  utcMs: number,
+  tau: number,
+): Array<{ azimuthDeg: number; elevationDeg: number; weight: number }> {
+  const out: Array<{ azimuthDeg: number; elevationDeg: number; weight: number }> = []
+  for (let s = 0; s < SAMPLES_PER_SOL; s++) {
+    const mt = marsTime(utcMs + ((s + 0.5) * SOL_SECONDS * 1000) / SAMPLES_PER_SOL)
+    const sun = sunPositionAt(mt, eastLonDeg, latDeg)
+    if (sun.elevationDeg <= 0) continue
+    const top = SOLAR_CONSTANT_W_M2 / heliocentricDistanceAt(mt) ** 2
+    const weight = trackingIrradianceWm2(top, 90 - sun.elevationDeg, tau)
+    if (weight > 0) out.push({ azimuthDeg: sun.azimuthDeg, elevationDeg: sun.elevationDeg, weight })
+  }
+  return out
+}

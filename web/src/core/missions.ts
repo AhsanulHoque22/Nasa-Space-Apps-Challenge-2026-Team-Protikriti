@@ -71,7 +71,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Build the base',
     hats: ['Engineer', 'Medic'],
-    built: false,
+    built: true,
     briefing:
       'Place the habitat, power and oxygen plant on the real terrain. Slopes, shadows and a reactor at least 1 km from the crew decide what works. The survival clock starts.',
   },

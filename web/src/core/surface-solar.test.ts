@@ -3,10 +3,13 @@ import { utcForLs } from './scenario'
 import {
   ARRAY_EFFICIENCY,
   ARRAY_DUST_FACTOR,
+  darkestSolStartUtc,
+  daylightSun,
   netFlux,
   solEnergy,
   sunYear,
   trackingIrradianceWm2,
+  yearStartUtc,
 } from './surface-solar'
 
 describe('netFlux', () => {
@@ -71,5 +74,30 @@ describe('sunYear', () => {
     expect(eq.length).toBe(669)
     const mean = (y: typeof eq) => y.reduce((s, x) => s + x.kwhPerM2, 0) / y.length
     expect(mean(eq)).toBeGreaterThan(mean(north))
+  })
+})
+
+describe('darkestSolStartUtc', () => {
+  it('starts the sol with the least tracking-panel sunlight in the year', () => {
+    const year = sunYear(18.4, 77.5, 1)
+    const least = Math.min(...year.map((s) => s.kwhPerM2))
+    const start = darkestSolStartUtc(18.4, 77.5, 1)
+    expect(start).toBeGreaterThanOrEqual(yearStartUtc())
+    expect(solEnergy(18.4, 77.5, start, 1).kwhPerM2).toBeCloseTo(least, 2)
+  })
+})
+
+describe('daylightSun', () => {
+  it('lists only daylight sun positions, weighted by tracking-panel sunlight', () => {
+    const start = darkestSolStartUtc(18.4, 77.5, 1)
+    const sun = daylightSun(18.4, 77.5, start, 1)
+    expect(sun.length).toBeGreaterThan(10)
+    expect(sun.length).toBeLessThan(48)
+    for (const s of sun) {
+      expect(s.elevationDeg).toBeGreaterThan(0)
+      expect(s.weight).toBeGreaterThan(0)
+      expect(s.azimuthDeg).toBeGreaterThanOrEqual(0)
+      expect(s.azimuthDeg).toBeLessThan(360)
+    }
   })
 })

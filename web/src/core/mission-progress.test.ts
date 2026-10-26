@@ -3,6 +3,7 @@ import {
   PROGRESS_KEY,
   completeMission,
   recordCargo,
+  recordBase,
   recordLanding,
   recordSite,
   retryFrom,
@@ -252,6 +253,53 @@ describe('recordLanding', () => {
 
   it('a replay of 1.3 reopens the missions after it', () => {
     const p = recordLanding(list4, { version: 1, owner, completed: ['1.1', '1.2', '1.3', '1.4'] })
+    expect(p.completed).toEqual(['1.1', '1.2', '1.3'])
+  })
+})
+
+describe('recordBase', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list5 = [m('1.1', true), m('1.2', true), m('1.3', true), m('1.4', true), m('1.5', true)]
+  const layout = {
+    habitat: { lon: 137.44, lat: -4.59 },
+    reactor: { lon: 137.46, lat: -4.59 },
+    oxygen: { lon: 137.441, lat: -4.591 },
+  }
+
+  it('completes 1.4 and keeps the layout', () => {
+    const p = recordBase(list5, { version: 1, owner, completed: ['1.1', '1.2', '1.3'] }, layout)
+    expect(p.completed).toEqual(['1.1', '1.2', '1.3', '1.4'])
+    expect(p.base).toEqual(layout)
+  })
+
+  it('a replay keeps the new layout and reopens the missions after it', () => {
+    const done = {
+      version: 1 as const,
+      owner,
+      completed: ['1.1', '1.2', '1.3', '1.4', '1.5'],
+      base: layout,
+    }
+    const moved = { ...layout, habitat: { lon: 137.43, lat: -4.6 } }
+    const p = recordBase(list5, done, moved)
+    expect(p.completed).toEqual(['1.1', '1.2', '1.3', '1.4'])
+    expect(p.base).toEqual(moved)
+  })
+
+  it('reopens 1.4 when the saved layout is damaged', () => {
+    const ids = list5.map((x) => x.id)
+    const s = store({
+      [PROGRESS_KEY]: JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.1', '1.2', '1.3', '1.4'],
+        cargo: { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 },
+        crewRouteDays: 178,
+        site: { zone: 'Gale Crater', siteId: 'gale', lon: 137.811, lat: -5.3672 },
+        base: { habitat: { lon: 'x' } },
+      }),
+    })
+    const p = loadProgress(s, owner, ids).progress
+    expect(p.base).toBeUndefined()
     expect(p.completed).toEqual(['1.1', '1.2', '1.3'])
   })
 })

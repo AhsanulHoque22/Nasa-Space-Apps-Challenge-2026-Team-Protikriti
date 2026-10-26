@@ -3,7 +3,9 @@ import { type Progress, loadProgress } from '../core/mission-progress'
 import { EXPEDITIONS, MISSIONS } from '../core/missions'
 import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
+import type { Grid } from '../core/grid'
 import type { ZoneRow } from '../core/zone-rank'
+import type { BasePlacer } from '../map/base-placer'
 import type { FeaturePins } from '../map/feature-pins'
 import type { LandingScene } from '../map/landing-scene'
 import { el } from './dom'
@@ -21,6 +23,10 @@ export type StoryServices = {
   pins: FeaturePins
   /** Mission 1.3's touchdown: the lander models at the landing spot. */
   landing: LandingScene
+  /** Mission 1.4's placement on the map. */
+  base: BasePlacer
+  /** A site's detailed elevation grid, once the map has loaded it. */
+  siteGrid: (siteId: string) => Promise<Grid | undefined>
 }
 
 export type StoryContext = {
@@ -51,7 +57,7 @@ export function showStory(ctx: StoryContext): void {
   function showMission(id: string) {
     const mission = MISSIONS.find((m) => m.id === id)
     if (!mission) throw new Error(`No mission with id "${id}"`)
-    if (id === '1.1' || id === '1.2' || id === '1.3') {
+    if (['1.1', '1.2', '1.3', '1.4'].includes(id)) {
       ctx.onPlay(id, progress)
       return
     }

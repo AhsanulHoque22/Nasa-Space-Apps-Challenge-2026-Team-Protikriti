@@ -402,6 +402,16 @@ Every pin's position comes from data, never placed by eye; the text and its sour
 | Crew lander model | "Habitat Lander Pod", jmleach1987, CC BY 4.0 (Sketchfab 9a55af34f7654097bd72f0642d83ccce), 11.2 MB → 1.05 MB; materials already matte. A stand-in, at its own size (about 12.5 m × 10 m) | team's 3D models folder |
 | Cargo rocket model (optional) | "SpaceX Starship Cargo", AllThingsSpace, CC BY 4.0 (Sketchfab 0c0b3a7708d04ee995e304f899d7b52b): a different design shown for illustration only; every number uses DRA 5.0 vehicles. Shown only when `web/public/models/landing/starship-cargo.glb` exists | to be downloaded by the team (Sketchfab requires a login) |
 
+## Story mode (mission 1.4: build the base)
+| Item | Value | Source |
+|---|---|---|
+| Reactor distance | Kilopower at least 1 km from the habitat: "Kilopower units must be at least 1 km from continuously occupied crew assets, such as the habitat" | Rucker et al. 2016 (NTRS 20160010550), Kilopower deployment section |
+| Slope limit | 15° under any base part. **Team assumption**: the app's walking and rover hazard limit, labelled on screen; no sourced figure for a crewed lander or habitat yet (open item) | team assumption |
+| Array shadow | arrays may lose at most 10% of the darkest sol's sunlight to terrain shadow. **Team assumption**, labelled on screen | team assumption |
+| Shadow method | the darkest sol of the Mars year at the site (least tracking-panel energy, τ = 1); every ~31 min the Sun's position (Mars24) and its tracking-panel sunlight weight; a cell is shadowed when the terrain toward the Sun rises above the line of sight (ray march over the site DEM) | `core/base-layout.ts`, `core/surface-solar.ts` |
+| Flight Director hints | the nearest ground where a failing part would pass every rule, as a compass direction and distance; never a placement | `layoutHints` in `core/base-layout.ts` |
+| Starting supplies | food in sols as packed in 1.1; drinking water = packed kg ÷ (4 × 3.217 kg/day × 1.0275 days/sol); recycling not counted until ECLSS recovery rates are sourced | BVAD Rev2 Table 3-31 |
+
 ## Story mode (mission 1.1: the journey to Mars)
 | Item | Value | Source |
 |---|---|---|

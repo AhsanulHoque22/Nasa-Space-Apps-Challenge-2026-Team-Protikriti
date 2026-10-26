@@ -3,6 +3,7 @@
  * one profile (by its creation time), so a new crew name starts fresh. Missions unlock in list
  * order; a mission whose screen is not built yet never blocks the ones after it.
  */
+import type { Layout } from './base-layout'
 import { type CargoPlan, isCargoPlan } from './cargo'
 import { readStored, writeStored } from './local-store'
 import type { Mission } from './missions'
@@ -20,6 +21,8 @@ export type Progress = {
   crewRouteDays?: number
   /** Where mission 1.2 landed. */
   site?: LandingSite
+  /** Where mission 1.4 placed the base's parts. */
+  base?: Layout
 }
 
 export type LandingSite = { zone: string; siteId: string; lon: number; lat: number }
@@ -39,9 +42,25 @@ const isRouteDays = (v: unknown): v is number =>
   typeof v === 'number' && Number.isInteger(v) && v >= 60 && v <= 420
 
 /** A mission whose result is saved only counts as done while that result passes its check. */
+const isLonLat = (v: unknown): boolean => {
+  const p = v as { lon?: unknown; lat?: unknown } | null
+  return !!p && Number.isFinite(p.lon) && Number.isFinite(p.lat)
+}
+/** A saved layout: every part present is a valid position, and the habitat and plant are there. */
+const isLayout = (v: unknown): v is Layout => {
+  if (typeof v !== 'object' || v === null) return false
+  const l = v as Record<string, unknown>
+  return (
+    isLonLat(l.habitat) &&
+    isLonLat(l.oxygen) &&
+    ['reactor', 'arrays'].every((k) => l[k] === undefined || isLonLat(l[k]))
+  )
+}
+
 const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
   '1.1': (p) => isCargoPlan(p.cargo) && isRouteDays(p.crewRouteDays),
   '1.2': (p) => isLandingSite(p.site),
+  '1.4': (p) => isLayout(p.base),
 }
 
 export type MissionStatus =
@@ -105,6 +124,17 @@ export function recordLanding(missions: readonly Mission[], progress: Progress):
   return completeMission(missions, retryFrom(missions, progress, '1.3'), '1.3')
 }
 
+/** Mission 1.4 done: keep the base layout. A replay reopens what came after. */
+export function recordBase(
+  missions: readonly Mission[],
+  progress: Progress,
+  base: Layout,
+): Progress {
+  const reopened = retryFrom(missions, progress, '1.4')
+  const done = completeMission(missions, reopened, '1.4')
+  return done === reopened ? progress : { ...done, base }
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)
@@ -138,6 +168,7 @@ export function loadProgress(
   if (isCargoPlan(saved.cargo)) progress.cargo = saved.cargo
   if (isRouteDays(saved.crewRouteDays)) progress.crewRouteDays = saved.crewRouteDays
   if (isLandingSite(saved.site)) progress.site = saved.site
+  if (isLayout(saved.base)) progress.base = saved.base
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(
     (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),

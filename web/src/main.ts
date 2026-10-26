@@ -1,3 +1,4 @@
+import { type BasePlacer, createBasePlacer } from './map/base-placer'
 import { type LandingScene, createLandingScene } from './map/landing-scene'
 import { type FeaturePins, createFeaturePins } from './map/feature-pins'
 import './style.css'
@@ -136,6 +137,8 @@ async function main() {
   // Story mode opens before the map data arrives; its zone list resolves once data is in.
   let resolveZones: (rows: ZoneRow[] | Promise<ZoneRow[]>) => void = () => undefined
   const zonesReady = new Promise<ZoneRow[]>((resolve) => (resolveZones = resolve))
+  let resolveSites: (sites: Site[]) => void = () => undefined
+  const sitesReady = new Promise<Site[]>((resolve) => (resolveSites = resolve))
   // Missions can ask for a site before the terrain data has loaded; remember the latest ask.
   const siteView: {
     show?: (id: string) => void
@@ -144,6 +147,7 @@ async function main() {
     imageryWanted?: boolean
     pins?: FeaturePins
     landing?: LandingScene
+    base?: BasePlacer
   } = {}
   const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
   const openStart = () =>
@@ -160,11 +164,19 @@ async function main() {
         show: (t) => siteView.landing?.show(t),
         clear: () => siteView.landing?.clear(),
       },
+      base: {
+        pick: (cb) => siteView.base?.pick(cb),
+        draw: (layout, failing) => siteView.base?.draw(layout, failing),
+        view: (c) => siteView.base?.view(c),
+        clear: () => siteView.base?.clear(),
+      },
+      siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
     })
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
   const [sites, mola] = await Promise.all([loadSites(), loadMola()])
+  resolveSites(sites)
   const home = sites[0]
   if (!home) throw new Error('sites.json lists no sites')
   const shared = decodeView(window.location.search)
@@ -208,6 +220,7 @@ async function main() {
     (groundM(lon, lat) || 0) * viewer.scene.verticalExaggeration
   siteView.pins = createFeaturePins(viewer, surfaceM)
   siteView.landing = createLandingScene(viewer, surfaceM)
+  siteView.base = createBasePlacer(viewer, surfaceM)
   installWheelZoom(viewer, surfaceM)
   installKeyboardCamera(viewer, () =>
     document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),

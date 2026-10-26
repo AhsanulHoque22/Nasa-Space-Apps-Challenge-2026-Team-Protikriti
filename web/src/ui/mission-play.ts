@@ -5,17 +5,21 @@
 import type { CargoPlan } from '../core/cargo'
 import {
   type Progress,
+  recordBase,
   recordCargo,
   recordLanding,
   recordSite,
   retryFrom,
   saveProgress,
 } from '../core/mission-progress'
+import { CLEAR_TAU } from '../core/mission-constants'
 import { MISSIONS } from '../core/missions'
+import { darkestSolStartUtc, daylightSun } from '../core/surface-solar'
 import type { KeyValueStore } from '../core/streetview'
 import { openDock } from './mission-dock'
 import { cargoSteps, massGauge } from './missions/cargo-steps'
 import type { JourneyChoice } from './missions/journey-step'
+import { baseSteps } from './missions/base-steps'
 import { landingSteps } from './missions/landing-steps'
 import { siteSteps } from './missions/site-steps'
 import type { StoryServices } from './story'
@@ -37,6 +41,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   if (id === '1.1') playCargo(title, ctx)
   else if (id === '1.2') playSite(title, ctx)
   else if (id === '1.3') playLanding(title, ctx)
+  else if (id === '1.4') playBase(title, ctx)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -144,4 +149,37 @@ function playLanding(title: string, ctx: PlayContext): void {
         'The landing zones could not be loaded. Check the connection and start the mission again.',
       ),
   )
+}
+
+function playBase(title: string, ctx: PlayContext): void {
+  const { site, cargo } = ctx.progress
+  if (!site || !cargo)
+    throw new Error('Mission 1.4 needs the cargo (1.1) and the landing site (1.2)')
+  ctx.services.siteGrid(site.siteId).then((grid) => {
+    if (!grid) {
+      ctx.onDone(ctx.progress, 'The site’s terrain could not be loaded. Start the mission again.')
+      return
+    }
+    // The arrays' shadow check uses the darkest sol of the year at the mapped terrain.
+    const lat = (grid.north + grid.south) / 2
+    const lon = (grid.west + grid.east) / 2
+    const sun = daylightSun(lat, lon, darkestSolStartUtc(lat, lon, CLEAR_TAU), CLEAR_TAU)
+    document.body.dataset.story = 'mission'
+    const end = (progress: Progress, note: string | null) => {
+      dock.remove()
+      ctx.services.base.clear()
+      delete document.body.dataset.story
+      ctx.onDone(progress, note)
+    }
+    const steps = baseSteps(grid, sun, site, cargo, ctx.progress.base, ctx.services, (layout) => {
+      const next = recordBase(MISSIONS, ctx.progress, layout)
+      end(next, saved(ctx, next, 'The base is set and the clock has started. Mission 1.4 is done.'))
+    })
+    const dock = openDock({
+      missionTitle: title,
+      steps,
+      onFinish: () => undefined, // the last step's own button finishes the mission
+      onLeave: () => end(ctx.progress, null),
+    })
+  })
 }

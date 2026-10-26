@@ -345,7 +345,8 @@ the oxygen preview (mission 1.1). Rules, agreed with the team:
 | Flight Director (help after a NO-GO) | Done in 1.1 and 1.2 |
 | 1.2 Choose the landing site | Done: limits chart of all 30 zones; visit to 4 certified sites with zone numbers and 15 sourced, pinned points of interest with NASA photos; oxygen verdict at the chosen site |
 | 1.3 Landing | Done: Perseverance's landing explained with NASA photos; the real onboard footage (offline, captioned); air pressure against elevation for the four sites; touchdown with the lander pod in 3D in front of the real site. The Starship cargo rocket appears once its model file is added (section 6.2) |
-| 1.4–1.8 | Planned (see the spec, section 4). 1.6 Greenhouse is blocked until its parameters are sourced |
+| 1.4 Build the base | Done: place habitat, reactors, arrays and oxygen plant on the real terrain; slope (15°, team assumption), reactor ≥ 1 km (Rucker 2016), array shadow on the darkest sol (10%, team assumption); Flight Director hints on request; sol 1 starting supplies. The Phobos transit event comes later (needs Spec B transit data) |
+| 1.5–1.8 | Planned (see the spec, section 4). 1.6 Greenhouse is blocked until its parameters are sourced |
 | Spec B cores (farming score, greenhouse budget, Phobos transits) | Planned |
 | Everything else | Locked, briefings shown |
 
