@@ -27,6 +27,8 @@ export type StoryServices = {
   base: BasePlacer
   /** A site's detailed elevation grid, once the map has loaded it. */
   siteGrid: (siteId: string) => Promise<Grid | undefined>
+  /** Redraw the Story base on the map from this progress (after a mission ends). */
+  showBase: (progress: Progress) => void
 }
 
 export type StoryContext = {

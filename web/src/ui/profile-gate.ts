@@ -160,8 +160,10 @@ export function openProfileGate(
           store,
           progress,
           services,
-          onDone: (after, note) =>
-            openProfileGate(store, behind, onMap, services, { progress: after, note }),
+          onDone: (after, note) => {
+            services.showBase(after)
+            openProfileGate(store, behind, onMap, services, { progress: after, note })
+          },
         })
       },
       onBack: () => showModes(p),

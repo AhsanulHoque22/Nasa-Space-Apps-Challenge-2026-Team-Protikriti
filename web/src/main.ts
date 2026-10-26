@@ -1,3 +1,8 @@
+import { type Progress, loadProgress } from './core/mission-progress'
+import { MISSIONS } from './core/missions'
+import { loadProfile } from './core/profile'
+import { type HardwareLayer, createHardwareLayer } from './map/hardware-layer'
+import { placeBase, placeRovers } from './map/hardware-placement'
 import { type BasePlacer, createBasePlacer } from './map/base-placer'
 import { type LandingScene, createLandingScene } from './map/landing-scene'
 import { type FeaturePins, createFeaturePins } from './map/feature-pins'
@@ -129,6 +134,18 @@ function browserStorage(): Storage | undefined {
   }
 }
 
+/** This browser's saved Story progress, if a profile exists. */
+function savedProgress(): Progress | null {
+  const store = browserStorage()
+  const profile = loadProfile(store).profile
+  if (!profile) return null
+  return loadProgress(
+    store,
+    profile.createdAt,
+    MISSIONS.map((m) => m.id),
+  ).progress
+}
+
 async function main() {
   const globe = document.getElementById('globe')
   const ui = document.getElementById('ui')
@@ -148,6 +165,7 @@ async function main() {
     pins?: FeaturePins
     landing?: LandingScene
     base?: BasePlacer
+    hardware?: HardwareLayer
   } = {}
   const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
   const openStart = () =>
@@ -171,6 +189,7 @@ async function main() {
         clear: () => siteView.base?.clear(),
       },
       siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
+      showBase: (progress) => siteView.hardware && placeBase(siteView.hardware, progress),
     })
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
@@ -221,6 +240,10 @@ async function main() {
   siteView.pins = createFeaturePins(viewer, surfaceM)
   siteView.landing = createLandingScene(viewer, surfaceM)
   siteView.base = createBasePlacer(viewer, surfaceM)
+  // Hardware on Mars at true size: the Story base from this browser's saved progress.
+  const hardware = createHardwareLayer(viewer, (lon, lat) => groundM(lon, lat) || 0)
+  siteView.hardware = hardware
+  placeBase(hardware, savedProgress())
   installWheelZoom(viewer, surfaceM)
   installKeyboardCamera(viewer, () =>
     document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),
@@ -479,6 +502,7 @@ async function main() {
     )
   }
   const streetView = await addStreetViewStops(viewer, surfaceM, showStreetView)
+  placeRovers(hardware, streetView.stops)
   walkStreetView = (lon, lat) => {
     const stops = streetView.stops.m20
     let bestI = 0,
