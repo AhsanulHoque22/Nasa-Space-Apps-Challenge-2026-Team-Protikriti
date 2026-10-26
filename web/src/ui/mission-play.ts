@@ -10,6 +10,7 @@ import {
   recordCargo,
   recordLanding,
   recordGreenhouse,
+  recordStorm,
   recordMarswalk,
   recordSite,
   retryFrom,
@@ -27,6 +28,7 @@ import { landingSteps } from './missions/landing-steps'
 import { siteSteps } from './missions/site-steps'
 import { marswalkSteps } from './missions/marswalk-steps'
 import { greenhouseSteps } from './missions/greenhouse-steps'
+import { stormSteps } from './missions/storm-steps'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { StoryServices } from './story'
 
@@ -50,6 +52,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   else if (id === '1.4') playBase(title, ctx)
   else if (id === '1.5') playMarswalk(title, ctx)
   else if (id === '1.6') playGreenhouse(title, ctx)
+  else if (id === '1.7') playStorm(title, ctx)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -291,5 +294,35 @@ function playGreenhouse(title: string, ctx: PlayContext): void {
       onFinish: () => undefined, // the last step's own button finishes the mission
       onLeave: () => end(ctx.progress, null),
     })
+  })
+}
+
+function playStorm(title: string, ctx: PlayContext): void {
+  if (!ctx.progress.cargo || !ctx.progress.base)
+    throw new Error('Mission 1.7 needs the cargo (1.1) and the base (1.4)')
+  const days = ctx.progress.crewRouteDays
+  const sol1Utc = loadJourneys().then((j) => {
+    const route = j.routes.find((r) => r.days === days) ?? j.routes[0]
+    if (!route) throw new Error('no crew route')
+    return route.arriveMs
+  })
+  ctx.services.declutter(true)
+  document.body.dataset.story = 'mission'
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    ctx.services.pins.show([], () => undefined)
+    ctx.services.declutter(false)
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+  const steps = stormSteps(ctx.progress, sol1Utc, ctx.services, (storm) => {
+    const next = recordStorm(MISSIONS, ctx.progress, storm)
+    end(next, saved(ctx, next, 'The base came through the dust storm. Mission 1.7 is done.'))
+  })
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    onFinish: () => undefined, // the last step's own button finishes the mission
+    onLeave: () => end(ctx.progress, null),
   })
 }

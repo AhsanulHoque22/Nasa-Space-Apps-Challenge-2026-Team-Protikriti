@@ -98,7 +98,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Dust storm',
     hats: ['Commander', 'Engineer'],
-    built: false,
+    built: true,
     briefing:
       'A storm like the one in 2018 dims the Sun for weeks. Decide what stays powered and what is switched off.',
   },

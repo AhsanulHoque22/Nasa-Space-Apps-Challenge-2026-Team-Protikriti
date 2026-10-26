@@ -6,6 +6,7 @@ import {
   recordBase,
   recordMarswalk,
   recordGreenhouse,
+  recordStorm,
   recordLanding,
   recordSite,
   retryFrom,
@@ -359,5 +360,39 @@ describe('recordGreenhouse', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.6']).progress.completed).toEqual([])
+  })
+})
+
+describe('recordStorm', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list8 = ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8'].map((id) => m(id, true))
+  const storm = {
+    arrivalSol: 120,
+    habitatKw: 8,
+    greenhouseKw: 0,
+    shortKwh: 0,
+    lowestBatteryKwh: 300,
+  }
+
+  it('completes 1.7 and keeps how the base rode it out', () => {
+    const p = recordStorm(
+      list8,
+      { version: 1, owner, completed: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6'] },
+      storm,
+    )
+    expect(p.completed.at(-1)).toBe('1.7')
+    expect(p.storm).toEqual(storm)
+  })
+
+  it('drops a saved 1.7 whose storm record cannot be read', () => {
+    const s = store({
+      'atlas.progress': JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.7'],
+        storm: { arrivalSol: 'x' },
+      }),
+    })
+    expect(loadProgress(s, owner, ['1.7']).progress.completed).toEqual([])
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { daylightHours, dustRuns, seasonRuns, solsInEarthDays } from './sol-time'
+import { solarLongitudeDeg } from './mars-time'
+import { daylightHours, dustRuns, firstSolAtLs, seasonRuns, solsInEarthDays } from './sol-time'
 
 const START = Date.UTC(2033, 9, 1) // any date serves: the checks are about shape, not one value
 
@@ -38,5 +39,16 @@ describe('daylightHours', () => {
     expect(d).not.toBeNull()
     expect((d?.setH ?? 0) - (d?.riseH ?? 0)).toBeGreaterThan(11)
     expect((d?.setH ?? 0) - (d?.riseH ?? 0)).toBeLessThan(13)
+  })
+})
+
+describe('firstSolAtLs', () => {
+  it('finds the first sol of the stay that reaches a season, or null', () => {
+    const sol = firstSolAtLs(START, 669, 188)
+    expect(sol).not.toBeNull()
+    const ls = solarLongitudeDeg(START + ((sol ?? 1) - 0.5) * 88_775_244)
+    expect(ls).toBeGreaterThanOrEqual(188)
+    expect(ls).toBeLessThan(189)
+    expect(firstSolAtLs(START, 1, 188)).toBeNull()
   })
 })

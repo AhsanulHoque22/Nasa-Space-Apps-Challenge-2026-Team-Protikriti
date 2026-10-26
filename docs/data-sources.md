@@ -498,3 +498,15 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 | Spare reactor power = units × 8.75 kWe − habitat 12.1 kWe − ascent-vehicle cooling 6.655 kW | DRA 5.0; Rucker et al. 2016 |
 | Photos: KSC-391c6479-10, KSC-95pc1196, KSC-388c2096-08 (Biomass Production Chamber), 0201977 (ISS soybeans), iss068e045014 (ISS Veggie tomatoes), KSC-20171017-PH_ISS01_0001 (Veg-03D), PIA10916 (Phoenix WCL cell) | NASA Image and Video Library, images.nasa.gov/details/<id> |
 | Team layout, not NASA: beds 1.2 m wide, 0.8 m aisles, single tier; wheat uses the low end of BVAD's 20–24 h and 75–90 days; plants drawn growing evenly to harvest height (illustration) | Team assumptions |
+
+## Mission 1.7 Dust storm
+
+| Value | Source |
+|---|---|
+| Storm profile at Gale, 2018: τ 0.6–0.7 before; 0.78 (sol 2075) → 1.77 (sol 2077) → peak 8.5 (sol 2085); exponential decay, 43 ± 2 sol time scale; campaign ~100 sols (Ls 188°–248°); UV −97%; diurnal air temperature range ~70 K → ~30 K; dust devils stopped sols 2082–2106 | Guzewich et al. 2019, GRL, "Mars Science Laboratory Observations of the 2018/Mars Year 34 Global Dust Storm", NTRS 20190001691 |
+| Onset: UV down 90% between sol 2075 (τ ~1) and sol 2085 (τ ~8.5) | Viúdez-Moreiras et al. 2019 (REMS) |
+| Habitat 14.9 kW in use, 8.0 kW keep-alive; ascent-vehicle cooling 6.655 kW | Rucker et al. 2016, Table 3 |
+| Sunlight through the dust: Appelbaum & Flood net-flux table (NASA TM-103623); the table ends at τ 6, so higher τ uses the τ 6 value (light at the peak is, if anything, overstated) | `core/netflux-table.ts` |
+| Opportunity's last contact 10 June 2018 under the storm; mission ended February 2019 | NASA/JPL |
+| Photos: PIA22519, PIA22329, PIA22520, PIA22486, PIA22521, PIA22330, PIA22737 | NASA Image and Video Library |
+| Team choices: the storm reaches the base at Ls 188° (or sol 1 if the crew landed after it in that year); energy balanced per whole sol with the battery carrying day into night; greenhouse lights averaged over the sol; crew to-do list; 3D haze and blowing dust drawn, not measured; parts closer together than on the map | Team |

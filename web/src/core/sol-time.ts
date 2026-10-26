@@ -66,3 +66,15 @@ export function daylightHours(
   if (rise < 0 || set < 0) return null
   return { riseH: (rise / STEPS_PER_SOL) * 24, setH: (set / STEPS_PER_SOL) * 24 }
 }
+
+/** The first sol of the stay (1-based) on which the season reaches `ls`, or null if it never does. */
+export function firstSolAtLs(startMs: number, sols: number, ls: number): number | null {
+  for (let sol = 1; sol <= sols; sol++) {
+    const now = lsAtSol(startMs, sol)
+    const before = lsAtSol(startMs, sol - 1)
+    // The season wraps from 360° to 0°: crossing `ls` means stepping over it in that order.
+    const crossed = before <= now ? before < ls && now >= ls : before < ls || now >= ls
+    if (crossed) return sol
+  }
+  return null
+}
