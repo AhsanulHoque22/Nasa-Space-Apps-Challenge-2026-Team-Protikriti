@@ -11,8 +11,9 @@ const ROW_STEPS = [-1, 1, 0, 0, -1, -1, 1, 1]
 const COL_STEPS = [0, 0, -1, 1, -1, 1, -1, 1]
 
 /**
- * Suited-crew pace: team planning assumptions, not yet tied to a NASA citation (candidates: the
- * 2026 Mars PLSS suit study, DRA 5.0). Tobler is scaled by the suit factor and cut at the cap.
+ * Suited-crew pace: Tobler scaled by the suit factor and cut at the cap. The 3.3 km/h cap is
+ * Apollo's planning speed for walking traverses on the Moon (Bellcomm B70-10028, Benjamin 1970);
+ * the 0.8 suit factor is a team assumption, not sourced.
  */
 export const MAX_SUIT_SPEED_KMH = 3.3
 export const DEFAULT_SUIT_FACTOR = 0.8

@@ -4,6 +4,7 @@ import {
   completeMission,
   recordCargo,
   recordBase,
+  recordMarswalk,
   recordLanding,
   recordSite,
   retryFrom,
@@ -301,5 +302,33 @@ describe('recordBase', () => {
     const p = loadProgress(s, owner, ids).progress
     expect(p.base).toBeUndefined()
     expect(p.completed).toEqual(['1.1', '1.2', '1.3'])
+  })
+})
+
+describe('recordMarswalk', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list6 = ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6'].map((id) => m(id, true))
+  const walk = { stop: 'Yellowknife Bay', distanceM: 1500, evaMin: 180, doseMsv: 0.08 }
+
+  it('completes 1.5 and keeps the walk', () => {
+    const p = recordMarswalk(
+      list6,
+      { version: 1, owner, completed: ['1.1', '1.2', '1.3', '1.4'] },
+      walk,
+    )
+    expect(p.completed).toEqual(['1.1', '1.2', '1.3', '1.4', '1.5'])
+    expect(p.walk).toEqual(walk)
+  })
+
+  it('drops a saved 1.5 whose walk cannot be read', () => {
+    const s = store({
+      'atlas.progress': JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.5'],
+        walk: { stop: 'x', distanceM: 'far' },
+      }),
+    })
+    expect(loadProgress(s, owner, ['1.5']).progress.completed).toEqual([])
   })
 })

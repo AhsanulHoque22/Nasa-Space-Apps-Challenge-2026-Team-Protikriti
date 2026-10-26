@@ -13,6 +13,7 @@ import { type Site, elevationAt, parseMola } from './core/elevation'
 import { type Grid, lonLatToCell, parseGrid } from './core/grid'
 import { type LayerId, addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
+import { type WalkMap, createWalkMap } from './map/marswalk-map'
 import { type Activity, addActivities } from './map/activities-layer'
 import { createReplay } from './map/replay'
 import { addStreetViewStops } from './map/streetview-layer'
@@ -168,7 +169,21 @@ async function main() {
     landing?: LandingScene
     base?: BasePlacer
     hardware?: HardwareLayer
+    walk?: WalkMap
+    declutter?: (on: boolean) => void
   } = {}
+  // A mission can start before the rover stops have loaded: remember its wish, apply it on load.
+  let stopsWanted = true
+  let missionDeclutter = false
+  let applyDeclutter = () => {}
+  siteView.declutter = (on) => {
+    missionDeclutter = on
+    applyDeclutter()
+  }
+  const walkMap = () => {
+    if (!siteView.walk) throw new Error('The map is still loading; try the walk again in a moment.')
+    return siteView.walk
+  }
   const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
   const openStart = () =>
     openProfileGate(browserStorage(), [globe, ui], () => {}, {
@@ -189,6 +204,14 @@ async function main() {
         draw: (layout, failing) => siteView.base?.draw(layout, failing),
         view: (c) => siteView.base?.view(c),
         clear: () => siteView.base?.clear(),
+      },
+      declutter: (on) => siteView.declutter?.(on),
+      walk: {
+        layer: (g) => walkMap().layer(g),
+        client: (g) => walkMap().client(g),
+        play: (points, minutes, onTick) => walkMap().play(points, minutes, onTick),
+        view: (points) => siteView.walk?.view(points),
+        clear: () => siteView.walk?.clear(),
       },
       siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
       showBase: (progress) => siteView.hardware && placeBase(siteView.hardware, progress),
@@ -242,6 +265,7 @@ async function main() {
   siteView.pins = createFeaturePins(viewer, surfaceM)
   siteView.landing = createLandingScene(viewer, surfaceM)
   siteView.base = createBasePlacer(viewer, surfaceM)
+  siteView.walk = createWalkMap(viewer, surfaceM)
   // Hardware on Mars at true size: the Story base from this browser's saved progress.
   const hardware = createHardwareLayer(viewer, (lon, lat) => groundM(lon, lat) || 0)
   siteView.hardware = hardware
@@ -508,6 +532,10 @@ async function main() {
     )
   }
   const streetView = await addStreetViewStops(viewer, surfaceM, showStreetView)
+  // A mission hides the rover stops; the layer panel's own toggle must not bring them back.
+  const showStops = () => streetView.setVisible(stopsWanted && !missionDeclutter)
+  applyDeclutter = showStops
+  showStops()
   placeRovers(hardware, streetView.stops)
   walkStreetView = (lon, lat) => {
     const stops = streetView.stops.m20
@@ -591,7 +619,10 @@ async function main() {
         caveLayer.setVisible(visible)
       },
       ...layerToggles,
-      streetview: streetView.setVisible,
+      streetview: (visible) => {
+        stopsWanted = visible
+        showStops()
+      },
       samples: samples.setVisible,
     },
     shared ? {} : { imagery: false },

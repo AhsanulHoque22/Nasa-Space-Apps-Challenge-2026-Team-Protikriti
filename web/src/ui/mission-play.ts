@@ -9,6 +9,7 @@ import {
   recordBase,
   recordCargo,
   recordLanding,
+  recordMarswalk,
   recordSite,
   retryFrom,
   saveProgress,
@@ -23,6 +24,8 @@ import type { JourneyChoice } from './missions/journey-step'
 import { baseSteps } from './missions/base-steps'
 import { landingSteps } from './missions/landing-steps'
 import { siteSteps } from './missions/site-steps'
+import { marswalkSteps } from './missions/marswalk-steps'
+import { SITE_BRIEFS } from '../core/site-features'
 import type { StoryServices } from './story'
 
 const EMPTY: CargoPlan = { kilopower: 0, solar: 0, battery: 0, isru: 0, foodSols: 0, waterKg: 0 }
@@ -43,6 +46,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   else if (id === '1.2') playSite(title, ctx)
   else if (id === '1.3') playLanding(title, ctx)
   else if (id === '1.4') playBase(title, ctx)
+  else if (id === '1.5') playMarswalk(title, ctx)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -165,10 +169,12 @@ function playBase(title: string, ctx: PlayContext): void {
     const lat = (grid.north + grid.south) / 2
     const lon = (grid.west + grid.east) / 2
     const sun = daylightSun(lat, lon, darkestSolStartUtc(lat, lon, CLEAR_TAU), CLEAR_TAU)
+    ctx.services.declutter(true)
     document.body.dataset.story = 'mission'
     const end = (progress: Progress, note: string | null) => {
       dock.remove()
       ctx.services.base.clear()
+      ctx.services.declutter(false)
       delete document.body.dataset.story
       ctx.onDone(progress, note)
     }
@@ -194,6 +200,41 @@ function playBase(title: string, ctx: PlayContext): void {
         )
       },
     )
+    const dock = openDock({
+      missionTitle: title,
+      steps,
+      onFinish: () => undefined, // the last step's own button finishes the mission
+      onLeave: () => end(ctx.progress, null),
+    })
+  })
+}
+
+function playMarswalk(title: string, ctx: PlayContext): void {
+  const { site, base } = ctx.progress
+  if (!site || !base?.habitat)
+    throw new Error('Mission 1.5 needs the landing site (1.2) and the base (1.4)')
+  const home = base.habitat
+  const features = SITE_BRIEFS.find((b) => b.siteId === site.siteId)?.features ?? []
+  ctx.services.siteGrid(site.siteId).then((grid) => {
+    if (!grid) {
+      ctx.onDone(ctx.progress, 'The site’s terrain could not be loaded. Start the mission again.')
+      return
+    }
+    ctx.services.declutter(true)
+    document.body.dataset.story = 'mission'
+    const end = (progress: Progress, note: string | null) => {
+      dock.remove()
+      ctx.services.walk.clear()
+      ctx.services.pins.show([], () => undefined)
+      ctx.services.base.pick(null)
+      ctx.services.declutter(false)
+      delete document.body.dataset.story
+      ctx.onDone(progress, note)
+    }
+    const steps = marswalkSteps(grid, home, features, ctx.services, (walk) => {
+      const next = recordMarswalk(MISSIONS, ctx.progress, walk)
+      end(next, saved(ctx, next, 'The crew is back inside. Mission 1.5 is done.'))
+    })
     const dock = openDock({
       missionTitle: title,
       steps,

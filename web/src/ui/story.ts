@@ -1,5 +1,6 @@
 /** Story mode inside the start screen: the mission list, opening a mission, saving the result. */
 import { type Progress, loadProgress } from '../core/mission-progress'
+import type { WalkMap } from '../map/marswalk-map'
 import { EXPEDITIONS, MISSIONS } from '../core/missions'
 import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
@@ -27,6 +28,10 @@ export type StoryServices = {
   base: BasePlacer
   /** A site's detailed elevation grid, once the map has loaded it. */
   siteGrid: (siteId: string) => Promise<Grid | undefined>
+  /** Hide the rover traverse stops while a mission uses the map (true), or bring them back. */
+  declutter: (on: boolean) => void
+  /** Mission 1.5's route, router and walking crew. */
+  walk: WalkMap
   /** Redraw the Story base on the map from this progress (after a mission ends). */
   showBase: (progress: Progress) => void
 }
@@ -59,7 +64,7 @@ export function showStory(ctx: StoryContext): void {
   function showMission(id: string) {
     const mission = MISSIONS.find((m) => m.id === id)
     if (!mission) throw new Error(`No mission with id "${id}"`)
-    if (['1.1', '1.2', '1.3', '1.4'].includes(id)) {
+    if (['1.1', '1.2', '1.3', '1.4', '1.5'].includes(id)) {
       ctx.onPlay(id, progress)
       return
     }

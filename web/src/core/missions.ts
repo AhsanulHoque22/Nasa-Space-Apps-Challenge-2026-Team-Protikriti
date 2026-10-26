@@ -80,7 +80,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'First Marswalk',
     hats: ['Scientist', 'Medic'],
-    built: false,
+    built: true,
     briefing:
       'Plan a walk to a science stop and back. Slope, time, return margin and radiation dose decide between GO and NO-GO.',
   },

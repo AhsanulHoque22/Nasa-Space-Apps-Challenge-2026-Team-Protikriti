@@ -23,6 +23,19 @@ export type Progress = {
   site?: LandingSite
   /** Where mission 1.4 placed the base's parts. */
   base?: Layout
+  /** Mission 1.5's first Marswalk. */
+  walk?: Marswalk
+}
+
+export type Marswalk = { stop: string; distanceM: number; evaMin: number; doseMsv: number }
+
+const isMarswalk = (v: unknown): v is Marswalk => {
+  const w = v as Partial<Marswalk> | null
+  return (
+    !!w &&
+    typeof w.stop === 'string' &&
+    [w.distanceM, w.evaMin, w.doseMsv].every((n) => typeof n === 'number' && Number.isFinite(n))
+  )
 }
 
 export type LandingSite = { zone: string; siteId: string; lon: number; lat: number }
@@ -61,6 +74,7 @@ const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
   '1.1': (p) => isCargoPlan(p.cargo) && isRouteDays(p.crewRouteDays),
   '1.2': (p) => isLandingSite(p.site),
   '1.4': (p) => isLayout(p.base),
+  '1.5': (p) => isMarswalk(p.walk),
 }
 
 export type MissionStatus =
@@ -135,6 +149,17 @@ export function recordBase(
   return done === reopened ? progress : { ...done, base }
 }
 
+/** Mission 1.5 done: keep the walk. A replay reopens what came after. */
+export function recordMarswalk(
+  missions: readonly Mission[],
+  progress: Progress,
+  walk: Marswalk,
+): Progress {
+  const reopened = retryFrom(missions, progress, '1.5')
+  const done = completeMission(missions, reopened, '1.5')
+  return done === reopened ? progress : { ...done, walk }
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)
@@ -169,6 +194,7 @@ export function loadProgress(
   if (isRouteDays(saved.crewRouteDays)) progress.crewRouteDays = saved.crewRouteDays
   if (isLandingSite(saved.site)) progress.site = saved.site
   if (isLayout(saved.base)) progress.base = saved.base
+  if (isMarswalk(saved.walk)) progress.walk = saved.walk
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(
     (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),

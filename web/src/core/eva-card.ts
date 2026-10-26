@@ -12,7 +12,12 @@ export interface EvaLimits {
   walkbackPad: number
 }
 
-/** Team planning assumptions, not yet tied to a NASA citation (candidate: DRA 5.0); adjust here only. */
+/**
+ * - 8 h outside: NASA EVA-EXP-0075 (Coan, Feb 2020), Artemis suit "EVAs of up to 8 hours".
+ * - 20% on the walk home: Apollo's "20% pad ... for emergency walkback" (Bellcomm B70-10028,
+ *   Benjamin 1970). Apollo padded the suit's consumables; here it pads the walking time.
+ * - 1 h kept in hand: team assumption, not sourced.
+ */
 export const EVA_LIMITS: EvaLimits = { maxEvaMin: 8 * 60, backupMin: 60, walkbackPad: 0.2 }
 
 export interface EvaCard {

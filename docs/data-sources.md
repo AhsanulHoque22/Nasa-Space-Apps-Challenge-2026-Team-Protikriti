@@ -469,3 +469,11 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 - Sol length 88,775.244 s (Allison & McEwen 2000, NASA Mars24); 525 sols = 539 Earth days (DRA 5.0 surface stay).
 - Dust storm season Ls 160°–340°, centred on perihelion in late southern spring: Shirley & Mischna (NASA JPL), "A Stormy Forecast for the Upcoming Dust Storm Season on Mars", AGU Fall Meeting 2015, P23B-2129, https://agu.confex.com/agu/fm15/webprogram/Paper76055.html
 - Sol 1 of the Story clock is the crew's arrival date on the transfer computed in mission 1.1; seasons, sunrise and sunset come from the Mars24 algorithm (`core/mars-time.ts`).
+
+## Mission 1.5 First Marswalk: EVA rules
+
+- Up to 8 h outside: NASA EVA-EXP-0075, "Exploration EVA System Concept of Operations Summary for Artemis Phase 1 Lunar Surface Mission" (D. Coan, Feb 2020): "EVAs of up to 8 hours in duration, while walking up to 2 kilometers away from the lander and on terrain of up to a 20° slope." https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf
+- 3.3 km/h walking speed and the 20% walkback pad: Bellcomm B70-10028, "Apollo 15 EVA Capability and Constraints Envelopes" (P. Benjamin, 13 Oct 1970): "1200 BTU/hr at a speed of 3.3 km/hr"; "A 20% pad is required for emergency walkback". Apollo padded consumables; the app applies the 20% to walking time. https://www.hq.nasa.gov/alsj/19790073512_1979073512.pdf (via the Internet Archive)
+- 1 h reserve, the 0.8 suit factor on Tobler's function and the 15° walking slope limit are team assumptions (15° is stricter than the 20° above).
+- Walk dose: Curiosity RAD surface rate 0.64 mSv/day (Hassler et al. 2014); NASA-STD-3001 600 mSv career limit.
+- Suggested science stops are the mission 1.2 points of interest on the site's terrain grid, nearest the habitat first.
