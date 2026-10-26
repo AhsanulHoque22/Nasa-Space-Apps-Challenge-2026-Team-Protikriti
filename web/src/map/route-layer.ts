@@ -58,6 +58,14 @@ export function createRouteLayer(
         )
       : cells.map(toCartesian)
   const clamp = !surfaceM
+  /** A marker on the same ground (and lift) as the lines, so markers and lines never part. */
+  const markerAt = (c: Cell) => {
+    if (!surfaceM) return toCartesian(c)
+    const [lon, lat] = cellToLonLat(grid, c)
+    const [, , h] = lineOnGround([[lon, lat]], surfaceM)
+    return Cartesian3.fromDegrees(lon, lat, h ?? 0, MARS_SPHERE)
+  }
+  const markerHeight = clamp ? HeightReference.CLAMP_TO_GROUND : HeightReference.NONE
   let path: Cell[] | null = null
   let stops: Cell[] = []
   let fail: Cell | null = null
@@ -107,13 +115,13 @@ export function createRouteLayer(
     hazards.forEach((cell, i) => {
       source.entities.add({
         name: `Hazard ${i + 1}`,
-        position: toCartesian(cell),
+        position: markerAt(cell),
         point: {
           pixelSize: 14,
           color: Color.BLACK,
           outlineColor: red,
           outlineWidth: 4,
-          heightReference: HeightReference.CLAMP_TO_GROUND,
+          heightReference: markerHeight,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         label: {
@@ -125,7 +133,7 @@ export function createRouteLayer(
           style: LabelStyle.FILL_AND_OUTLINE,
           verticalOrigin: VerticalOrigin.TOP,
           pixelOffset: new Cartesian2(0, 12),
-          heightReference: HeightReference.CLAMP_TO_GROUND,
+          heightReference: markerHeight,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
       })
@@ -152,13 +160,13 @@ export function createRouteLayer(
       const isStart = i === 0
       source.entities.add({
         name: isStart ? 'Start' : `Science stop ${i}`,
-        position: toCartesian(stop),
+        position: markerAt(stop),
         point: {
           pixelSize: 12,
           color: isStart ? blue : red,
           outlineColor: Color.WHITE,
           outlineWidth: 2,
-          heightReference: HeightReference.CLAMP_TO_GROUND,
+          heightReference: markerHeight,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         label: {
@@ -170,7 +178,7 @@ export function createRouteLayer(
           style: LabelStyle.FILL_AND_OUTLINE,
           verticalOrigin: VerticalOrigin.BOTTOM,
           pixelOffset: new Cartesian2(0, -12),
-          heightReference: HeightReference.CLAMP_TO_GROUND,
+          heightReference: markerHeight,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
       })
@@ -178,13 +186,13 @@ export function createRouteLayer(
     if (fail) {
       source.entities.add({
         name: 'Fails here',
-        position: toCartesian(fail),
+        position: markerAt(fail),
         point: {
           pixelSize: 16,
           color: Color.WHITE,
           outlineColor: red,
           outlineWidth: 5,
-          heightReference: HeightReference.CLAMP_TO_GROUND,
+          heightReference: markerHeight,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         label: {
@@ -196,7 +204,7 @@ export function createRouteLayer(
           style: LabelStyle.FILL_AND_OUTLINE,
           verticalOrigin: VerticalOrigin.TOP,
           pixelOffset: new Cartesian2(0, 14),
-          heightReference: HeightReference.CLAMP_TO_GROUND,
+          heightReference: markerHeight,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
       })

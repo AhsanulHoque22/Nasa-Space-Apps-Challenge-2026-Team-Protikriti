@@ -1,6 +1,13 @@
-import { type CustomDataSource, JulianDate, type Viewer } from 'cesium'
+import {
+  type Cartesian3,
+  type CustomDataSource,
+  HeightReference,
+  JulianDate,
+  type Viewer,
+} from 'cesium'
 import { describe, expect, it, vi } from 'vitest'
 import type { Cell, Grid } from '../core/grid'
+import { MARS_SPHERE } from './mars'
 import { createRouteLayer } from './route-layer'
 
 const grid: Grid = {
@@ -48,6 +55,17 @@ describe('route layer', () => {
       expect.objectContaining({ colour: '#FC3D21' }),
       expect.any(Array),
     )
+  })
+
+  it('puts the start and stop markers on the same ground as the line, not clamped apart', () => {
+    const { layer, source } = setup(() => 1000)
+    layer.setPath(path)
+    layer.setStops(path)
+    const start = source().entities.values.find((e) => e.name === 'Start')
+    expect(start?.point?.heightReference?.getValue(JulianDate.now())).toBe(HeightReference.NONE)
+    const p = start?.position?.getValue(JulianDate.now()) as Cartesian3
+    const height = MARS_SPHERE.cartesianToCartographic(p)?.height ?? 0
+    expect(height).toBeCloseTo(1004, 3) // the 1000 m ground plus the line's 4 m lift
   })
 
   it('falls back to clamping when no ground height is given', () => {
