@@ -461,4 +461,5 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 - Rovers: Perseverance and Curiosity at their latest PDS/NASA traverse stops; Spirit's final position from the PDS MER corrected traverse (175.525377°E, 14.600366°S); Viking 2 lander at 47.64°N 134.29°E (225.71°W).
 - Sizes: rover lengths and lander diameters from NASA mission pages (see `web/src/core/hardware.ts`, `realSource` per model).
 - Kilopower: 3.4 m tall (Space.com); radiator diameter, column width and 25 m spacing estimated from NASA concept art (Hackaday 2019; Daniel Marín, Eureka blog 2017). The images in the info card are NASA concept art via Marín's blog.
+- Crew lander pod (stand-in): no crewed Mars lander exists; drawn at the Apollo command module's 3.9 m base diameter (NASA), smaller than the 5 m habitat.
 - Solar arrays: 12 m UltraFlex wings, 4 per set; the mast height and tilt are illustrative.

@@ -99,8 +99,9 @@ export const HARDWARE: readonly Hardware[] = [
     url: 'models/landing/lander-pod.glb',
     extent: { x: 12.52, y: 10.08, z: 12.52 },
     floorY: 0.007,
-    real: { dimension: 'diameter', metres: 12.52 },
-    realSource: 'No crewed Mars lander exists: a stand-in at the model’s own size in metres',
+    real: { dimension: 'diameter', metres: 3.9 },
+    realSource:
+      'No crewed Mars lander exists: sized as a crew capsule, the Apollo command module’s 3.9 m base diameter (NASA, Apollo CSM)',
     credit: 'Habitat Lander Pod, jmleach1987 (CC BY 4.0)',
   },
   {

@@ -49,6 +49,15 @@ describe('HARDWARE catalogue', () => {
     expect(size('habitat')).toBeGreaterThan(size('perseverance'))
     expect(size('perseverance')).toBeGreaterThan(size('spirit'))
   })
+
+  it('keeps the crew lander pod smaller than the habitat', () => {
+    const size = (id: string) => {
+      const h = HARDWARE.find((x) => x.id === id)
+      if (!h) throw new Error(id)
+      return Math.max(h.extent.x, h.extent.z) * fitScale(h.extent, h.real)
+    }
+    expect(size('lander-pod')).toBeLessThan(size('habitat'))
+  })
 })
 
 describe('latestStop', () => {
