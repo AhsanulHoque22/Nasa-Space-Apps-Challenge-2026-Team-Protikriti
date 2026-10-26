@@ -274,10 +274,19 @@ export type Wrist = {
 
 const ARM_SRC = 'assets/wrist-console.webp'
 const MAX_WIDTH_FRAC = 0.98
-const MAX_HEIGHT_FRAC = 0.62 // the arm may fill at most this much of the window's height
+const MAX_HEIGHT_FRAC = 0.54 // the arm may fill at most this much of the window's height
+// Sink the arm below the bottom edge by this much of the window's height: the forearm under the
+// screens is hidden and the screens sit low, leaving the map in view.
+const SINK_FRAC = 0.07
 const DISMISS_FALLBACK_MS = 700
 
-export function mountWrist(parent: HTMLElement = document.body): Wrist {
+/** The part of the window the arm is centred in and sized to (default: all of it). */
+export type WristArea = () => { left: number; width: number }
+
+export function mountWrist(
+  parent: HTMLElement = document.body,
+  area: WristArea = () => ({ left: 0, width: window.innerWidth }),
+): Wrist {
   const root = document.createElement('div')
   root.className = 'eva-wrist'
   root.setAttribute('role', 'complementary')
@@ -314,11 +323,14 @@ export function mountWrist(parent: HTMLElement = document.body): Wrist {
   let sy = 0
   let sdeg = 0
   const place = () => {
+    const a = area()
+    arm.style.left = `${a.left + a.width / 2}px`
     const k = Math.min(
-      (window.innerWidth * MAX_WIDTH_FRAC) / ARM_W,
+      (a.width * MAX_WIDTH_FRAC) / ARM_W,
       (window.innerHeight * MAX_HEIGHT_FRAC) / ARM_H,
     )
-    arm.style.transform = `translate(-50%, 0) translate(${sx.toFixed(2)}px, ${sy.toFixed(2)}px) rotate(${sdeg.toFixed(3)}deg) scale(${k.toFixed(4)})`
+    const sink = window.innerHeight * SINK_FRAC
+    arm.style.transform = `translate(-50%, 0) translate(${sx.toFixed(2)}px, ${(sy + sink).toFixed(2)}px) rotate(${sdeg.toFixed(3)}deg) scale(${k.toFixed(4)})`
   }
   place()
   window.addEventListener('resize', place)

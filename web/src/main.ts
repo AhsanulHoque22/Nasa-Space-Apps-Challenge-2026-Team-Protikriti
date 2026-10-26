@@ -209,7 +209,9 @@ async function main() {
       walk: {
         layer: (g) => walkMap().layer(g),
         client: (g) => walkMap().client(g),
-        play: (points, minutes, onTick) => walkMap().play(points, minutes, onTick),
+        overlay: (g, kind) => walkMap().overlay(g, kind),
+        crew: (lon, lat, heading, follow) => siteView.walk?.crew(lon, lat, heading, follow),
+        release: () => siteView.walk?.release(),
         view: (points) => siteView.walk?.view(points),
         clear: () => siteView.walk?.clear(),
       },

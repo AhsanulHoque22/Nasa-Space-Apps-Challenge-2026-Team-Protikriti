@@ -1,6 +1,6 @@
 /**
- * Mission 1.5 on the map: the walking route and its router for a site's grid, and the walk
- * itself, two crew markers moving along the route on a sped-up clock.
+ * Mission 1.5 on the map: the walking route and its router for a site's grid, overlays for the
+ * base crew's tools, and the walking crew, with a camera that can follow them.
  */
 import {
   BoundingSphere,
@@ -12,26 +12,26 @@ import {
   HeadingPitchRange,
   LabelStyle,
   Math as CesiumMath,
+  Matrix4,
   VerticalOrigin,
   type Viewer,
 } from 'cesium'
 import type { Grid } from '../core/grid'
 import { MARS_SPHERE } from './mars'
+import { type RangeLayer, createRangeLayer } from './range-layer'
 import { type RouteClient, createRouteClient } from './route-client'
 import { type RouteLayer, createRouteLayer } from './route-layer'
+
+export type OverlayKind = 'range' | 'sight' | 'sun'
 
 export type WalkMap = {
   layer: (grid: Grid) => RouteLayer
   client: (grid: Grid) => RouteClient
-  /**
-   * Walk the crew along `points` ([lon, lat]); `minutes[i]` is the walk's clock at point i.
-   * `onTick` hears the clock each frame. Returns a function that stops the walk.
-   */
-  play: (
-    points: readonly [number, number][],
-    minutes: readonly number[],
-    onTick: (minute: number, done: boolean) => void,
-  ) => () => void
+  overlay: (grid: Grid, kind: OverlayKind) => RangeLayer
+  /** Put the crew at a place facing `headingDeg`; with `follow` the camera rides behind them. */
+  crew: (lon: number, lat: number, headingDeg: number, follow: boolean) => void
+  /** Hand the camera back to the user. */
+  release: () => void
   /** Frame these points ([lon, lat]) from above at an angle. */
   view: (points: readonly [number, number][]) => void
   clear: () => void
@@ -39,22 +39,25 @@ export type WalkMap = {
 
 const FRAME_RADII = 3.2 // the route fills about a third of the view
 const FRAME_MIN_M = 400
-const PLAY_S = 30 // the whole walk, however long, plays in half a minute
+const FOLLOW_RANGE_M = 260 // behind and above the crew: close enough to see the ground they cross
+const FOLLOW_PITCH_DEG = -28
 const CREW = Color.fromCssColorString('#f2c230')
 const DARK = Color.fromCssColorString('#05070C')
 const MARKER_LIFT_M = 2
-const TRAIL_SHARE = 0.004 // the second walker trails by this share of the walk
 
 export function createWalkMap(
   viewer: Viewer,
   surfaceM: (lon: number, lat: number) => number,
 ): WalkMap {
-  // One layer and one router per grid: each router is a worker holding that grid.
+  // One layer, router and overlay set per grid: each router is a worker holding that grid.
   const layers = new Map<Grid, RouteLayer>()
   const clients = new Map<Grid, RouteClient>()
-  const crew = new CustomDataSource('marswalk-crew')
-  void viewer.dataSources.add(crew)
-  let stop: (() => void) | null = null
+  const overlays = new Map<string, RangeLayer>()
+  const grids = new Map<Grid, number>()
+  const crewSource = new CustomDataSource('marswalk-crew')
+  void viewer.dataSources.add(crewSource)
+  const crewAt = new ConstantPositionProperty()
+  let following = false
 
   const at = ([lon, lat]: [number, number]) =>
     Cartesian3.fromDegrees(lon, lat, surfaceM(lon, lat) + MARKER_LIFT_M, MARS_SPHERE)
@@ -72,14 +75,23 @@ export function createWalkMap(
     })
   }
 
+  const release = () => {
+    // Back to the identity frame: any other transform leaves the camera tied to the crew.
+    if (following) viewer.camera.lookAtTransform(Matrix4.IDENTITY)
+    following = false
+  }
+
   const clear = () => {
-    stop?.()
-    crew.entities.removeAll()
+    release()
+    crewSource.entities.removeAll()
     for (const layer of layers.values()) {
       layer.setPath(null)
       layer.setStops([])
       layer.setFail(null)
+      layer.setHazards([])
+      layer.setHaul(null)
     }
+    for (const o of overlays.values()) void o.setRaster(null)
   }
 
   return {
@@ -93,31 +105,28 @@ export function createWalkMap(
       if (!client) clients.set(grid, (client = createRouteClient(grid)))
       return client
     },
-    play: (points, minutes, onTick) => {
-      stop?.()
-      crew.entities.removeAll()
-      const total = minutes.at(-1) ?? 0
-      // Where the walk is at a given clock minute: between the two path points around it.
-      const where = (minute: number): [number, number] => {
-        const i = minutes.findIndex((m) => m >= minute)
-        if (i <= 0) return points[Math.max(0, i)] ?? [0, 0]
-        const [m0, m1] = [minutes[i - 1] ?? 0, minutes[i] ?? 0]
-        const f = m1 > m0 ? (minute - m0) / (m1 - m0) : 0
-        const [a, b] = [points[i - 1] ?? [0, 0], points[i] ?? [0, 0]]
-        return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]
-      }
-      const walker = (name: string, position: ConstantPositionProperty) =>
-        crew.entities.add({
-          position,
+    overlay: (grid, kind) => {
+      if (!grids.has(grid)) grids.set(grid, grids.size)
+      const key = `${grids.get(grid)}:${kind}`
+      let o = overlays.get(key)
+      if (!o) overlays.set(key, (o = createRangeLayer(viewer, grid)))
+      return o
+    },
+    crew: (lon, lat, headingDeg, follow) => {
+      const where = at([lon, lat])
+      crewAt.setValue(where)
+      if (!crewSource.entities.values.length)
+        crewSource.entities.add({
+          position: crewAt,
           point: {
-            pixelSize: 12,
+            pixelSize: 13,
             color: CREW,
             outlineColor: DARK,
             outlineWidth: 2,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: {
-            text: name,
+            text: 'EV crew (2)',
             font: '600 13px system-ui, sans-serif',
             fillColor: CREW,
             outlineColor: DARK,
@@ -128,30 +137,19 @@ export function createWalkMap(
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         })
-      const lagMin = total * TRAIL_SHARE
-      const posA = new ConstantPositionProperty(at(where(0)))
-      const posB = new ConstantPositionProperty(at(where(0)))
-      walker('Crew', posA)
-      walker('', posB)
-      frameRoute(points)
-      const started = performance.now()
-      let frame = 0
-      const tick = () => {
-        const clock = Math.min(total, ((performance.now() - started) / 1000 / PLAY_S) * total)
-        posA.setValue(at(where(clock)))
-        posB.setValue(at(where(Math.max(0, clock - lagMin))))
-        const done = clock >= total
-        onTick(clock, done)
-        if (!done) frame = requestAnimationFrame(tick)
-        else stop = null
-      }
-      frame = requestAnimationFrame(tick)
-      stop = () => {
-        cancelAnimationFrame(frame)
-        stop = null
-      }
-      return () => stop?.()
+      if (follow) {
+        following = true
+        viewer.camera.lookAt(
+          where,
+          new HeadingPitchRange(
+            CesiumMath.toRadians(headingDeg),
+            CesiumMath.toRadians(FOLLOW_PITCH_DEG),
+            FOLLOW_RANGE_M,
+          ),
+        )
+      } else release()
     },
+    release,
     view: frameRoute,
     clear,
   }

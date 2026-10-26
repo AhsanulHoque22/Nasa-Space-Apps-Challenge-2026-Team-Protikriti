@@ -19,6 +19,7 @@ import { el } from '../dom'
 import type { DockStep } from '../mission-dock'
 import { type Stop, scienceCards } from './science-cards'
 import { type WalkTasks, briefing, makeTasks } from './walk-briefing'
+import { startLiveWalk } from './walk-live'
 
 export type MarswalkMap = { pins: FeaturePins; base: BasePlacer; walk: WalkMap }
 
@@ -34,6 +35,8 @@ type Planned = {
   card: EvaCard
   /** Seconds of the fastest walk home from each point of the walk out. */
   homeS: number[]
+  /** The same for every point of the whole path, home included. */
+  pathHomeS: number[]
   /** Walking there, the stay and walking home, unpadded. */
   totalMin: number
   distanceM: number
@@ -71,6 +74,8 @@ export function marswalkSteps(
   home: LonLat,
   features: readonly SiteFeature[],
   map: MarswalkMap,
+  /** When sol 1 starts: the crew's arrival on the route chosen in mission 1.1 (UTC ms). */
+  sol1Utc: Promise<number>,
   onDone: (walk: Marswalk) => void,
 ): DockStep[] {
   const homeCell = lonLatToCell(grid, home.lon, home.lat)
@@ -124,6 +129,7 @@ export function marswalkSteps(
       stopIndices,
       card,
       homeS,
+      pathHomeS: reply.homeS,
       totalMin: card.evaMin + card.walkbackMin,
       distanceM: summarizeRoute(grid, path).distanceM,
     }
@@ -459,43 +465,55 @@ export function marswalkSteps(
     )
   }
 
-  let stopWalk: (() => void) | null = null
+  let live: ReturnType<typeof startLiveWalk> | null = null
   const walk: DockStep = {
     title: 'The walk',
-    why: 'Two crew walk out, work at each stop and walk home. The clock runs fast: the whole walk plays in half a minute.',
+    why: 'Two crew walk with the wrist console; you are the two in the habitat. Watch their suits and the weather, and warn them if something changes.',
     layout: 'map',
     nextLabel: 'Finish: back in the airlock',
     render: () => {
       if (!planned) return el('p', { textContent: 'Choose a stop first.' })
       const p = planned
-      const clock = el('p', { className: 'walk-clock', ariaLive: 'off' })
-      const phase = el('p', { className: 'dock-note' })
-      const minutes = walkClock(grid, p.path, p.stopIndices, stayMin)
-      // Which stop the crew is at or walking to, from the clock.
-      const arrive = p.stopIndices.map((k) => minutes[k] ?? 0)
-      stopWalk?.()
-      stopWalk = map.walk.play(
-        p.path.map((c) => cellToLonLat(grid, c)),
-        minutes,
-        (m, done) => {
-          clock.textContent = `${hm(m)} outside`
-          const next = arrive.findIndex((a) => m < a + stayMin)
-          const stop = p.stops[next]
-          phase.textContent = done
-            ? `Back in the airlock after ${hm(m)}.`
-            : !stop
-              ? 'Walking home'
-              : m < (arrive[next] ?? 0)
-                ? `Walking to ${stop.name}`
-                : `Working at ${stop.name}`
+      live?.stop()
+      live = startLiveWalk(
+        {
+          siteId,
+          grid,
+          home,
+          homeCell,
+          path: p.path,
+          stopIndices: p.stopIndices,
+          stops: p.stops,
+          stayMin,
+          homeS: p.pathHomeS,
+          plannedMin: walkClock(grid, p.path, p.stopIndices, stayMin),
+          tasks: tasks.onWalk,
+          sol1Utc,
         },
+        map,
+        (done) => (finishNote.textContent = done ? '' : finishNote.textContent),
       )
-      return el('div', { className: 'site-step' }, clock, phase)
+      return el('div', {}, live.panel, finishNote)
     },
-    onHide: () => stopWalk?.(),
+    onShow: () => {
+      document.body.dataset.storyWalk = 'on' // narrow dock: the map and the wrist get the room
+    },
+    onHide: () => {
+      live?.stop()
+      live = null
+      delete document.body.dataset.storyWalk
+    },
     onNext: () => {
       const p = planned
-      if (!p) return false
+      if (!p || !live) return false
+      if (!live.done()) {
+        finishNote.textContent =
+          'The crew are still outside. Finish when they are back in the airlock.'
+        return false
+      }
+      live.stop()
+      live = null
+      delete document.body.dataset.storyWalk
       map.walk.clear()
       onDone({
         stop: p.stops.map((x) => x.name).join(' → '),
@@ -506,6 +524,7 @@ export function marswalkSteps(
       return false
     },
   }
+  const finishNote = el('p', { className: 'walk-gate', role: 'status' })
 
   return [rules, pickStop, verdict, walk]
 }

@@ -231,10 +231,24 @@ function playMarswalk(title: string, ctx: PlayContext): void {
       delete document.body.dataset.story
       ctx.onDone(progress, note)
     }
-    const steps = marswalkSteps(site.siteId, grid, home, features, ctx.services, (walk) => {
-      const next = recordMarswalk(MISSIONS, ctx.progress, walk)
-      end(next, saved(ctx, next, 'The crew is back inside. Mission 1.5 is done.'))
+    const days = ctx.progress.crewRouteDays
+    const sol1Utc = loadJourneys().then((j) => {
+      const route = j.routes.find((r) => r.days === days) ?? j.routes[0]
+      if (!route) throw new Error('no crew route')
+      return route.arriveMs
     })
+    const steps = marswalkSteps(
+      site.siteId,
+      grid,
+      home,
+      features,
+      ctx.services,
+      sol1Utc,
+      (walk) => {
+        const next = recordMarswalk(MISSIONS, ctx.progress, walk)
+        end(next, saved(ctx, next, 'The crew is back inside. Mission 1.5 is done.'))
+      },
+    )
     const dock = openDock({
       missionTitle: title,
       steps,
