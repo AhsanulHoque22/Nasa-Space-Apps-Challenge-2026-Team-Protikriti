@@ -4801,3 +4801,127 @@ button.journey-label:focus-visible {
 .hardware-facts a {
   color: var(--nasa-blue-lift);
 }
+
+/* Sols: the explainer bars (mission 1.1), the sol dial and the stay timeline (mission 1.4) */
+.sol-explainer {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.sol-explainer p {
+  margin: 0 0 var(--space-2);
+}
+
+.sol-bar {
+  display: grid;
+  grid-template-columns: 80px 1fr 150px;
+  gap: var(--space-3);
+  align-items: center;
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+}
+
+.sol-bar-track {
+  display: flex;
+  height: 14px;
+}
+
+.sol-bar-base {
+  background: var(--nasa-blue-lift);
+  border-radius: 3px 0 0 3px;
+}
+
+.sol-bar-extra {
+  background: #c27c22;
+  border-radius: 0 3px 3px 0;
+}
+
+.sol-bar-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.sol-visuals {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-4) 0 0;
+}
+
+.sol-dial-figure {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 0 var(--space-4);
+  align-items: center;
+}
+
+.sol-dial-figure .chart-title {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 520px) {
+  .sol-dial-figure {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sol-dial {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  overflow: visible;
+}
+
+.sol-dial-night {
+  fill: #0c1324;
+  stroke: var(--rule);
+}
+
+.sol-dial-hand {
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.sol-dial-pin {
+  fill: var(--text);
+}
+
+.sol-season {
+  fill: rgb(255 255 255 / 0.1);
+}
+
+.sol-season.alt {
+  fill: rgb(255 255 255 / 0.18);
+}
+
+.sol-dust,
+.legend-key.sol-key-dust {
+  fill: rgb(194 124 34 / 0.55);
+  background: rgb(194 124 34 / 0.55);
+}
+
+.legend-key.sol-key-supply {
+  background: #5b8def;
+}
+
+.sol-short {
+  fill: rgb(255 138 120 / 0.28);
+  stroke: #ff8a78;
+  stroke-dasharray: 4 3;
+}
+
+.sol-band-text {
+  fill: var(--text);
+  font-size: 12px;
+}
+
+.sol-today {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.sol-loading {
+  color: var(--text-muted);
+}

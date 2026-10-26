@@ -13,6 +13,7 @@ import { el } from '../dom'
 import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
 import { foodView, oxygenView, powerView } from './cargo-views'
 import { type JourneyChoice, journeyStep } from './journey-step'
+import { solExplainer } from '../sol-visuals'
 
 const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
 const tonnes = (n: number) =>
@@ -149,7 +150,8 @@ export function cargoSteps(
       onShow: showBay,
       onHide: hideBay,
       why: 'The habitat needs 12.1 kW, and the oxygen plant needs 19.7 kW more. Reactors run day and night; solar arrays only by day.',
-      render: () => el('div', {}, cards('kilopower', 'solar', 'battery'), view(powerView)),
+      render: () =>
+        el('div', {}, cards('kilopower', 'solar', 'battery'), view(powerView), solExplainer()),
     },
     {
       title: 'Oxygen plant',

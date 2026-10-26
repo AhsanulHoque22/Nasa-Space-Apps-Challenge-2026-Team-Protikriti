@@ -2,6 +2,7 @@
  * Plays a mission over the live map: hides the map's own controls, points the camera at the
  * mission's site, runs the dock, saves the result and hands back to the mission list.
  */
+import { loadJourneys } from './journey-client'
 import type { CargoPlan } from '../core/cargo'
 import {
   type Progress,
@@ -171,10 +172,28 @@ function playBase(title: string, ctx: PlayContext): void {
       delete document.body.dataset.story
       ctx.onDone(progress, note)
     }
-    const steps = baseSteps(grid, sun, site, cargo, ctx.progress.base, ctx.services, (layout) => {
-      const next = recordBase(MISSIONS, ctx.progress, layout)
-      end(next, saved(ctx, next, 'The base is set and the clock has started. Mission 1.4 is done.'))
+    const days = ctx.progress.crewRouteDays
+    const sol1Utc = loadJourneys().then((j) => {
+      const route = j.routes.find((r) => r.days === days) ?? j.routes[0]
+      if (!route) throw new Error('no crew route')
+      return route.arriveMs
     })
+    const steps = baseSteps(
+      grid,
+      sun,
+      site,
+      cargo,
+      ctx.progress.base,
+      ctx.services,
+      sol1Utc,
+      (layout) => {
+        const next = recordBase(MISSIONS, ctx.progress, layout)
+        end(
+          next,
+          saved(ctx, next, 'The base is set and the clock has started. Mission 1.4 is done.'),
+        )
+      },
+    )
     const dock = openDock({
       missionTitle: title,
       steps,

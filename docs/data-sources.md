@@ -463,3 +463,9 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 - Kilopower: 3.4 m tall (Space.com); radiator diameter, column width and 25 m spacing estimated from NASA concept art (Hackaday 2019; Daniel Marín, Eureka blog 2017). The images in the info card are NASA concept art via Marín's blog.
 - Crew lander pod (stand-in): no crewed Mars lander exists; drawn at the Apollo command module's 3.9 m base diameter (NASA), smaller than the 5 m habitat.
 - Solar arrays: 12 m UltraFlex wings, 4 per set; the mast height and tilt are illustrative.
+
+## Sols and the dust storm season
+
+- Sol length 88,775.244 s (Allison & McEwen 2000, NASA Mars24); 525 sols = 539 Earth days (DRA 5.0 surface stay).
+- Dust storm season Ls 160°–340°, centred on perihelion in late southern spring: Shirley & Mischna (NASA JPL), "A Stormy Forecast for the Upcoming Dust Storm Season on Mars", AGU Fall Meeting 2015, P23B-2129, https://agu.confex.com/agu/fm15/webprogram/Paper76055.html
+- Sol 1 of the Story clock is the crew's arrival date on the transfer computed in mission 1.1; seasons, sunrise and sunset come from the Mars24 algorithm (`core/mars-time.ts`).

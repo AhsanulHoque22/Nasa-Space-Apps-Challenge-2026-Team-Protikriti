@@ -25,8 +25,11 @@ import {
 import type { LandingSite } from '../../core/mission-progress'
 import { SITE_BRIEFS } from '../../core/site-features'
 import { distanceKm } from '../../core/site-report'
+import { localMeanSolarTimeHours } from '../../core/mars-time'
+import { daylightHours, dustRuns, seasonRuns } from '../../core/sol-time'
 import type { BasePlacer } from '../../map/base-placer'
 import { el } from '../dom'
+import { solDial, solTimeline } from '../sol-visuals'
 import type { DockStep } from '../mission-dock'
 
 export type BaseMap = { showSite: (siteId: string) => void; base: BasePlacer }
@@ -51,6 +54,8 @@ export function baseSteps(
   cargo: CargoPlan,
   start: Layout | undefined,
   map: BaseMap,
+  /** When sol 1 starts: the crew's arrival on the route chosen in mission 1.1 (UTC ms). */
+  sol1Utc: Promise<number>,
   onDone: (layout: Layout) => void,
 ): DockStep[] {
   const needs: Needs = { reactor: cargo.kilopower > 0, arrays: cargo.solar > 0 }
@@ -234,6 +239,35 @@ export function baseSteps(
               ) * 1000,
             )
           : null
+      const visuals = el('div', {
+        className: 'sol-visuals sol-loading',
+        textContent: 'Working out sol 1 from the crew’s arrival date…',
+      })
+      const here = layout.habitat ?? centre
+      sol1Utc.then(
+        (start) => {
+          visuals.className = 'sol-visuals'
+          visuals.replaceChildren(
+            solDial(
+              daylightHours(start, here.lat, here.lon),
+              localMeanSolarTimeHours(start, here.lon),
+            ),
+            solTimeline({
+              sols: SURFACE_STAY_SOLS,
+              todaySol: 1,
+              seasons: seasonRuns(start, SURFACE_STAY_SOLS, here.lat),
+              dust: dustRuns(start, SURFACE_STAY_SOLS),
+              supplies: [
+                { label: 'Food', lastSol: cargo.foodSols },
+                { label: 'Water', lastSol: Math.floor(cargo.waterKg / waterPerSol) },
+              ],
+            }),
+          )
+        },
+        (err: unknown) => {
+          visuals.textContent = `The arrival date could not be worked out: ${String(err)}`
+        },
+      )
       return el(
         'div',
         { className: 'site-step' },
@@ -252,6 +286,12 @@ export function baseSteps(
         el('p', {
           className: 'dock-note',
           textContent: `Drinking water: ${CREW_SIZE} crew × ${POTABLE_WATER_KG_PER_CM_DAY} kg a day (BVAD Rev2) = ${waterPerSol.toFixed(1)} kg a sol. Recycling is not counted yet: NASA’s recovery rates are still being sourced, so this is the packed supply alone.`,
+        }),
+        visuals,
+        el('p', {
+          className: 'dock-note',
+          textContent:
+            'Sol 1 is the crew’s arrival date on the route you chose in mission 1.1. Dust storm season: Ls 160°–340°, around perihelion (Shirley & Mischna, NASA JPL, AGU 2015).',
         }),
       )
     },
