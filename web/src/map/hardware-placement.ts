@@ -2,10 +2,20 @@
  * What stands on the map: rovers and landers where they are (or last were), and the Story mode
  * base where the user placed it. Every model is drawn at its real size (core/hardware.ts).
  */
-import { HARDWARE, fitScale, latestStop, liftToGround } from '../core/hardware'
+import {
+  HARDWARE,
+  KILOPOWER_SPACING_M,
+  ULTRAFLEX_WING_DIAMETER_M,
+  WINGS_PER_SET,
+  fitScale,
+  latestStop,
+  liftToGround,
+  offsetM,
+} from '../core/hardware'
 import type { Progress } from '../core/mission-progress'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { HardwareLayer } from './hardware-layer'
+import { kilopowerShape, powerBoxShape, wingShape } from './hardware-shapes'
 
 type StopLike = { sol: number; lon: number; lat: number; yawDeg: number | null }
 
@@ -71,4 +81,45 @@ export function placeBase(layer: HardwareLayer, progress: Progress | null): void
   if (!base) return
   if (base.habitat) put(layer, 'base:habitat', 'habitat', base.habitat, 'Habitat')
   if (base.oxygen) put(layer, 'base:oxygen', 'oxygen-plant', base.oxygen, 'Oxygen plant (stand-in)')
+  const units = progress.cargo?.kilopower ?? 0
+  if (base.reactor && units > 0) {
+    // As in NASA's Kilopower concept art: units in a row, each cabled to a power box, which is
+    // cabled on to the habitat.
+    const hub = offsetM(base.reactor, 0, -20)
+    layer.shape('base:power-box', powerBoxShape('base:power-box#shape'), {
+      ...hub,
+      scale: 1,
+      label: 'Power box',
+    })
+    for (let i = 0; i < units; i++) {
+      const p = offsetM(base.reactor, (i - (units - 1) / 2) * KILOPOWER_SPACING_M, 0)
+      const key = `base:kilopower-${i}`
+      layer.shape(key, kilopowerShape(`${key}#shape`), {
+        ...p,
+        scale: 1,
+        label: i === 0 ? 'Kilopower reactors · click to learn more' : '',
+      })
+      layer.cable(`base:cable-kilopower-${i}`, [p, hub])
+    }
+    if (base.habitat) layer.cable('base:cable-habitat', [hub, base.habitat])
+  }
+  const sets = progress.cargo?.solar ?? 0
+  if (base.arrays && sets > 0) {
+    const wings = sets * WINGS_PER_SET
+    const perRow = Math.ceil(Math.sqrt(wings))
+    const gap = ULTRAFLEX_WING_DIAMETER_M + 4
+    for (let i = 0; i < wings; i++) {
+      const p = offsetM(
+        base.arrays,
+        ((i % perRow) - (perRow - 1) / 2) * gap,
+        (Math.floor(i / perRow) - (Math.ceil(wings / perRow) - 1) / 2) * gap,
+      )
+      layer.shape(`base:wing-${i}`, wingShape(`base:wing-${i}#shape`, base.arrays.lat < 0), {
+        ...p,
+        scale: 1,
+        label: i === 0 ? `Solar arrays · ${sets} set${sets > 1 ? 's' : ''} of 4 wings` : '',
+      })
+    }
+    if (base.habitat) layer.cable('base:cable-arrays', [base.arrays, base.habitat])
+  }
 }

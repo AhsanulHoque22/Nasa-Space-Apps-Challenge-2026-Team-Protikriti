@@ -130,3 +130,28 @@ export function latestStop<T extends { sol: number }>(stops: readonly T[]): T | 
 export function liftToGround(h: Hardware): number {
   return -h.floorY * fitScale(h.extent, h.real)
 }
+
+/**
+ * Estimates for drawing the Kilopower unit, measured from NASA's concept art of the 10 kWe reactor
+ * with its radiator deployed (only the 3.4 m height is published): the umbrella radiator is about
+ * 2.7 times as wide as the unit is tall, and the column about 0.9 m across.
+ */
+export const KILOPOWER_RADIATOR_DIAMETER_M = 9
+export const KILOPOWER_COLUMN_DIAMETER_M = 0.9
+/** Spacing of the units in a farm, from the same art (about 2.5 radiator widths apart). */
+export const KILOPOWER_SPACING_M = 25
+/** Illustrative: how high an array wing's centre stands, and its tilt toward the equator. */
+export const WING_MAST_M = 7
+export const WING_TILT_DEG = 45
+
+/** A point `east` and `north` metres from `p`, on the Mars sphere (small offsets). */
+export function offsetM(
+  p: { lon: number; lat: number },
+  east: number,
+  north: number,
+): { lon: number; lat: number } {
+  const r = 3_396_190
+  const lat = p.lat + (north / r) * (180 / Math.PI)
+  const lon = p.lon + (east / (r * Math.cos((p.lat * Math.PI) / 180))) * (180 / Math.PI)
+  return { lon, lat }
+}

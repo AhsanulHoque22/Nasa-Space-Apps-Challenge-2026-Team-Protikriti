@@ -455,3 +455,10 @@ NASA 3D Resources and CC BY 4.0 models, credited on screen. Optimised for the we
 | Jezero Crater (Mars) | Gaia | https://sketchfab.com/3d-models/jezero-crater-mars-f8501fbe652241b585f7734bee259ad3 | the ground the cargo stands on; relief halved so crates on the rim stay in view | 4.2 MB → 0.4 MB |
 | HAB – Mars Desert Research Station (embedded, not downloaded) | The Mars Society | https://sketchfab.com/3d-models/hab-mars-desert-research-station-5c1f4c9726754652946098616b7614a1 | full-screen interactive view when the habitat is clicked; Sketchfab's embed player, needs internet | – |
 No real cargo-lander model was available (none in the team's model folder or NASA 3D Resources), so the layout is labelled as a stand-in.
+
+## Hardware on the map (true size)
+
+- Rovers: Perseverance and Curiosity at their latest PDS/NASA traverse stops; Spirit's final position from the PDS MER corrected traverse (175.525377°E, 14.600366°S); Viking 2 lander at 47.64°N 134.29°E (225.71°W).
+- Sizes: rover lengths and lander diameters from NASA mission pages (see `web/src/core/hardware.ts`, `realSource` per model).
+- Kilopower: 3.4 m tall (Space.com); radiator diameter, column width and 25 m spacing estimated from NASA concept art (Hackaday 2019; Daniel Marín, Eureka blog 2017). The images in the info card are NASA concept art via Marín's blog.
+- Solar arrays: 12 m UltraFlex wings, 4 per set; the mast height and tilt are illustrative.

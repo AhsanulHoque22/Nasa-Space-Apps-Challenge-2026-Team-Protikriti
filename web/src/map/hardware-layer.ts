@@ -12,7 +12,9 @@
 import {
   Cartesian2,
   Cartesian3,
+  Cartographic,
   Color,
+  CustomDataSource,
   DistanceDisplayCondition,
   HeadingPitchRoll,
   HeightReference,
@@ -21,6 +23,8 @@ import {
   Math as CesiumMath,
   Matrix4,
   Model,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
   Transforms,
   VerticalOrigin,
   type Primitive,
@@ -48,11 +52,19 @@ export type HardwareLayer = {
   remove: (key: string) => void
   /** Remove every key that starts with `prefix` (e.g. all of the Story base). */
   removeAll: (prefix: string) => void
+  /** A power cable laid on the ground through these points. */
+  cable: (key: string, points: readonly { lon: number; lat: number }[]) => void
+  /** Hear clicks on any model or shape, by its key. */
+  onPick: (handler: (key: string) => void) => void
 }
 
+/** A drawn-mesh height further than this from the sampled ground comes from a coarse tile. */
+const MESH_TRUST_M = 50
+const CLICK_RADIUS_PX = 40
 const LABEL_MAX_M = 3_000 // labels only once the models are big enough to see
 const LABEL = Color.fromCssColorString('#eef2f8')
 const DARK = Color.fromCssColorString('#05070C')
+const CABLE = Color.fromCssColorString('#f2c230') // yellow, as in NASA's Kilopower concept art
 
 type Entry = {
   prim: Primitive | Model
@@ -70,15 +82,18 @@ export function createHardwareLayer(
   const labels = scene.primitives.add(new LabelCollection()) as LabelCollection
   const shown = new Map<string, Entry>()
 
-  /** The drawn ground under a place: true height times the current exaggeration. */
+  /**
+   * The ground as drawn under a place: the loaded terrain mesh where there is one, else the true
+   * height times the exaggeration. Shapes are re-placed as finer tiles load (see below).
+   */
   const drawnGround = (at: Placement) => {
     const h = groundM(at.lon, at.lat)
-    return Cartesian3.fromDegrees(
-      at.lon,
-      at.lat,
-      (Number.isFinite(h) ? h : 0) * (scene.verticalExaggeration || 1),
-      MARS_SPHERE,
-    )
+    const sampled = (Number.isFinite(h) ? h : 0) * (scene.verticalExaggeration || 1)
+    // Coarse tiles answer with heights kilometres off (measured: -26 km under Gale); trust the
+    // mesh only near the data it is built from, where it corrects the metre-scale interpolation.
+    const mesh = scene.globe.getHeight(Cartographic.fromDegrees(at.lon, at.lat))
+    const height = mesh !== undefined && Math.abs(mesh - sampled) < MESH_TRUST_M ? mesh : sampled
+    return Cartesian3.fromDegrees(at.lon, at.lat, height, MARS_SPHERE)
   }
   /** ENU frame on the drawn ground, scaled to the hardware's real size. */
   const frame = (at: Placement, scale: number) => {
@@ -118,6 +133,15 @@ export function createHardwareLayer(
     for (const e of shown.values()) e.relayout()
   })
 
+  // Shapes cannot follow the terrain by themselves: re-place them each time tile loading settles.
+  scene.globe.tileLoadProgressEvent.addEventListener((queued: number) => {
+    if (queued !== 0) return
+    for (const [key, e] of shown) if (key.includes('#shape')) e.relayout()
+  })
+
+  const cables = new CustomDataSource('hardware-cables')
+  void viewer.dataSources.add(cables)
+
   const add = (key: string, at: Placement, prim: Primitive | Model, relayout: () => void) => {
     const label = labels.add({
       position: labelAt(at),
@@ -151,6 +175,23 @@ export function createHardwareLayer(
     shown.delete(key)
   }
 
+  new ScreenSpaceEventHandler(scene.canvas).setInputAction(
+    (click: ScreenSpaceEventHandler.PositionedEvent) => {
+      if (!pickHandler) return
+      // Nearest hardware on screen, not GPU picking: picking missed thin shapes when tested.
+      let key: string | null = null
+      let best = CLICK_RADIUS_PX
+      for (const [k, e] of shown) {
+        const p = scene.cartesianToCanvasCoordinates(labelAt(e.at))
+        const d = p ? Cartesian2.distance(p, click.position) : Infinity
+        if (d < best) [key, best] = [k, d]
+      }
+      if (key) pickHandler(key.replace('#shape', ''))
+    },
+    ScreenSpaceEventType.LEFT_CLICK,
+  )
+  let pickHandler: ((key: string) => void) | null = null
+
   return {
     model: (key, url, at) => {
       remove(key)
@@ -166,7 +207,8 @@ export function createHardwareLayer(
         add(key, at, m, () => void (m.modelMatrix = modelFrame(at)))
       })
     },
-    shape: (key, build, at) => {
+    shape: (plainKey, build, at) => {
+      const key = `${plainKey}#shape`
       remove(key)
       let prim = build(frame(at, at.scale))
       scene.primitives.add(prim)
@@ -178,9 +220,30 @@ export function createHardwareLayer(
         if (e) e.prim = prim
       })
     },
-    remove,
+    remove: (key) => {
+      remove(key)
+      remove(`${key}#shape`)
+      cables.entities.removeById(key)
+    },
     removeAll: (prefix) => {
       for (const key of [...shown.keys()]) if (key.startsWith(prefix)) remove(key)
+      for (const e of [...cables.entities.values])
+        if (e.id.startsWith(prefix)) cables.entities.remove(e)
+    },
+    cable: (key, points) => {
+      cables.entities.removeById(key)
+      cables.entities.add({
+        id: key,
+        polyline: {
+          positions: points.map((p) => Cartesian3.fromDegrees(p.lon, p.lat, 0, MARS_SPHERE)),
+          clampToGround: true,
+          width: 3,
+          material: CABLE,
+        },
+      })
+    },
+    onPick: (handler) => {
+      pickHandler = handler
     },
   }
 }

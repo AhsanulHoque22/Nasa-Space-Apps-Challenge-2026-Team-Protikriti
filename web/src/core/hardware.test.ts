@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HARDWARE, fitScale, latestStop, liftToGround } from './hardware'
+import { HARDWARE, fitScale, latestStop, liftToGround, offsetM } from './hardware'
 
 describe('fitScale', () => {
   const box = { x: 2, y: 4, z: 10 } // glTF axes: y is up
@@ -73,5 +73,20 @@ describe('liftToGround', () => {
     const real = { dimension: 'height' as const, metres: 5 } // scale 0.5
     expect(liftToGround({ ...base, extent, real, floorY: -2 })).toBe(1)
     expect(liftToGround({ ...base, extent, real, floorY: 4 })).toBe(-2)
+  })
+})
+
+describe('offsetM', () => {
+  it('moves about 1 km north as 1 km over the Mars radius in degrees', () => {
+    const p = offsetM({ lon: 10, lat: 0 }, 0, 1000)
+    expect(p.lat).toBeCloseTo((1000 / 3_396_190) * (180 / Math.PI), 9)
+    expect(p.lon).toBe(10)
+  })
+
+  it('moves east by more degrees nearer the poles', () => {
+    expect(offsetM({ lon: 0, lat: 60 }, 1000, 0).lon).toBeCloseTo(
+      2 * offsetM({ lon: 0, lat: 0 }, 1000, 0).lon,
+      6,
+    )
   })
 })

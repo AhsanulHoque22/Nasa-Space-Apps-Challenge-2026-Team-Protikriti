@@ -1,3 +1,5 @@
+import { KILOPOWER_FACTS } from './core/hardware-facts'
+import { openHardwareCard } from './ui/hardware-card'
 import { type Progress, loadProgress } from './core/mission-progress'
 import { MISSIONS } from './core/missions'
 import { loadProfile } from './core/profile'
@@ -243,7 +245,11 @@ async function main() {
   // Hardware on Mars at true size: the Story base from this browser's saved progress.
   const hardware = createHardwareLayer(viewer, (lon, lat) => groundM(lon, lat) || 0)
   siteView.hardware = hardware
+  if (import.meta.env.DEV) Object.assign(window, { hardware }) // console debugging only
   placeBase(hardware, savedProgress())
+  hardware.onPick((key) => {
+    if (key.startsWith('base:kilopower')) openHardwareCard(KILOPOWER_FACTS)
+  })
   installWheelZoom(viewer, surfaceM)
   installKeyboardCamera(viewer, () =>
     document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),

@@ -4746,3 +4746,58 @@ button.journey-label:focus-visible {
   font-size: 14px;
   color: #ff8a78;
 }
+
+/* A card about hardware clicked on the map */
+.hardware-card {
+  width: min(560px, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100dvh - 2 * var(--space-4));
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.hardware-card::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.hardware-card-bar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--rule);
+}
+
+.hardware-card-bar h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.hardware-card-body {
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.hardware-facts,
+.hardware-links {
+  margin: 0 0 var(--space-3);
+  padding-left: 1.2em;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.hardware-facts li,
+.hardware-links li {
+  margin-bottom: var(--space-2);
+}
+
+.hardware-links a,
+.hardware-facts a {
+  color: var(--nasa-blue-lift);
+}
