@@ -258,9 +258,9 @@ function playLanding(title: string, ctx: Play): void {
 }
 
 function playBase(title: string, ctx: Play): void {
-  const { site, cargo } = ctx.progress
-  if (!site || !cargo)
-    throw new Error('Mission 1.4 needs the cargo (1.1) and the landing site (1.2)')
+  const { site, cargo, stay } = ctx.progress
+  if (!site || !cargo || !stay)
+    throw new Error('Mission 1.4 needs the cargo and stay (1.1) and the landing site (1.2)')
   ctx.services.siteGrid(site.siteId).then((grid) => {
     if (!grid) {
       ctx.onDone(ctx.progress, 'The site’s terrain could not be loaded. Start the mission again.')
@@ -290,6 +290,7 @@ function playBase(title: string, ctx: Play): void {
       sun,
       site,
       cargo,
+      stay,
       ctx.progress.base,
       ctx.services,
       sol1Utc,

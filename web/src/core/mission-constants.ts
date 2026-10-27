@@ -6,9 +6,6 @@
 /** Crew of four: NASA CHAPEA analog and the EMC operations in Rucker et al. 2016. Team choice. */
 export const CREW_SIZE = 4
 
-/** 539 days on the surface (DRA 5.0, Drake 2009) = 524.6 sols, rounded up. */
-export const SURFACE_STAY_SOLS = 525
-
 /** One mean solar day, 88,775.244 s (Allison & McEwen 2000, Mars24), in Earth days. */
 export const DAYS_PER_SOL = 88_775.244 / 86_400
 

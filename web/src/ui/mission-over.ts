@@ -33,7 +33,7 @@ export function reportBody(r: MissionReport): HTMLElement {
             .map((l) =>
               el(
                 'li',
-                { className: l.fatal ? 'report-lesson fatal' : 'report-lesson' },
+                { className: l.fatal ? 'report-lesson ended' : 'report-lesson' },
                 l.fatal
                   ? el('strong', { className: 'report-tag', textContent: 'Ended the run' })
                   : '',

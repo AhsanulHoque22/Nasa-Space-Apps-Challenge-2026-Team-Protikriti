@@ -3,7 +3,7 @@
  * daylight at the base and the whole stay as a timeline of seasons, dust season and supplies.
  * Plain SVG with text labels, so nothing is told by colour alone.
  */
-import { DAYS_PER_SOL, SURFACE_STAY_SOLS } from '../core/mission-constants'
+import { DAYS_PER_SOL } from '../core/mission-constants'
 import { type SolRun, solsInEarthDays } from '../core/sol-time'
 import { el } from './dom'
 
@@ -33,7 +33,8 @@ const hhmm = (hours: number) =>
   `${String(Math.floor(hours)).padStart(2, '0')}:${String(Math.floor((hours % 1) * 60)).padStart(2, '0')}`
 
 /** "What is a sol?": an Earth day and a sol side by side, and the stay in Earth days. */
-export function solExplainer(): HTMLElement {
+/** `staySols`: the stay chosen in mission 1.1, in sols. */
+export function solExplainer(staySols: number): HTMLElement {
   const { h, m, s } = solLength()
   const extraShare = (SOL_SECONDS - 86_400) / SOL_SECONDS
   const part = (className: string, share: number) => {
@@ -65,7 +66,7 @@ export function solExplainer(): HTMLElement {
     bar('Sol', `${h} h ${m} min (+${m} min)`, true),
     el('p', {
       className: 'dock-note',
-      textContent: `The crew's ${SURFACE_STAY_SOLS} sols = ${Math.round(solsInEarthDays(SURFACE_STAY_SOLS))} Earth days. A Mars year is about 669 sols (687 Earth days). Sol length: Allison & McEwen 2000 (NASA Mars24).`,
+      textContent: `The crew's ${staySols.toLocaleString('en-US')} sols = ${Math.round(solsInEarthDays(staySols)).toLocaleString('en-US')} Earth days. A Mars year is about 669 sols (687 Earth days). Sol length: Allison & McEwen 2000 (NASA Mars24).`,
     }),
   )
 }

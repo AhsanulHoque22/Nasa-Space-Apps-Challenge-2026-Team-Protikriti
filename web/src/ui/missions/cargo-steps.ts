@@ -16,6 +16,7 @@ import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
 import { foodView, oxygenView, powerView } from './cargo-views'
 import { type JourneyChoice, journeyStep } from './journey-step'
 import { chosenStay, stayStep } from './stay-step'
+import { staySols } from '../../core/stay'
 import { solExplainer } from '../sol-visuals'
 
 const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
@@ -180,7 +181,7 @@ export function cargoSteps(
           repeated(),
           cards('kilopower', 'solar', 'battery'),
           view(powerView),
-          solExplainer(),
+          solExplainer(staySols(journey.stayDays)),
         ),
     },
     {

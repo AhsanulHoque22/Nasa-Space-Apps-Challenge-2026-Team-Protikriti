@@ -34,12 +34,20 @@ export function storesBar(p: Progress): HTMLElement {
   bar.append(el('span', { className: 'stores-label', textContent: `Sol ${now}` }))
   void Promise.all([storesTo(p, now), storesTo(p, target)]).then(([run, ahead]) => {
     if (!run || !ahead) return
-    bar.replaceChildren(...readings(run, ahead, now, target))
+    bar.replaceChildren(
+      el(
+        'span',
+        { className: 'stores-item' },
+        el('span', { className: 'stores-label', textContent: 'Sol' }),
+        el('strong', { textContent: String(now) }),
+      ),
+      ...readings(run, ahead, target),
+    )
   })
   return bar
 }
 
-function readings(run: StoresRun, ahead: StoresRun, now: number, target: number): HTMLElement[] {
+function readings(run: StoresRun, ahead: StoresRun, target: number): HTMLElement[] {
   const day = run.days.at(-1)
   const lasts = ahead.failure ? ahead.failure.sol - 1 : target
   const perSol = (a: number, b: number) => Math.max(0, a - b)
@@ -49,7 +57,6 @@ function readings(run: StoresRun, ahead: StoresRun, now: number, target: number)
   const lv = (left: number, use: number): Level =>
     left <= 0 ? 'out' : use > 0 && left / use < LOW_SOLS ? 'low' : 'ok'
   return [
-    reading('Sol', `${now}`, 'ok'),
     reading(
       'Food',
       `${Math.max(0, day?.foodSols ?? 0).toFixed(0)} sols`,

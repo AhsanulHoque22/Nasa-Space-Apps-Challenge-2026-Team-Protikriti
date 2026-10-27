@@ -510,3 +510,22 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 | Opportunity's last contact 10 June 2018 under the storm; mission ended February 2019 | NASA/JPL |
 | Photos: PIA22519, PIA22329, PIA22520, PIA22486, PIA22521, PIA22330, PIA22737 | NASA Image and Video Library |
 | Team choices: the storm reaches the base at Ls 188° (or sol 1 if the crew landed after it in that year); energy balanced per whole sol with the battery carrying day into night; greenhouse lights averaged over the sol; crew to-do list; 3D haze and blowing dust drawn, not measured; parts closer together than on the map | Team |
+
+## Story mode: stay, base stores and mission reports
+
+| Value | Used for | Source |
+|---|---|---|
+| Synodic period 779.94 days | Next ship one launch window after the crew | NASA Mars Fact Sheet, https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html |
+| First return 539 days after landing | Stays of 1,319 and 2,099 days (539 + 1 or 2 synodic periods) | DRA 5.0 (Drake 2009), https://ntrs.nasa.gov/citations/20090040343; later dates are our derivation |
+| Next ship's route, 2035 window | Its landing sol | The app's Lambert planner on JPL planet positions (same as the crew route) |
+| Water recovery 98% | Recycler in the stores ledger | ISS ECLSS (NASA, June 2023); applied to the Mars habitat as a **team assumption** |
+| Recycler 743 W while running | Shown on the card; counted inside the habitat's 12.1 kW (**team assumption**) | Carter 2009, "Status of the Regenerative ECLSS Water Recovery System", https://ntrs.nasa.gov/citations/20090033097 |
+| Recycler mass 1,400 kg | Cargo mass | **Team assumption** (two ISS-size racks); no NASA mass found in a 30-minute search |
+| Greenhouse hardware 81.5 kg/m² | Cargo mass; caps the area planted in 1.6 | BVAD Rev2 Table 4-88 (Drysdale 1999b): 101.5 kg/m² less 20 kg/m² of crops |
+| Suit battery 0.82 kWh | Recharged from the base battery after each walk (2 suits) | 20.5 V × 40 Ah, NASA JSC 2004 design of the ISS suit lithium-ion battery, https://ntrs.nasa.gov/citations/20050217305 (derived) |
+| Drinking water 3.217 kg per person per day | Water used each sol | BVAD Rev2 Table 3-31 |
+| Food 12.707 MJ per person per day | Greenhouse food in sols of crew food | BVAD Rev2 |
+| Mission sols 1, 3, 5, 6 for 1.3–1.6 | When each mission happens on the sol clock | **Team assumption**; the storm uses its real arrival sol and lasts 100 sols |
+| "Low" under 60 sols of a store | Stores bar | **Team choice** |
+
+Energy is balanced over each whole sol, as in the storm model: reactors first, then solar, then the battery. Mission reports suggest only fixes that the same model shows would have saved the run.

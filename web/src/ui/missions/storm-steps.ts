@@ -22,7 +22,6 @@ import {
   KILOPOWER_DELIVERED_KWE,
   MAV_CONDITIONING_KW,
   SOLAR_SET_AREA_M2,
-  SURFACE_STAY_SOLS,
 } from '../../core/mission-constants'
 import type { Progress, StormRecord } from '../../core/mission-progress'
 import type { SiteFeature } from '../../core/site-features'
@@ -198,6 +197,7 @@ export function stormSteps(
     lat: progress.site?.lat ?? 0,
   }
   const units = cargo?.kilopower ?? 0
+  const staySolsN = progress.stay?.sols ?? 0
   const sets = cargo?.solar ?? 0
   const batteryKwh = (cargo?.battery ?? 0) * BATTERY_KWH_PER_BANK
   // Greenhouse lights, averaged over the sol (they run only part of it).
@@ -216,7 +216,7 @@ export function stormSteps(
   let landedInSeason = false
   const ready = sol1Utc.then((t) => {
     start = t
-    const crossing = firstSolAtLs(t, SURFACE_STAY_SOLS, ARRIVAL_LS)
+    const crossing = firstSolAtLs(t, staySolsN, ARRIVAL_LS)
     landedInSeason = crossing === null
     arrivalSol = crossing ?? 1
     arrivalLs = solarLongitudeDeg(t + (arrivalSol - 0.5) * SOL_MS)
@@ -255,7 +255,7 @@ export function stormSteps(
               'Reaches your base',
               start === null
                 ? 'working it out…'
-                : `sol ${arrivalSol} of ${SURFACE_STAY_SOLS} (Ls ${arrivalLs.toFixed(0)}°)`,
+                : `sol ${arrivalSol} of ${staySolsN.toLocaleString('en-US')} (Ls ${arrivalLs.toFixed(0)}°)`,
             ],
           ]),
           ...(landedInSeason

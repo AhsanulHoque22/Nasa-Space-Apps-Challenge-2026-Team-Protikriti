@@ -5700,7 +5700,7 @@ button.journey-label:focus-visible {
   background: rgb(255 255 255 / 0.05);
 }
 
-.report-lesson.fatal {
+.report-lesson.ended {
   box-shadow: inset 3px 0 0 var(--nasa-red);
 }
 

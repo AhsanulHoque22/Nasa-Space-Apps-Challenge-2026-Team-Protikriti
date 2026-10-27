@@ -16,12 +16,7 @@ import {
 } from '../../core/base-layout'
 import type { CargoPlan } from '../../core/cargo'
 import { type Grid, lonLatToCell } from '../../core/grid'
-import {
-  CREW_SIZE,
-  DAYS_PER_SOL,
-  POTABLE_WATER_KG_PER_CM_DAY,
-  SURFACE_STAY_SOLS,
-} from '../../core/mission-constants'
+import { CREW_SIZE, DAYS_PER_SOL, POTABLE_WATER_KG_PER_CM_DAY } from '../../core/mission-constants'
 import type { LandingSite } from '../../core/mission-progress'
 import { SITE_BRIEFS } from '../../core/site-features'
 import { distanceKm } from '../../core/site-report'
@@ -29,6 +24,8 @@ import { localMeanSolarTimeHours } from '../../core/mars-time'
 import { daylightHours, dustRuns, seasonRuns } from '../../core/sol-time'
 import type { BasePlacer } from '../../map/base-placer'
 import { el } from '../dom'
+import type { Stay } from '../../core/stay'
+import { WATER_RECOVERY } from '../../core/base-stores'
 import { solDial, solTimeline } from '../sol-visuals'
 import type { DockStep } from '../mission-dock'
 
@@ -52,6 +49,7 @@ export function baseSteps(
   sun: readonly SunSample[],
   site: LandingSite,
   cargo: CargoPlan,
+  stay: Stay,
   start: Layout | undefined,
   map: BaseMap,
   /** When sol 1 starts: the crew's arrival on the route chosen in mission 1.1 (UTC ms). */
@@ -221,11 +219,16 @@ export function baseSteps(
 
   const clock: DockStep = {
     title: 'Sol 1: the clock starts',
-    why: `The crew has ${SURFACE_STAY_SOLS} sols on Mars before the return window. From now on, every mission spends from what you packed.`,
+    why: `The crew has ${stay.sols.toLocaleString('en-US')} sols on Mars, and the next ship lands on sol ${stay.nextShipSol}. From now on, every mission spends from what you packed and what the base makes.`,
     layout: 'map',
     nextLabel: 'Finish: the base is set',
     render: () => {
-      const waterPerSol = CREW_SIZE * POTABLE_WATER_KG_PER_CM_DAY * DAYS_PER_SOL
+      // Water lost each sol: all of it without a recycler, 2% with one.
+      const waterPerSol =
+        CREW_SIZE *
+        POTABLE_WATER_KG_PER_CM_DAY *
+        DAYS_PER_SOL *
+        (cargo.recycler > 0 ? 1 - WATER_RECOVERY : 1)
       const fact = (term: string, value: string) =>
         el('div', {}, el('dt', { textContent: term }), el('dd', { textContent: value }))
       const reactor =
@@ -253,10 +256,10 @@ export function baseSteps(
               localMeanSolarTimeHours(start, here.lon),
             ),
             solTimeline({
-              sols: SURFACE_STAY_SOLS,
+              sols: stay.sols,
               todaySol: 1,
-              seasons: seasonRuns(start, SURFACE_STAY_SOLS, here.lat),
-              dust: dustRuns(start, SURFACE_STAY_SOLS),
+              seasons: seasonRuns(start, stay.sols, here.lat),
+              dust: dustRuns(start, stay.sols),
               supplies: [
                 { label: 'Food', lastSol: cargo.foodSols },
                 { label: 'Water', lastSol: Math.floor(cargo.waterKg / waterPerSol) },
@@ -274,7 +277,10 @@ export function baseSteps(
         el(
           'dl',
           { className: 'zone-facts' },
-          fact('Food packed', `${cargo.foodSols} of ${SURFACE_STAY_SOLS} sols`),
+          fact(
+            'Food packed',
+            `${cargo.foodSols} sols; the next ship lands on sol ${stay.nextShipSol}`,
+          ),
           fact(
             'Drinking water packed',
             `${Math.floor(cargo.waterKg / waterPerSol)} sols (${cargo.waterKg.toLocaleString('en-US')} kg)`,
