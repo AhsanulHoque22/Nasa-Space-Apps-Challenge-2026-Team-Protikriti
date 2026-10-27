@@ -192,7 +192,14 @@ describe('recordCargo', () => {
 
   it('reopens 1.1 for a save from before the stay was chosen', () => {
     const ids = withCargo.map((x) => x.id)
-    const { stay: _s, ...old } = recordCargo(withCargo, fresh, plan, 178, STAY)
+    const old: Partial<ReturnType<typeof recordCargo>> = recordCargo(
+      withCargo,
+      fresh,
+      plan,
+      178,
+      STAY,
+    )
+    delete old.stay
     const s = store({ [PROGRESS_KEY]: JSON.stringify(old) })
     expect(loadProgress(s, owner, ids).progress.completed).toEqual([])
   })

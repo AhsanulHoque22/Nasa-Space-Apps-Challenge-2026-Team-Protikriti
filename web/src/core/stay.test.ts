@@ -20,9 +20,11 @@ describe('nextShipSol', () => {
 
 describe('nextShipJourneys', () => {
   it('flies in the 2035 window, about one synodic period after the crew', () => {
-    const [min] = nextShipJourneys()
-    expect(min!.departMs).toBeGreaterThanOrEqual(Date.UTC(2035, 1, 1))
-    expect(min!.departMs).toBeLessThanOrEqual(Date.UTC(2035, 10, 1))
-    expect(min!.arriveMs).toBeGreaterThan(crewJourneys()[0]!.arriveMs + 700 * DAY_MS)
+    const ship = nextShipJourneys()[0]
+    const crew = crewJourneys()[0]
+    if (!ship || !crew) throw new Error('no route found')
+    expect(ship.departMs).toBeGreaterThanOrEqual(Date.UTC(2035, 1, 1))
+    expect(ship.departMs).toBeLessThanOrEqual(Date.UTC(2035, 10, 1))
+    expect(ship.arriveMs).toBeGreaterThan(crew.arriveMs + 700 * DAY_MS)
   })
 })

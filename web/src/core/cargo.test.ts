@@ -127,7 +127,9 @@ describe('regrowth cargo', () => {
   })
 
   it('rejects a saved plan from before the regrowth items', () => {
-    const { recycler: _r, greenhouseM2: _g, ...old } = fission
+    const old: Partial<CargoPlan> = { ...fission }
+    delete old.recycler
+    delete old.greenhouseM2
     expect(isCargoPlan(old)).toBe(false)
   })
 })

@@ -27,7 +27,7 @@ describe('runStores', () => {
   it('runs out of food the sol after the packed food ends, with no greenhouse', () => {
     const r = runStores(input())
     expect(r.failure).toMatchObject({ store: 'food', sol: 401 })
-    expect(r.days.at(-1)!.sol).toBe(400)
+    expect(r.days.at(-1)?.sol).toBe(400)
   })
 
   it('never runs out of food when the greenhouse grows what the crew eat', () => {
@@ -35,7 +35,7 @@ describe('runStores', () => {
       input({ greenhouse: { kcalPerDay: crewKcalPerDay(), firstHarvestSol: 30, lightsKw: 0 } }),
     )
     expect(r.failure).toBeNull()
-    expect(r.days.at(-1)!.foodSols).toBeCloseTo(400 - 29, 6)
+    expect(r.days.at(-1)?.foodSols).toBeCloseTo(400 - 29, 6)
   })
 
   it('uses water once without a recycler', () => {
@@ -48,7 +48,7 @@ describe('runStores', () => {
     const r = runStores(input({ cargo: { ...cargo, foodSols: 800 } }))
     expect(r.failure).toBeNull()
     const perSol = CREW_SIZE * POTABLE_WATER_KG_PER_CM_DAY * DAYS_PER_SOL * 0.02
-    expect(r.days.at(-1)!.waterKg).toBeCloseTo(750 - 760 * perSol, 6)
+    expect(r.days.at(-1)?.waterKg).toBeCloseTo(750 - 760 * perSol, 6)
   })
 
   it('browns out on sol 1 when two reactors cannot carry the habitat and the return rocket', () => {
@@ -61,7 +61,7 @@ describe('runStores', () => {
       input({ cargo: { ...cargo, kilopower: 2, foodSols: 800 }, solarKwhPerSol: () => 200 }),
     )
     expect(r.failure).toBeNull()
-    expect(r.days.at(-1)!.batteryKwh).toBeCloseTo(658, 0)
+    expect(r.days.at(-1)?.batteryKwh).toBeCloseTo(658, 0)
   })
 
   it('draws two suits’ charge from the battery on a walk sol', () => {
@@ -75,6 +75,6 @@ describe('runStores', () => {
         walks: [{ sol: 3, suits: 2 }],
       }),
     )
-    expect(r.days[2]!.batteryKwh).toBeCloseTo(r.days[1]!.batteryKwh - 2 * SUIT_BATTERY_KWH, 6)
+    expect(r.days[2]?.batteryKwh).toBeCloseTo(r.days[1]?.batteryKwh - 2 * SUIT_BATTERY_KWH, 6)
   })
 })
