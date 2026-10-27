@@ -26,7 +26,7 @@ export type DockOptions = {
   steps: readonly DockStep[]
   /** Shown in the header on every step, e.g. a mass gauge; refreshed on `refresh()`. */
   status?: () => HTMLElement
-  /** Shown under the header on every step, e.g. lessons from the last mission report. */
+  /** Shown in the header on every step, e.g. lessons from the last mission report. */
   lessons?: HTMLElement | null
   onFinish: () => void
   onLeave: () => void
@@ -60,11 +60,11 @@ export function openDock(opts: DockOptions): Dock {
         {},
         el('p', { className: 'dock-mission', textContent: opts.missionTitle }),
         stepLabel,
+        opts.lessons ?? '',
       ),
       statusSlot,
       leave,
     ),
-    opts.lessons ?? '',
     heading,
     why,
     content,
