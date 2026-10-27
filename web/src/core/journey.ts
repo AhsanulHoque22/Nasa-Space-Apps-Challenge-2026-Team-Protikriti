@@ -1,6 +1,6 @@
 /**
  * Earth-to-Mars transfers for the story: the cargo flies in the 2031 window, the crew about 26
- * months later in 2033. For each window the planner searches departure dates and flight times,
+ * months later in 2033, and the next ship 26 months after that, in 2035. For each window the planner searches departure dates and flight times,
  * solves Lambert's problem between the planets' real positions, and keeps the lowest departure
  * energy (C3): over all flight times for the minimum-energy route, or at a
  * fixed flight time for faster crew routes. Only the Earth departure burn is costed; Mars arrival
@@ -131,9 +131,12 @@ function toJourney(c: Candidate): Journey {
 /** Departure searches cover the 2031 and 2033 Earth–Mars opportunities. */
 const CARGO_WINDOW: Window = { from: Date.UTC(2030, 10, 1), to: Date.UTC(2031, 7, 1) }
 const CREW_WINDOW: Window = { from: Date.UTC(2032, 11, 1), to: Date.UTC(2033, 8, 1) }
+/** The next ship flies one synodic period (about 26 months) after the crew. */
+const NEXT_SHIP_WINDOW: Window = { from: Date.UTC(2035, 1, 1), to: Date.UTC(2035, 10, 1) }
 
 let cargoCache: Journey | null = null
 let crewCache: Journey[] | null = null
+let shipCache: Journey[] | null = null
 
 /** The cargo's minimum-energy flight (computed once, then reused). */
 export function cargoJourney(): Journey {
@@ -145,5 +148,13 @@ export function crewJourneys(): Journey[] {
   return (crewCache ??= [
     toJourney(bestTransfer(CREW_WINDOW, 120, 420)),
     ...FAST_ROUTE_DAYS.map((d) => toJourney(bestTransfer(CREW_WINDOW, d, d))),
+  ])
+}
+
+/** The next ship's route choices in the 2035 window, slowest first, like the crew's. */
+export function nextShipJourneys(): Journey[] {
+  return (shipCache ??= [
+    toJourney(bestTransfer(NEXT_SHIP_WINDOW, 120, 420)),
+    ...FAST_ROUTE_DAYS.map((d) => toJourney(bestTransfer(NEXT_SHIP_WINDOW, d, d))),
   ])
 }

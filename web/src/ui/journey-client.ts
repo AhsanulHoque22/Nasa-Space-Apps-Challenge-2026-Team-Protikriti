@@ -1,7 +1,7 @@
 /** The transfer search runs once, in a worker; every caller shares the same answer. */
 import type { Journey } from '../core/journey'
 
-export type Journeys = { cargo: Journey; routes: Journey[] }
+export type Journeys = { cargo: Journey; routes: Journey[]; nextShip: Journey[] }
 
 let pending: Promise<Journeys> | null = null
 
