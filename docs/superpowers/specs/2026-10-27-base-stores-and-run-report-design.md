@@ -44,6 +44,46 @@ The 539-day stay is no longer offered, because the crew would leave before the n
 - **The progress record gains `staySols`.** Old saves that don't have it start 1.1 again.
 - **Expedition 1's end-of-run check happens at the next ship's landing (sol 759).** Surviving to that sol completes Expedition 1. Mission 1.8 "Return window" becomes the stay's return date, which is played at the end of the chosen stay.
 
+## 1c. Survival by regrowth (user, 2026-10-27)
+
+40 t cannot carry everything needed until the next ship. Food, water and power can't be traded away, so the crew must **make them on Mars**:
+- **Water recycler:** recovers 98 % of the water. Without one, water is used once.
+- **Greenhouse:** after its first harvest, it adds food every sol.
+- **Solar arrays:** recharge the battery every sol of sunlight. The reactors give a steady base.
+
+**The stores are a running balance, sol by sol:**
+
+  reserve(sol + 1) = reserve(sol) + made(sol) − used(sol), with each store capped at its tank or battery size.
+
+The headline number is **"supplies last until sol X"**:
+- When the base makes more than it uses, X grows over time and the crew earn more time on Mars.
+- When X falls before the next ship's landing sol, the screen warns early.
+- When a store reaches 0, the run is over.
+
+**Walks and other exploration draw on the reserve:**
+- recharging the suits' batteries and oxygen, and the crew's food and water while out;
+- the solar arrays then refill the battery.
+
+**What each mission's result feeds in:**
+- **1.1** packs the equipment: recycler, solar sets, battery banks, reactors, the starting food and water, and **greenhouse hardware**.
+- **1.4** places the solar arrays.
+- **1.6** plants the beds that set the food made per sol.
+- **1.7**'s storm cuts the solar input for 100 sols.
+
+**New cargo items (the masses need NASA sources; research is timeboxed to 30 min):**
+- **Water recovery system,** ISS-type: mass, power and the 98 % rate.
+- **Greenhouse hardware** (BVAD biomass production): mass per m² of growing area and the lighting's power. This sets the most area 1.6 can plant.
+
+  If no NASA source is found, the value is marked as a team assumption in the UI.
+
+## 1d. The next ship's route (mission 1.1)
+
+Beside the crew route, mission 1.1 also offers the **route of the next ship**:
+- It leaves in the window after the crew's, about 26 months later (the 2035 window).
+- It uses the same Lambert planner as the crew and cargo routes: minimum energy, or a faster route.
+
+The landing sol of the next ship is the day it arrives minus the day the crew landed, converted to sols. It comes from the real planet positions, not the rounded 780 days. That sol is the target the 1.1 supplies must reach.
+
 ## 2. The stores
 
 A pure module `core/base-stores.ts` keeps a ledger on a **sol clock**. Every number comes from code that already exists, or is labelled a team assumption.
