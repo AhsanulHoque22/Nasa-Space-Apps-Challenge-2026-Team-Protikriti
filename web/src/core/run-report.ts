@@ -44,8 +44,9 @@ export type ReportContext = {
   stores: StoresInput | null
   /** The storm as the crew set it up, when the storm ended the run. */
   storm?: StormBase & { loads: StormLoads }
-  /** How far out the walkers were when a suit ran out, m. */
+  /** How far out the walkers were when a suit ran out, and how long the planned walk was, m. */
   walkDistanceM?: number
+  walkPlannedM?: number
 }
 
 const MAX_REACTORS = 5 // mission 1.1's limit
@@ -75,9 +76,14 @@ export function runReport(c: ReportContext): Lesson[] {
     add({
       missionId: '1.5',
       mistake: `A suit ran out ${n(d)} m from the airlock on sol ${failure.sol}.`,
-      measure: `Choose a stop nearer than ${n(d)} m, walk at the planned pace, and press Turn back when oxygen or battery reaches 40%.`,
+      measure: `Plan a walk shorter than ${n(Math.round(c.walkPlannedM ?? d))} m, walk at the planned pace, and press Turn back when oxygen or battery reaches 40%.`,
       numbers: 'A full suit lasts 8 hours (NASA EVA-EXP-0075).',
-      guard: { kind: 'max', field: 'walk.distanceM', value: d },
+      // Warn on any plan at least as long as the walk that failed.
+      guard: {
+        kind: 'max',
+        field: 'walk.distanceM',
+        value: Math.max(0, Math.round(c.walkPlannedM ?? d) - 1),
+      },
     })
   }
 

@@ -10,6 +10,8 @@ import { CARGO_LIMIT_KG } from '../../core/mission-constants'
 import { type DockStep, stepper } from '../mission-dock'
 import { type CargoBay, openCargoBay } from '../cargo-bay'
 import { el } from '../dom'
+import type { MissionReport } from '../../core/mission-reports'
+import { warningsFor } from '../lessons'
 import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
 import { foodView, oxygenView, powerView } from './cargo-views'
 import { type JourneyChoice, journeyStep } from './journey-step'
@@ -103,6 +105,7 @@ export function cargoSteps(
   refresh: () => void,
   goTo: (step: number) => void,
   onLoad: () => void,
+  reports: readonly MissionReport[],
 ): DockStep[] {
   // Each step's live view redraws whenever a card changes the plan.
   let views: Array<[HTMLElement, (p: CargoPlan) => HTMLElement]> = []
@@ -148,6 +151,18 @@ export function cargoSteps(
   const issues = el('div', { className: 'cargo-issues', tabIndex: -1 })
   issues.setAttribute('aria-live', 'polite')
 
+  // Choices that repeat a mistake from an earlier mission report, redrawn with the cards.
+  const repeated = () =>
+    view((p) =>
+      warningsFor(reports, '1.1', {
+        'cargo.kilopower': p.kilopower,
+        'cargo.solar': p.solar,
+        'cargo.battery': p.battery,
+        'cargo.recycler': p.recycler,
+        'cargo.foodSols': p.foodSols,
+        'cargo.waterKg': p.waterKg,
+      }),
+    )
   // The sol the next ship lands: what the packed supplies must reach (0 until it is worked out).
   const target = () => chosenStay(journey)?.nextShipSol ?? 0
   return [
@@ -159,7 +174,14 @@ export function cargoSteps(
       onHide: hideBay,
       why: 'The habitat needs 12.1 kW, and the oxygen plant needs 19.7 kW more. Reactors run day and night; solar arrays only by day.',
       render: () =>
-        el('div', {}, cards('kilopower', 'solar', 'battery'), view(powerView), solExplainer()),
+        el(
+          'div',
+          {},
+          repeated(),
+          cards('kilopower', 'solar', 'battery'),
+          view(powerView),
+          solExplainer(),
+        ),
     },
     {
       title: 'Oxygen plant',
@@ -177,6 +199,7 @@ export function cargoSteps(
         el(
           'div',
           {},
+          repeated(),
           cards('foodSols', 'waterKg', 'recycler', 'greenhouseM2'),
           view((p) => foodView(p, target())),
         ),
@@ -255,6 +278,7 @@ export function cargoSteps(
             row('Water recyclers', String(plan.recycler), 4),
             row('Greenhouse hardware', `${plan.greenhouseM2} m²`, 4),
           ),
+          repeated(),
           issues,
         )
       },

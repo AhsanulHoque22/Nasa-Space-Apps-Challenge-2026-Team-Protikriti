@@ -12,6 +12,8 @@ import type { LandingScene } from '../map/landing-scene'
 import { el } from './dom'
 import { loadJourneys } from './journey-client'
 import { renderMissionList } from './mission-list'
+import { loadReports } from '../core/mission-reports'
+import { showReport } from './mission-over'
 
 /** What Story mode needs from the map app, which may still be loading. */
 export type StoryServices = {
@@ -71,6 +73,30 @@ export function showStory(ctx: StoryContext): void {
     throw new Error(`Mission ${id} has no screen yet`)
   }
 
+  /** Mission report v1, v2, …: one per failed run of this crew, each opens in full. */
+  function reportList(): HTMLElement | string {
+    const reports = loadReports(ctx.store, ctx.profile.createdAt)
+    if (!reports.length) return ''
+    return el(
+      'section',
+      { className: 'report-list' },
+      el('h3', { className: 'feature-heading', textContent: 'Mission reports' }),
+      el(
+        'ul',
+        { className: 'report-lessons' },
+        ...reports.map((r) => {
+          const open = el('button', {
+            type: 'button',
+            className: 'gate-link',
+            textContent: `Mission report v${r.version}`,
+          })
+          open.addEventListener('click', () => showReport(r))
+          return el('li', {}, open, ` · ${r.cause}, sol ${r.endedSol}`)
+        }),
+      ),
+    )
+  }
+
   function showList() {
     // Start the Earth–Mars transfer search now, so mission 1.1's routes are ready when it opens.
     void loadJourneys().catch(() => undefined)
@@ -86,6 +112,7 @@ export function showStory(ctx: StoryContext): void {
       el('h2', { className: 'gate-heading', textContent: 'Story mode', tabIndex: -1 }),
       note ? el('p', { className: 'gate-note', textContent: note }) : '',
       renderMissionList(EXPEDITIONS, MISSIONS, progress.completed, showMission),
+      reportList(),
       el('div', { className: 'gate-actions' }, back, map),
     )
     ctx.body.querySelector<HTMLElement>('h2')?.focus()

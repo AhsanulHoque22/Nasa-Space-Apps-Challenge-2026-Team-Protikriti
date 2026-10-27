@@ -32,6 +32,8 @@ import { ARRAY_DUST_FACTOR, ARRAY_EFFICIENCY, solEnergy } from '../../core/surfa
 import { visibilityKm } from '../../core/surface-conditions'
 import type { FeaturePins } from '../../map/feature-pins'
 import { el } from '../dom'
+import type { MissionReport } from '../../core/mission-reports'
+import { warningsFor } from '../lessons'
 import type { DockStep } from '../mission-dock'
 import { type StormStage, openStormStage } from '../storm-stage'
 import { type Task, taskList } from './walk-briefing'
@@ -185,8 +187,10 @@ function stormCharts(
 export function stormSteps(
   progress: Progress,
   sol1Utc: Promise<number>,
+  reports: readonly MissionReport[],
   map: StormMap,
-  onDone: (storm: StormRecord) => void,
+  /** The record, and the storm as set up (for the mission report when the base ran short). */
+  onDone: (storm: StormRecord, setUp: StormBase & { loads: StormLoads }) => void,
 ): DockStep[] {
   const cargo = progress.cargo
   const home = progress.base?.habitat ?? {
@@ -403,6 +407,10 @@ export function stormSteps(
               r.shortKwh > 0 ? `runs short from storm sol ${r.firstShortSol}` : 'gets through',
             ],
           ]),
+          warningsFor(reports, '1.7', {
+            'storm.habitatKw': loads.habitatKw,
+            'storm.greenhouseKw': loads.greenhouseKw,
+          }),
           stormCharts(r, batteryKwh, 0),
           el('h3', {
             className: 'feature-heading',
@@ -616,13 +624,16 @@ export function stormSteps(
     },
     onNext: () => {
       const r = run()
-      onDone({
-        arrivalSol,
-        habitatKw: loads.habitatKw,
-        greenhouseKw: loads.greenhouseKw,
-        shortKwh: r.shortKwh,
-        lowestBatteryKwh: r.lowestBattery,
-      })
+      onDone(
+        {
+          arrivalSol,
+          habitatKw: loads.habitatKw,
+          greenhouseKw: loads.greenhouseKw,
+          shortKwh: r.shortKwh,
+          lowestBatteryKwh: r.lowestBattery,
+        },
+        { ...base(), loads: { ...loads } },
+      )
       return false
     },
   }

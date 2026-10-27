@@ -64,6 +64,8 @@ export function startLiveWalk(
   w: LiveWalk,
   map: LiveMap,
   onDoneChange: (done: boolean) => void,
+  /** A suit ran out before the airlock, this far from it in a straight line, m. */
+  onSuitOut: (distanceM: number) => void,
 ): { panel: HTMLElement; stop: () => void; done: () => boolean } {
   const { grid } = w
   const lonLat = (c: Cell) => cellToLonLat(grid, c)
@@ -318,6 +320,10 @@ export function startLiveWalk(
       ((w.plannedMin[i + 1] ?? w.plannedMin[i] ?? 0) - (w.plannedMin[i] ?? 0)) * sim.fraction
     const o2 = oxygenLeftShare(sim.walkMin, sim.workMin)
     const power = powerLeftShare(sim.elapsedMin)
+    if (!sim.done && (o2 <= 0 || power <= 0)) {
+      onSuitOut(Math.hypot(a.row - w.homeCell.row, a.col - w.homeCell.col) * grid.pixelSizeM)
+      return // the walk stops here; the mission ends
+    }
     const slope = slopeDegAt(grid, a)
     const hazardAhead = hazards
       .map((h) => {

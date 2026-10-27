@@ -16,6 +16,8 @@ import type { BasePlacer } from '../../map/base-placer'
 import type { FeaturePins } from '../../map/feature-pins'
 import type { WalkMap } from '../../map/marswalk-map'
 import { el } from '../dom'
+import type { MissionReport } from '../../core/mission-reports'
+import { warningsFor } from '../lessons'
 import type { DockStep } from '../mission-dock'
 import { type Stop, scienceCards } from './science-cards'
 import { type WalkTasks, briefing, makeTasks } from './walk-briefing'
@@ -77,6 +79,9 @@ export function marswalkSteps(
   /** When sol 1 starts: the crew's arrival on the route chosen in mission 1.1 (UTC ms). */
   sol1Utc: Promise<number>,
   onDone: (walk: Marswalk) => void,
+  /** A suit ran out on the walk, this far from the airlock, on a walk planned this long (m). */
+  onSuitOut: (distanceM: number, plannedM: number) => void,
+  reports: readonly MissionReport[],
 ): DockStep[] {
   const homeCell = lonLatToCell(grid, home.lon, home.lat)
   if (!homeCell) throw new Error('The habitat is outside the mapped terrain')
@@ -360,6 +365,7 @@ export function marswalkSteps(
           className: `walk-verdict ${go ? 'go' : 'nogo'}`,
           textContent: go ? 'GO' : 'NO-GO',
         }),
+        warningsFor(reports, '1.5', { 'walk.distanceM': p.distanceM }),
         el('p', {
           textContent: go
             ? `Home with ${hm(c.tightestMarginMin)} to spare at the tightest point.`
@@ -492,6 +498,13 @@ export function marswalkSteps(
         },
         map,
         (done) => (finishNote.textContent = done ? '' : finishNote.textContent),
+        (distanceM) => {
+          live?.stop()
+          live = null
+          delete document.body.dataset.storyWalk
+          map.walk.clear()
+          onSuitOut(distanceM, p.distanceM)
+        },
       )
       return el('div', {}, live.panel, finishNote)
     },

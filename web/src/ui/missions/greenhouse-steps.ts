@@ -27,6 +27,8 @@ import type { SiteFeature } from '../../core/site-features'
 import type { BasePlacer } from '../../map/base-placer'
 import type { FeaturePins } from '../../map/feature-pins'
 import { el } from '../dom'
+import type { MissionReport } from '../../core/mission-reports'
+import { warningsFor } from '../lessons'
 import { type GreenhouseStage, openGreenhouseStage } from '../greenhouse-stage'
 import { type DockStep, stepper } from '../mission-dock'
 
@@ -137,15 +139,21 @@ const kw = (x: number) => `${x.toFixed(1)} kW`
 export function greenhouseSteps(
   grid: Grid,
   progress: Progress,
+  reports: readonly MissionReport[],
   map: GreenhouseMap,
   onDone: (greenhouse: Greenhouse) => void,
 ): DockStep[] {
   const units = progress.cargo?.kilopower ?? 0
+  /** Growing area the hardware packed in mission 1.1 allows, m². */
+  const packedM2 = progress.cargo?.greenhouseM2 ?? 0
   const home: LonLat = progress.base?.habitat ?? { lon: grid.west, lat: grid.north }
   const reactor = progress.base?.reactor ?? null
   const areas: Areas = { ...(progress.greenhouse?.areas as Areas | undefined) }
   let at: LonLat | null = progress.greenhouse?.at ?? null
   const budget = () => greenhouseBudget(areas, units)
+
+  let buildAnyway = false
+  const buildNote = el('p', { className: 'gate-note', role: 'status' })
 
   /** Where the reactors' power goes, so a NO-GO says why. */
   const powerLedger = () => {
@@ -201,8 +209,15 @@ export function greenhouseSteps(
       ),
       el('p', {
         className: 'dock-note',
-        textContent: `${b.areaM2} m² planted · water through the plants ${b.waterKgPerDay.toFixed(0)} kg/day (most is caught again as condensate) · first harvest ${b.firstHarvestDay === null ? '—' : `day ${b.firstHarvestDay}`} · NASA’s estimate for feeding a crew: about 50 m² a person, ${4 * 50} m² for four.`,
+        textContent: `${b.areaM2} of ${packedM2} m² of packed greenhouse hardware planted · water through the plants ${b.waterKgPerDay.toFixed(0)} kg/day (most is caught again as condensate) · first harvest ${b.firstHarvestDay === null ? '—' : `day ${b.firstHarvestDay}`} · NASA’s estimate for feeding a crew: about 50 m² a person, ${4 * 50} m² for four.`,
       }),
+      b.areaM2 > packedM2
+        ? el('p', {
+            className: 'gate-note',
+            textContent: `Only ${packedM2} m² of greenhouse hardware came on the lander (mission 1.1). Plant ${b.areaM2 - packedM2} m² less.`,
+          })
+        : '',
+      warningsFor(reports, '1.6', { 'greenhouse.peakKw': b.peakKw }),
     )
   }
 
@@ -326,7 +341,7 @@ export function greenhouseSteps(
         }),
       )
     },
-    onNext: () => budget().areaM2 > 0,
+    onNext: () => budget().areaM2 > 0 && budget().areaM2 <= packedM2,
   }
 
   // --- Step 3 -------------------------------------------------------------------------------------
@@ -397,6 +412,8 @@ export function greenhouseSteps(
       )
 
       const help = el('div')
+      buildAnyway = false // a changed plan asks again
+      buildNote.textContent = ''
       if (!b.fits) {
         const ask = el('button', {
           type: 'button',
@@ -441,6 +458,7 @@ export function greenhouseSteps(
         }),
         el('p', { className: 'fd-note', textContent: powerLedger() }),
         help,
+        buildNote,
         el(
           'div',
           { className: 'gh-day' },
@@ -473,7 +491,14 @@ export function greenhouseSteps(
       stage?.remove()
       stage = null
     },
-    onNext: () => budget().fits,
+    onNext: () => {
+      if (budget().fits || buildAnyway) return true
+      // A NO-GO greenhouse may still be built (the crew's call); it browns out the base.
+      buildAnyway = true
+      buildNote.textContent =
+        'NO-GO: these lights need more power than the reactors have spare. Built like this, the base browns out and the run ends. Press again to build it anyway, or go back and plant less.'
+      return false
+    },
   }
 
   // --- Step 4 -------------------------------------------------------------------------------------

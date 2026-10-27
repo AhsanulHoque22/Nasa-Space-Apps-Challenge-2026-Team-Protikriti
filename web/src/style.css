@@ -5624,3 +5624,126 @@ button.journey-label:focus-visible {
   fill: #5b8def;
   opacity: 0.55;
 }
+
+/* Base stores in the mission header: a word on every reading, never colour alone. */
+.stores-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stores-item {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.stores-label {
+  color: var(--text-muted);
+}
+
+.stores-level {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stores-item[data-level='low'] .stores-level {
+  color: #ffc35a;
+}
+
+.stores-item[data-level='out'] .stores-level {
+  color: #ff8a78;
+}
+
+/* Mission over and mission reports. */
+.mission-over {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 0.72);
+}
+
+.mission-over-panel {
+  width: min(720px, 100%);
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  padding: var(--space-4) calc(var(--space-4) * 1.5);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.mission-over-cause {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ff8a78;
+}
+
+.report-lessons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.report-lesson {
+  padding: var(--space-3);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.report-lesson.fatal {
+  box-shadow: inset 3px 0 0 var(--nasa-red);
+}
+
+.report-lesson p {
+  margin: 0 0 var(--space-1);
+}
+
+.report-tag {
+  display: inline-block;
+  margin-bottom: var(--space-1);
+  color: #ff8a78;
+  font-size: 13px;
+}
+
+.lessons {
+  margin: var(--space-2) 0;
+  font-size: 14px;
+}
+
+.lessons summary {
+  cursor: pointer;
+  color: #ffc35a;
+  font-weight: 600;
+}
+
+.lessons ul {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2em;
+}
+
+.lessons p {
+  margin: 0 0 var(--space-1);
+}
+
+.report-warning {
+  margin: var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid #ffc35a;
+  border-radius: 6px;
+  background: rgb(255 195 90 / 0.1);
+  font-size: 14px;
+}
+
+.report-warnings:empty {
+  display: none;
+}

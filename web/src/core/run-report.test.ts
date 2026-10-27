@@ -77,10 +77,11 @@ describe('runReport', () => {
       failure: { store: 'suit', sol: 5, missionId: '1.5', why: 'Suit out' },
       stores: null,
       walkDistanceM: 2400,
+      walkPlannedM: 5200,
     })
     expect(lessons[0]).toMatchObject({
       missionId: '1.5',
-      guard: { kind: 'max', field: 'walk.distanceM', value: 2400 },
+      guard: { kind: 'max', field: 'walk.distanceM', value: 5199 },
     })
   })
 })
