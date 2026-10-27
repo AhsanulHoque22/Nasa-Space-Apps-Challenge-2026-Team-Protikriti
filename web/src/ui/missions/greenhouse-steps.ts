@@ -148,8 +148,12 @@ export function greenhouseSteps(
   const budget = () => greenhouseBudget(areas, units)
 
   /** Where the reactors' power goes, so a NO-GO says why. */
-  const powerLedger = () =>
-    `${units} reactor${units === 1 ? ' gives' : 's give'} ${kw(units * KILOPOWER_DELIVERED_KWE)}; the habitat takes ${kw(HABITAT_EXTERNAL_KWE)} and the return rocket’s fuel plant ${kw(MAV_CONDITIONING_KW)}, leaving ${kw(budget().spareKw)} for the lights.`
+  const powerLedger = () => {
+    const spare = budget().spareKw
+    const rest =
+      spare >= 0 ? `leaving ${kw(spare)} for the lights` : `${kw(-spare)} short before any lights`
+    return `${units} reactor${units === 1 ? ' gives' : 's give'} ${kw(units * KILOPOWER_DELIVERED_KWE)}; the habitat takes ${kw(HABITAT_EXTERNAL_KWE)} and the return rocket’s fuel plant ${kw(MAV_CONDITIONING_KW)}: ${rest}.`
+  }
 
   const noFitAdvice = () => {
     const need = reactorsNeeded(areas)
