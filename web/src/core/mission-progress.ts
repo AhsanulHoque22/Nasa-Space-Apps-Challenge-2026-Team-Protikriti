@@ -7,6 +7,7 @@ import type { Layout } from './base-layout'
 import { type CargoPlan, isCargoPlan } from './cargo'
 import { readStored, writeStored } from './local-store'
 import type { Mission } from './missions'
+import { type Stay, isStay } from './stay'
 import type { KeyValueStore } from './streetview'
 
 export const PROGRESS_KEY = 'atlas.progress'
@@ -19,6 +20,8 @@ export type Progress = {
   cargo?: CargoPlan
   /** The crew's flight time to Mars chosen in mission 1.1, days. */
   crewRouteDays?: number
+  /** The stay and the next ship chosen in mission 1.1. */
+  stay?: Stay
   /** Where mission 1.2 landed. */
   site?: LandingSite
   /** Where mission 1.4 placed the base's parts. */
@@ -106,7 +109,7 @@ const isLayout = (v: unknown): v is Layout => {
 }
 
 const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
-  '1.1': (p) => isCargoPlan(p.cargo) && isRouteDays(p.crewRouteDays),
+  '1.1': (p) => isCargoPlan(p.cargo) && isRouteDays(p.crewRouteDays) && isStay(p.stay),
   '1.2': (p) => isLandingSite(p.site),
   '1.4': (p) => isLayout(p.base),
   '1.5': (p) => isMarswalk(p.walk),
@@ -146,17 +149,18 @@ export function completeMission(
   return { ...progress, completed: [...progress.completed, id] }
 }
 
-/** Mission 1.1 done: keep the packed plan and the crew's route with it. */
+/** Mission 1.1 done: keep the packed plan, the crew's route and the stay with it. */
 export function recordCargo(
   missions: readonly Mission[],
   progress: Progress,
   cargo: CargoPlan,
   crewRouteDays: number,
+  stay: Stay,
 ): Progress {
   // A replay changes the cargo every later mission was judged on, so those missions reopen.
   const reopened = retryFrom(missions, progress, '1.1')
   const done = completeMission(missions, reopened, '1.1')
-  return done === reopened ? progress : { ...done, cargo, crewRouteDays }
+  return done === reopened ? progress : { ...done, cargo, crewRouteDays, stay }
 }
 
 /** Mission 1.2 done: keep the chosen site with it. */
@@ -251,6 +255,7 @@ export function loadProgress(
   const progress: Progress = { version: 1, owner, completed: [] }
   if (isCargoPlan(saved.cargo)) progress.cargo = saved.cargo
   if (isRouteDays(saved.crewRouteDays)) progress.crewRouteDays = saved.crewRouteDays
+  if (isStay(saved.stay)) progress.stay = saved.stay
   if (isLandingSite(saved.site)) progress.site = saved.site
   if (isLayout(saved.base)) progress.base = saved.base
   if (isMarswalk(saved.walk)) progress.walk = saved.walk

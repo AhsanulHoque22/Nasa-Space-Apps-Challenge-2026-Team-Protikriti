@@ -1,4 +1,4 @@
-/** Mission 1.1 as guided steps: the plan, power, oxygen plant, supplies, review. */
+/** Mission 1.1 as guided steps: the journey, the stay, power, oxygen plant, supplies, review. */
 import {
   CARGO_ITEMS,
   type CargoItem,
@@ -6,18 +6,22 @@ import {
   cargoMassKg,
   checkCargo,
 } from '../../core/cargo'
-import { CARGO_LIMIT_KG, SURFACE_STAY_SOLS } from '../../core/mission-constants'
+import { CARGO_LIMIT_KG } from '../../core/mission-constants'
 import { type DockStep, stepper } from '../mission-dock'
 import { type CargoBay, openCargoBay } from '../cargo-bay'
 import { el } from '../dom'
 import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
 import { foodView, oxygenView, powerView } from './cargo-views'
 import { type JourneyChoice, journeyStep } from './journey-step'
+import { chosenStay, stayStep } from './stay-step'
 import { solExplainer } from '../sol-visuals'
 
 const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
 const tonnes = (n: number) =>
   `${(n / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })} t`
+/** Mass per unit; greenhouse hardware is per m², to the tenth of a kilogram. */
+const perUnit = (i: CargoItem) =>
+  i.unit === 'm²' ? `${i.unitKg.toLocaleString('en-US')} kg per m²` : `${kg(i.unitKg)} each`
 const item = (id: CargoItem['id']) => CARGO_ITEMS.find((x) => x.id === id) as CargoItem
 
 function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElement {
@@ -67,8 +71,9 @@ function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElem
     el(
       'p',
       { className: 'item-meta' },
-      i.unitKg === 1 ? '' : `${kg(i.unitKg)} each · `,
+      i.unitKg === 1 ? '' : `${perUnit(i)} · `,
       i.confidence === 'medium' ? 'derived value · ' : '',
+      i.confidence === 'assumption' ? 'mass is a team assumption · ' : '',
       el('a', { href: i.url, target: '_blank', rel: 'noopener', textContent: 'Source' }),
     ),
     caption,
@@ -143,8 +148,11 @@ export function cargoSteps(
   const issues = el('div', { className: 'cargo-issues', tabIndex: -1 })
   issues.setAttribute('aria-live', 'polite')
 
+  // The sol the next ship lands: what the packed supplies must reach (0 until it is worked out).
+  const target = () => chosenStay(journey)?.nextShipSol ?? 0
   return [
     journeyStep(journey),
+    stayStep(journey),
     {
       title: 'Power',
       onShow: showBay,
@@ -164,8 +172,14 @@ export function cargoSteps(
       title: 'Supplies',
       onShow: showBay,
       onHide: hideBay,
-      why: `The crew stays ${SURFACE_STAY_SOLS} sols with no resupply. Food that runs out early has to come from somewhere else.`,
-      render: () => el('div', {}, cards('foodSols', 'waterKg'), view(foodView)),
+      why: 'No lander can carry everything until the next ship. Pack food and water to start, and the means to make more: a water recycler and greenhouse hardware.',
+      render: () =>
+        el(
+          'div',
+          {},
+          cards('foodSols', 'waterKg', 'recycler', 'greenhouseM2'),
+          view((p) => foodView(p, target())),
+        ),
     },
     {
       title: 'Review and load',
@@ -174,7 +188,7 @@ export function cargoSteps(
       why: 'Check the lander before it leaves. Anything here can still be changed.',
       nextLabel: 'Load the lander',
       onNext: () => {
-        if (checkCargo(plan).blocking.length) {
+        if (!chosenStay(journey) || checkCargo(plan, target()).blocking.length) {
           issues.focus()
           return false
         }
@@ -182,7 +196,7 @@ export function cargoSteps(
         return false // the mission ends; the dock is removed by the caller
       },
       render: () => {
-        const { blocking, warnings } = checkCargo(plan)
+        const { blocking, warnings } = checkCargo(plan, target())
         const group = (title: string, lines: string[], kind: string) =>
           lines.length
             ? el(
@@ -212,6 +226,7 @@ export function cargoSteps(
           )
         }
         const route = journey.journeys?.routes[journey.routeIndex]
+        const stay = chosenStay(journey)
         return el(
           'div',
           {},
@@ -219,12 +234,26 @@ export function cargoSteps(
             'ul',
             { className: 'review-list' },
             row('Crew route', route ? `${route.days} days` : 'not chosen', 0),
-            row('Kilopower reactors', String(plan.kilopower), 1),
-            row('Solar array sets', String(plan.solar), 1),
-            row('Battery banks', String(plan.battery), 1),
-            row('Oxygen plants', String(plan.isru), 2),
-            row('Food', `${plan.foodSols} sols`, 3),
-            row('Water reserve', kg(plan.waterKg), 3),
+            row(
+              'Stay',
+              stay
+                ? `${stay.days.toLocaleString('en-US')} days (${stay.sols.toLocaleString('en-US')} sols)`
+                : 'not chosen',
+              1,
+            ),
+            row(
+              'Next ship lands',
+              stay ? `sol ${stay.nextShipSol} (${stay.nextShipRouteDays}-day route)` : 'not chosen',
+              1,
+            ),
+            row('Kilopower reactors', String(plan.kilopower), 2),
+            row('Solar array sets', String(plan.solar), 2),
+            row('Battery banks', String(plan.battery), 2),
+            row('Oxygen plants', String(plan.isru), 3),
+            row('Food', `${plan.foodSols} sols`, 4),
+            row('Water reserve', kg(plan.waterKg), 4),
+            row('Water recyclers', String(plan.recycler), 4),
+            row('Greenhouse hardware', `${plan.greenhouseM2} m²`, 4),
           ),
           issues,
         )

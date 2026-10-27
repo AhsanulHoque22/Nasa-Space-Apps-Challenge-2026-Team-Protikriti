@@ -11,7 +11,13 @@ import { type JourneyScene, openJourneyScene } from '../journey-scene'
 import type { DockStep } from '../mission-dock'
 
 /** The user's route choice, shared with the rest of mission 1.1. */
-export type JourneyChoice = { routeIndex: number; journeys: Journeys | null }
+export type JourneyChoice = {
+  routeIndex: number
+  journeys: Journeys | null
+  /** The next ship's route in the 2035 window, and the stay in Earth days (mission 1.1, step 2). */
+  shipIndex: number
+  stayDays: number
+}
 
 const day = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', {
@@ -123,6 +129,18 @@ function maths(r: Journey): HTMLElement {
   )
 }
 
+/** The transfers for this choice, saying so in `body` while the worker searches. */
+export function loadChoice(choice: JourneyChoice, body: HTMLElement): Promise<Journeys> {
+  if (choice.journeys) return Promise.resolve(choice.journeys)
+  body.replaceChildren(
+    el('p', {
+      className: 'dock-note',
+      textContent: 'Working out the 2031, 2033 and 2035 transfers from the planets’ real orbits…',
+    }),
+  )
+  return loadJourneys().then((j) => (choice.journeys = j))
+}
+
 export function journeyStep(choice: JourneyChoice): DockStep {
   let scene: JourneyScene | null = null
   let open = false
@@ -160,16 +178,7 @@ export function journeyStep(choice: JourneyChoice): DockStep {
     mathsSlot.replaceChildren(maths(j.routes[choice.routeIndex] as Journey))
   }
 
-  const load = () => {
-    if (choice.journeys) return Promise.resolve(choice.journeys)
-    body.replaceChildren(
-      el('p', {
-        className: 'dock-note',
-        textContent: 'Working out the 2031 and 2033 transfers from the planets’ real orbits…',
-      }),
-    )
-    return loadJourneys().then((j) => (choice.journeys = j))
-  }
+  const load = () => loadChoice(choice, body)
 
   return {
     title: 'The journey',

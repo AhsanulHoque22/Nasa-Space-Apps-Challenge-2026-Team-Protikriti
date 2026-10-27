@@ -5614,3 +5614,13 @@ button.journey-label:focus-visible {
 .storm-chart {
   margin: 0 0 var(--space-2);
 }
+
+/* Mission 1.1 stay timeline: what was packed carries the crew to the next ship. */
+.stay-own {
+  fill: #c27c22;
+}
+
+.stay-grown {
+  fill: #5b8def;
+  opacity: 0.55;
+}

@@ -4,7 +4,16 @@ import { CARGO_DEMAND_KW, powerProfile } from './power-profile'
 import { utcForLs } from './scenario'
 import { solEnergy, solProfile } from './surface-solar'
 
-const base: CargoPlan = { kilopower: 0, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+const base: CargoPlan = {
+  kilopower: 0,
+  solar: 0,
+  battery: 0,
+  isru: 2,
+  foodSols: 525,
+  waterKg: 0,
+  recycler: 0,
+  greenhouseM2: 0,
+}
 const start = utcForLs(0, Date.UTC(2030, 0, 1))
 
 describe('solProfile', () => {

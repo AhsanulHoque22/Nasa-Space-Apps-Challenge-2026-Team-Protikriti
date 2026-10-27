@@ -3,7 +3,16 @@ import type { CargoPlan } from './cargo'
 import { WINDOW_SOLS, cargoPhase } from './cargo-phase'
 import { LOX_TARGET_KG } from './mission-constants'
 
-const base: CargoPlan = { kilopower: 0, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+const base: CargoPlan = {
+  kilopower: 0,
+  solar: 0,
+  battery: 0,
+  isru: 2,
+  foodSols: 525,
+  waterKg: 0,
+  recycler: 0,
+  greenhouseM2: 0,
+}
 /** A year of identical sols: `kwhPerM2` of tracking-panel sunlight and `dayHours` of daylight. */
 const year = (kwhPerM2: number, dayHours = 12.3) =>
   Array.from({ length: 669 }, () => ({ kwhPerM2, dayHours }))

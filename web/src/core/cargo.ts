@@ -10,7 +10,6 @@ import {
   FOOD_PACKED_KG_PER_CM_DAY,
   HABITAT_EXTERNAL_KWE,
   HABITAT_KG,
-  SURFACE_STAY_SOLS,
 } from './mission-constants'
 
 const RUCKER = 'Rucker et al. 2016, Solar Versus Fission Surface Power for Mars (NASA)'
@@ -30,6 +29,10 @@ export type CargoPlan = {
   foodSols: number
   /** Drinking-water reserve, kg. */
   waterKg: number
+  /** Water recyclers (ISS-type water recovery systems). */
+  recycler: number
+  /** Greenhouse hardware, m² of growing area. */
+  greenhouseM2: number
 }
 
 export type CargoItem = {
@@ -43,7 +46,8 @@ export type CargoItem = {
   unit: string
   source: string
   url: string
-  confidence: 'high' | 'medium'
+  /** high: stated by NASA; medium: derived from NASA values; assumption: the team's choice. */
+  confidence: 'high' | 'medium' | 'assumption'
 }
 
 /** Packed food for the whole crew for `sols` sols, kg. */
@@ -105,7 +109,7 @@ export const CARGO_ITEMS: readonly CargoItem[] = [
     label: 'Food',
     detail: 'Packed meals for four, 2.39 kg per person per day including packaging.',
     unitKg: foodKg(1),
-    max: 600,
+    max: 800,
     step: 25,
     unit: 'sols',
     source: 'NASA Life Support Baseline Values and Assumptions Document (BVAD) Rev2, 2022, §3.3.',
@@ -124,6 +128,33 @@ export const CARGO_ITEMS: readonly CargoItem[] = [
     url: 'https://ntrs.nasa.gov/citations/20210024855',
     confidence: 'high',
   },
+  {
+    id: 'recycler',
+    label: 'Water recycler',
+    detail:
+      'Cleans used water and urine back to drinking water, about 98% of it, like the Space Station’s.',
+    unitKg: 1400, // team assumption: two ISS-size racks; no NASA mass found
+    max: 2,
+    step: 1,
+    unit: 'units',
+    source:
+      'Recovery 98%: NASA, ISS ECLSS, June 2023. Power 743 W while running: Carter 2009 (NASA). Mass 1,400 kg is a team assumption (two ISS racks).',
+    url: 'https://ntrs.nasa.gov/citations/20090033097',
+    confidence: 'assumption',
+  },
+  {
+    id: 'greenhouseM2',
+    label: 'Greenhouse hardware',
+    detail: 'Growth beds, lights, water and nutrient lines, fans and frame, per m² of crops.',
+    unitKg: 81.5, // Table 4-88 total 101.5 kg/m² less the 20 kg/m² of crops grown on Mars
+    max: 60,
+    step: 5,
+    unit: 'm²',
+    source:
+      'BVAD Rev2, 2022, Table 4-88 (Drysdale 1999b): 101.5 kg/m², less 20 kg/m² of crops grown on site.',
+    url: 'https://ntrs.nasa.gov/citations/20210024855',
+    confidence: 'medium',
+  },
 ]
 
 export function cargoMassKg(plan: CargoPlan): number {
@@ -133,7 +164,11 @@ export function cargoMassKg(plan: CargoPlan): number {
 
 const kg = (n: number) => `${Math.round(n).toLocaleString('en-US')} kg`
 
-export function checkCargo(plan: CargoPlan): { blocking: string[]; warnings: string[] } {
+/** `targetSol`: the sol the next ship lands, which the packed supplies must reach. */
+export function checkCargo(
+  plan: CargoPlan,
+  targetSol: number,
+): { blocking: string[]; warnings: string[] } {
   const blocking: string[] = []
   const warnings: string[] = []
   const over = cargoMassKg(plan) - CARGO_LIMIT_KG
@@ -158,9 +193,13 @@ export function checkCargo(plan: CargoPlan): { blocking: string[]; warnings: str
   if (plan.solar > 0 && plan.battery === 0 && plan.kilopower === 0) {
     warnings.push('Solar arrays give no power at night, and there is no battery.')
   }
-  if (plan.foodSols < SURFACE_STAY_SOLS) {
-    warnings.push(`Packed food lasts ${plan.foodSols} of the ${SURFACE_STAY_SOLS} sols.`)
+  if (plan.foodSols < targetSol) {
+    warnings.push(
+      `Packed food lasts ${plan.foodSols} of the ${targetSol} sols until the next ship.`,
+    )
   }
+  if (plan.recycler === 0) warnings.push('Without a water recycler, every litre is used once.')
+  if (plan.greenhouseM2 === 0) warnings.push('No greenhouse hardware: no food can be grown.')
   if (plan.isru === 1) warnings.push('NASA’s plan carries two oxygen plants so one can fail.')
   return { blocking, warnings }
 }

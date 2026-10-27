@@ -56,6 +56,21 @@ export const CARGO_PHOTOS: Partial<Record<CargoItem['id'], CargoPhoto>> = {
     nasaId: 'iss068e008036',
   },
   waterKg: {
+    src: 'media/cargo/iss030e122089.webp',
+    alt: 'An astronaut opening a large white water bag aboard the space station.',
+    caption: 'Expedition 30 commander Dan Burbank opens a stored water bag on the space station.',
+    credit: 'NASA',
+    nasaId: 'iss030e122089',
+  },
+  greenhouseM2: {
+    src: 'media/cargo/KSC-20171017-PH_ISS01_0001.webp',
+    alt: 'Red and green lettuce and mizuna mustard growing under pink LED light in a small chamber.',
+    caption:
+      'Veg-03D on the space station: three crops growing at once in the Veggie chamber under LEDs.',
+    credit: 'NASA',
+    nasaId: 'KSC-20171017-PH_ISS01_0001',
+  },
+  recycler: {
     src: 'media/cargo/iss072e143163.webp',
     alt: 'An astronaut servicing filters on the space station’s water recovery system.',
     caption:

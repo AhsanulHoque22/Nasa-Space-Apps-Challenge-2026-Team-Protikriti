@@ -36,6 +36,8 @@ const m = (id: string, built: boolean): Mission => ({
 // 1.1 and 1.2 built, 1.3 not built yet, 2.1 built
 const list = [m('1.1', true), m('1.2', true), m('1.3', false), m('2.1', true)]
 
+const STAY = { days: 1319, sols: 1284, nextShipSol: 764, nextShipRouteDays: 150 }
+
 describe('missionStatus', () => {
   it('opens the first built mission on a fresh start', () => {
     expect(missionStatus(list, [], '1.1')).toEqual({ kind: 'open' })
@@ -139,27 +141,44 @@ describe('mission registry', () => {
 describe('recordCargo', () => {
   const owner = '2026-10-25T08:00:00.000Z'
   const fresh = { version: 1 as const, owner, completed: [] }
-  const plan = { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+  const plan = {
+    kilopower: 4,
+    solar: 0,
+    battery: 0,
+    isru: 2,
+    foodSols: 525,
+    waterKg: 0,
+    recycler: 0,
+    greenhouseM2: 0,
+  }
   const withCargo = [m('1.1', true), m('1.2', false)]
 
   it('completes 1.1 and keeps the packed plan', () => {
-    expect(recordCargo(withCargo, fresh, plan, 178)).toEqual({
+    expect(recordCargo(withCargo, fresh, plan, 178, STAY)).toEqual({
       ...fresh,
       completed: ['1.1'],
       cargo: plan,
       crewRouteDays: 178,
+      stay: STAY,
     })
   })
 
   it('replaying 1.1 keeps the new plan and reopens the missions after it', () => {
     const list3 = [m('1.1', true), m('1.2', true), m('1.3', true)]
-    const done = { ...fresh, completed: ['1.1', '1.2'], cargo: plan, crewRouteDays: 178 }
+    const done = {
+      ...fresh,
+      completed: ['1.1', '1.2'],
+      cargo: plan,
+      crewRouteDays: 178,
+      stay: STAY,
+    }
     const replan = { ...plan, kilopower: 3 }
-    expect(recordCargo(list3, done, replan, 150)).toEqual({
+    expect(recordCargo(list3, done, replan, 150, STAY)).toEqual({
       ...fresh,
       completed: ['1.1'],
       cargo: replan,
       crewRouteDays: 150,
+      stay: STAY,
     })
   })
 
@@ -171,20 +190,36 @@ describe('recordCargo', () => {
     expect(loadProgress(s, owner, ids).progress).toEqual(fresh)
   })
 
+  it('reopens 1.1 for a save from before the stay was chosen', () => {
+    const ids = withCargo.map((x) => x.id)
+    const { stay: _s, ...old } = recordCargo(withCargo, fresh, plan, 178, STAY)
+    const s = store({ [PROGRESS_KEY]: JSON.stringify(old) })
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual([])
+  })
+
   it('restores a valid saved cargo plan', () => {
     const ids = withCargo.map((x) => x.id)
     const s = store()
-    saveProgress(s, recordCargo(withCargo, fresh, plan, 178))
+    saveProgress(s, recordCargo(withCargo, fresh, plan, 178, STAY))
     expect(loadProgress(s, owner, ids).progress.cargo).toEqual(plan)
   })
 })
 
 describe('recordSite and retryFrom', () => {
   const owner = '2026-10-25T08:00:00.000Z'
-  const plan = { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+  const plan = {
+    kilopower: 4,
+    solar: 0,
+    battery: 0,
+    isru: 2,
+    foodSols: 525,
+    waterKg: 0,
+    recycler: 0,
+    greenhouseM2: 0,
+  }
   const list3 = [m('1.1', true), m('1.2', true), m('1.3', true)]
   const site = { zone: 'Jezero-Syrtis-Isidis', siteId: 'jezero', lon: 77.5, lat: 18.4 }
-  const packed = recordCargo(list3, { version: 1, owner, completed: [] }, plan, 178)
+  const packed = recordCargo(list3, { version: 1, owner, completed: [] }, plan, 178, STAY)
 
   it('completes 1.2 and keeps the chosen site', () => {
     const p = recordSite(list3, packed, site)
@@ -221,12 +256,21 @@ describe('recordSite and retryFrom', () => {
 
 describe('crew route', () => {
   const owner = '2026-10-25T08:00:00.000Z'
-  const plan = { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 }
+  const plan = {
+    kilopower: 4,
+    solar: 0,
+    battery: 0,
+    isru: 2,
+    foodSols: 525,
+    waterKg: 0,
+    recycler: 0,
+    greenhouseM2: 0,
+  }
   const list2 = [m('1.1', true), m('1.2', true)]
   const fresh = { version: 1 as const, owner, completed: [] }
 
   it('keeps the chosen crew route with the cargo', () => {
-    expect(recordCargo(list2, fresh, plan, 150).crewRouteDays).toBe(150)
+    expect(recordCargo(list2, fresh, plan, 150, STAY).crewRouteDays).toBe(150)
   })
 
   it('reopens 1.1 when the saved route is missing or not a sensible flight time', () => {
@@ -238,6 +282,7 @@ describe('crew route', () => {
           completed: ['1.1'],
           cargo: plan,
           crewRouteDays,
+          stay: STAY,
         }),
       })
       expect(loadProgress(s, owner, ids).progress.completed).toEqual([])
@@ -295,8 +340,18 @@ describe('recordBase', () => {
         version: 1,
         owner,
         completed: ['1.1', '1.2', '1.3', '1.4'],
-        cargo: { kilopower: 4, solar: 0, battery: 0, isru: 2, foodSols: 525, waterKg: 0 },
+        cargo: {
+          kilopower: 4,
+          solar: 0,
+          battery: 0,
+          isru: 2,
+          foodSols: 525,
+          waterKg: 0,
+          recycler: 0,
+          greenhouseM2: 0,
+        },
         crewRouteDays: 178,
+        stay: STAY,
         site: { zone: 'Gale Crater', siteId: 'gale', lon: 137.811, lat: -5.3672 },
         base: { habitat: { lon: 'x' } },
       }),

@@ -10,7 +10,6 @@ import {
   MAV_CONDITIONING_KW,
   PREVIEW_SITE,
   SOLAR_SET_AREA_M2,
-  SURFACE_STAY_SOLS,
 } from '../../core/mission-constants'
 import { CARGO_DEMAND_KW, powerProfile } from '../../core/power-profile'
 import { ARRAY_DUST_FACTOR, ARRAY_EFFICIENCY } from '../../core/surface-solar'
@@ -114,19 +113,20 @@ export function oxygenView(plan: CargoPlan): HTMLElement {
   )
 }
 
-export function foodView(plan: CargoPlan): HTMLElement {
-  const share = Math.min(1, plan.foodSols / SURFACE_STAY_SOLS)
+/** Packed food against the sol the next ship lands (`targetSol`). */
+export function foodView(plan: CargoPlan, targetSol: number): HTMLElement {
+  const share = Math.min(1, plan.foodSols / targetSol)
   const fill = el('span', { className: 'meter-fill' })
   fill.style.width = `${share * 100}%`
-  fill.dataset.short = String(plan.foodSols < SURFACE_STAY_SOLS)
+  fill.dataset.short = String(plan.foodSols < targetSol)
   const meter = el('div', { className: 'meter', role: 'img' }, fill)
-  meter.setAttribute('aria-label', `Food lasts ${plan.foodSols} of ${SURFACE_STAY_SOLS} sols`)
+  meter.setAttribute('aria-label', `Packed food lasts ${plan.foodSols} of ${targetSol} sols`)
   return el(
     'div',
     { className: 'view' },
     el('p', {
       className: 'chart-title',
-      textContent: `Food lasts ${plan.foodSols} of the ${SURFACE_STAY_SOLS} sols on Mars`,
+      textContent: `Packed food lasts ${plan.foodSols} of the ${targetSol} sols until the next ship lands`,
     }),
     meter,
   )

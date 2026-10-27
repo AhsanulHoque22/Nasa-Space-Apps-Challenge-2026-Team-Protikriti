@@ -16,6 +16,8 @@ const plan = (p: Partial<CargoPlan>): CargoPlan => ({
   isru: 1,
   foodSols: 525,
   waterKg: 0,
+  recycler: 0,
+  greenhouseM2: 0,
   ...p,
 })
 

@@ -16,3 +16,19 @@ export const staySols = (days: number): number => Math.ceil(days / DAYS_PER_SOL)
 /** The sol (counted from the crew's landing, sol 1 = landing day) the next ship lands. */
 export const nextShipSol = (crewArriveMs: number, shipArriveMs: number): number =>
   Math.ceil((shipArriveMs - crewArriveMs) / SOL_MS)
+
+/** The stay chosen in mission 1.1, and the next ship's route and landing sol. */
+export type Stay = { days: number; sols: number; nextShipSol: number; nextShipRouteDays: number }
+
+export const isStay = (v: unknown): v is Stay => {
+  const s = v as Partial<Stay> | null
+  return (
+    !!s &&
+    STAY_DAYS.includes(s.days as (typeof STAY_DAYS)[number]) &&
+    s.sols === staySols(s.days as number) &&
+    Number.isInteger(s.nextShipSol) &&
+    (s.nextShipSol as number) > 0 &&
+    (s.nextShipSol as number) < (s.sols as number) &&
+    Number.isInteger(s.nextShipRouteDays)
+  )
+}

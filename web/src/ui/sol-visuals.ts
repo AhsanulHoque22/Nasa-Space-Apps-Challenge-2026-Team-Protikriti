@@ -11,7 +11,7 @@ const SVG = 'http://www.w3.org/2000/svg'
 const DAY = '#c27c22' // the solar colour of the mission 1.1 charts
 const SUPPLY = '#5b8def'
 
-function svg<K extends keyof SVGElementTagNameMap>(
+export function svg<K extends keyof SVGElementTagNameMap>(
   tag: K,
   attrs: Record<string, string | number> = {},
   text?: string,

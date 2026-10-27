@@ -22,6 +22,8 @@ import { darkestSolStartUtc, daylightSun } from '../core/surface-solar'
 import type { KeyValueStore } from '../core/streetview'
 import { openDock } from './mission-dock'
 import { cargoSteps, massGauge } from './missions/cargo-steps'
+import { chosenStay } from './missions/stay-step'
+import { STAY_DAYS } from '../core/stay'
 import type { JourneyChoice } from './missions/journey-step'
 import { baseSteps } from './missions/base-steps'
 import { landingSteps } from './missions/landing-steps'
@@ -32,7 +34,16 @@ import { stormSteps } from './missions/storm-steps'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { StoryServices } from './story'
 
-const EMPTY: CargoPlan = { kilopower: 0, solar: 0, battery: 0, isru: 0, foodSols: 0, waterKg: 0 }
+const EMPTY: CargoPlan = {
+  kilopower: 0,
+  solar: 0,
+  battery: 0,
+  isru: 0,
+  foodSols: 0,
+  waterKg: 0,
+  recycler: 0,
+  greenhouseM2: 0,
+}
 
 export type PlayContext = {
   store: KeyValueStore | undefined
@@ -73,7 +84,12 @@ function playCargo(title: string, ctx: PlayContext): void {
     ctx.onDone(progress, note)
   }
   const plan: CargoPlan = { ...(ctx.progress.cargo ?? EMPTY) }
-  const journey: JourneyChoice = { routeIndex: 0, journeys: null }
+  const journey: JourneyChoice = {
+    routeIndex: 0,
+    journeys: null,
+    shipIndex: 0,
+    stayDays: ctx.progress.stay?.days ?? STAY_DAYS[0],
+  }
   const steps = cargoSteps(
     plan,
     journey,
@@ -81,8 +97,9 @@ function playCargo(title: string, ctx: PlayContext): void {
     (step) => dock.goTo(step),
     () => {
       const route = journey.journeys?.routes[journey.routeIndex]
-      if (!route) return // the journey step has not finished loading; nothing to record yet
-      const next = recordCargo(MISSIONS, ctx.progress, { ...plan }, route.days)
+      const stay = chosenStay(journey)
+      if (!route || !stay) return // the journey step has not finished loading; nothing to record yet
+      const next = recordCargo(MISSIONS, ctx.progress, { ...plan }, route.days, stay)
       end(next, saved(ctx, next, 'Cargo loaded. Mission 1.1 is done.'))
     },
   )
