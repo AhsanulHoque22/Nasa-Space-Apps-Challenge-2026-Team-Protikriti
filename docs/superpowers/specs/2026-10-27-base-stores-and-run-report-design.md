@@ -5,6 +5,8 @@ Story mode, Expedition 1. Agreed with the user on 2026-10-27.
 ## 1. What the user asked
 
 - The crew live on what they packed in 1.1 and what they make on Mars. If any supply runs out early, the expedition is over and the player **starts again from 1.1**.
+- Reports are numbered: **Mission report v1, v2, …**, one per failed run, and all of them are kept.
+- In a later run, a choice that repeats a mistake from a report gets a **warning** at once, naming the report ("Mission report v2 warned about this").
 - After a failed run, the player gets a **report of the mistakes**, mission by mission, with **suggested measures** for each mission. In the next run the report sits **inside each mission**, closed by default, for the player to open when they want help.
 
 ## 2. The stores
@@ -49,7 +51,20 @@ Food and water are checked at every step of the clock. So a 400-sol food pack fa
 `core/run-report.ts`, pure: `runReport(progress, failure) → Lesson[]`.
 
 ```ts
-type Lesson = { missionId: string; mistake: string; measure: string; numbers: string }
+type Lesson = {
+  missionId: string
+  mistake: string
+  measure: string
+  numbers: string
+  /** The choice that caused it, as a rule the next run can test (§4a). */
+  guard: Guard
+}
+type MissionReport = {
+  version: number // 1, 2, … per profile
+  endedSol: number
+  cause: string
+  lessons: Lesson[]
+}
 ```
 
 Rules use the same models as the missions, so every suggested measure is checked before it is shown. For example:
@@ -72,9 +87,27 @@ Examples:
 There are also lessons from missions that didn't end the run, such as a walk that only just made it back. The mission that ended the run is marked.
 
 **Storage:**
-- The report is saved under its own key, `atlas.lastRun`, bound to the profile owner.
-- It holds the lessons, the sol, and the cause.
-- It survives the restart; only the next failed run replaces it.
+- Reports are saved under their own key, `atlas.reports`, bound to the profile owner.
+- It is a list `MissionReport[]`, oldest first; a failed run appends the next version.
+- It survives the restart. A new crew name starts with no reports.
+
+## 4a. Warnings from past reports
+
+A `Guard` is plain data that a pure function `guardHit(guard, choice) → boolean` tests against the current choice. Examples:
+
+| Guard | Fires when |
+|---|---|
+| `{ kind: 'min', field: 'cargo.kilopower', value: 3 }` | packing fewer than 3 reactors in 1.1 |
+| `{ kind: 'min', field: 'cargo.foodSols', value: 525 }` | packing too little food (unless the greenhouse plan covers it) |
+| `{ kind: 'max', field: 'greenhouse.peakKw', value: spare }` | planting more lights than the reactors carry |
+| `{ kind: 'equals', field: 'storm.habitatMode', value: 'nominal' }` | keeping the habitat in normal mode for the storm |
+| `{ kind: 'min', field: 'walk.marginMin', value: 60 }` | planning a walk with less than the 1 h reserve |
+
+**When a guard fires:**
+- An amber warning appears beside the control at that moment, not at the end of the mission. It reads: **"Mission report v2: last time 2 reactors left the greenhouse with no power. Pack at least 3."**
+- It links to that lesson in the report.
+- Warnings never block. The player can ignore them and live with the result, as with the Flight Director.
+- Only the newest report that has a lesson for that choice gives the warning, so the same mistake doesn't warn twice.
 
 ## 5. Where the player sees it
 
@@ -87,19 +120,23 @@ There are also lessons from missions that didn't end the run, such as a walk tha
 
    Each item shows a word as well as a colour (OK / Low / Out), so the state is never shown by colour alone.
 2. **The Mission over screen** (§3), with the full report.
-3. **In each mission of the next run:** a closed button in the dock header, "Lessons from your last run (2)". It opens only that mission's lessons. It doesn't appear when there are none.
-4. **The Story screen** keeps a "Last run report" link that shows the whole report.
+3. **In each mission of the next run:** a closed button in the dock header, "Lessons from Mission report v2 (2)". It opens only that mission's lessons. It doesn't appear when there are none.
+4. **Live warnings** (§4a) beside the control when a choice repeats a reported mistake.
+5. **The Story screen** keeps a "Mission reports" list (v1, v2, …), and each one opens in full.
 
 ## 6. Testing
 
 - **TDD for the pure modules:**
   - `base-stores`: food runs out on the right sol; the greenhouse adds sols; water with recovery; storm shortfall ends the run.
   - `run-report`: each rule fires with its numbers; each suggested measure passes its own check.
-  - the `lastRun` validator.
+  - `guardHit` for each guard kind;
+  - versions count up and old reports are kept;
+  - the `atlas.reports` validator.
 - **Browser:**
   - a 2-reactor run fails in 1.7 and shows the report;
   - Start again opens 1.1;
-  - the lessons button shows in 1.1 and 1.6.
+  - the lessons button shows in 1.1 and 1.6;
+  - packing 2 reactors again shows the "Mission report v1" warning.
 
 ## 7. Not in scope
 
