@@ -9,6 +9,41 @@ Story mode, Expedition 1. Agreed with the user on 2026-10-27.
 - In a later run, a choice that repeats a mistake from a report gets a **warning** at once, naming the report ("Mission report v2 warned about this").
 - After a failed run, the player gets a **report of the mistakes**, mission by mission, with **suggested measures** for each mission. In the next run the report sits **inside each mission**, closed by default, for the player to open when they want help.
 
+## 1a. Decisions (user, 2026-10-27)
+
+- Water recovery is 98 %: the ISS ECLSS rate (NASA, June 2023), labelled as our assumption for the Mars habitat.
+- In 1.6 the greenhouse can still be built on a NO-GO. The base then browns out and the run ends.
+- **The player chooses the stay length in 1.1.** The minimum is "until the next ship from Earth lands".
+
+## 1b. Stay length (mission 1.1)
+
+**The orbital facts:**
+- An Earth–Mars launch window comes once per synodic period, **779.94 days** (NASA Mars Fact Sheet).
+- The crew's first return date is **539 days** after landing (DRA 5.0, Drake 2009).
+- Later return dates fall one synodic period apart, which is our derivation from those two facts.
+
+| Stay | Days | Sols | Next ship lands |
+|---|---|---|---|
+| Short (minimum) | 1,319 | 1,284 | day ≈ 780 (sol 759), during the stay |
+| Long | 2,099 | 2,043 | day ≈ 780 and day ≈ 1,560 |
+
+The 539-day stay is no longer offered, because the crew would leave before the next ship lands.
+
+**What changes:**
+- **1.1 cargo is sized to reach the next ship:** food, water and power must last from landing to sol 759. The supplies carried by later ships are packed in Expedition 2 ("Pack the second lander").
+- The cargo screen shows:
+  - the chosen stay;
+  - the sol the next ship lands;
+  - how many sols the food covers against that.
+- **`SURFACE_STAY_SOLS` (525) is replaced** by the chosen stay. Every place that reads it is updated:
+  - the cargo warnings;
+  - the storm season and sol numbers;
+  - the mission 1.1 sol timeline;
+  - the stores clock.
+- **The food stepper's maximum rises** from 600 sols to cover 759 sols. Its mass already scales with the sols packed (BVAD 2.39 kg per crew member per day), so the 40 t lander limit makes this a real trade-off.
+- **The progress record gains `staySols`.** Old saves that don't have it start 1.1 again.
+- **Expedition 1's end-of-run check happens at the next ship's landing (sol 759).** Surviving to that sol completes Expedition 1. Mission 1.8 "Return window" becomes the stay's return date, which is played at the end of the chosen stay.
+
 ## 2. The stores
 
 A pure module `core/base-stores.ts` keeps a ledger on a **sol clock**. Every number comes from code that already exists, or is labelled a team assumption.
@@ -27,7 +62,7 @@ The ledger is not ticked live. Each mission, when it ends, hands over **the sols
 - 1.3 lands on sol 1.
 - 1.4 to 1.6 take the sols they already show, such as the greenhouse growth days.
 - 1.7 jumps to the storm's arrival sol + 100.
-- 1.8 runs to sol 525.
+- 1.8 runs to the next ship's landing (sol 759), then the return date of the chosen stay.
 
 Food and water are checked at every step of the clock. So a 400-sol food pack fails on the sol it runs out, even when that sol falls during the jump to 1.8.
 
