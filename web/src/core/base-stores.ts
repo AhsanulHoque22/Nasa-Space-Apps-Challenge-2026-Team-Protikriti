@@ -34,8 +34,10 @@ export type StoresInput = {
   greenhouse: { kcalPerDay: number; firstHarvestSol: number; lightsKw: number } | null
   /** Marswalks: suits recharged from the battery that sol. */
   walks: readonly { sol: number; suits: number }[]
-  /** Habitat power on a sol, kW; DRA 5.0's 12.1 kW unless the crew changed it (the storm). */
-  habitatKw?: (sol: number) => number
+  /** Habitat power on a sol, kW, when the crew changed it (the storm); else DRA 5.0's 12.1 kW. */
+  habitatKw?: (sol: number) => number | undefined
+  /** Greenhouse lights on a sol, kW, when the crew changed them (the storm). */
+  lightsKw?: (sol: number) => number | undefined
 }
 
 export type StoresDay = { sol: number; foodSols: number; waterKg: number; batteryKwh: number }
@@ -61,7 +63,9 @@ export function runStores(i: StoresInput): StoresRun {
     food += -1 + (g && sol >= g.firstHarvestSol ? g.kcalPerDay / crewKcalPerDay() : 0)
     water -= waterPerSol
     const loadKw =
-      (i.habitatKw?.(sol) ?? HABITAT_EXTERNAL_KWE) + MAV_CONDITIONING_KW + (g?.lightsKw ?? 0)
+      (i.habitatKw?.(sol) ?? HABITAT_EXTERNAL_KWE) +
+      MAV_CONDITIONING_KW +
+      (i.lightsKw?.(sol) ?? g?.lightsKw ?? 0)
     const suitsKwh = i.walks
       .filter((w) => w.sol === sol)
       .reduce((s, w) => s + w.suits * SUIT_BATTERY_KWH, 0)
