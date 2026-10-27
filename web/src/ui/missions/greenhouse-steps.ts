@@ -14,7 +14,13 @@ import {
   greenhouseSiteProblems,
   kcalPerM2Day,
   lightWm2,
+  reactorsNeeded,
 } from '../../core/greenhouse'
+import {
+  HABITAT_EXTERNAL_KWE,
+  KILOPOWER_DELIVERED_KWE,
+  MAV_CONDITIONING_KW,
+} from '../../core/mission-constants'
 import type { Grid } from '../../core/grid'
 import type { Greenhouse, Progress } from '../../core/mission-progress'
 import type { SiteFeature } from '../../core/site-features'
@@ -140,6 +146,19 @@ export function greenhouseSteps(
   const areas: Areas = { ...(progress.greenhouse?.areas as Areas | undefined) }
   let at: LonLat | null = progress.greenhouse?.at ?? null
   const budget = () => greenhouseBudget(areas, units)
+
+  /** Where the reactors' power goes, so a NO-GO says why. */
+  const powerLedger = () =>
+    `${units} reactor${units === 1 ? ' gives' : 's give'} ${kw(units * KILOPOWER_DELIVERED_KWE)}; the habitat takes ${kw(HABITAT_EXTERNAL_KWE)} and the return rocket’s fuel plant ${kw(MAV_CONDITIONING_KW)}, leaving ${kw(budget().spareKw)} for the lights.`
+
+  const noFitAdvice = () => {
+    const need = reactorsNeeded(areas)
+    if (need === null)
+      return 'Even five reactors, the most the cargo lander carries, cannot light this much. Plant less.'
+    return units === 0
+      ? `No reactors were packed in mission 1.1. This greenhouse needs ${need}: replay mission 1.1 and pack them.`
+      : `No smaller planting fits: the habitat and the return rocket use the reactors’ power. This greenhouse needs ${need} reactors, you packed ${units}. Replay mission 1.1 and pack ${need - units} more.`
+  }
 
   /** The live numbers, shown on the crop and chamber steps. */
   const summary = () => {
@@ -393,12 +412,7 @@ export function greenhouseSteps(
                     { className: 'fd-options' },
                     ...options.map((o) => el('li', { textContent: o.text })),
                   )
-                : el('p', {
-                    textContent:
-                      units === 0
-                        ? 'No reactors were packed in mission 1.1, so there is no steady power for lights.'
-                        : 'No smaller change fits: the habitat and the return rocket already use the reactors’ power.',
-                  }),
+                : el('p', { textContent: noFitAdvice() }),
               el('p', {
                 className: 'fd-note',
                 textContent:
@@ -421,6 +435,7 @@ export function greenhouseSteps(
             ? `The lights fit: ${kw(b.peakKw)} of the ${kw(b.spareKw)} the reactors have spare, with all of them on at once.`
             : `The lights need ${kw(b.peakKw)} with all of them on, but the reactors have ${kw(Math.max(0, b.spareKw))} spare.`,
         }),
+        el('p', { className: 'fd-note', textContent: powerLedger() }),
         help,
         el(
           'div',

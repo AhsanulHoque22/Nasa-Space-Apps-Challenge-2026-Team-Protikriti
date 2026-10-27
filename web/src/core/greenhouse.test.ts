@@ -6,6 +6,7 @@ import {
   cropById,
   greenhouseBudget,
   greenhouseOptions,
+  reactorsNeeded,
   lightWm2,
   spareReactorKw,
   greenhouseSiteProblems,
@@ -77,6 +78,19 @@ describe('greenhouseOptions', () => {
 
   it('offers nothing when the plan already fits', () => {
     expect(greenhouseOptions({ lettuce: 10 }, 4)).toEqual([])
+  })
+})
+
+describe('reactorsNeeded', () => {
+  it('counts the reactors that leave room for the lights beside the habitat and the return rocket', () => {
+    // 2 units: 17.5 kW − 12.1 − 6.655 < 0, so 6 m² of lettuce needs a third.
+    expect(greenhouseBudget({ lettuce: 6 }, 2).fits).toBe(false)
+    expect(reactorsNeeded({ lettuce: 6 })).toBe(3)
+    expect(greenhouseBudget({ lettuce: 6 }, 3).fits).toBe(true)
+  })
+
+  it('is null when even five reactors (the cargo limit) are not enough', () => {
+    expect(reactorsNeeded({ wheat: 200 })).toBeNull()
   })
 })
 

@@ -140,6 +140,8 @@ export function spareReactorKw(kilopowerUnits: number): number {
   return kilopowerUnits * KILOPOWER_DELIVERED_KWE - HABITAT_EXTERNAL_KWE - MAV_CONDITIONING_KW
 }
 
+const MAX_KILOPOWER_UNITS = 5 // CARGO_ITEMS kilopower max (4 + 1 spare, Rucker 2016 Table 5)
+
 export type Areas = Partial<Record<CropId, number>>
 
 export type GreenhouseBudget = {
@@ -207,6 +209,12 @@ export function greenhouseOptions(areas: Areas, kilopowerUnits: number): Greenho
       })
   }
   return out
+}
+
+/** The fewest reactors that power this greenhouse, or null past the cargo limit of 5 (mission 1.1). */
+export function reactorsNeeded(areas: Areas): number | null {
+  for (let n = 1; n <= MAX_KILOPOWER_UNITS; n++) if (greenhouseBudget(areas, n).fits) return n
+  return null
 }
 
 /** Illustration only: the canopy rises evenly to its mature height by harvest day. */
