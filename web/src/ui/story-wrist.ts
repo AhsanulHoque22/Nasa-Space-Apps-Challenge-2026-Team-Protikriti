@@ -59,15 +59,23 @@ export function routeMinimap(path: readonly Cell[], you: Cell, next: Cell | null
   return { path: path.map(at), stops: [], you: at(you), next: next ? at(next) : null, size }
 }
 
+/** Sinks less than the Martian Map's arm (0.09), so the screens sit higher. Team choice. */
+const STORY_SINK_FRAC = 0.01
+
 export function openStoryWrist(
   tasks: Task[],
   controls: WristControls,
 ): { update: (f: WristFeed) => void; close: () => void } {
-  // Centred on the map, beside the base crew's panel.
+  // On the left of the map, beside the base crew's panel, and higher than in the Martian Map.
   const wrist = mountWrist(document.body, () => {
     const map = document.getElementById('globe')?.getBoundingClientRect()
-    return map ? { left: map.left, width: map.width } : { left: 0, width: window.innerWidth }
+    const area = map ? { left: map.left, width: map.width } : { left: 0, width: window.innerWidth }
+    return { ...area, screensLeft: true, sinkFrac: STORY_SINK_FRAC }
   })
+  // The walk narrows the dock after the arm opens, which moves the map's left edge.
+  const globe = document.getElementById('globe')
+  const resized = new ResizeObserver(() => wrist.relayout())
+  if (globe) resized.observe(globe)
   wrist.main.classList.add('sw-main')
   wrist.side.classList.add('sw-side')
 
@@ -216,6 +224,9 @@ export function openStoryWrist(
         messages.replaceChildren(...f.messages.map((m) => el('li', { textContent: m })))
       }
     },
-    close: () => wrist.dismiss(() => wrist.destroy()),
+    close: () => {
+      resized.disconnect()
+      wrist.dismiss(() => wrist.destroy())
+    },
   }
 }

@@ -13,6 +13,7 @@ import {
   LabelStyle,
   Math as CesiumMath,
   Matrix4,
+  PerspectiveFrustum,
   VerticalOrigin,
   type Viewer,
 } from 'cesium'
@@ -41,6 +42,8 @@ const FRAME_RADII = 3.2 // the route fills about a third of the view
 const FRAME_MIN_M = 400
 const FOLLOW_RANGE_M = 260 // behind and above the crew: close enough to see the ground they cross
 const FOLLOW_PITCH_DEG = -28
+/** Where the followed crew sit on screen, from the top (0.5 = centre): above the wrist console. */
+const FOLLOW_SCREEN_Y = 0.25
 const CREW = Color.fromCssColorString('#f2c230')
 const DARK = Color.fromCssColorString('#05070C')
 const MARKER_LIFT_M = 2
@@ -147,6 +150,10 @@ export function createWalkMap(
             FOLLOW_RANGE_M,
           ),
         )
+        // Tilt the view down so the crew sit higher on screen than its centre.
+        const frustum = viewer.camera.frustum
+        if (frustum instanceof PerspectiveFrustum && frustum.fovy !== undefined)
+          viewer.camera.lookDown(Math.atan(Math.tan(frustum.fovy / 2) * (1 - 2 * FOLLOW_SCREEN_Y)))
       } else release()
     },
     release,

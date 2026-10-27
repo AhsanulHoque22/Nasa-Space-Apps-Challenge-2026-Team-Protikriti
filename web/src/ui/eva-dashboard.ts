@@ -267,6 +267,8 @@ export type Wrist = {
   side: HTMLElement
   /** Move the whole arm a little: x, y in px and a twist in degrees, the way a held hand drifts. */
   sway(x: number, y: number, deg: number): void
+  /** Place the arm again, after the area it sits in changed size. */
+  relayout(): void
   /** Lower the arm out of view, then remove it. */
   dismiss(done: () => void): void
   destroy(): void
@@ -283,8 +285,19 @@ const MAX_HEIGHT_FRAC = 0.64 // the arm may fill at most this much of the window
 const SINK_FRAC = 0.09
 const DISMISS_FALLBACK_MS = 700
 
-/** The part of the window the arm is centred in and sized to (default: all of it). */
-export type WristArea = () => { left: number; width: number }
+/**
+ * The part of the window the arm is placed in and sized to (default: all of it). `screensLeft`
+ * puts the screens against the area's left edge instead of its centre; `sinkFrac` overrides how
+ * far the arm sinks below the bottom edge (a share of the window's height).
+ */
+export type WristArea = () => {
+  left: number
+  width: number
+  screensLeft?: boolean
+  sinkFrac?: number
+}
+/** Gap between the area's left edge and the screens when they sit on the left, px. */
+const LEFT_GAP_PX = 24
 
 export function mountWrist(
   parent: HTMLElement = document.body,
@@ -331,9 +344,11 @@ export function mountWrist(
       (a.width * MAX_WIDTH_FRAC) / ARM_W,
       (window.innerHeight * MAX_HEIGHT_FRAC) / ARM_H,
     )
-    // Centre the screens, not the photo, on the area.
-    arm.style.left = `${a.left + a.width / 2 + (ARM_W / 2 - GLASS_CENTRE_X) * k}px`
-    const sink = window.innerHeight * SINK_FRAC
+    // Place the screens, not the photo: centred on the area, or against its left edge.
+    arm.style.left = a.screensLeft
+      ? `${a.left + LEFT_GAP_PX + (ARM_W / 2 - MAIN_GLASS[0][0]) * k}px`
+      : `${a.left + a.width / 2 + (ARM_W / 2 - GLASS_CENTRE_X) * k}px`
+    const sink = window.innerHeight * (a.sinkFrac ?? SINK_FRAC)
     arm.style.transform = `translate(-50%, 0) translate(${sx.toFixed(2)}px, ${(sy + sink).toFixed(2)}px) rotate(${sdeg.toFixed(3)}deg) scale(${k.toFixed(4)})`
   }
   place()
@@ -350,6 +365,7 @@ export function mountWrist(
       sdeg = deg
       place()
     },
+    relayout: place,
     dismiss(done) {
       root.classList.remove('is-up')
       let finished = false

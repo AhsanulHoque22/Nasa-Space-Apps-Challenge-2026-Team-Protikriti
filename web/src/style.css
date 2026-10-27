@@ -5747,3 +5747,13 @@ button.journey-label:focus-visible {
 .report-warnings:empty {
   display: none;
 }
+
+/* The stores bar takes its own row under the mission name, so a narrow dock does not squeeze it. */
+.dock-status:has(.stores-bar) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.stores-item {
+  white-space: nowrap;
+}
