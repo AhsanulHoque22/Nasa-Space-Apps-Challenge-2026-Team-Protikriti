@@ -514,7 +514,10 @@ export function greenhouseSteps(
   const check = () => {
     if (!at) {
       problemsEl.replaceChildren(
-        el('li', { textContent: 'Click the ground to place the greenhouse.' }),
+        el('li', {
+          textContent:
+            'Click the ground on the map (right) to place the greenhouse, then press Finish.',
+        }),
       )
       return false
     }
@@ -571,7 +574,13 @@ export function greenhouseSteps(
     },
     onHide: () => map.base.pick(null),
     onNext: () => {
-      if (!check() || !at) return false
+      if (!check() || !at) {
+        // Say why nothing happened: the reason sits above the fold of a long step.
+        problemsEl.dataset.flash = 'true'
+        problemsEl.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        setTimeout(() => delete problemsEl.dataset.flash, 1600)
+        return false
+      }
       map.base.pick(null)
       onDone({ areas: areas as Record<string, number>, at })
       return false

@@ -5757,3 +5757,10 @@ button.journey-label:focus-visible {
 .stores-item {
   white-space: nowrap;
 }
+
+/* A step's blocking reason, flashed when its main button was pressed too early. */
+.gh-problems[data-flash] {
+  outline: 2px solid #ffc35a;
+  outline-offset: 4px;
+  border-radius: 6px;
+}
