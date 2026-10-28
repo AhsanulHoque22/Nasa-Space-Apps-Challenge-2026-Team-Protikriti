@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Council: mission logistics</title>
+<style>
+  :root { --ink:#1b1f24; --muted:#5b6470; --rule:#e3e6ea; --accent:#0b3d91; --agree:#1f7a4d; --clash:#b4540a; --bg:#fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink:#e9edf2; --muted:#a8b2bf; --rule:#2c333c; --accent:#7aa2ff; --agree:#5fd39a; --clash:#ffb26b; --bg:#12161b; } }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-size:28px; margin:0 0 4px; } h2 { font-size:20px; margin:32px 0 8px; } .muted { color:var(--muted); }
+  .verdict { border-left:4px solid var(--accent); padding:12px 16px; background:color-mix(in srgb, var(--accent) 7%, transparent); border-radius:6px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } th,td { text-align:left; padding:8px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  .y { color:var(--agree); font-weight:600; } .n { color:var(--clash); font-weight:600; }
+  details { border:1px solid var(--rule); border-radius:8px; padding:8px 12px; margin:8px 0; } summary { cursor:pointer; font-weight:600; }
+  ol li { margin-bottom:6px; } footer { margin-top:40px; font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <p class="muted">LLM Council · 2026-10-28</p>
+  <h1>Mission logistics logic</h1>
+  <p>Players cannot fit 3 reactors and enough food on one 40 t lander, and the greenhouse fails without spare power. What logic should ATLAS implement, grounded in NASA planning and buildable for the demo?</p>
+
+  <h2>Verdict</h2>
+  <div class="verdict">
+    <p><strong>Use two landers, as NASA does.</strong> Lander A, the cargo lander, lands early with up to 18,430 kg: the reactors, the oxygen plants and 75% of the food. Lander B, the habitat lander, carries up to 40,400 kg: the habitat, recycler, water, battery, greenhouse and 25% of the food. These limits are from DRA 5.0 Table 5-1.</p>
+    <p><strong>Stored food always covers 100%</strong> to the next ship (sol 804, worst case) plus 10%, so a greenhouse failure can't starve the crew. <strong>The greenhouse earns extra sols</strong> on top of that, which is what makes growing food pay off in the game.</p>
+    <p><strong>First step:</strong> a golden test proving NASA's own manifest passes the check (17.3 t on lander A, 29.8 t on lander B) and earns more than 0 sols.</p>
+  </div>
+
+  <h2>Where advisors stood</h2>
+  <table>
+    <tr><th>Question</th><th>Contrarian</th><th>First principles</th><th>Expansionist</th><th>Outsider</th><th>Executor</th></tr>
+    <tr><td>Two landers</td><td class="y">Yes</td><td class="n">One</td><td class="y">Yes</td><td class="y">Yes, A pre-filled</td><td class="y">Yes, fixed manifest</td></tr>
+    <tr><td>100% stored food</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">Keep reserve rule</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+    <tr><td>Nominal BVAD yields</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+    <tr><td>No separate oxygen store</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Derived line</td><td class="y">Show an "Air" line</td><td class="y">Yes</td></tr>
+    <tr><td>LED value</td><td>1.66 (BVAD)</td><td>Fix the citation</td><td>3.0, labelled</td><td>1.66</td><td>3.4, labelled</td></tr>
+  </table>
+
+  <h2>Blind spots caught in peer review</h2>
+  <ul>
+    <li>Lander A has only 18,430 kg of cargo room, because the ascent stages take the rest of its 40 t. Giving it a full 40 t would double NASA's figure.</li>
+    <li>3 reactors are 105 W short in the cargo phase: 26.25 kW against 26.355 kW (Rucker).</li>
+    <li>The planned water drain from splitting water for oxygen is fake: the oxygen plants already make the crew's oxygen.</li>
+    <li>Solar must be sized for Rucker's 120-sol storm at about 30% light. Opportunity's 3% was the extreme case.</li>
+    <li>Growing food never earned any time in the first draft. A "sols earned" rule now gives growing food a payoff.</li>
+  </ul>
+
+  <h2>Final rules</h2>
+  <ol>
+    <li>Two landers: A ≤ 18,430 kg, B ≤ 40,400 kg (DRA 5.0 Table 5-1).</li>
+    <li>Lander A comes pre-filled from the DRA manifest and is only lightly editable. The player packs lander B. Two mass gauges.</li>
+    <li>Reactors and oxygen plants go on lander A. The cargo phase needs 26.355 kW: 4 reactors, or 3 plus solar.</li>
+    <li>8.75 kWe delivered per reactor; 10 kWe is the nameplate rating.</li>
+    <li>Stored food covers 100% to sol 804 plus 10%, split 75/25 between the landers.</li>
+    <li>GO means surviving both a nominal run and a zero-crop run. A 120-sol storm at 30% light gives a warning.</li>
+    <li>The greenhouse produces from its first harvest at BVAD nominal yield, only while its lights have power.</li>
+    <li>Lights are sized at 1.66 µmol/J (BVAD). Hardware is 81.5 kg/m².</li>
+    <li>Regrowth earns "sols earned", shown in the ledger and the reports.</li>
+    <li>The next ship brings food for the rest of the stay. Expedition 1's window ends at sol 804.</li>
+    <li>Water use is 4.48 kg/person-day; the recycler recovers 98%.</li>
+    <li>Oxygen comes from the oxygen plants, shown as a derived "Air" line.</li>
+    <li>A briefing at the start of 1.1, with every term explained.</li>
+    <li>A "what later missions need" pass/fail table.</li>
+    <li>Run reports add mass per lander, sols earned and the zero-crop result.</li>
+  </ol>
+
+  <h2>Advisor responses</h2>
+  <details><summary>Contrarian</summary><p>The draft isn't ready: three contradictions and an arithmetic trap. The reserve rule (L3) and the GO check (L7) cancel each other. Three reactors are 105 W short. Splitting water for oxygen is a fake drain. The storm sizing is wrong. Lander A's food has a shelf-life limit. The recycler is effectively mandatory.</p></details>
+  <details><summary>First principles</summary><p>The real fault is the food target: food only needs to reach the next ship (8.69 t). On that basis one lander fits at 38.8 t. The greenhouse power figure comes from old lamps. Two reactors can't carry the constant load.</p></details>
+  <details><summary>Expansionist</summary><p>Treat the next ship as part of a supply pipeline. Packing ship 2 could be a player decision, the contingency food in orbit is a ready story beat, and a long-stay greenhouse can cross the break-even point.</p></details>
+  <details><summary>Outsider</summary><p>The greenhouse looks like a trap. Show lander A as already on Mars. Explain the jargon. Don't claim to predict when a storm arrives.</p></details>
+  <details><summary>Executor</summary><p>Fixed manifest, two gauges, the existing ledger run twice, and a static briefing. Cut the Flight Director and the extra panels.</p></details>
+
+  <footer>Full transcript: docs/council/council-transcript-2026-10-28.md · Research: reports/NASA Mars surface logistics planning.md</footer>
+</main>
+</body>
+</html>
