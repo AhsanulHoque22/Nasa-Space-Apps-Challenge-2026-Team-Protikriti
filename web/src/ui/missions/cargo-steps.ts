@@ -3,17 +3,19 @@ import {
   CARGO_ITEMS,
   type CargoItem,
   type CargoPlan,
-  cargoMassKg,
+  LANDER_LIMIT_KG,
+  LANDER_OF,
   checkCargo,
+  landerMassKg,
 } from '../../core/cargo'
-import { CARGO_LIMIT_KG } from '../../core/mission-constants'
 import { type DockStep, stepper } from '../mission-dock'
 import { type CargoBay, openCargoBay } from '../cargo-bay'
 import { el } from '../dom'
 import type { MissionReport } from '../../core/mission-reports'
 import { warningsFor } from '../lessons'
 import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
-import { foodView, oxygenView, powerView } from './cargo-views'
+import { briefingStep } from './briefing-step'
+import { foodView, laterView, oxygenView, powerView } from './cargo-views'
 import { type JourneyChoice, journeyStep } from './journey-step'
 import { chosenStay, stayStep } from './stay-step'
 import { staySols } from '../../core/stay'
@@ -74,6 +76,7 @@ function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElem
     el(
       'p',
       { className: 'item-meta' },
+      i.id === 'foodSols' ? '75% on lander A, 25% on lander B · ' : `Lander ${LANDER_OF[i.id]} · `,
       i.unitKg === 1 ? '' : `${perUnit(i)} · `,
       i.confidence === 'medium' ? 'derived value · ' : '',
       i.confidence === 'assumption' ? 'mass is a team assumption · ' : '',
@@ -83,21 +86,24 @@ function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElem
   )
 }
 
-/** Lander mass as a compact gauge for the dock header. */
+/** Both landers' mass as compact gauges for the dock header. */
 export function massGauge(plan: CargoPlan): HTMLElement {
-  const mass = cargoMassKg(plan)
-  const fill = el('span', { className: 'gauge-fill' })
-  fill.style.width = `${Math.min(100, (mass / CARGO_LIMIT_KG) * 100)}%`
-  fill.dataset.over = String(mass > CARGO_LIMIT_KG)
-  return el(
-    'div',
-    { className: 'gauge' },
-    el('span', {
-      className: 'gauge-label',
-      textContent: `Lander ${tonnes(mass)} of ${tonnes(CARGO_LIMIT_KG)}`,
-    }),
-    el('span', { className: 'gauge-track' }, fill),
-  )
+  const gauge = (l: 'A' | 'B') => {
+    const mass = landerMassKg(plan, l)
+    const fill = el('span', { className: 'gauge-fill' })
+    fill.style.width = `${Math.min(100, (mass / LANDER_LIMIT_KG[l]) * 100)}%`
+    fill.dataset.over = String(mass > LANDER_LIMIT_KG[l])
+    return el(
+      'div',
+      { className: 'gauge' },
+      el('span', {
+        className: 'gauge-label',
+        textContent: `Lander ${l} · ${(mass / 1000).toFixed(1)} / ${tonnes(LANDER_LIMIT_KG[l])}`,
+      }),
+      el('span', { className: 'gauge-track' }, fill),
+    )
+  }
+  return el('div', { className: 'gauges' }, gauge('A'), gauge('B'))
 }
 
 export function cargoSteps(
@@ -167,6 +173,7 @@ export function cargoSteps(
   // The sol the next ship lands: what the packed supplies must reach (0 until it is worked out).
   const target = () => chosenStay(journey)?.nextShipSol ?? 0
   return [
+    briefingStep(),
     journeyStep(journey),
     stayStep(journey),
     {
@@ -181,6 +188,7 @@ export function cargoSteps(
           repeated(),
           cards('kilopower', 'solar', 'battery'),
           view(powerView),
+          view(laterView),
           solExplainer(staySols(journey.stayDays)),
         ),
     },
@@ -195,7 +203,7 @@ export function cargoSteps(
       title: 'Supplies',
       onShow: showBay,
       onHide: hideBay,
-      why: 'No lander can carry everything until the next ship. Pack food and water to start, and the means to make more: a water recycler and greenhouse hardware.',
+      why: 'Stored food must last to the next ship plus 10%, in case crops fail. A water recycler and greenhouse hardware then earn time on top.',
       render: () =>
         el(
           'div',
@@ -257,28 +265,29 @@ export function cargoSteps(
           el(
             'ul',
             { className: 'review-list' },
-            row('Crew route', route ? `${route.days} days` : 'not chosen', 0),
+            row('Crew route', route ? `${route.days} days` : 'not chosen', 1),
             row(
               'Stay',
               stay
                 ? `${stay.days.toLocaleString('en-US')} days (${stay.sols.toLocaleString('en-US')} sols)`
                 : 'not chosen',
-              1,
+              2,
             ),
             row(
               'Next ship lands',
               stay ? `sol ${stay.nextShipSol} (${stay.nextShipRouteDays}-day route)` : 'not chosen',
-              1,
+              2,
             ),
-            row('Kilopower reactors', String(plan.kilopower), 2),
-            row('Solar array sets', String(plan.solar), 2),
-            row('Battery banks', String(plan.battery), 2),
-            row('Oxygen plants', String(plan.isru), 3),
-            row('Food', `${plan.foodSols} sols`, 4),
-            row('Water reserve', kg(plan.waterKg), 4),
-            row('Water recyclers', String(plan.recycler), 4),
-            row('Greenhouse hardware', `${plan.greenhouseM2} m²`, 4),
+            row('Kilopower reactors', String(plan.kilopower), 3),
+            row('Solar array sets', String(plan.solar), 3),
+            row('Battery banks', String(plan.battery), 3),
+            row('Oxygen plants', String(plan.isru), 4),
+            row('Food', `${plan.foodSols} sols`, 5),
+            row('Water reserve', kg(plan.waterKg), 5),
+            row('Water recyclers', String(plan.recycler), 5),
+            row('Greenhouse hardware', `${plan.greenhouseM2} m²`, 5),
           ),
+          view(laterView),
           repeated(),
           issues,
         )

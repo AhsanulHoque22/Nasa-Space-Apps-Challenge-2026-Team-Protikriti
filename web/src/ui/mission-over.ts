@@ -17,9 +17,17 @@ export function reportBody(r: MissionReport): HTMLElement {
   const ids = [...new Set(r.lessons.map((l) => l.missionId))].sort((a, b) =>
     a.localeCompare(b, 'en', { numeric: true }),
   )
+  const sum = r.summary
+  const t = (kg: number) => `${(kg / 1000).toFixed(1)} t`
   return el(
     'div',
     { className: 'report-body' },
+    sum
+      ? el('p', {
+          className: 'item-meta',
+          textContent: `Lander A ${t(sum.landerAKg)} · Lander B ${t(sum.landerBKg)} · ${sum.solsEarned.toFixed(1)} sols of food grown before the end`,
+        })
+      : '',
     ...ids.map((id) =>
       el(
         'section',

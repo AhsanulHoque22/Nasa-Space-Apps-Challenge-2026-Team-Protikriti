@@ -5,9 +5,10 @@
  * so a later run can warn the moment that choice is made again.
  */
 import { type StoreName, type StoresInput, runStores } from './base-stores'
+import { foodNeededSols } from './cargo'
 import { type StormBase, type StormLoads, stormOptions, stormRun } from './dust-storm'
 import { type Areas, greenhouseBudget, greenhouseOptions, reactorsNeeded } from './greenhouse'
-import { CREW_SIZE, DAYS_PER_SOL, POTABLE_WATER_KG_PER_CM_DAY } from './mission-constants'
+import { CREW_SIZE, DAYS_PER_SOL, WATER_USE_KG_PER_CM_DAY } from './mission-constants'
 import type { Progress } from './mission-progress'
 
 export type GuardField =
@@ -188,13 +189,14 @@ export function runReport(c: ReportContext): Lesson[] {
 
   const target = c.progress.stay?.nextShipSol
   if (s && failure.store === 'food' && target) {
-    if (holds({ ...s, cargo: { ...s.cargo, foodSols: target } }, 'food'))
+    const needed = foodNeededSols(target)
+    if (holds({ ...s, cargo: { ...s.cargo, foodSols: needed } }, 'food'))
       add({
         missionId: '1.1',
         mistake: `${cargo.foodSols} sols of food ran out on sol ${failure.sol}, before the next ship on sol ${target}.`,
-        measure: `Pack food for ${target} sols, or pack greenhouse hardware and plant enough in mission 1.6 to cover the gap.`,
+        measure: `Pack food for ${needed} sols: the next ship plus 10%. Crops can fail, so the greenhouse only earns time on top.`,
         numbers: `Each sol the crew of ${CREW_SIZE} eats one sol of food.`,
-        guard: { kind: 'min', field: 'cargo.foodSols', value: target },
+        guard: { kind: 'min', field: 'cargo.foodSols', value: needed },
       })
   }
 
@@ -204,7 +206,7 @@ export function runReport(c: ReportContext): Lesson[] {
         missionId: '1.1',
         mistake: `With no recycler, ${n(cargo.waterKg)} kg of water lasted ${failure.sol - 1} sols.`,
         measure: 'Pack a water recycler: it returns 98% of the water.',
-        numbers: `The crew drink and wash with ${n(CREW_SIZE * POTABLE_WATER_KG_PER_CM_DAY * DAYS_PER_SOL)} kg a sol.`,
+        numbers: `The crew drink and wash with ${n(CREW_SIZE * WATER_USE_KG_PER_CM_DAY * DAYS_PER_SOL)} kg a sol (BVAD).`,
         guard: { kind: 'min', field: 'cargo.recycler', value: 1 },
       })
     } else {

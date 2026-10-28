@@ -16,6 +16,7 @@ import { type Grid, lonLatToCell } from './grid'
 import { distanceKm } from './site-report'
 import {
   CREW_SIZE,
+  DAYS_PER_SOL,
   HABITAT_EXTERNAL_KWE,
   KILOPOWER_DELIVERED_KWE,
   MAV_CONDITIONING_KW,
@@ -209,6 +210,25 @@ export function greenhouseOptions(areas: Areas, kilopowerUnits: number): Greenho
       })
   }
   return out
+}
+
+/**
+ * Mission 1.1's preview of what `m2` of greenhouse grows: all potatoes, the crop with the most
+ * calories per m² here, planted on `plantSol`, harvested from the first harvest to `untilSol`.
+ */
+export function growEstimate(m2: number, plantSol: number, untilSol: number) {
+  const potato = cropById('potato')
+  const b = greenhouseBudget({ potato: m2 }, MAX_KILOPOWER_UNITS)
+  const firstHarvestSol = plantSol + Math.ceil(potato.growthDays / DAYS_PER_SOL)
+  return {
+    firstHarvestSol,
+    /** Sols of the crew's food grown per sol. */
+    solsPerSol: b.foodShare,
+    solsEarned: Math.max(0, untilSol - firstHarvestSol + 1) * b.foodShare,
+    peakKw: b.peakKw,
+    /** Area that would feed the whole crew. */
+    fullDietM2: crewKcalPerDay() / kcalPerM2Day(potato),
+  }
 }
 
 /** The fewest reactors that power this greenhouse, or null past the cargo limit of 5 (mission 1.1). */

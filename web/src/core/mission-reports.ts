@@ -8,12 +8,16 @@ import type { KeyValueStore } from './streetview'
 
 export const REPORTS_KEY = 'atlas.reports'
 
+/** What the run packed and grew, for the report's header. */
+export type RunSummary = { landerAKg: number; landerBKg: number; solsEarned: number }
+
 export type MissionReport = {
   version: number
   endedSol: number
   missionId: string
   cause: string
   lessons: Lesson[]
+  summary?: RunSummary
 }
 type Stored = { owner: string; reports: MissionReport[] }
 
@@ -41,6 +45,7 @@ export function appendReport(
   owner: string,
   failure: RunFailure,
   lessons: Lesson[],
+  summary?: RunSummary,
 ): MissionReport {
   const reports = loadReports(store, owner)
   const report: MissionReport = {
@@ -49,6 +54,7 @@ export function appendReport(
     missionId: failure.missionId,
     cause: failure.why,
     lessons,
+    ...(summary && { summary }),
   }
   const next = [...reports, report]
   if (!writeStored(store, REPORTS_KEY, { owner, reports: next })) memory.set(owner, next)

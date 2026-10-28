@@ -523,9 +523,18 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 | Recycler mass 1,400 kg | Cargo mass | **Team assumption** (two ISS-size racks); no NASA mass found in a 30-minute search |
 | Greenhouse hardware 81.5 kg/m² | Cargo mass; caps the area planted in 1.6 | BVAD Rev2 Table 4-88 (Drysdale 1999b): 101.5 kg/m² less 20 kg/m² of crops |
 | Suit battery 0.82 kWh | Recharged from the base battery after each walk (2 suits) | 20.5 V × 40 Ah, NASA JSC 2004 design of the ISS suit lithium-ion battery, https://ntrs.nasa.gov/citations/20050217305 (derived) |
-| Drinking water 3.217 kg per person per day | Water used each sol | BVAD Rev2 Table 3-31 |
+| All water used, 4.48 kg per person per day (early planetary base) | Water used each sol in the stores ledger | BVAD Rev1 (2018) Table 4-20, https://ntrs.nasa.gov/citations/20180001338 |
+| Drinking water 3.217 kg per person per day | The journey's water (mission 1.1, step 2) | BVAD Rev2 Table 3-31 |
 | Food 12.707 MJ per person per day | Greenhouse food in sols of crew food | BVAD Rev2 |
 | Mission sols 1, 3, 5, 6 for 1.3–1.6 | When each mission happens on the sol clock | **Team assumption**; the storm uses its real arrival sol and lasts 100 sols |
 | "Low" under 60 sols of a store | Stores bar | **Team choice** |
+
+| Lander A ≤ 18,430 kg, lander B ≤ 40,400 kg of surface payload | Two mass limits in mission 1.1 | DRA 5.0 (Drake 2009) Table 5-1 |
+| Reactors, oxygen plants and solar on lander A; habitat, battery, water, recycler and greenhouse on lander B; food 75% / 25% | Which lander each item weighs on | DRA 5.0 Table 5-1 split, as summarised in `reports/NASA Mars surface logistics planning.md` |
+| Cargo phase 26.355 kW (oxygen plants 19.7 + return-rocket cooling 6.655) | Blocks 3 reactors with no solar | Rucker et al. 2016, Table 3 |
+| Stored food to the next ship plus 10% | Blocks loading below it; the greenhouse never counts toward it | DRA 5.0 surface margin; "plan for crop failure" is the council's rule (`docs/superpowers/specs/2026-10-28-mission-logistics-logic.md` L5) |
+| Next ship as late as sol 804 | The briefing's worst case | Latest landing among the app's 2035 routes |
+| Sols earned = greenhouse food ÷ the crew's daily need | Stores bar, run reports, the 1.1 food preview | **Team measure** |
+| Dimmed greenhouse lights grow proportionally less food | Stores ledger in the storm | **Team assumption** |
 
 Energy is balanced over each whole sol, as in the storm model: reactors first, then solar, then the battery. Mission reports suggest only fixes that the same model shows would have saved the run.

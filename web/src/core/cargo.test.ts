@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { CARGO_ITEMS, type CargoPlan, cargoMassKg, checkCargo, foodKg, isCargoPlan } from './cargo'
-import { CARGO_LIMIT_KG, HABITAT_KG } from './mission-constants'
+import {
+  CARGO_ITEMS,
+  type CargoPlan,
+  cargoMassKg,
+  checkCargo,
+  foodKg,
+  foodNeededSols,
+  isCargoPlan,
+  landerMassKg,
+  laterNeeds,
+} from './cargo'
+import { HABITAT_KG } from './mission-constants'
 
 const empty: CargoPlan = {
   kilopower: 0,
@@ -12,7 +22,7 @@ const empty: CargoPlan = {
   recycler: 0,
   greenhouseM2: 0,
 }
-const fission: CargoPlan = { ...empty, kilopower: 4, isru: 2, foodSols: 525 }
+const fission: CargoPlan = { ...empty, kilopower: 4, isru: 2, foodSols: 850 }
 
 describe('cargoMassKg', () => {
   it('is the habitat alone for an empty plan', () => {
@@ -44,12 +54,25 @@ describe('checkCargo', () => {
     expect(checkCargo(fission, 760).blocking).toEqual([])
   })
 
-  it('blocks a lander over the mass limit and says by how much', () => {
-    const heavy = { ...fission, kilopower: 5, battery: 2 }
-    const over = cargoMassKg(heavy) - CARGO_LIMIT_KG
+  it('blocks a lander over its own limit and says by how much', () => {
+    const heavy = { ...fission, kilopower: 5 }
+    const over = landerMassKg(heavy, 'A') - 18_430
+    expect(over).toBeGreaterThan(0)
     expect(checkCargo(heavy, 760).blocking).toContain(
-      `The lander is ${Math.round(over).toLocaleString('en-US')} kg over its 40,000 kg limit.`,
+      `Lander A is ${Math.round(over).toLocaleString('en-US')} kg over its 18,430 kg limit.`,
     )
+  })
+
+  it('blocks 3 reactors with no solar: the oxygen plants need 26.355 kW before the crew come', () => {
+    expect(checkCargo({ ...fission, kilopower: 3 }, 760).blocking).toContain(
+      'Before the crew come, the oxygen plants and the return rocket need 26.36 kW; 3 reactors give 26.25 kW, 0.11 kW short. Pack 4 reactors, or add solar.',
+    )
+  })
+
+  it('only warns about 3 reactors when solar can make up the gap', () => {
+    const r = checkCargo({ ...fission, kilopower: 3, solar: 1 }, 760)
+    expect(r.blocking).toEqual([])
+    expect(r.warnings.some((w) => w.includes('solar arrays must make it up'))).toBe(true)
   })
 
   it('blocks a plan with no power source', () => {
@@ -64,22 +87,20 @@ describe('checkCargo', () => {
     )
   })
 
-  it('warns when one reactor cannot cover the habitat', () => {
-    expect(checkCargo({ ...fission, kilopower: 1 }, 760).warnings).toContain(
-      'One 10 kWe reactor is less than the habitat’s 12.1 kWe.',
-    )
-  })
-
   it('warns when solar has no battery for the night', () => {
-    expect(checkCargo({ ...empty, solar: 2, isru: 2, foodSols: 525 }, 760).warnings).toContain(
+    expect(checkCargo({ ...empty, solar: 2, isru: 2, foodSols: 850 }, 760).warnings).toContain(
       'Solar arrays give no power at night, and there is no battery.',
     )
   })
 
-  it('warns when food runs short of the stay, naming the sol', () => {
-    expect(checkCargo({ ...fission, foodSols: 400 }, 760).warnings).toContain(
-      'Packed food lasts 400 of the 760 sols until the next ship.',
+  it('blocks stored food short of the next ship plus 10%, whatever the greenhouse', () => {
+    expect(foodNeededSols(760)).toBe(836)
+    const text =
+      'Stored food must last to the next ship on sol 760, plus 10%: 836 sols. Crops can fail, so the greenhouse doesn’t count.'
+    expect(checkCargo({ ...fission, foodSols: 825, greenhouseM2: 60 }, 760).blocking).toContain(
+      text,
     )
+    expect(checkCargo({ ...fission, foodSols: 836 }, 760).blocking).toEqual([])
   })
 
   it('warns when there is only one oxygen plant', () => {
@@ -114,12 +135,6 @@ describe('regrowth cargo', () => {
     expect(cargoMassKg({ ...empty, greenhouseM2: 10 })).toBe(HABITAT_KG + 815)
   })
 
-  it('measures packed food against the sol the next ship lands', () => {
-    expect(checkCargo({ ...fission, foodSols: 500 }, 760).warnings).toContain(
-      'Packed food lasts 500 of the 760 sols until the next ship.',
-    )
-  })
-
   it('warns when nothing recycles water or grows food', () => {
     const w = checkCargo(fission, 760).warnings
     expect(w).toContain('Without a water recycler, every litre is used once.')
@@ -131,5 +146,41 @@ describe('regrowth cargo', () => {
     delete old.recycler
     delete old.greenhouseM2
     expect(isCargoPlan(old)).toBe(false)
+  })
+})
+
+describe('two landers', () => {
+  it('puts the reactors, oxygen plants and 75% of the food on lander A', () => {
+    const p = { ...empty, kilopower: 1, isru: 1, solar: 1, foodSols: 100 }
+    expect(landerMassKg(p, 'A')).toBeCloseTo(1754 + 385 + 1678 + 2034 + 0.75 * foodKg(100), 6)
+  })
+
+  it('puts the habitat, battery, water, recycler, greenhouse and 25% of the food on lander B', () => {
+    const p = { ...empty, battery: 1, waterKg: 500, recycler: 1, greenhouseM2: 10, foodSols: 100 }
+    expect(landerMassKg(p, 'B')).toBeCloseTo(
+      HABITAT_KG + 3168 + 500 + 1400 + 815 + 0.25 * foodKg(100),
+      6,
+    )
+  })
+})
+
+describe('laterNeeds', () => {
+  it('passes every later mission for 5 reactors, a battery and 10 m² of greenhouse', () => {
+    const rows = laterNeeds({ ...fission, kilopower: 5, battery: 1, greenhouseM2: 10 })
+    expect(rows.map((r) => r.mission)).toEqual([
+      '1.5 Marswalk',
+      '1.6 Greenhouse',
+      '1.7 Dust storm',
+      '1.11 Power failure',
+    ])
+    expect(rows.every((r) => r.ok)).toBe(true)
+  })
+
+  it('fails the walk without a battery and the greenhouse without hardware', () => {
+    expect(laterNeeds(fission).map((r) => r.ok)).toEqual([false, false, true, true])
+  })
+
+  it('fails a reactor loss with 3 reactors: 2 give 17.5 kW, less than 18.76 kW', () => {
+    expect(laterNeeds({ ...fission, kilopower: 3, solar: 1 }).at(-1)?.ok).toBe(false)
   })
 })

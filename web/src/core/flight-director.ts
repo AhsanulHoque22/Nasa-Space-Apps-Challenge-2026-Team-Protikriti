@@ -3,9 +3,9 @@
  * changes that would. It offers changes, never a finished plan, and the user makes them. Each
  * option is checked with the same cargo-phase model that gives the verdict.
  */
-import { CARGO_ITEMS, type CargoPlan, cargoMassKg } from './cargo'
+import { CARGO_ITEMS, type CargoPlan, LANDER_LIMIT_KG, cargoMassKg, landerMassKg } from './cargo'
 import { type SunSol, cargoPhase } from './cargo-phase'
-import { CARGO_LIMIT_KG, LOX_TARGET_KG } from './mission-constants'
+import { LOX_TARGET_KG } from './mission-constants'
 
 type PowerItem = 'kilopower' | 'solar' | 'battery' | 'isru'
 const POWER_ITEMS: readonly PowerItem[] = ['isru', 'kilopower', 'solar', 'battery']
@@ -18,7 +18,7 @@ export type PowerOption = {
   add: Partial<Record<PowerItem, number>>
   label: string
   addedKg: number
-  /** Mass that must come off elsewhere to stay under the lander limit, kg (0 if none). */
+  /** Mass that must come off elsewhere to stay under both landers' limits, kg (0 if none). */
   freeKg: number
 }
 
@@ -29,6 +29,12 @@ export type PowerAdvice = {
   shortKg: number
   options: PowerOption[]
 }
+
+const overKg = (p: CargoPlan) =>
+  (['A', 'B'] as const).reduce(
+    (s, l) => s + Math.max(0, landerMassKg(p, l) - LANDER_LIMIT_KG[l]),
+    0,
+  )
 
 const item = (id: PowerItem) => CARGO_ITEMS.find((i) => i.id === id)
 
@@ -87,7 +93,7 @@ export function powerOptions(plan: CargoPlan, year: readonly SunSol[]): PowerAdv
         add,
         label: label(add),
         addedKg,
-        freeKg: Math.max(0, baseKg + addedKg - CARGO_LIMIT_KG),
+        freeKg: overKg(after),
       }
     })
     .sort((a, b) => a.addedKg - b.addedKg)

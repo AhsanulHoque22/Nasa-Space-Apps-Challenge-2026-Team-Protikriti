@@ -183,7 +183,7 @@ export function stayStep(choice: JourneyChoice): DockStep {
       stayTimeline(stay),
       el('p', {
         className: 'dock-note',
-        textContent: `Everything packed now must keep four people alive until sol ${stay.nextShipSol}. One 40 t lander cannot carry ${stay.nextShipSol} sols of everything, so pack the means to make more: a water recycler, greenhouse hardware and solar arrays to recharge the battery.`,
+        textContent: `Everything packed now must keep four people alive until sol ${stay.nextShipSol}. Stored food must cover all of it, plus 10%, in case crops fail. A water recycler, greenhouse and solar arrays then earn time on top: every sol of food grown is a sol more the crew can stay.`,
       }),
       el(
         'p',

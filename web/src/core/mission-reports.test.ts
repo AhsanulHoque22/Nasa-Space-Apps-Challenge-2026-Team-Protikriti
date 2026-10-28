@@ -25,6 +25,13 @@ describe('mission reports', () => {
     expect(loadReports(s, 'o').map((r) => r.version)).toEqual([1, 2])
   })
 
+  it('keeps each lander’s mass and the sols the greenhouse earned', () => {
+    const s = store()
+    const summary = { landerAKg: 17_300, landerBKg: 29_800, solsEarned: 12.4 }
+    appendReport(s, 'o', failure, [lesson(3)], summary)
+    expect(loadReports(s, 'o')[0]?.summary).toEqual(summary)
+  })
+
   it('ignores the reports of another crew', () => {
     const s = store()
     appendReport(s, 'other', failure, [lesson(3)])

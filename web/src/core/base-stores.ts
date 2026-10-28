@@ -12,7 +12,7 @@ import {
   HABITAT_EXTERNAL_KWE,
   KILOPOWER_DELIVERED_KWE,
   MAV_CONDITIONING_KW,
-  POTABLE_WATER_KG_PER_CM_DAY,
+  WATER_USE_KG_PER_CM_DAY,
 } from './mission-constants'
 
 /** Water the recycler gets back: 98%, the ISS rate (NASA, June 2023). Team assumption for Mars. */
@@ -43,24 +43,29 @@ export type StoresInput = {
 export type StoresDay = { sol: number; foodSols: number; waterKg: number; batteryKwh: number }
 export type StoreName = 'food' | 'water' | 'power'
 export type StoresFailure = { store: StoreName; sol: number; why: string }
-export type StoresRun = { days: StoresDay[]; failure: StoresFailure | null }
+/** `solsEarned`: food the greenhouse grew, in sols of the crew's food: time added to the stay. */
+export type StoresRun = { days: StoresDay[]; failure: StoresFailure | null; solsEarned: number }
 
 export function runStores(i: StoresInput): StoresRun {
   const { cargo } = i
   const capacityKwh = cargo.battery * BATTERY_KWH_PER_BANK
   const waterPerSol =
     CREW_SIZE *
-    POTABLE_WATER_KG_PER_CM_DAY *
+    WATER_USE_KG_PER_CM_DAY *
     DAYS_PER_SOL *
     (cargo.recycler > 0 ? 1 - WATER_RECOVERY : 1)
   const reactorKwh = cargo.kilopower * KILOPOWER_DELIVERED_KWE * SOL_HOURS
   let food = cargo.foodSols
   let water = cargo.waterKg
   let battery = capacityKwh
+  let solsEarned = 0
   const days: StoresDay[] = []
   for (let sol = 1; sol <= i.untilSol; sol++) {
     const g = i.greenhouse
-    food += -1 + (g && sol >= g.firstHarvestSol ? g.kcalPerDay / crewKcalPerDay() : 0)
+    const grown =
+      g && sol >= g.firstHarvestSol ? (g.kcalPerDay / crewKcalPerDay()) * lit(i, sol) : 0
+    solsEarned += grown
+    food += grown - 1
     water -= waterPerSol
     const loadKw =
       (i.habitatKw?.(sol) ?? HABITAT_EXTERNAL_KWE) +
@@ -72,10 +77,19 @@ export function runStores(i: StoresInput): StoresRun {
     const net = reactorKwh + i.solarKwhPerSol(sol) - loadKw * SOL_HOURS - suitsKwh
     battery = Math.min(capacityKwh, battery + net)
     const failure = firstOut(sol, food, water, battery)
-    if (failure) return { days, failure }
+    if (failure) return { days, failure, solsEarned }
     days.push({ sol, foodSols: food, waterKg: water, batteryKwh: battery })
   }
-  return { days, failure: null }
+  return { days, failure: null, solsEarned }
+}
+
+/** Share of the greenhouse's light on a sol; dimmed lights grow proportionally less (team assumption). */
+function lit(i: StoresInput, sol: number): number {
+  const now = i.lightsKw?.(sol)
+  const full = i.greenhouse?.lightsKw ?? 0
+  if (now === undefined) return 1
+  if (full <= 0) return now > 0 ? 1 : 0
+  return Math.min(1, now / full)
 }
 
 function firstOut(sol: number, food: number, water: number, battery: number): StoresFailure | null {

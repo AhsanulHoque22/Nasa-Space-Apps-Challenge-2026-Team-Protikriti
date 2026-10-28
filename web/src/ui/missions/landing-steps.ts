@@ -2,7 +2,7 @@
  * Mission 1.3 as guided steps: why landing on Mars is hard (Perseverance's real landing), the real
  * onboard footage, why landing elevation matters, then the crew's touchdown at the chosen site.
  */
-import { CARGO_LIMIT_KG } from '../../core/mission-constants'
+import { LANDER_A_LIMIT_KG } from '../../core/mission-constants'
 import { CRUISE_MSV_PER_DAY } from '../../core/journey'
 import { CERTIFIED_ZONES, LANDING_ELEVATION_LIMIT_M } from '../../core/landing-sites'
 import {
@@ -85,7 +85,7 @@ function terrorStep(map: LandingMap): DockStep {
         el('h3', { className: 'feature-heading', textContent: 'Now scale it up for a crew' }),
         el('p', {
           className: 'dock-note',
-          textContent: `Perseverance weighed about ${PERSEVERANCE_ROVER_KG.toLocaleString('en-US')} kg. The cargo lander you packed carries up to ${(CARGO_LIMIT_KG / 1000).toFixed(0)} t. NASA engineers found that the parachutes used since Viking are reaching their limits, and that payloads above about 10 t need new methods, such as rocket engines firing against the supersonic air (supersonic retropropulsion).`,
+          textContent: `Perseverance weighed about ${PERSEVERANCE_ROVER_KG.toLocaleString('en-US')} kg. The cargo lander you packed carries up to ${(LANDER_A_LIMIT_KG / 1000).toFixed(1)} t of payload. NASA engineers found that the parachutes used since Viking are reaching their limits, and that payloads above about 10 t need new methods, such as rocket engines firing against the supersonic air (supersonic retropropulsion).`,
         }),
         el(
           'details',

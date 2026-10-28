@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { type CargoPlan, cargoMassKg } from './cargo'
+import { type CargoPlan, LANDER_LIMIT_KG, cargoMassKg, landerMassKg } from './cargo'
 import { cargoPhase } from './cargo-phase'
-import { CARGO_LIMIT_KG } from './mission-constants'
 import { powerOptions } from './flight-director'
 
 /** A year of identical sols: `kwhPerM2` of tracking-panel sunlight and `dayHours` of daylight. */
@@ -54,12 +53,17 @@ describe('powerOptions', () => {
     expect(masses).toEqual([...masses].sort((a, b) => a - b))
   })
 
-  it('says how much must come off elsewhere when a change breaks the 40 t limit', () => {
-    const p = plan({ kilopower: 1, waterKg: 5000 })
+  it('says how much must come off elsewhere when a change breaks a lander’s limit', () => {
+    const p = plan({ kilopower: 1, isru: 2, solar: 2, foodSols: 1000 })
     const r = powerOptions(p, sunny)
     for (const o of r.options) {
-      const over = cargoMassKg(p) + o.addedKg - CARGO_LIMIT_KG
-      expect(o.freeKg).toBeCloseTo(Math.max(0, over), 6)
+      const after = { ...p }
+      for (const [id, n] of Object.entries(o.add)) after[id as keyof CargoPlan] += n as number
+      const over = (['A', 'B'] as const).reduce(
+        (s, l) => s + Math.max(0, landerMassKg(after, l) - LANDER_LIMIT_KG[l]),
+        0,
+      )
+      expect(o.freeKg).toBeCloseTo(over, 6)
     }
     expect(r.options.some((o) => o.freeKg > 0)).toBe(true)
   })

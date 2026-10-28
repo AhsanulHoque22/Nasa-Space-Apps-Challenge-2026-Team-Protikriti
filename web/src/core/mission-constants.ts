@@ -14,6 +14,8 @@ export const FOOD_PACKED_KG_PER_CM_DAY = 2.39
 
 /** Potable water content, kg per crew member per day. BVAD Rev2 (2022) Table 3-31. */
 export const POTABLE_WATER_KG_PER_CM_DAY = 3.217
+/** All water used at an early planetary base, kg per crew member per day (BVAD Rev1, 2018, Table 4-20). */
+export const WATER_USE_KG_PER_CM_DAY = 4.48
 
 /** Surface habitat power from an external source, kWe. DRA 5.0 (Drake 2009), Commuter habitat. */
 export const HABITAT_EXTERNAL_KWE = 12.1
@@ -22,10 +24,12 @@ export const HABITAT_EXTERNAL_KWE = 12.1
 export const HABITAT_KG = 21_500
 
 /**
- * Landed payload per cargo lander: DRA 5.0 gives 30–50 t. One 40 t lander is a team choice inside
- * that range; NASA's Jezero study (Rucker et al. 2016) spreads the same hardware over several landers.
+ * Surface payload per lander, kg (DRA 5.0, Drake 2009, Table 5-1). Lander A, the cargo lander, lands
+ * about 26 months before the crew; its ascent vehicle takes the rest of its 40 t. Lander B, the
+ * habitat lander, comes with the crew.
  */
-export const CARGO_LIMIT_KG = 40_000
+export const LANDER_A_LIMIT_KG = 18_430
+export const LANDER_B_LIMIT_KG = 40_400
 
 /** Return-propellant oxygen the plant must make before the crew launches, kg (Rucker et al. 2016). */
 export const LOX_TARGET_KG = 22_728

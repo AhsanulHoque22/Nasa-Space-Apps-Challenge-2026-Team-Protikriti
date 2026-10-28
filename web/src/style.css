@@ -3659,6 +3659,17 @@ body[data-story='mission'] .line-legend {
   background: var(--nasa-red);
 }
 
+/* Two landers, two gauges side by side */
+.gauges {
+  display: flex;
+  gap: var(--space-3);
+  justify-self: end;
+}
+
+.gauges .gauge {
+  width: min(200px, 100%);
+}
+
 /* Timeline of the plan */
 .plan-timeline {
   margin: 0;
@@ -3814,8 +3825,13 @@ body[data-story='mission'] .line-legend {
     grid-row: 2;
   }
 
+  .dock-status .gauges {
+    justify-self: stretch;
+  }
+
   .dock-status .gauge {
     width: 100%;
+    flex: 1;
   }
 
   .dock-title {
@@ -5623,6 +5639,85 @@ button.journey-label:focus-visible {
 .stay-grown {
   fill: #5b8def;
   opacity: 0.55;
+}
+
+/* Mission 1.1 briefing: NASA's two landers to scale, the limits, the terms */
+.lander-room {
+  fill: rgb(255 255 255 / 0.08);
+  stroke: var(--rule);
+}
+
+.lander-load {
+  fill: var(--nasa-blue-lift);
+  opacity: 0.8;
+}
+
+.briefing-points {
+  margin: var(--space-4) 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: var(--space-3);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.briefing-terms {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-3);
+  font-size: 14px;
+}
+
+.briefing-terms dt {
+  font-weight: 600;
+}
+
+.briefing-terms dd {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* What later missions need from the packing: a word on every row, never colour alone */
+.later-needs {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.later-needs li {
+  display: grid;
+  grid-template-columns: 4.5em max-content 1fr;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: 14px;
+}
+
+.later-mark {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.later-needs .ok .later-mark {
+  color: #8fd19e;
+}
+
+.later-needs .short .later-mark {
+  color: #ff8a78;
+}
+
+@media (max-width: 640px) {
+  .later-needs li {
+    grid-template-columns: 4.5em 1fr;
+  }
+
+  .later-needs li > span:last-child {
+    grid-column: 2;
+  }
 }
 
 /* Base stores in the mission header: a word on every reading, never colour alone. */

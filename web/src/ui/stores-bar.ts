@@ -1,6 +1,6 @@
 /**
- * The base's stores in the mission header: the sol reached, food, water and battery, and how far
- * the supplies reach against the next ship. Each reading says OK, Low or Out in words.
+ * The base's stores in the mission header: the sol reached, food, water, battery and air, how far
+ * the supplies reach against the next ship, and the sols of food the greenhouse will have grown. Each reading says OK, Low or Out in words.
  */
 import type { StoresRun } from '../core/base-stores'
 import type { Progress } from '../core/mission-progress'
@@ -29,7 +29,8 @@ function reading(label: string, value: string, level: Level): HTMLElement {
 export function storesBar(p: Progress): HTMLElement {
   const bar = el('div', { className: 'stores-bar', role: 'status', ariaLabel: 'Base stores' })
   const target = p.stay?.nextShipSol
-  if (!p.cargo || !target) return bar
+  const cargo = p.cargo
+  if (!cargo || !target) return bar
   const now = Math.max(1, solReached(p))
   bar.append(el('span', { className: 'stores-label', textContent: `Sol ${now}` }))
   void Promise.all([storesTo(p, now), storesTo(p, target)]).then(([run, ahead]) => {
@@ -42,6 +43,13 @@ export function storesBar(p: Progress): HTMLElement {
         el('strong', { textContent: String(now) }),
       ),
       ...readings(run, ahead, target),
+      // Air is made by the oxygen plants; it fails only when the power does (DRA 5.0).
+      reading(
+        'Air',
+        cargo.isru > 0 ? 'oxygen plants' : 'none',
+        cargo.isru > 0 && !run.failure ? 'ok' : 'out',
+      ),
+      reading('Grown', `+${ahead.solsEarned.toFixed(0)} sols by sol ${target}`, 'ok'),
     )
   })
   return bar

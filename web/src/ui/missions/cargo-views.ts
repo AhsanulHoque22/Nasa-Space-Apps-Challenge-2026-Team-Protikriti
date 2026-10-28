@@ -1,5 +1,7 @@
 /** Live views under mission 1.1's cards: one sol of power, the oxygen tank, food against the stay. */
-import type { CargoPlan } from '../../core/cargo'
+import { type CargoPlan, foodNeededSols, laterNeeds } from '../../core/cargo'
+import { growEstimate } from '../../core/greenhouse'
+import { MISSION_SOL } from '../../core/run-ledger'
 import { cargoPhase } from '../../core/cargo-phase'
 import {
   BATTERY_KWH_PER_BANK,
@@ -113,21 +115,56 @@ export function oxygenView(plan: CargoPlan): HTMLElement {
   )
 }
 
-/** Packed food against the sol the next ship lands (`targetSol`). */
+/** Stored food against what must last to the next ship (`targetSol`), and what the greenhouse adds. */
 export function foodView(plan: CargoPlan, targetSol: number): HTMLElement {
-  const share = Math.min(1, plan.foodSols / targetSol)
+  const needed = foodNeededSols(targetSol)
   const fill = el('span', { className: 'meter-fill' })
-  fill.style.width = `${share * 100}%`
-  fill.dataset.short = String(plan.foodSols < targetSol)
+  fill.style.width = `${Math.min(1, plan.foodSols / needed) * 100}%`
+  fill.dataset.short = String(plan.foodSols < needed)
   const meter = el('div', { className: 'meter', role: 'img' }, fill)
-  meter.setAttribute('aria-label', `Packed food lasts ${plan.foodSols} of ${targetSol} sols`)
+  meter.setAttribute('aria-label', `Stored food: ${plan.foodSols} of ${needed} sols needed`)
+  const plantSol = MISSION_SOL['1.6'] ?? 6
+  const g = growEstimate(plan.greenhouseM2, plantSol, targetSol)
   return el(
     'div',
     { className: 'view' },
     el('p', {
       className: 'chart-title',
-      textContent: `Packed food lasts ${plan.foodSols} of the ${targetSol} sols until the next ship lands`,
+      textContent: `Stored food: ${plan.foodSols} of the ${needed} sols needed (next ship on sol ${targetSol}, plus 10%)`,
     }),
     meter,
+    plan.greenhouseM2 > 0
+      ? note(
+          `${plan.greenhouseM2} m² of potatoes, planted on sol ${plantSol}: first harvest on sol ${g.firstHarvestSol}, then ${(g.solsPerSol * 100).toFixed(1)} sols of food every 100 sols. By sol ${targetSol} that is about ${g.solsEarned.toFixed(0)} sols earned, if the lights (${g.peakKw.toFixed(1)} kW) stay on.`,
+          'good',
+        )
+      : note('No greenhouse: no sols earned. The stored food is all the crew have.'),
+    maths(
+      `Needed: ${targetSol} sols × 1.1 = ${needed} sols. Crops can fail, so stored food covers the whole wait (DRA 5.0 margin).`,
+      `Potatoes give the most food per m² of the five crops: 105.3 g/m²·day at 77 kcal per 100 g (BVAD Rev2 Table 4-89, USDA).`,
+      `Feeding all four from potatoes would need ${Math.round(g.fullDietM2)} m².`,
+    ),
+  )
+}
+
+/** What the later missions need from this packing, row by row, with a pass or fail mark. */
+export function laterView(plan: CargoPlan): HTMLElement {
+  return el(
+    'div',
+    { className: 'view' },
+    el('p', { className: 'chart-title', textContent: 'What later missions need from this lander' }),
+    el(
+      'ul',
+      { className: 'later-needs' },
+      ...laterNeeds(plan).map((r) =>
+        el(
+          'li',
+          { className: r.ok ? 'ok' : 'short' },
+          el('span', { className: 'later-mark', textContent: r.ok ? 'Ready' : 'Short' }),
+          el('strong', { textContent: r.mission }),
+          el('span', { textContent: r.need }),
+        ),
+      ),
+    ),
   )
 }

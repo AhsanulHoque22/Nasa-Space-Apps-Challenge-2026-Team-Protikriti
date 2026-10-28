@@ -3,7 +3,7 @@
  * mission's site, runs the dock, saves the result and hands back to the mission list.
  */
 import { loadJourneys } from './journey-client'
-import type { CargoPlan } from '../core/cargo'
+import { type CargoPlan, landerMassKg } from '../core/cargo'
 import {
   type Progress,
   recordBase,
@@ -44,11 +44,12 @@ import { showMissionOver } from './mission-over'
 import { sunFor } from './run-check'
 import { storesBar } from './stores-bar'
 
-const EMPTY: CargoPlan = {
-  kilopower: 0,
+/** Lander A starts as NASA packs it (DRA 5.0): 4 reactors and 2 oxygen plants. The player can change it. */
+const START_PLAN: CargoPlan = {
+  kilopower: 4,
   solar: 0,
   battery: 0,
-  isru: 0,
+  isru: 2,
   foodSols: 0,
   waterKg: 0,
   recycler: 0,
@@ -112,7 +113,8 @@ async function afterMission(
 ): Promise<void> {
   const sun = await sunFor(next).catch(() => null)
   const input = ledgerInput(next, sun ?? (() => 0), solReached(next))
-  const ran = input ? runStores(input).failure : null
+  const run = input ? runStores(input) : null
+  const ran = run?.failure ?? null
   const failure: RunFailure | null = direct?.failure ?? (ran ? { ...ran, missionId: id } : null)
   if (!failure) {
     ctx.onDone(next, note)
@@ -126,7 +128,12 @@ async function afterMission(
     ...(direct?.walkDistanceM !== undefined && { walkDistanceM: direct.walkDistanceM }),
     ...(direct?.walkPlannedM !== undefined && { walkPlannedM: direct.walkPlannedM }),
   })
-  const report = appendReport(ctx.store, next.owner, failure, lessons)
+  const summary = next.cargo && {
+    landerAKg: landerMassKg(next.cargo, 'A'),
+    landerBKg: landerMassKg(next.cargo, 'B'),
+    solsEarned: run?.solsEarned ?? 0,
+  }
+  const report = appendReport(ctx.store, next.owner, failure, lessons, summary || undefined)
   showMissionOver(report, () => {
     const fresh: Progress = { version: 1, owner: next.owner, completed: [] }
     ctx.onDone(
@@ -156,7 +163,7 @@ function playCargo(title: string, ctx: Play): void {
     delete document.body.dataset.story
     ctx.onDone(progress, note)
   }
-  const plan: CargoPlan = { ...(ctx.progress.cargo ?? EMPTY) }
+  const plan: CargoPlan = { ...(ctx.progress.cargo ?? START_PLAN) }
   const journey: JourneyChoice = {
     routeIndex: 0,
     journeys: null,

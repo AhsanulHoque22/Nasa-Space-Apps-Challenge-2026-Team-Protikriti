@@ -57,7 +57,7 @@ describe('runReport', () => {
     })
   })
 
-  it('asks for food to the next ship when the food ran out', () => {
+  it('asks for food to the next ship plus 10% when the food ran out', () => {
     const c = { ...cargo, kilopower: 4, recycler: 1 }
     const lessons = runReport({
       progress: { ...progress, cargo: c },
@@ -67,7 +67,7 @@ describe('runReport', () => {
     expect(lessons.map((l) => l.guard)).toContainEqual({
       kind: 'min',
       field: 'cargo.foodSols',
-      value: 764,
+      value: 841, // 764 × 1.1, rounded up
     })
   })
 

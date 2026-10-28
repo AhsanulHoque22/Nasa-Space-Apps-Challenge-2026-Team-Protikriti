@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { type StoresInput, SUIT_BATTERY_KWH, runStores } from './base-stores'
 import type { CargoPlan } from './cargo'
 import { crewKcalPerDay } from './greenhouse'
-import { CREW_SIZE, DAYS_PER_SOL, POTABLE_WATER_KG_PER_CM_DAY } from './mission-constants'
+import { CREW_SIZE, DAYS_PER_SOL, WATER_USE_KG_PER_CM_DAY } from './mission-constants'
 
 const cargo: CargoPlan = {
   kilopower: 4,
@@ -39,7 +39,7 @@ describe('runStores', () => {
   })
 
   it('uses water once without a recycler', () => {
-    const perSol = CREW_SIZE * POTABLE_WATER_KG_PER_CM_DAY * DAYS_PER_SOL
+    const perSol = CREW_SIZE * WATER_USE_KG_PER_CM_DAY * DAYS_PER_SOL
     const r = runStores(input({ cargo: { ...cargo, foodSols: 800, recycler: 0 } }))
     expect(r.failure).toMatchObject({ store: 'water', sol: Math.floor(750 / perSol) + 1 })
   })
@@ -47,7 +47,7 @@ describe('runStores', () => {
   it('loses only 2% of the water each sol with a recycler', () => {
     const r = runStores(input({ cargo: { ...cargo, foodSols: 800 } }))
     expect(r.failure).toBeNull()
-    const perSol = CREW_SIZE * POTABLE_WATER_KG_PER_CM_DAY * DAYS_PER_SOL * 0.02
+    const perSol = CREW_SIZE * WATER_USE_KG_PER_CM_DAY * DAYS_PER_SOL * 0.02
     expect(r.days.at(-1)?.waterKg).toBeCloseTo(750 - 760 * perSol, 6)
   })
 
@@ -76,5 +76,22 @@ describe('runStores', () => {
       }),
     )
     expect(r.days[2]?.batteryKwh).toBeCloseTo(r.days[1]?.batteryKwh - 2 * SUIT_BATTERY_KWH, 6)
+  })
+
+  it('counts the food the greenhouse grows as sols earned', () => {
+    const half = crewKcalPerDay() / 2
+    const r = runStores(
+      input({ untilSol: 20, greenhouse: { kcalPerDay: half, firstHarvestSol: 11, lightsKw: 0 } }),
+    )
+    expect(r.solsEarned).toBeCloseTo(5, 6)
+    expect(runStores(input({ untilSol: 20 })).solsEarned).toBe(0)
+  })
+
+  it('grows nothing on sols the lights are off', () => {
+    const g = { kcalPerDay: crewKcalPerDay(), firstHarvestSol: 1, lightsKw: 2 }
+    const r = runStores(
+      input({ untilSol: 10, greenhouse: g, lightsKw: (sol) => (sol <= 4 ? 0 : undefined) }),
+    )
+    expect(r.solsEarned).toBeCloseTo(6, 6)
   })
 })
