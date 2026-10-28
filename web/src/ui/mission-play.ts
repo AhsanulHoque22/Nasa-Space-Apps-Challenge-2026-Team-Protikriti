@@ -314,6 +314,7 @@ function playBase(title: string, ctx: Play): void {
 }
 
 function playMarswalk(title: string, ctx: Play): void {
+  ctx.services.showImagery() // the crew are on the ground: show the real surface
   const { site, base } = ctx.progress
   if (!site || !base?.habitat)
     throw new Error('Mission 1.5 needs the landing site (1.2) and the base (1.4)')
@@ -380,6 +381,7 @@ function playMarswalk(title: string, ctx: Play): void {
 }
 
 function playGreenhouse(title: string, ctx: Play): void {
+  ctx.services.showImagery() // the crew are on the ground: show the real surface
   const { site, base } = ctx.progress
   if (!site || !base?.habitat)
     throw new Error('Mission 1.6 needs the landing site (1.2) and the base (1.4)')
@@ -425,6 +427,7 @@ function playGreenhouse(title: string, ctx: Play): void {
 }
 
 function playStorm(title: string, ctx: Play): void {
+  ctx.services.showImagery() // the crew are on the ground: show the real surface
   if (!ctx.progress.cargo || !ctx.progress.base)
     throw new Error('Mission 1.7 needs the cargo (1.1) and the base (1.4)')
   const days = ctx.progress.crewRouteDays

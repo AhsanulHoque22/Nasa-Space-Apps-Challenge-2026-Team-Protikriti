@@ -20,6 +20,8 @@ export type StoryServices = {
   loadZones: () => Promise<ZoneRow[]>
   /** Point the camera at an ATLAS terrain site. */
   showSite: (siteId: string) => void
+  /** Switch the HiRISE and CTX imagery on (missions on the ground need it). */
+  showImagery: () => void
   /** Back to the whole planet, turning slowly (before the crew has landed anywhere). */
   showGlobe: () => void
   /** Mission 1.2's numbered pins on the terrain. */

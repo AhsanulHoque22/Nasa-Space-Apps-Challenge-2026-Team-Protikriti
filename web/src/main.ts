@@ -171,6 +171,7 @@ async function main() {
     hardware?: HardwareLayer
     walk?: WalkMap
     declutter?: (on: boolean) => void
+    imagery?: () => void
   } = {}
   // A mission can start before the rover stops have loaded: remember its wish, apply it on load.
   let stopsWanted = true
@@ -189,6 +190,7 @@ async function main() {
     openProfileGate(browserStorage(), [globe, ui], () => {}, {
       loadZones: () => zonesReady,
       showSite,
+      showImagery: () => (siteView.imagery ? siteView.imagery() : (siteView.imageryWanted = true)),
       // Before the viewer exists the opening view is already the turning globe.
       showGlobe: () => siteView.globe?.(),
       pins: {
@@ -236,6 +238,10 @@ async function main() {
     else siteView.imageryWanted = true
   }
   if (siteView.pending) siteView.show(siteView.pending)
+  siteView.imagery = () => {
+    if (setLayer.current) setLayer.current('imagery', true)
+    else siteView.imageryWanted = true
+  }
   siteView.globe = () =>
     viewGlobe(
       viewer,
