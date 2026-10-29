@@ -40,6 +40,17 @@ export type Progress = {
   traverse?: TraverseRecord
   /** Mission 1.10: what the crew ran while one reactor was down. */
   outage?: OutageRecord
+  /** Mission 1.11: the crew flew home; the flight's length in days. */
+  home?: HomeRecord
+}
+
+export type HomeRecord = { returnDays: number }
+
+const isHomeRecord = (v: unknown): v is HomeRecord => {
+  const h = v as Partial<HomeRecord> | null
+  return (
+    !!h && typeof h.returnDays === 'number' && Number.isInteger(h.returnDays) && h.returnDays > 0
+  )
 }
 
 export type OutageRecord = { habitatKw: number; greenhouseKw: number; waterOn: boolean }
@@ -179,6 +190,7 @@ const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
   '1.8': (p) => isWaterRecord(p.water),
   '1.9': (p) => isTraverseRecord(p.traverse),
   '1.10': (p) => isOutageRecord(p.outage),
+  '1.11': (p) => isHomeRecord(p.home),
 }
 
 export type MissionStatus =
@@ -320,6 +332,17 @@ export function recordFailure(
   return done === reopened ? progress : { ...done, outage }
 }
 
+/** Mission 1.11 done: Expedition 1 is home. */
+export function recordReturn(
+  missions: readonly Mission[],
+  progress: Progress,
+  home: HomeRecord,
+): Progress {
+  const reopened = retryFrom(missions, progress, '1.11')
+  const done = completeMission(missions, reopened, '1.11')
+  return done === reopened ? progress : { ...done, home }
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)
@@ -361,6 +384,7 @@ export function loadProgress(
   if (isWaterRecord(saved.water)) progress.water = saved.water
   if (isTraverseRecord(saved.traverse)) progress.traverse = saved.traverse
   if (isOutageRecord(saved.outage)) progress.outage = saved.outage
+  if (isHomeRecord(saved.home)) progress.home = saved.home
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(
     (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),

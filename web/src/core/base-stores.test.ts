@@ -150,4 +150,11 @@ describe('runStores', () => {
     const off = runStores(input({ untilSol: 4, waterPlant: plant, plantOn: (sol) => sol < 3 }))
     expect((on.days[3]?.waterKg ?? 0) - (off.days[3]?.waterKg ?? 0)).toBeCloseTo(20, 6)
   })
+
+  it('adds the next ship’s food on the sol it lands', () => {
+    const r = runStores(input({ untilSol: 450, resupply: [{ sol: 300, foodSols: 500 }] }))
+    expect(r.failure).toBeNull()
+    expect(r.days[298]?.foodSols).toBeCloseTo(400 - 299, 6)
+    expect(r.days[299]?.foodSols).toBeCloseTo(400 - 300 + 500, 6)
+  })
 })

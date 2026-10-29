@@ -164,4 +164,18 @@ describe('ledgerInput', () => {
     expect(i?.plantOn?.(fail)).toBe(false)
     expect(i?.plantOn?.(fail - 1)).toBe(true)
   })
+
+  it('lands the next ship’s food for the rest of the stay, plus 10%', () => {
+    const i = ledgerInput(base, sun, 1284)
+    expect(i?.resupply).toEqual([{ sol: 764, foodSols: Math.ceil(((1284 - 764) * 11) / 10) }])
+  })
+
+  it('reaches the end of the stay when the crew fly home', () => {
+    const p: Progress = {
+      ...base,
+      completed: [...base.completed, '1.11'],
+      home: { returnDays: 210 },
+    }
+    expect(solReached(p)).toBe(1284)
+  })
 })

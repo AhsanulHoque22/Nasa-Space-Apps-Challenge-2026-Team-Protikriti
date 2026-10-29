@@ -579,3 +579,15 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 | KRUSTY: 28 hours of testing in 2018, load-following, tolerant of failures | Briefing | Poston et al. 2020, https://ntrs.nasa.gov/citations/20205009351 |
 | Failure on the sol after the traverse; dimmed lights grow proportionally less | Ledger | **Team assumptions** |
 | Photo NHQ20260127_admin_0004 (KRUSTY at NASA Glenn, 2026) | Mission 1.10 | NASA/John Kraus |
+
+## Story mission 1.11: Return window
+
+| Value | Used for | Source |
+|---|---|---|
+| Next ship brings food for the rest of the stay, plus 10% | Ledger resupply on the sol it lands | Logistics spec L10 (after DRA 5.0's supply pipeline); 10% margin as in mission 1.1 |
+| Return date: landing + the chosen stay (539 days, then every 780) | Departure date | DRA 5.0; NASA Mars Fact Sheet (as in mission 1.1) |
+| Mars→Earth transfer at that date, lowest C3 over 120–420 days | The flight home, 3D arc | Solved in ATLAS (Lambert) on JPL approximate planet positions |
+| Mars GM 42,828.37 km³/s², radius 3,396.19 km; parking orbit 250 × 33,793 km | Departure burn | NASA Mars Fact Sheet; DRA 5.0 |
+| Cruise 1.8 mSv/day; surface 0.67 mSv/day; career limit 600 mSv | Debrief dose | Zeitlin et al. 2013; Hassler et al. 2014; NASA-STD-3001 Vol. 1 (NASA radiation protection technical brief, https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf) |
+| Habitat shielding not counted | Debrief dose | **Team simplification**, stated on screen |
+| Photos PIA17936 (Earth from Gale, 2014), KSC-314D-0556_0010 (Orion splashdown, 2014), PIA24176 (MOXIE) | Mission 1.11 | NASA/JPL-Caltech/MSSS/TAMU; NASA/KSC; NASA/JPL-Caltech |

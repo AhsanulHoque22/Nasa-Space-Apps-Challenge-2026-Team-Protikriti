@@ -23,6 +23,11 @@ const MU_EARTH = 398_600.4418
 const EARTH_RADIUS_KM = 6378.137
 /** DRA 5.0: "all vehicles depart from a 407-km circular orbit". */
 const DEPARTURE_ALTITUDE_KM = 407
+/** Mars's gravitational parameter, km³/s² (NASA Mars Fact Sheet), and mean radius, km. */
+const MU_MARS = 42_828.37
+const MARS_RADIUS_KM = 3396.19
+/** DRA 5.0's Mars parking orbit for the return vehicle: 250 km by 33,793 km (one sol). */
+const MARS_ORBIT_KM = { periapsis: 250, apoapsis: 33_793 }
 /** Nuclear thermal rocket, DRA 5.0 gives Isp 875–950 s; the low end is used. */
 export const NTR_ISP_S = 875
 const G0 = 9.80665 / 1000 // km/s²
@@ -50,30 +55,32 @@ export type Journey = {
   foodKg: number
   waterKg: number
   oxygenKg: number
-  /** Heliocentric path in AU, Earth to Mars. */
+  /** Heliocentric path in AU, from the departure planet to the arrival planet. */
   arcAu: Vec3[]
 }
 
 const km = (p: Vec3): Vec3 => [p[0] * AU_KM, p[1] * AU_KM, p[2] * AU_KM]
 
-function earthVelocityKms(ms: number): Vec3 {
-  const a = km(planetPosition('earth', ms - DAY_MS / 2))
-  const b = km(planetPosition('earth', ms + DAY_MS / 2))
+type Planet = 'earth' | 'mars'
+
+function velocityKms(planet: Planet, ms: number): Vec3 {
+  const a = km(planetPosition(planet, ms - DAY_MS / 2))
+  const b = km(planetPosition(planet, ms + DAY_MS / 2))
   return [(b[0] - a[0]) / 86_400, (b[1] - a[1]) / 86_400, (b[2] - a[2]) / 86_400]
 }
 
 type Window = { from: number; to: number }
 type Candidate = { departMs: number; days: number; c3: number; v1: Vec3 }
 
-function transfer(departMs: number, days: number): Candidate | null {
+function transfer(departMs: number, days: number, from: Planet, to: Planet): Candidate | null {
   const sol = lambert(
-    km(planetPosition('earth', departMs)),
-    km(planetPosition('mars', departMs + days * DAY_MS)),
+    km(planetPosition(from, departMs)),
+    km(planetPosition(to, departMs + days * DAY_MS)),
     days * 86_400,
     MU_SUN,
   )
   if (!sol) return null
-  const vE = earthVelocityKms(departMs)
+  const vE = velocityKms(from, departMs)
   const c3 = (sol[0][0] - vE[0]) ** 2 + (sol[0][1] - vE[1]) ** 2 + (sol[0][2] - vE[2]) ** 2
   return { departMs, days, c3, v1: sol[0] }
 }
@@ -82,19 +89,25 @@ function transfer(departMs: number, days: number): Candidate | null {
  * Lowest-C3 transfer in the window over the given flight times: a coarse grid first, then a
  * one-day search around its best point.
  */
-function bestTransfer(win: Window, minDays: number, maxDays: number): Candidate {
-  const search = (from: number, to: number, d0: number, d1: number, step: number) => {
+function bestTransfer(
+  win: Window,
+  minDays: number,
+  maxDays: number,
+  from: Planet = 'earth',
+  to: Planet = 'mars',
+): Candidate {
+  const search = (t0: number, t1: number, d0: number, d1: number, step: number) => {
     let best: Candidate | null = null
-    for (let t = from; t <= to; t += step * DAY_MS) {
+    for (let t = t0; t <= t1; t += step * DAY_MS) {
       for (let days = d0; days <= d1; days += step) {
-        const c = transfer(t, days)
+        const c = transfer(t, days, from, to)
         if (c && (!best || c.c3 < best.c3)) best = c
       }
     }
     return best
   }
   const coarse = search(win.from, win.to, minDays, maxDays, 8)
-  if (!coarse) throw new Error('No Earth–Mars transfer found in the window')
+  if (!coarse) throw new Error(`No ${from}–${to} transfer found in the window`)
   const fine = search(
     Math.max(win.from, coarse.departMs - 8 * DAY_MS),
     Math.min(win.to, coarse.departMs + 8 * DAY_MS),
@@ -105,10 +118,20 @@ function bestTransfer(win: Window, minDays: number, maxDays: number): Candidate 
   return fine ?? coarse
 }
 
-function toJourney(c: Candidate): Journey {
-  const r = EARTH_RADIUS_KM + DEPARTURE_ALTITUDE_KM
-  const dv = Math.sqrt(c.c3 + (2 * MU_EARTH) / r) - Math.sqrt(MU_EARTH / r)
-  const r1 = km(planetPosition('earth', c.departMs))
+/** Burn from the parking orbit's lowest point onto the transfer, km/s. */
+function departureDv(c3: number, from: Planet): number {
+  if (from === 'earth') {
+    const r = EARTH_RADIUS_KM + DEPARTURE_ALTITUDE_KM
+    return Math.sqrt(c3 + (2 * MU_EARTH) / r) - Math.sqrt(MU_EARTH / r)
+  }
+  const rp = MARS_RADIUS_KM + MARS_ORBIT_KM.periapsis
+  const a = (rp + MARS_RADIUS_KM + MARS_ORBIT_KM.apoapsis) / 2
+  return Math.sqrt(c3 + (2 * MU_MARS) / rp) - Math.sqrt(MU_MARS * (2 / rp - 1 / a))
+}
+
+function toJourney(c: Candidate, from: Planet = 'earth'): Journey {
+  const dv = departureDv(c.c3, from)
+  const r1 = km(planetPosition(from, c.departMs))
   const crewDays = c.days * CREW_SIZE
   return {
     departMs: c.departMs,
@@ -157,4 +180,15 @@ export function nextShipJourneys(): Journey[] {
     toJourney(bestTransfer(NEXT_SHIP_WINDOW, 120, 420)),
     ...FAST_ROUTE_DAYS.map((d) => toJourney(bestTransfer(NEXT_SHIP_WINDOW, d, d))),
   ])
+}
+
+/**
+ * The crew's flight home: from Mars on `departMs` (the stay's return date), the flight time with
+ * the lowest departure energy. Earth arrival (direct entry) is not costed.
+ */
+export function returnJourney(departMs: number): Journey {
+  return toJourney(
+    bestTransfer({ from: departMs, to: departMs }, 120, 420, 'mars', 'earth'),
+    'mars',
+  )
 }

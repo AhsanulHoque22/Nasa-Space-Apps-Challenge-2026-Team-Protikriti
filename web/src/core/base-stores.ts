@@ -46,6 +46,8 @@ export type StoresInput = {
   reactorsDown?: (sol: number) => number
   /** Whether the water plant runs on a sol; it runs whenever this is not given. */
   plantOn?: (sol: number) => boolean
+  /** Food landed by a later ship, in sols of the crew's food, on the sol it lands. */
+  resupply?: readonly { sol: number; foodSols: number }[]
 }
 
 export type StoresDay = { sol: number; foodSols: number; waterKg: number; batteryKwh: number }
@@ -73,7 +75,10 @@ export function runStores(i: StoresInput): StoresRun {
     const grown =
       g && sol >= g.firstHarvestSol ? (g.kcalPerDay / crewKcalPerDay()) * lit(i, sol) : 0
     solsEarned += grown
-    food += grown - 1
+    food +=
+      grown -
+      1 +
+      (i.resupply ?? []).filter((r) => r.sol === sol).reduce((t, r) => t + r.foodSols, 0)
     const plant =
       i.waterPlant && sol >= i.waterPlant.fromSol && (i.plantOn?.(sol) ?? true)
         ? i.waterPlant

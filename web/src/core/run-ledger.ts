@@ -6,6 +6,7 @@
  */
 import type { StoresInput } from './base-stores'
 import { BEFORE_STORM_TAU, STORM_SOLS, tauOnDay } from './dust-storm'
+import { foodNeededSols } from './cargo'
 import { type Areas, greenhouseBudget } from './greenhouse'
 import { feedstockById, waterPlant } from './ice-water'
 import { planTraverse } from './traverse'
@@ -71,6 +72,7 @@ export const outageEndSol = (p: Progress): number =>
 
 /** The last sol the finished missions reach. */
 export function solReached(p: Progress): number {
+  if (p.completed.includes('1.11') && p.home && p.stay) return p.stay.sols
   if (p.completed.includes('1.10') && p.outage) return outageEndSol(p)
   const plan = p.completed.includes('1.9') ? traversePlan(p) : null
   if (plan) return traverseStartSol(p) + Math.ceil(plan.sols)
@@ -114,6 +116,12 @@ export function ledgerInput(
         : null,
     walks: p.walk ? [{ sol: MISSION_SOL['1.5'] ?? 5, suits: WALKERS }] : [],
     ...(p.traverse && { draws: traverseDraws(p) }),
+    // The next ship brings food for the rest of the stay, with the same 10% margin (spec L10).
+    ...(p.stay && {
+      resupply: [
+        { sol: p.stay.nextShipSol, foodSols: foodNeededSols(p.stay.sols - p.stay.nextShipSol) },
+      ],
+    }),
     ...(p.water && {
       waterPlant: {
         fromSol: waterStartSol(p),

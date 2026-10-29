@@ -40,7 +40,14 @@ const dateText = (ms: number) =>
     timeZone: 'UTC',
   })
 
-export async function openJourneyScene(j: Journeys, selected: number): Promise<JourneyScene> {
+/** Labels for the dashed earlier flight and the moving ship (mission 1.11 replays the way home). */
+export type SceneLabels = { earlier: string; ship: string }
+
+export async function openJourneyScene(
+  j: Journeys,
+  selected: number,
+  labels?: SceneLabels,
+): Promise<JourneyScene> {
   const THREE = await import('three')
   const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js')
   const { CSS2DRenderer, CSS2DObject } =
@@ -65,9 +72,9 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
   const renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   view.append(renderer.domElement)
-  const labels = new CSS2DRenderer()
-  labels.domElement.className = 'journey-labels'
-  view.append(labels.domElement)
+  const labelLayer = new CSS2DRenderer()
+  labelLayer.domElement.className = 'journey-labels'
+  view.append(labelLayer.domElement)
 
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x02040a)
@@ -137,7 +144,10 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
   scene.add(line(orbit('mars', 686.98), COLOURS.mars, { opacity: 0.55 }))
 
   const cargoArc = line(j.cargo.arcAu, COLOURS.cargo, { dashed: true, opacity: 0.8 })
-  const cargoTag = label(`Cargo · ${new Date(j.cargo.departMs).getUTCFullYear()}`, 'muted')
+  const cargoTag = label(
+    labels?.earlier ?? `Cargo · ${new Date(j.cargo.departMs).getUTCFullYear()}`,
+    'muted',
+  )
   cargoTag.position.set(...world(j.cargo.arcAu[Math.floor(j.cargo.arcAu.length / 2)] as Vec3))
   cargoArc.add(cargoTag)
   scene.add(cargoArc)
@@ -153,7 +163,7 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
   const mars = ball(0.03, COLOURS.mars)
   mars.add(label('Mars'))
   const ship = ball(0.016, COLOURS.crew, true)
-  ship.add(label('Crew ship', 'accent below'))
+  ship.add(label(labels?.ship ?? 'Crew ship', 'accent below'))
   scene.add(earth, mars, ship)
 
   let route = j.routes[selected] ?? (j.routes[0] as Journey)
@@ -185,7 +195,7 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
     const w = view.clientWidth
     const h = Math.max(1, view.clientHeight)
     renderer.setSize(w, h, false)
-    labels.setSize(w, h)
+    labelLayer.setSize(w, h)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
     // Step back far enough that Mars's orbit (out to 1.67 AU) fits the narrower side of the view.
@@ -207,7 +217,7 @@ export async function openJourneyScene(j: Journeys, selected: number): Promise<J
     place(fraction)
     controls.update()
     renderer.render(scene, camera)
-    labels.render(scene, camera)
+    labelLayer.render(scene, camera)
     frame = requestAnimationFrame(tick)
   }
   select(selected)

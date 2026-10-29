@@ -10,6 +10,7 @@ import {
   recordWater,
   recordTraverse,
   recordFailure,
+  recordReturn,
   recordLanding,
   recordSite,
   retryFrom,
@@ -536,5 +537,28 @@ describe('recordFailure', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.10']).progress.completed).toEqual([])
+  })
+})
+
+describe('recordReturn', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list = ['1.10', '1.11'].map((id) => m(id, true))
+
+  it('completes 1.11 and keeps the flight home', () => {
+    const p = recordReturn(list, { version: 1, owner, completed: ['1.10'] }, { returnDays: 210 })
+    expect(p.completed.at(-1)).toBe('1.11')
+    expect(p.home).toEqual({ returnDays: 210 })
+  })
+
+  it('drops a saved 1.11 whose flight home is unreadable', () => {
+    const s = store({
+      'atlas.progress': JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.11'],
+        home: { returnDays: -3 },
+      }),
+    })
+    expect(loadProgress(s, owner, ['1.11']).progress.completed).toEqual([])
   })
 })

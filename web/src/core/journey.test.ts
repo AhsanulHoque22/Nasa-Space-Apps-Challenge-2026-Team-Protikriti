@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { FAST_ROUTE_DAYS, cargoJourney, crewJourneys } from './journey'
+import {
+  CRUISE_MSV_PER_DAY,
+  FAST_ROUTE_DAYS,
+  cargoJourney,
+  crewJourneys,
+  returnJourney,
+} from './journey'
 import { type Vec3, planetPosition } from './ephemeris'
 import type { Journey } from './journey'
 
@@ -60,5 +66,22 @@ describe('journeys from the 2031 and 2033 windows', () => {
         dist(j.arcAu[j.arcAu.length - 1] as Vec3, planetPosition('mars', j.arriveMs)),
       ).toBeLessThan(0.01)
     }
+  })
+})
+
+describe('returnJourney', () => {
+  it('flies from Mars on the given date to Earth, with the burn from Mars orbit', () => {
+    const crew = crewJourneys()[0] as Journey
+    const depart = crew.arriveMs + 1319 * 86_400_000
+    const r = returnJourney(depart)
+    expect(r.departMs).toBe(depart)
+    expect(r.days).toBeGreaterThanOrEqual(120)
+    expect(r.days).toBeLessThanOrEqual(420)
+    expect(r.c3).toBeGreaterThan(0)
+    expect(r.doseMsv).toBeCloseTo(r.days * CRUISE_MSV_PER_DAY, 6)
+    expect(dist(r.arcAu[0] as Vec3, planetPosition('mars', depart))).toBeLessThan(0.01)
+    expect(dist(r.arcAu.at(-1) as Vec3, planetPosition('earth', r.arriveMs))).toBeLessThan(0.01)
+    expect(r.departureDvKms).toBeGreaterThan(0)
+    expect(r.departureDvKms).toBeLessThan(5)
   })
 })

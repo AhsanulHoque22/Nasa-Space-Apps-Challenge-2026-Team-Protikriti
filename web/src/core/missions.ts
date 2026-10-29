@@ -135,9 +135,9 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Return window',
     hats: ['Commander'],
-    built: false,
+    built: true,
     briefing:
-      'Reach the window home with the crew alive and the ascent vehicle ready. The debrief shows what held and what nearly failed.',
+      'Keep the base alive to the window home, check the ascent vehicle, fly home on a real transfer, and read the debrief: dose, closest calls, what the crew did.',
   },
   {
     id: '2.1',

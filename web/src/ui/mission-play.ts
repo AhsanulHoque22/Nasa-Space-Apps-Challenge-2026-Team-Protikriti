@@ -14,6 +14,7 @@ import {
   recordWater,
   recordTraverse,
   recordFailure,
+  recordReturn,
   recordMarswalk,
   recordSite,
   retryFrom,
@@ -37,6 +38,7 @@ import { stormSteps } from './missions/storm-steps'
 import { waterSteps } from './missions/water-steps'
 import { traverseSteps } from './missions/traverse-steps'
 import { failureSteps } from './missions/failure-steps'
+import { returnSteps } from './missions/return-steps'
 import { iceAt } from '../core/site-report'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { StoryServices } from './story'
@@ -107,6 +109,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   else if (id === '1.8') playWater(title, play)
   else if (id === '1.9') playTraverse(title, play)
   else if (id === '1.10') playFailure(title, play)
+  else if (id === '1.11') playReturn(title, play)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -548,6 +551,42 @@ function playFailure(title: string, ctx: Play): void {
         onLeave: () => end(ctx.progress, null),
       })
     })
+}
+
+function playReturn(title: string, ctx: Play): void {
+  ctx.services.showImagery() // the crew are on the ground: show the real surface
+  if (!ctx.progress.stay || !ctx.progress.crewRouteDays)
+    throw new Error('Mission 1.11 needs the stay and crew route (1.1)')
+  const days = ctx.progress.crewRouteDays
+  void Promise.all([
+    sunFor(ctx.progress).catch(() => null),
+    loadJourneys().then((j) => j.routes.find((r) => r.days === days) ?? j.routes[0]),
+  ]).then(([sun, crew]) => {
+    if (!crew) {
+      ctx.onDone(ctx.progress, 'The crew’s route could not be worked out. Start the mission again.')
+      return
+    }
+    ctx.services.declutter(true)
+    document.body.dataset.story = 'mission'
+    const end = (progress: Progress, note: string | null) => {
+      dock.remove()
+      ctx.services.declutter(false)
+      delete document.body.dataset.story
+      ctx.onDone(progress, note)
+    }
+    const steps = returnSteps(ctx.progress, sun, crew, ctx.reports, (home) => {
+      const next = recordReturn(MISSIONS, ctx.progress, home)
+      end(next, saved(ctx, next, 'The crew are home. Expedition 1 is complete.'))
+    })
+    const dock = openDock({
+      missionTitle: title,
+      lessons: lessonsButton(ctx.reports, '1.11'),
+      status: () => storesBar(ctx.progress),
+      steps,
+      onFinish: () => undefined, // the last step's own button finishes the mission
+      onLeave: () => end(ctx.progress, null),
+    })
+  })
 }
 
 function playStorm(title: string, ctx: Play): void {
