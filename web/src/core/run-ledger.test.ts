@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { runStores } from './base-stores'
 import type { Progress } from './mission-progress'
-import { ledgerInput, solReached, waterStartSol } from './run-ledger'
+import { ledgerInput, solReached, traverseStartSol, waterStartSol } from './run-ledger'
+import { planTraverse } from './traverse'
 
 const base: Progress = {
   version: 1,
@@ -81,5 +82,40 @@ describe('ledgerInput', () => {
       kgPerSol: p.water?.kgPerSol,
       kw: 8,
     })
+  })
+
+  it('runs the traverse from the sol after the water plant starts, charging the rover from the base', () => {
+    const storm = {
+      arrivalSol: 40,
+      habitatKw: 8,
+      greenhouseKw: 0,
+      shortKwh: 0,
+      lowestBatteryKwh: 1,
+    }
+    const traverse = {
+      stops: [
+        { name: 'A', lon: 137.6, lat: -4.4 },
+        { name: 'B', lon: 137.9, lat: -4.2 },
+      ],
+      concept: 'long-stay' as const,
+      driveHoursPerSol: 6,
+      stopHours: 4,
+    }
+    const p: Progress = {
+      ...base,
+      completed: [...base.completed, '1.5', '1.6', '1.7', '1.8', '1.9'],
+      storm,
+      water: { feedstock: 'ice', kgPerSol: 35, at: { lon: 0, lat: 0 } },
+      traverse,
+    }
+    const plan = planTraverse({ base: p.base?.habitat ?? { lon: 0, lat: 0 }, ...traverse })
+    expect(traverseStartSol(p)).toBe(141)
+    expect(solReached(p)).toBe(141 + Math.ceil(plan.sols))
+    const draws = ledgerInput(p, sun, 300)?.draws ?? []
+    expect(draws.reduce((s, d) => s + d.kwh, 0)).toBeCloseTo(
+      plan.baseDraw.reduce((s, d) => s + d.kwh, 0),
+      6,
+    )
+    expect(Math.min(...draws.map((d) => d.sol))).toBeGreaterThanOrEqual(141)
   })
 })

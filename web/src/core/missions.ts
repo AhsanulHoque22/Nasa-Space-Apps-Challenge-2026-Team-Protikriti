@@ -117,7 +117,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Long traverse',
     hats: ['Scientist', 'Commander'],
-    built: false,
+    built: true,
     briefing:
       'Two crew drive a pressurised rover about 100 km over two weeks while two stay at the base.',
   },

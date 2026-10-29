@@ -32,6 +32,26 @@ const stores = (c: CargoPlan, untilSol: number): StoresInput => ({
 })
 
 describe('runReport', () => {
+  it('blames the power cart when taking a reactor browned out the base', () => {
+    const c = { ...cargo, kilopower: 3, battery: 0 }
+    const lessons = runReport({
+      progress: {
+        ...progress,
+        cargo: c,
+        traverse: {
+          stops: [{ name: 'A', lon: 0, lat: 0 }],
+          concept: 'cart',
+          driveHoursPerSol: 6,
+          stopHours: 4,
+        },
+      },
+      failure: { store: 'power', sol: 150, missionId: '1.9', why: 'Brownout' },
+      stores: { ...stores(c, 150), draws: [{ sol: 150, kwh: 8.75 * 24.66 }] },
+    })
+    const l = lessons.find((x) => x.missionId === '1.9')
+    expect(l?.guard).toEqual({ kind: 'equals', field: 'traverse.cart', value: 1 })
+  })
+
   it('asks for less water a sol when the water plant browned out the base, and checks it holds', () => {
     const c = { ...cargo, kilopower: 3 } // 26.25 kW: 7.5 kW spare for the plant
     const plant = { fromSol: 1, kgPerSol: 35, kw: 8.4 } // regolith at 35 kg a sol

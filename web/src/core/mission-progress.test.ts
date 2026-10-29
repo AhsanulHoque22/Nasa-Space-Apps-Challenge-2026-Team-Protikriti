@@ -8,6 +8,7 @@ import {
   recordGreenhouse,
   recordStorm,
   recordWater,
+  recordTraverse,
   recordLanding,
   recordSite,
   retryFrom,
@@ -481,5 +482,34 @@ describe('recordWater', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.8']).progress.completed).toEqual([])
+  })
+})
+
+describe('recordTraverse', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list = ['1.8', '1.9', '1.10'].map((id) => m(id, true))
+  const traverse = {
+    stops: [{ name: 'Peace Vallis', lon: 137.6, lat: -4.4 }],
+    concept: 'long-stay' as const,
+    driveHoursPerSol: 6,
+    stopHours: 4,
+  }
+
+  it('completes 1.9 and keeps the traverse plan', () => {
+    const p = recordTraverse(list, { version: 1, owner, completed: ['1.8'] }, traverse)
+    expect(p.completed.at(-1)).toBe('1.9')
+    expect(p.traverse).toEqual(traverse)
+  })
+
+  it('drops a saved 1.9 whose plan is unreadable', () => {
+    const s = store({
+      'atlas.progress': JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.9'],
+        traverse: { ...traverse, concept: 'teleport' },
+      }),
+    })
+    expect(loadProgress(s, owner, ['1.9']).progress.completed).toEqual([])
   })
 })

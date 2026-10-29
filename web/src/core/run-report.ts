@@ -24,6 +24,7 @@ export type GuardField =
   | 'storm.greenhouseKw'
   | 'walk.distanceM'
   | 'water.kgPerSol'
+  | 'traverse.cart'
 
 export type Guard = { kind: 'min' | 'max' | 'equals'; field: GuardField; value: number }
 export type GuardValues = Partial<Record<GuardField, number>>
@@ -134,6 +135,19 @@ export function runReport(c: ReportContext): Lesson[] {
       })
       break
     }
+  }
+
+  const tv = c.progress.traverse
+  if (failure.store === 'power' && failure.missionId === '1.9' && tv?.concept === 'cart' && st) {
+    if (holds({ ...st, draws: [] }, 'power'))
+      add({
+        missionId: '1.9',
+        mistake: `The power cart took one reactor away with the rover, and the ${cargo.kilopower - 1} left could not carry the base.`,
+        measure:
+          'Plan a long stay with trips home to recharge, or pack a spare reactor in mission 1.1.',
+        numbers: `${cargo.kilopower - 1} × 8.75 kW = ${n((cargo.kilopower - 1) * 8.75)} kW for the habitat, the return rocket, the lights and the water plant.`,
+        guard: { kind: 'equals', field: 'traverse.cart', value: 1 },
+      })
   }
 
   if (failure.store === 'power' && failure.missionId === '1.7' && c.storm) {

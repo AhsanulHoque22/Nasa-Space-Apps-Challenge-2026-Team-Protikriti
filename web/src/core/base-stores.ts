@@ -40,6 +40,8 @@ export type StoresInput = {
   lightsKw?: (sol: number) => number | undefined
   /** Mission 1.8's water plant: water made and power drawn each sol from `fromSol`. */
   waterPlant?: { fromSol: number; kgPerSol: number; kw: number }
+  /** Extra energy taken from the base on a sol, kWh: the rover charging (mission 1.9). */
+  draws?: readonly { sol: number; kwh: number }[]
 }
 
 export type StoresDay = { sol: number; foodSols: number; waterKg: number; batteryKwh: number }
@@ -78,7 +80,8 @@ export function runStores(i: StoresInput): StoresRun {
     const suitsKwh = i.walks
       .filter((w) => w.sol === sol)
       .reduce((s, w) => s + w.suits * SUIT_BATTERY_KWH, 0)
-    const net = reactorKwh + i.solarKwhPerSol(sol) - loadKw * SOL_HOURS - suitsKwh
+    const drawnKwh = (i.draws ?? []).filter((d) => d.sol === sol).reduce((s, d) => s + d.kwh, 0)
+    const net = reactorKwh + i.solarKwhPerSol(sol) - loadKw * SOL_HOURS - suitsKwh - drawnKwh
     battery = Math.min(capacityKwh, battery + net)
     const failure = firstOut(sol, food, water, battery)
     if (failure) return { days, failure, solsEarned }

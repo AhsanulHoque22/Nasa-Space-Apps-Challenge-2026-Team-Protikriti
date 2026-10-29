@@ -6,6 +6,7 @@
 import type { Layout } from './base-layout'
 import { type CargoPlan, isCargoPlan } from './cargo'
 import { FEEDSTOCKS, type FeedstockId } from './ice-water'
+import type { Concept, Stop } from './traverse'
 import { readStored, writeStored } from './local-store'
 import type { Mission } from './missions'
 import { type Stay, isStay } from './stay'
@@ -35,6 +36,30 @@ export type Progress = {
   storm?: StormRecord
   /** Mission 1.8: the water plant's source, output and dig site. */
   water?: WaterRecord
+  /** Mission 1.9: where the rover went and how it was powered. */
+  traverse?: TraverseRecord
+}
+
+export type TraverseRecord = {
+  stops: Stop[]
+  concept: Concept
+  driveHoursPerSol: number
+  stopHours: number
+}
+
+const CONCEPTS: readonly Concept[] = ['commuter', 'long-stay', 'cart']
+const isTraverseRecord = (v: unknown): v is TraverseRecord => {
+  const t = v as Partial<TraverseRecord> | null
+  return (
+    !!t &&
+    Array.isArray(t.stops) &&
+    t.stops.length > 0 &&
+    t.stops.every((s) => typeof s?.name === 'string' && isLonLat(s)) &&
+    CONCEPTS.includes(t.concept as Concept) &&
+    [t.driveHoursPerSol, t.stopHours].every(
+      (n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 24,
+    )
+  )
 }
 
 export type WaterRecord = {
@@ -137,6 +162,7 @@ const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
   '1.6': (p) => isGreenhouse(p.greenhouse),
   '1.7': (p) => isStormRecord(p.storm),
   '1.8': (p) => isWaterRecord(p.water),
+  '1.9': (p) => isTraverseRecord(p.traverse),
 }
 
 export type MissionStatus =
@@ -256,6 +282,17 @@ export function recordWater(
   return done === reopened ? progress : { ...done, water }
 }
 
+/** Mission 1.9 done: keep the traverse plan. A replay reopens what came after. */
+export function recordTraverse(
+  missions: readonly Mission[],
+  progress: Progress,
+  traverse: TraverseRecord,
+): Progress {
+  const reopened = retryFrom(missions, progress, '1.9')
+  const done = completeMission(missions, reopened, '1.9')
+  return done === reopened ? progress : { ...done, traverse }
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)
@@ -295,6 +332,7 @@ export function loadProgress(
   if (isGreenhouse(saved.greenhouse)) progress.greenhouse = saved.greenhouse
   if (isStormRecord(saved.storm)) progress.storm = saved.storm
   if (isWaterRecord(saved.water)) progress.water = saved.water
+  if (isTraverseRecord(saved.traverse)) progress.traverse = saved.traverse
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(
     (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),

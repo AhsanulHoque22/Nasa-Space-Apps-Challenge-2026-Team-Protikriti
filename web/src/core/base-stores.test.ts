@@ -116,4 +116,22 @@ describe('runStores', () => {
     )
     expect(r.failure).toMatchObject({ store: 'power', sol: 2 })
   })
+
+  it('takes extra energy drawn from the base on a sol, such as the rover charging', () => {
+    const plain = runStores(input({ untilSol: 3 }))
+    const r = runStores(input({ untilSol: 3, draws: [{ sol: 2, kwh: 50 }] }))
+    expect((plain.days[1]?.batteryKwh ?? 0) - (r.days[1]?.batteryKwh ?? 0)).toBeCloseTo(0, 6)
+    const tight = { ...cargo, kilopower: 2 }
+    const even = (12.1 + 6.655 - 2 * 8.75) * DAYS_PER_SOL * 24
+    const a = runStores(input({ cargo: tight, untilSol: 3, solarKwhPerSol: () => even }))
+    const b = runStores(
+      input({
+        cargo: tight,
+        untilSol: 3,
+        solarKwhPerSol: () => even,
+        draws: [{ sol: 2, kwh: 50 }],
+      }),
+    )
+    expect((a.days[1]?.batteryKwh ?? 0) - (b.days[1]?.batteryKwh ?? 0)).toBeCloseTo(50, 6)
+  })
 })

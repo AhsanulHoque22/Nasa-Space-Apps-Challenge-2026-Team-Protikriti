@@ -556,3 +556,15 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 | Plant starts the sol after the storm ends | Ledger | **Team assumption** |
 | Excavators and water plant inside the oxygen plants' mass; spoil at 1,500 kg/m³ | Cargo and 3D drawing | **Team assumptions** |
 | Photos: PIA10906 (Phoenix ice, 2008), PIA22077 (ice scarp, Dundas et al. 2018), KSC-20160929-PH_DNG01_0001 and _0039 (RASSOR) | Mission 1.8 | NASA/JPL-Caltech, NASA/KSC |
+
+## Story mission 1.9: Long traverse
+
+| Value | Used for | Source |
+|---|---|---|
+| Pressurised rover: 2 crew (4 in an emergency), up to 14 days, about 10 km/h, 6,600 lb, 14.7 ft long, 10 ft high, 12 wheels 39 in across | Rover facts, endurance check, speed, 3D size | NASA SEV fact sheet (2011), https://www.nasa.gov/wp-content/uploads/2015/08/464826main_sev_factsheet_508.pdf |
+| 200 kWh battery, 1.85 kW hotel load, 3 kW recharge (48 h), 30% margin; Commuter, Long stay and Mobile power unit concepts | Battery model, recharge, reserve, the three power plans | Chappell, Hoffman & Bekdash 2022, IEEE Aerospace, https://ntrs.nasa.gov/citations/20220003043 |
+| Driving 0.43 kWh/km | Battery drain while driving | **Derived** from Chappell 2022 totals (3 × 200 kWh, 279 h at 1.85 kW, 194 km); rough |
+| 30% margin applied as a battery reserve; driving only in the first hours of each sol; cart carries one Kilopower (8.75 kW) and the base loses it while away; traverse starts the sol after the water plant | Planner and ledger | **Team assumptions** |
+| Places within 100 km of the base | Traverse stops | IAU Gazetteer of Planetary Nomenclature (USGS), the map's names layer |
+| Elevation along the route | Profile and climbing | MGS MOLA MEGDR, 4 px/deg |
+| Photos jsc2008e138809 and jsc2008e138993 (Lunar Electric Rover, Desert RATS 2008) | Mission 1.9 | NASA/JSC |

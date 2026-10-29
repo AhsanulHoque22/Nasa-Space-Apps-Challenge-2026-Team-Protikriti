@@ -65,6 +65,7 @@ import type { Rover } from './map/raw-images'
 import { renderTimelineBar } from './ui/timeline-bar'
 import { positionAtSol } from './core/timeline'
 import { loadPlaces, renderSearchBox } from './ui/search-box'
+import { type TraverseMap, createTraverseMap } from './map/traverse-map'
 import { renderWeatherPanel } from './ui/weather-panel'
 import { renderZonePanel } from './ui/zone-panel'
 import type { ZoneRow } from './core/zone-rank'
@@ -120,6 +121,9 @@ async function loadSwim(): Promise<SwimGrid> {
   return { ...(meta as Omit<SwimGrid, 'values'>), values: new Int8Array(bin) }
 }
 
+/** Named places (IAU nomenclature and more), loaded once for search and Story mission 1.9. */
+const placesOnce = loadPlaces().catch(() => [] as Place[])
+
 /** SWIM shallow ice, loaded once for the Site Report and Story mission 1.8. */
 let swimOnce: Promise<SwimGrid | null> | undefined
 const getSwim = () => (swimOnce ??= loadSwim().catch(() => null))
@@ -163,6 +167,8 @@ async function main() {
   const zonesReady = new Promise<ZoneRow[]>((resolve) => (resolveZones = resolve))
   let resolveSites: (sites: Site[]) => void = () => undefined
   const sitesReady = new Promise<Site[]>((resolve) => (resolveSites = resolve))
+  let resolveMola: (mola: Grid) => void = () => undefined
+  const molaReady = new Promise<Grid>((resolve) => (resolveMola = resolve))
   // Missions can ask for a site before the terrain data has loaded; remember the latest ask.
   const siteView: {
     show?: (id: string) => void
@@ -174,6 +180,7 @@ async function main() {
     base?: BasePlacer
     hardware?: HardwareLayer
     walk?: WalkMap
+    traverse?: TraverseMap
     declutter?: (on: boolean) => void
     imagery?: () => void
   } = {}
@@ -223,6 +230,14 @@ async function main() {
       },
       siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
       swim: getSwim,
+      mola: () => molaReady,
+      places: () => placesOnce,
+      traverse: {
+        draw: (b, s, r, p) => siteView.traverse?.draw(b, s, r, p),
+        rover: (p, t) => siteView.traverse?.rover(p, t),
+        view: (pts) => siteView.traverse?.view(pts),
+        clear: () => siteView.traverse?.clear(),
+      },
       showBase: (progress) => siteView.hardware && placeBase(siteView.hardware, progress),
     })
   if (!decodeView(window.location.search)) openStart()
@@ -230,6 +245,7 @@ async function main() {
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
   const [sites, mola] = await Promise.all([loadSites(), loadMola()])
   resolveSites(sites)
+  resolveMola(mola)
   const home = sites[0]
   if (!home) throw new Error('sites.json lists no sites')
   const shared = decodeView(window.location.search)
@@ -279,6 +295,7 @@ async function main() {
   siteView.landing = createLandingScene(viewer, surfaceM)
   siteView.base = createBasePlacer(viewer, surfaceM)
   siteView.walk = createWalkMap(viewer, surfaceM)
+  siteView.traverse = createTraverseMap(viewer, surfaceM)
   // Hardware on Mars at true size: the Story base from this browser's saved progress.
   const hardware = createHardwareLayer(viewer, (lon, lat) => groundM(lon, lat) || 0)
   siteView.hardware = hardware
@@ -304,7 +321,7 @@ async function main() {
   if (shared) applyView(viewer, shared)
   keepUrlInSync(viewer, () => spin?.spinning === true)
   const openRef: { current?: (ref: string) => void } = {}
-  const placesReady = loadPlaces()
+  const placesReady = placesOnce
   let loadedPlaces: Place[] = [] // for the walk dashboard's "near you"
   void placesReady.then((p) => (loadedPlaces = p)).catch(() => undefined)
   let thermalGrids: SiteThermal[] = [] // ground firmness, once it has loaded
