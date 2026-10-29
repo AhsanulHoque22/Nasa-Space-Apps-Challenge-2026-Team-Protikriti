@@ -32,6 +32,21 @@ const stores = (c: CargoPlan, untilSol: number): StoresInput => ({
 })
 
 describe('runReport', () => {
+  it('suggests a cut that holds when the base browned out with a reactor down', () => {
+    const c = { ...cargo, kilopower: 3, battery: 0, foodSols: 900 }
+    const lessons = runReport({
+      progress: {
+        ...progress,
+        cargo: c,
+        outage: { habitatKw: 12.1, greenhouseKw: 0, waterOn: true },
+      },
+      failure: { store: 'power', sol: 20, missionId: '1.10', why: 'Brownout' },
+      stores: { ...stores(c, 20), reactorsDown: (sol) => (sol >= 5 ? 1 : 0) },
+    })
+    const l = lessons.find((x) => x.missionId === '1.10')
+    expect(l?.guard).toEqual({ kind: 'max', field: 'outage.habitatKw', value: 8 })
+  })
+
   it('blames the power cart when taking a reactor browned out the base', () => {
     const c = { ...cargo, kilopower: 3, battery: 0 }
     const lessons = runReport({

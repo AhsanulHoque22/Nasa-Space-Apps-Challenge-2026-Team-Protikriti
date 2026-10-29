@@ -56,8 +56,22 @@ function traverseDraws(p: Progress): { sol: number; kwh: number }[] {
   return out
 }
 
+/** Deploying a reactor takes 30-40 sols (DRA 5.0, p.41): the long end, for the replacement. */
+export const DEPLOY_SOLS = 40
+
+/** Mission 1.10: a reactor fails the sol after the traverse ends (team assumption). */
+export function failureSol(p: Progress): number {
+  const plan = traversePlan(p)
+  return traverseStartSol(p) + (plan ? Math.ceil(plan.sols) : 0) + 1
+}
+
+/** The replacement comes on the next ship and is running DEPLOY_SOLS later. */
+export const outageEndSol = (p: Progress): number =>
+  (p.stay?.nextShipSol ?? failureSol(p)) + DEPLOY_SOLS
+
 /** The last sol the finished missions reach. */
 export function solReached(p: Progress): number {
+  if (p.completed.includes('1.10') && p.outage) return outageEndSol(p)
   const plan = p.completed.includes('1.9') ? traversePlan(p) : null
   if (plan) return traverseStartSol(p) + Math.ceil(plan.sols)
   if (p.completed.includes('1.8') && p.water) return waterStartSol(p)
@@ -76,6 +90,8 @@ export function ledgerInput(
 ): StoresInput | null {
   const cargo = p.cargo
   if (!cargo) return null
+  const outage = p.outage
+  const down = (sol: number) => !!outage && sol >= failureSol(p) && sol < outageEndSol(p)
   const storm = p.storm
   const inStorm = (sol: number) =>
     !!storm && sol >= stormStart(p) && sol < stormStart(p) + STORM_SOLS
@@ -105,9 +121,23 @@ export function ledgerInput(
         kw: waterPlant(feedstockById(p.water.feedstock), p.water.kgPerSol).kw,
       },
     }),
-    ...(storm && {
-      habitatKw: (sol: number) => (inStorm(sol) ? storm.habitatKw : undefined),
-      lightsKw: (sol: number) => (inStorm(sol) ? storm.greenhouseKw : undefined),
+    ...((storm || outage) && {
+      habitatKw: (sol: number) =>
+        storm && inStorm(sol)
+          ? storm.habitatKw
+          : outage && down(sol)
+            ? outage.habitatKw
+            : undefined,
+      lightsKw: (sol: number) =>
+        storm && inStorm(sol)
+          ? storm.greenhouseKw
+          : outage && down(sol)
+            ? outage.greenhouseKw
+            : undefined,
+    }),
+    ...(outage && {
+      reactorsDown: (sol: number) => (down(sol) ? 1 : 0),
+      plantOn: (sol: number) => !down(sol) || outage.waterOn,
     }),
   }
 }

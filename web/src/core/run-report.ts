@@ -9,6 +9,7 @@ import { foodNeededSols } from './cargo'
 import { type StormBase, type StormLoads, stormOptions, stormRun } from './dust-storm'
 import { type Areas, greenhouseBudget, greenhouseOptions, reactorsNeeded } from './greenhouse'
 import { feedstockById, waterPlant } from './ice-water'
+import { outageOptions } from './power-failure'
 import { CREW_SIZE, DAYS_PER_SOL, WATER_USE_KG_PER_CM_DAY } from './mission-constants'
 import type { Progress } from './mission-progress'
 
@@ -25,6 +26,9 @@ export type GuardField =
   | 'walk.distanceM'
   | 'water.kgPerSol'
   | 'traverse.cart'
+  | 'outage.habitatKw'
+  | 'outage.greenhouseKw'
+  | 'outage.waterOn'
 
 export type Guard = { kind: 'min' | 'max' | 'equals'; field: GuardField; value: number }
 export type GuardValues = Partial<Record<GuardField, number>>
@@ -148,6 +152,27 @@ export function runReport(c: ReportContext): Lesson[] {
         numbers: `${cargo.kilopower - 1} × 8.75 kW = ${n((cargo.kilopower - 1) * 8.75)} kW for the habitat, the return rocket, the lights and the water plant.`,
         guard: { kind: 'equals', field: 'traverse.cart', value: 1 },
       })
+  }
+
+  const og = c.progress.outage
+  if (failure.store === 'power' && failure.missionId === '1.10' && og && st) {
+    const option = outageOptions(st, og)[0]
+    if (option) {
+      const o = option.outage
+      const guard: Guard =
+        o.habitatKw < og.habitatKw
+          ? { kind: 'max', field: 'outage.habitatKw', value: o.habitatKw }
+          : o.greenhouseKw < og.greenhouseKw
+            ? { kind: 'max', field: 'outage.greenhouseKw', value: o.greenhouseKw }
+            : { kind: 'equals', field: 'outage.waterOn', value: 1 }
+      add({
+        missionId: '1.10',
+        mistake: `With one reactor down, the base ran the habitat at ${n(og.habitatKw)} kW, the lights at ${n(og.greenhouseKw)} kW and the water plant ${og.waterOn ? 'on' : 'off'}.`,
+        measure: option.text,
+        numbers: `${cargo.kilopower - 1} reactors × 8.75 kW = ${n((cargo.kilopower - 1) * 8.75)} kW until the replacement runs.`,
+        guard,
+      })
+    }
   }
 
   if (failure.store === 'power' && failure.missionId === '1.7' && c.storm) {

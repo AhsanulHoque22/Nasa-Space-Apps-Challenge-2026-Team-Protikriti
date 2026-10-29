@@ -42,6 +42,10 @@ export type StoresInput = {
   waterPlant?: { fromSol: number; kgPerSol: number; kw: number }
   /** Extra energy taken from the base on a sol, kWh: the rover charging (mission 1.9). */
   draws?: readonly { sol: number; kwh: number }[]
+  /** Reactors out of action on a sol (mission 1.10's failure). */
+  reactorsDown?: (sol: number) => number
+  /** Whether the water plant runs on a sol; it runs whenever this is not given. */
+  plantOn?: (sol: number) => boolean
 }
 
 export type StoresDay = { sol: number; foodSols: number; waterKg: number; batteryKwh: number }
@@ -70,7 +74,10 @@ export function runStores(i: StoresInput): StoresRun {
       g && sol >= g.firstHarvestSol ? (g.kcalPerDay / crewKcalPerDay()) * lit(i, sol) : 0
     solsEarned += grown
     food += grown - 1
-    const plant = i.waterPlant && sol >= i.waterPlant.fromSol ? i.waterPlant : null
+    const plant =
+      i.waterPlant && sol >= i.waterPlant.fromSol && (i.plantOn?.(sol) ?? true)
+        ? i.waterPlant
+        : null
     water += (plant?.kgPerSol ?? 0) - waterPerSol
     const loadKw =
       (i.habitatKw?.(sol) ?? HABITAT_EXTERNAL_KWE) +
@@ -81,7 +88,8 @@ export function runStores(i: StoresInput): StoresRun {
       .filter((w) => w.sol === sol)
       .reduce((s, w) => s + w.suits * SUIT_BATTERY_KWH, 0)
     const drawnKwh = (i.draws ?? []).filter((d) => d.sol === sol).reduce((s, d) => s + d.kwh, 0)
-    const net = reactorKwh + i.solarKwhPerSol(sol) - loadKw * SOL_HOURS - suitsKwh - drawnKwh
+    const down = (i.reactorsDown?.(sol) ?? 0) * KILOPOWER_DELIVERED_KWE * SOL_HOURS
+    const net = reactorKwh - down + i.solarKwhPerSol(sol) - loadKw * SOL_HOURS - suitsKwh - drawnKwh
     battery = Math.min(capacityKwh, battery + net)
     const failure = firstOut(sol, food, water, battery)
     if (failure) return { days, failure, solsEarned }

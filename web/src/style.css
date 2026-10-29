@@ -3887,6 +3887,11 @@ body[data-story='mission'] .line-legend {
   white-space: nowrap;
 }
 
+/* Mission 1.10: the failed reactor's label says so in words and in red */
+.journey-label.warn {
+  background: rgb(150 30 14 / 0.9);
+}
+
 .journey-label.muted {
   color: var(--text-muted);
   font-weight: 500;

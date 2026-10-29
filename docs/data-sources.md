@@ -568,3 +568,14 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 | Places within 100 km of the base | Traverse stops | IAU Gazetteer of Planetary Nomenclature (USGS), the map's names layer |
 | Elevation along the route | Profile and climbing | MGS MOLA MEGDR, 4 px/deg |
 | Photos jsc2008e138809 and jsc2008e138993 (Lunar Electric Rover, Desert RATS 2008) | Mission 1.9 | NASA/JSC |
+
+## Story mission 1.10: Power unit failure
+
+| Value | Used for | Source |
+|---|---|---|
+| One Kilopower unit (8.75 kWe delivered) fails for good | Lost power until the replacement runs | Delivered power: Rucker et al. 2016; the failure itself is the mission's scenario |
+| Replacement arrives with the next ship and takes 40 sols to set up | Outage length | DRA 5.0 p.41: deploying the reactor takes 30–40 sols (long end used) |
+| Habitat 12.1 kW in use (DRA 5.0), 8.0 kW keep-alive; return-rocket cooling 6.655 kW never cut | Load choices | DRA 5.0; Rucker et al. 2016 Table 3 |
+| KRUSTY: 28 hours of testing in 2018, load-following, tolerant of failures | Briefing | Poston et al. 2020, https://ntrs.nasa.gov/citations/20205009351 |
+| Failure on the sol after the traverse; dimmed lights grow proportionally less | Ledger | **Team assumptions** |
+| Photo NHQ20260127_admin_0004 (KRUSTY at NASA Glenn, 2026) | Mission 1.10 | NASA/John Kraus |

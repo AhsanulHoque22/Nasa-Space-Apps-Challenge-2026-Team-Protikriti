@@ -9,6 +9,7 @@ import {
   recordStorm,
   recordWater,
   recordTraverse,
+  recordFailure,
   recordLanding,
   recordSite,
   retryFrom,
@@ -511,5 +512,29 @@ describe('recordTraverse', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.9']).progress.completed).toEqual([])
+  })
+})
+
+describe('recordFailure', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list = ['1.9', '1.10', '1.11'].map((id) => m(id, true))
+  const failure = { habitatKw: 8, greenhouseKw: 0, waterOn: false }
+
+  it('completes 1.10 and keeps the crew’s load plan', () => {
+    const p = recordFailure(list, { version: 1, owner, completed: ['1.9'] }, failure)
+    expect(p.completed.at(-1)).toBe('1.10')
+    expect(p.outage).toEqual(failure)
+  })
+
+  it('drops a saved 1.10 whose plan is unreadable', () => {
+    const s = store({
+      'atlas.progress': JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.10'],
+        outage: { habitatKw: 'x' },
+      }),
+    })
+    expect(loadProgress(s, owner, ['1.10']).progress.completed).toEqual([])
   })
 })

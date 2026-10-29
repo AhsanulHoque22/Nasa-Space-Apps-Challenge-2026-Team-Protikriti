@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { runStores } from './base-stores'
 import type { Progress } from './mission-progress'
-import { ledgerInput, solReached, traverseStartSol, waterStartSol } from './run-ledger'
+import {
+  DEPLOY_SOLS,
+  failureSol,
+  ledgerInput,
+  outageEndSol,
+  solReached,
+  traverseStartSol,
+  waterStartSol,
+} from './run-ledger'
 import { planTraverse } from './traverse'
 
 const base: Progress = {
@@ -117,5 +125,43 @@ describe('ledgerInput', () => {
       6,
     )
     expect(Math.min(...draws.map((d) => d.sol))).toBeGreaterThanOrEqual(141)
+  })
+
+  it('takes a reactor down from the sol after the traverse until the replacement is deployed', () => {
+    const storm = {
+      arrivalSol: 40,
+      habitatKw: 8,
+      greenhouseKw: 0,
+      shortKwh: 0,
+      lowestBatteryKwh: 1,
+    }
+    const traverse = {
+      stops: [{ name: 'A', lon: 137.6, lat: -4.4 }],
+      concept: 'long-stay' as const,
+      driveHoursPerSol: 6,
+      stopHours: 4,
+    }
+    const p: Progress = {
+      ...base,
+      completed: [...base.completed, '1.5', '1.6', '1.7', '1.8', '1.9', '1.10'],
+      storm,
+      water: { feedstock: 'ice', kgPerSol: 35, at: { lon: 0, lat: 0 } },
+      traverse,
+      greenhouse: { areas: { potato: 10 }, at: { lon: 0, lat: 0 } },
+      outage: { habitatKw: 8, greenhouseKw: 0, waterOn: false },
+    }
+    const plan = planTraverse({ base: p.base?.habitat ?? { lon: 0, lat: 0 }, ...traverse })
+    const fail = traverseStartSol(p) + Math.ceil(plan.sols) + 1
+    expect(failureSol(p)).toBe(fail)
+    expect(outageEndSol(p)).toBe(764 + DEPLOY_SOLS)
+    expect(solReached(p)).toBe(764 + DEPLOY_SOLS)
+    const i = ledgerInput(p, sun, 900)
+    expect(i?.reactorsDown?.(fail - 1)).toBe(0)
+    expect(i?.reactorsDown?.(fail)).toBe(1)
+    expect(i?.reactorsDown?.(764 + DEPLOY_SOLS)).toBe(0)
+    expect(i?.habitatKw?.(fail)).toBe(8)
+    expect(i?.lightsKw?.(fail)).toBe(0)
+    expect(i?.plantOn?.(fail)).toBe(false)
+    expect(i?.plantOn?.(fail - 1)).toBe(true)
   })
 })

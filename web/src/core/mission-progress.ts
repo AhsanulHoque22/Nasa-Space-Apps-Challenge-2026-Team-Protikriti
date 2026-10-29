@@ -38,6 +38,21 @@ export type Progress = {
   water?: WaterRecord
   /** Mission 1.9: where the rover went and how it was powered. */
   traverse?: TraverseRecord
+  /** Mission 1.10: what the crew ran while one reactor was down. */
+  outage?: OutageRecord
+}
+
+export type OutageRecord = { habitatKw: number; greenhouseKw: number; waterOn: boolean }
+
+const isOutageRecord = (v: unknown): v is OutageRecord => {
+  const o = v as Partial<OutageRecord> | null
+  return (
+    !!o &&
+    [o.habitatKw, o.greenhouseKw].every(
+      (n) => typeof n === 'number' && Number.isFinite(n) && n >= 0,
+    ) &&
+    typeof o.waterOn === 'boolean'
+  )
 }
 
 export type TraverseRecord = {
@@ -163,6 +178,7 @@ const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
   '1.7': (p) => isStormRecord(p.storm),
   '1.8': (p) => isWaterRecord(p.water),
   '1.9': (p) => isTraverseRecord(p.traverse),
+  '1.10': (p) => isOutageRecord(p.outage),
 }
 
 export type MissionStatus =
@@ -293,6 +309,17 @@ export function recordTraverse(
   return done === reopened ? progress : { ...done, traverse }
 }
 
+/** Mission 1.10 done: keep the load plan for the outage. A replay reopens what came after. */
+export function recordFailure(
+  missions: readonly Mission[],
+  progress: Progress,
+  outage: OutageRecord,
+): Progress {
+  const reopened = retryFrom(missions, progress, '1.10')
+  const done = completeMission(missions, reopened, '1.10')
+  return done === reopened ? progress : { ...done, outage }
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)
@@ -333,6 +360,7 @@ export function loadProgress(
   if (isStormRecord(saved.storm)) progress.storm = saved.storm
   if (isWaterRecord(saved.water)) progress.water = saved.water
   if (isTraverseRecord(saved.traverse)) progress.traverse = saved.traverse
+  if (isOutageRecord(saved.outage)) progress.outage = saved.outage
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(
     (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),

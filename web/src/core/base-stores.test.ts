@@ -134,4 +134,20 @@ describe('runStores', () => {
     )
     expect((a.days[1]?.batteryKwh ?? 0) - (b.days[1]?.batteryKwh ?? 0)).toBeCloseTo(50, 6)
   })
+
+  it('loses a reactor’s output on the sols it is down', () => {
+    const tight = { ...cargo, kilopower: 3, battery: 0 }
+    expect(runStores(input({ cargo: tight, untilSol: 5 })).failure).toBeNull()
+    const r = runStores(
+      input({ cargo: tight, untilSol: 5, reactorsDown: (sol) => (sol >= 3 ? 1 : 0) }),
+    )
+    expect(r.failure).toMatchObject({ store: 'power', sol: 3 })
+  })
+
+  it('makes no water and draws no power while the water plant is off', () => {
+    const plant = { fromSol: 1, kgPerSol: 10, kw: 2 }
+    const on = runStores(input({ untilSol: 4, waterPlant: plant }))
+    const off = runStores(input({ untilSol: 4, waterPlant: plant, plantOn: (sol) => sol < 3 }))
+    expect((on.days[3]?.waterKg ?? 0) - (off.days[3]?.waterKg ?? 0)).toBeCloseTo(20, 6)
+  })
 })

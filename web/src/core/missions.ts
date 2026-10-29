@@ -126,9 +126,9 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 1,
     title: 'Power unit failure',
     hats: ['Engineer'],
-    built: false,
+    built: true,
     briefing:
-      'One power unit fails. Bring the spare online and decide what to switch off meanwhile.',
+      'One reactor fails for good. Until its replacement from the next ship is running, decide what to switch off.',
   },
   {
     id: '1.11',

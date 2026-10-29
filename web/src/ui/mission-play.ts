@@ -13,6 +13,7 @@ import {
   recordStorm,
   recordWater,
   recordTraverse,
+  recordFailure,
   recordMarswalk,
   recordSite,
   retryFrom,
@@ -35,6 +36,7 @@ import { greenhouseSteps } from './missions/greenhouse-steps'
 import { stormSteps } from './missions/storm-steps'
 import { waterSteps } from './missions/water-steps'
 import { traverseSteps } from './missions/traverse-steps'
+import { failureSteps } from './missions/failure-steps'
 import { iceAt } from '../core/site-report'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { StoryServices } from './story'
@@ -104,6 +106,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   else if (id === '1.7') playStorm(title, play)
   else if (id === '1.8') playWater(title, play)
   else if (id === '1.9') playTraverse(title, play)
+  else if (id === '1.10') playFailure(title, play)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -515,6 +518,36 @@ function playTraverse(title: string, ctx: Play): void {
       onLeave: () => end(ctx.progress, null),
     })
   })
+}
+
+function playFailure(title: string, ctx: Play): void {
+  ctx.services.showImagery() // the crew are on the ground: show the real surface
+  if (!ctx.progress.cargo || !ctx.progress.base)
+    throw new Error('Mission 1.10 needs the cargo (1.1) and the base (1.4)')
+  void sunFor(ctx.progress)
+    .catch(() => null)
+    .then((sun) => {
+      ctx.services.declutter(true)
+      document.body.dataset.story = 'mission'
+      const end = (progress: Progress, note: string | null) => {
+        dock.remove()
+        ctx.services.declutter(false)
+        delete document.body.dataset.story
+        ctx.onDone(progress, note)
+      }
+      const steps = failureSteps(ctx.progress, sun, ctx.reports, ctx.services, (outage) => {
+        const next = recordFailure(MISSIONS, ctx.progress, outage)
+        end(next, saved(ctx, next, 'The replacement reactor is running. Mission 1.10 is done.'))
+      })
+      const dock = openDock({
+        missionTitle: title,
+        lessons: lessonsButton(ctx.reports, '1.10'),
+        status: () => storesBar(ctx.progress),
+        steps,
+        onFinish: () => undefined, // the last step's own button finishes the mission
+        onLeave: () => end(ctx.progress, null),
+      })
+    })
 }
 
 function playStorm(title: string, ctx: Play): void {
