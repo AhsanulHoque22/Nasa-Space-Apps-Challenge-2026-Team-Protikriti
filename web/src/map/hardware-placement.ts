@@ -15,7 +15,14 @@ import {
 import type { Progress } from '../core/mission-progress'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { HardwareLayer } from './hardware-layer'
-import { greenhouseShape, kilopowerShape, powerBoxShape, wingShape } from './hardware-shapes'
+import {
+  digSiteShape,
+  greenhouseShape,
+  kilopowerShape,
+  powerBoxShape,
+  wingShape,
+} from './hardware-shapes'
+import { feedstockById } from '../core/ice-water'
 
 type StopLike = { sol: number; lon: number; lat: number; yawDeg: number | null }
 
@@ -112,6 +119,15 @@ export function placeBase(layer: HardwareLayer, progress: Progress | null): void
       label: `Greenhouse · ${m2} m² of beds`,
     })
     if (base.habitat) layer.cable('base:cable-greenhouse', [base.habitat, gh.at])
+  }
+  const dig = done.has('1.8') ? progress.water : undefined
+  if (dig) {
+    layer.shape('base:dig', digSiteShape('base:dig#shape'), {
+      ...dig.at,
+      scale: 1,
+      label: `Dig site · ${feedstockById(dig.feedstock).name.toLowerCase()} · ${dig.kgPerSol.toFixed(0)} kg of water a sol`,
+    })
+    if (base.oxygen) layer.cable('base:haul-water', [dig.at, base.oxygen])
   }
   const sets = progress.cargo?.solar ?? 0
   if (base.arrays && sets > 0) {

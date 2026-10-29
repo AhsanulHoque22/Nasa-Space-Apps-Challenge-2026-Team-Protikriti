@@ -32,6 +32,23 @@ const stores = (c: CargoPlan, untilSol: number): StoresInput => ({
 })
 
 describe('runReport', () => {
+  it('asks for less water a sol when the water plant browned out the base, and checks it holds', () => {
+    const c = { ...cargo, kilopower: 3 } // 26.25 kW: 7.5 kW spare for the plant
+    const plant = { fromSol: 1, kgPerSol: 35, kw: 8.4 } // regolith at 35 kg a sol
+    const lessons = runReport({
+      progress: {
+        ...progress,
+        cargo: c,
+        water: { feedstock: 'regolith', kgPerSol: 35, at: { lon: 0, lat: 0 } },
+      },
+      failure: { store: 'power', sol: 1, missionId: '1.8', why: 'Brownout' },
+      stores: { ...stores({ ...c, battery: 0 }, 1), waterPlant: plant },
+    })
+    const l = lessons.find((x) => x.missionId === '1.8')
+    expect(l?.guard).toEqual({ kind: 'max', field: 'water.kgPerSol', value: 30 })
+    expect(l?.measure).toContain('30 kg')
+  })
+
   it('blames the reactors packed in 1.1 when the greenhouse browns out the base', () => {
     const lessons = runReport({
       progress,

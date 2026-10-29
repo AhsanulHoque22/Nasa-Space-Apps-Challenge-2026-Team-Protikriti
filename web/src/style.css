@@ -5720,6 +5720,60 @@ button.journey-label:focus-visible {
   }
 }
 
+/* Mission 1.8: SWIM's -1..+1 scale with the base's reading, and the four water sources */
+.swim-dial {
+  margin: var(--space-2) 0;
+}
+
+.swim-scale {
+  position: relative;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #8a5532, rgb(255 255 255 / 0.12) 50%, #9fd3f2);
+}
+
+.swim-zero {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--text-muted);
+}
+
+.swim-mark {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 3px solid var(--nasa-blue);
+  transform: translate(-50%, -50%);
+}
+
+.swim-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-1);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.later-needs.goals li {
+  grid-template-columns: 4.5em 1fr;
+}
+
+.src-row {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.gate-note.ok {
+  color: #8fd19e;
+}
+
 /* Base stores in the mission header: a word on every reading, never colour alone. */
 .stores-bar {
   display: flex;

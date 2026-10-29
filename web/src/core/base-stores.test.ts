@@ -94,4 +94,26 @@ describe('runStores', () => {
     )
     expect(r.solsEarned).toBeCloseTo(6, 6)
   })
+
+  it('adds the water plant’s water from its first sol and draws its power', () => {
+    const plant = { fromSol: 3, kgPerSol: 10, kw: 2 }
+    const r = runStores(input({ untilSol: 4, waterPlant: plant }))
+    const plain = runStores(input({ untilSol: 4 }))
+    expect((r.days[3]?.waterKg ?? 0) - (plain.days[3]?.waterKg ?? 0)).toBeCloseTo(20, 6)
+    expect((r.days[1]?.waterKg ?? 0) - (plain.days[1]?.waterKg ?? 0)).toBe(0)
+    const hours = DAYS_PER_SOL * 24
+    expect((plain.days[3]?.batteryKwh ?? 0) - (r.days[3]?.batteryKwh ?? 0)).toBeLessThanOrEqual(
+      2 * 2 * hours,
+    )
+  })
+
+  it('browns out when the plant asks more than the reactors spare', () => {
+    const r = runStores(
+      input({
+        cargo: { ...cargo, battery: 0, kilopower: 3 },
+        waterPlant: { fromSol: 2, kgPerSol: 33, kw: 8 },
+      }),
+    )
+    expect(r.failure).toMatchObject({ store: 'power', sol: 2 })
+  })
 })

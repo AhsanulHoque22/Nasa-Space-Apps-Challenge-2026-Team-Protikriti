@@ -162,3 +162,34 @@ export function greenhouseShape(id: string, areas: Areas): (frame: Matrix4) => P
       }),
     )
 }
+
+const PIT = Color.fromCssColorString('#24140d')
+const SPOIL = Color.fromCssColorString('#8a5532')
+
+/**
+ * Mission 1.8's dig site: M-WIP's ice slot (8.5 m × 1 m, slide 46) or a soil strip of the same
+ * length, a spoil heap beside it, and a RASSOR-class excavator (drums 0.45 m) for scale. Drawn.
+ */
+export function digSiteShape(id: string): (frame: Matrix4) => Primitive {
+  const box = (
+    frame: Matrix4,
+    dx: number,
+    dy: number,
+    dz: number,
+    x: number,
+    y: number,
+    colour: Color,
+  ) =>
+    piece(
+      id,
+      BoxGeometry.fromDimensions({ dimensions: new Cartesian3(dx, dy, dz) }),
+      at(frame, x, y, dz / 2),
+      colour,
+    )
+  return (frame) =>
+    primitive([
+      box(frame, 8.5, 1, 0.05, 0, 0, PIT),
+      box(frame, 3, 3, 1.5, 0, 3, SPOIL),
+      box(frame, 0.7, 1.6, 0.45, 5, 0, BOX),
+    ])
+}

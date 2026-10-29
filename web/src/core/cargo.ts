@@ -4,6 +4,7 @@
  * on the landing site: solar output is judged in mission 1.2, once latitude is known.
  */
 import { lightWm2, cropById, spareReactorKw } from './greenhouse'
+import { feedstockById } from './ice-water'
 import {
   CREW_SIZE,
   DAYS_PER_SOL,
@@ -277,7 +278,12 @@ export function laterNeeds(plan: CargoPlan): LaterNeed[] {
       ok: reactorKw(plan) >= CREW_PHASE_KW,
     },
     {
-      mission: '1.11 Power failure',
+      mission: '1.8 Water from ice',
+      need: `Spare power for a water plant: ordinary soil needs ${kw(feedstockById('regolith').processKw)} on top of the greenhouse; buried ice far less.`,
+      ok: spare - lettuceKw >= feedstockById('regolith').processKw,
+    },
+    {
+      mission: '1.10 Power failure',
       need: `One reactor can fail and the rest still carry the base (${kw(CREW_PHASE_KW)}).`,
       ok: (plan.kilopower - 1) * KILOPOWER_DELIVERED_KWE >= CREW_PHASE_KW,
     },

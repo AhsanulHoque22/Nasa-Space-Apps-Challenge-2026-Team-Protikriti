@@ -8,6 +8,7 @@ import { type StoreName, type StoresInput, runStores } from './base-stores'
 import { foodNeededSols } from './cargo'
 import { type StormBase, type StormLoads, stormOptions, stormRun } from './dust-storm'
 import { type Areas, greenhouseBudget, greenhouseOptions, reactorsNeeded } from './greenhouse'
+import { feedstockById, waterPlant } from './ice-water'
 import { CREW_SIZE, DAYS_PER_SOL, WATER_USE_KG_PER_CM_DAY } from './mission-constants'
 import type { Progress } from './mission-progress'
 
@@ -22,6 +23,7 @@ export type GuardField =
   | 'storm.habitatKw'
   | 'storm.greenhouseKw'
   | 'walk.distanceM'
+  | 'water.kgPerSol'
 
 export type Guard = { kind: 'min' | 'max' | 'equals'; field: GuardField; value: number }
 export type GuardValues = Partial<Record<GuardField, number>>
@@ -112,6 +114,26 @@ export function runReport(c: ReportContext): Lesson[] {
         numbers: `${cargo.kilopower} × 8.75 kW = ${n(cargo.kilopower * 8.75)} kW.`,
         guard: { kind: 'min', field: 'cargo.kilopower', value: need },
       })
+  }
+
+  const w = c.progress.water
+  const st = c.stores
+  if (failure.store === 'power' && failure.missionId === '1.8' && w && st?.waterPlant) {
+    const plant = st.waterPlant
+    const f = feedstockById(w.feedstock)
+    // The most water a sol, in the mission's 5 kg steps, that the same ledger shows would hold.
+    for (let kg = Math.floor((w.kgPerSol - 1) / 5) * 5; kg > 0; kg -= 5) {
+      const kw = waterPlant(f, kg).kw
+      if (!holds({ ...st, waterPlant: { ...plant, kgPerSol: kg, kw } }, 'power')) continue
+      add({
+        missionId: '1.8',
+        mistake: `The water plant drew ${n(plant.kw)} kW making ${n(w.kgPerSol)} kg of water a sol from ${f.name.toLowerCase()}.`,
+        measure: `Make ${kg} kg a sol or less: the plant then needs ${n(kw)} kW.`,
+        numbers: `${f.name}: ${n(f.processKw)} kW for 33 kg a sol (NASA M-WIP).`,
+        guard: { kind: 'max', field: 'water.kgPerSol', value: kg },
+      })
+      break
+    }
   }
 
   if (failure.store === 'power' && failure.missionId === '1.7' && c.storm) {

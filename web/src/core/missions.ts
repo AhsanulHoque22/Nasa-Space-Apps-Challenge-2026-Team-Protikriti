@@ -24,7 +24,8 @@ export const EXPEDITIONS: readonly Expedition[] = [
   {
     n: 1,
     title: 'First Footprints',
-    summary: 'A crew of four lands and must stay alive for 525 sols until the window home opens.',
+    summary:
+      'A crew of four lands and must stay alive until the next ship, then until the window home opens.',
   },
   {
     n: 2,
@@ -46,7 +47,7 @@ export const MISSIONS: readonly Mission[] = [
     hats: ['Commander', 'Engineer'],
     built: true,
     briefing:
-      'Cargo goes first, about two years ahead of the crew. Pack one lander: the 21.5 t habitat is fixed, and every other kilogram is your choice of power, oxygen plant, food and spares.',
+      'Cargo goes first, about two years ahead of the crew. Pack two landers: the 21.5 t habitat is fixed, and every other kilogram is your choice of power, oxygen plants, food and the means to grow and recycle more.',
   },
   {
     id: '1.2',
@@ -105,22 +106,14 @@ export const MISSIONS: readonly Mission[] = [
   {
     id: '1.8',
     expedition: 1,
-    title: 'Return window',
-    hats: ['Commander'],
-    built: false,
+    title: 'Water from ice',
+    hats: ['Engineer', 'Scientist'],
+    built: true,
     briefing:
-      'Reach sol 525 with the crew alive and the ascent vehicle ready. The debrief shows what held and what nearly failed.',
+      'Find out whether ice lies under your base, choose what to dig, and place a water plant the excavator can keep fed. NASA plans 16 t of water per crew.',
   },
   {
     id: '1.9',
-    expedition: 1,
-    title: 'Water from ice',
-    hats: ['Engineer', 'Scientist'],
-    built: false,
-    briefing: 'Find shallow ice inside your zone and plan how to bring water back to the base.',
-  },
-  {
-    id: '1.10',
     expedition: 1,
     title: 'Long traverse',
     hats: ['Scientist', 'Commander'],
@@ -129,13 +122,22 @@ export const MISSIONS: readonly Mission[] = [
       'Two crew drive a pressurised rover about 100 km over two weeks while two stay at the base.',
   },
   {
-    id: '1.11',
+    id: '1.10',
     expedition: 1,
     title: 'Power unit failure',
     hats: ['Engineer'],
     built: false,
     briefing:
       'One power unit fails. Bring the spare online and decide what to switch off meanwhile.',
+  },
+  {
+    id: '1.11',
+    expedition: 1,
+    title: 'Return window',
+    hats: ['Commander'],
+    built: false,
+    briefing:
+      'Reach the window home with the crew alive and the ascent vehicle ready. The debrief shows what held and what nearly failed.',
   },
   {
     id: '2.1',

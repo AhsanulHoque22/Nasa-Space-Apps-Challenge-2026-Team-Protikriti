@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { runStores } from './base-stores'
 import type { Progress } from './mission-progress'
-import { ledgerInput, solReached } from './run-ledger'
+import { ledgerInput, solReached, waterStartSol } from './run-ledger'
 
 const base: Progress = {
   version: 1,
@@ -58,5 +58,28 @@ describe('ledgerInput', () => {
 
   it('is null before mission 1.1 has packed anything', () => {
     expect(ledgerInput({ version: 1, owner: 'o', completed: [] }, sun, 10)).toBeNull()
+  })
+
+  it('starts the water plant the sol after the storm ends, and draws its power', () => {
+    const storm = {
+      arrivalSol: 40,
+      habitatKw: 8,
+      greenhouseKw: 0,
+      shortKwh: 0,
+      lowestBatteryKwh: 1,
+    }
+    const p: Progress = {
+      ...base,
+      completed: [...base.completed, '1.5', '1.6', '1.7', '1.8'],
+      storm,
+      water: { feedstock: 'regolith', kgPerSol: 33.333333333333336, at: { lon: 0, lat: 0 } },
+    }
+    expect(waterStartSol(p)).toBe(140)
+    expect(solReached(p)).toBe(140)
+    expect(ledgerInput(p, sun, 200)?.waterPlant).toEqual({
+      fromSol: 140,
+      kgPerSol: p.water?.kgPerSol,
+      kw: 8,
+    })
   })
 })

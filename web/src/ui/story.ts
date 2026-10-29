@@ -6,6 +6,7 @@ import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
 import type { Grid } from '../core/grid'
 import type { ZoneRow } from '../core/zone-rank'
+import type { SwimGrid } from '../core/site-report'
 import type { BasePlacer } from '../map/base-placer'
 import type { FeaturePins } from '../map/feature-pins'
 import type { LandingScene } from '../map/landing-scene'
@@ -36,6 +37,8 @@ export type StoryServices = {
   declutter: (on: boolean) => void
   /** Mission 1.5's route, router and walking crew. */
   walk: WalkMap
+  /** SWIM shallow-ice consistency for the whole planet, or null when it cannot load. */
+  swim: () => Promise<SwimGrid | null>
   /** Redraw the Story base on the map from this progress (after a mission ends). */
   showBase: (progress: Progress) => void
 }
@@ -68,7 +71,7 @@ export function showStory(ctx: StoryContext): void {
   function showMission(id: string) {
     const mission = MISSIONS.find((m) => m.id === id)
     if (!mission) throw new Error(`No mission with id "${id}"`)
-    if (['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7'].includes(id)) {
+    if (['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8'].includes(id)) {
       ctx.onPlay(id, progress)
       return
     }

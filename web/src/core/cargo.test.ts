@@ -171,13 +171,14 @@ describe('laterNeeds', () => {
       '1.5 Marswalk',
       '1.6 Greenhouse',
       '1.7 Dust storm',
-      '1.11 Power failure',
+      '1.8 Water from ice',
+      '1.10 Power failure',
     ])
     expect(rows.every((r) => r.ok)).toBe(true)
   })
 
   it('fails the walk without a battery and the greenhouse without hardware', () => {
-    expect(laterNeeds(fission).map((r) => r.ok)).toEqual([false, false, true, true])
+    expect(laterNeeds(fission).map((r) => r.ok)).toEqual([false, false, true, true, true])
   })
 
   it('fails a reactor loss with 3 reactors: 2 give 17.5 kW, less than 18.76 kW', () => {

@@ -7,6 +7,7 @@ import {
   recordMarswalk,
   recordGreenhouse,
   recordStorm,
+  recordWater,
   recordLanding,
   recordSite,
   retryFrom,
@@ -456,5 +457,29 @@ describe('recordStorm', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.7']).progress.completed).toEqual([])
+  })
+})
+
+describe('recordWater', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list = ['1.6', '1.7', '1.8', '1.9'].map((id) => m(id, true))
+  const water = { feedstock: 'ice' as const, kgPerSol: 33, at: { lon: 137.4, lat: -4.6 } }
+
+  it('completes 1.8 and keeps the water plant', () => {
+    const p = recordWater(list, { version: 1, owner, completed: ['1.6', '1.7'] }, water)
+    expect(p.completed.at(-1)).toBe('1.8')
+    expect(p.water).toEqual(water)
+  })
+
+  it('drops a saved 1.8 whose plant is unreadable', () => {
+    const s = store({
+      'atlas.progress': JSON.stringify({
+        version: 1,
+        owner,
+        completed: ['1.8'],
+        water: { feedstock: 'lava', kgPerSol: 33, at: { lon: 1, lat: 2 } },
+      }),
+    })
+    expect(loadProgress(s, owner, ['1.8']).progress.completed).toEqual([])
   })
 })

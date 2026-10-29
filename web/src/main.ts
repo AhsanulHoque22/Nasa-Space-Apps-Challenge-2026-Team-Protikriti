@@ -120,6 +120,10 @@ async function loadSwim(): Promise<SwimGrid> {
   return { ...(meta as Omit<SwimGrid, 'values'>), values: new Int8Array(bin) }
 }
 
+/** SWIM shallow ice, loaded once for the Site Report and Story mission 1.8. */
+let swimOnce: Promise<SwimGrid | null> | undefined
+const getSwim = () => (swimOnce ??= loadSwim().catch(() => null))
+
 async function loadMola(): Promise<Grid> {
   const [meta, bin] = await Promise.all([
     fetchOk('data/mola.json').then((r) => r.json()),
@@ -218,6 +222,7 @@ async function main() {
         clear: () => siteView.walk?.clear(),
       },
       siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
+      swim: getSwim,
       showBase: (progress) => siteView.hardware && placeBase(siteView.hardware, progress),
     })
   if (!decodeView(window.location.search)) openStart()
@@ -447,8 +452,6 @@ async function main() {
   const thermalReady = loadThermalGrids(sites)
   void thermalReady.then((t) => (thermalGrids = t)).catch(() => undefined)
   const crismReady = loadCrismGrids(sites)
-  let swim: Promise<SwimGrid | null> | undefined
-  const getSwim = () => (swim ??= loadSwim().catch(() => null))
   const openReport = async (lon: number, lat: number) => {
     const places: Place[] = await placesReady.catch(() => [])
     renderSiteReport(side, lon, lat, {

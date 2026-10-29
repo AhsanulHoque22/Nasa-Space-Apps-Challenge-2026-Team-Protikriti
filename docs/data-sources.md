@@ -538,3 +538,21 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 | Dimmed greenhouse lights grow proportionally less food | Stores ledger in the storm | **Team assumption** |
 
 Energy is balanced over each whole sol, as in the storm model: reactors first, then solar, then the battery. Mission reports suggest only fixes that the same model shows would have saved the run.
+
+## Story mission 1.8: Water from ice
+
+| Value | Used for | Source |
+|---|---|---|
+| 16 t of water per crew over 480 sols (33 kg a sol) | The plant's reference rate and the stretch goal | NASA M-WIP study (Abbud-Madrid et al. 2016), slides 39 and 50, https://sciences.ucf.edu/class/wp-content/uploads/sites/23/2020/04/Mars_Water_ISRU_Stud1.pdf |
+| Ground moved for 16 t: gypsum 186 t, clay 583 t, typical regolith 1,250 t | Ground dug a sol | M-WIP slide 39 |
+| Power: gypsum 2 kW, clay 5 kW, regolith (1.25%) 8 kW; idealised, no losses | Plant power | M-WIP slide 50 |
+| Ice: 90% ice; open-pit ice above 2.2 m moves no more ground than gypsum | Ice uses gypsum's mass as an upper bound | M-WIP slide 46 |
+| Ice power: heat to warm ice from −63 °C and melt it (2.05 kJ/kg·K, 334 kJ/kg) | Ice plant power | **Derived**; −63 °C ground is a **team assumption**; M-WIP did not establish ice power |
+| Ice slot 8.5 × 1 × 2 m (17.4 m³) for 16 t | 3D dig scene and map shape | M-WIP slide 46 |
+| Excavator: two 40 kg drums, 25 cm/s, 60% duty | Trips a sol and the farthest dig | M-WIP slide 38 |
+| RASSOR 2.0: 66 kg, at least 2.7 t a day | Excavators needed | Mueller et al. 2016, https://ntrs.nasa.gov/citations/20210011366 |
+| Drum 0.45 m × 0.36 m | 3D excavator | Size limits of NASA's 2020 RASSOR drum challenge (GrabCAD) |
+| Ice available only where SWIM 2.0 consistency > 0; no sulfate or clay deposit mapped at the game's sites | Which sources are open | SWIM 2.0 (Morgan et al. 2021); the closed deposits are a **team simplification** |
+| Plant starts the sol after the storm ends | Ledger | **Team assumption** |
+| Excavators and water plant inside the oxygen plants' mass; spoil at 1,500 kg/m³ | Cargo and 3D drawing | **Team assumptions** |
+| Photos: PIA10906 (Phoenix ice, 2008), PIA22077 (ice scarp, Dundas et al. 2018), KSC-20160929-PH_DNG01_0001 and _0039 (RASSOR) | Mission 1.8 | NASA/JPL-Caltech, NASA/KSC |

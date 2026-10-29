@@ -7,6 +7,7 @@
 import type { StoresInput } from './base-stores'
 import { BEFORE_STORM_TAU, STORM_SOLS, tauOnDay } from './dust-storm'
 import { type Areas, greenhouseBudget } from './greenhouse'
+import { feedstockById, waterPlant } from './ice-water'
 import { CLEAR_TAU, DAYS_PER_SOL, SOLAR_SET_AREA_M2 } from './mission-constants'
 import type { Progress } from './mission-progress'
 import { ARRAY_DUST_FACTOR, ARRAY_EFFICIENCY } from './surface-solar'
@@ -22,8 +23,13 @@ const WALKERS = 2
 
 const stormStart = (p: Progress) => Math.max(p.storm?.arrivalSol ?? 1, MISSION_SOL['1.6'] ?? 6)
 
+/** Mission 1.8's water plant starts the sol after the storm ends (team assumption). */
+export const waterStartSol = (p: Progress): number =>
+  p.storm ? stormStart(p) + STORM_SOLS : (MISSION_SOL['1.6'] ?? 6) + 1
+
 /** The last sol the finished missions reach. */
 export function solReached(p: Progress): number {
+  if (p.completed.includes('1.8') && p.water) return waterStartSol(p)
   if (p.completed.includes('1.7') && p.storm) return stormStart(p) + STORM_SOLS - 1
   return Math.max(0, ...p.completed.map((id) => MISSION_SOL[id] ?? 0))
 }
@@ -60,6 +66,13 @@ export function ledgerInput(
           }
         : null,
     walks: p.walk ? [{ sol: MISSION_SOL['1.5'] ?? 5, suits: WALKERS }] : [],
+    ...(p.water && {
+      waterPlant: {
+        fromSol: waterStartSol(p),
+        kgPerSol: p.water.kgPerSol,
+        kw: waterPlant(feedstockById(p.water.feedstock), p.water.kgPerSol).kw,
+      },
+    }),
     ...(storm && {
       habitatKw: (sol: number) => (inStorm(sol) ? storm.habitatKw : undefined),
       lightsKw: (sol: number) => (inStorm(sol) ? storm.greenhouseKw : undefined),

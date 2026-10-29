@@ -11,6 +11,7 @@ import {
   recordLanding,
   recordGreenhouse,
   recordStorm,
+  recordWater,
   recordMarswalk,
   recordSite,
   retryFrom,
@@ -31,6 +32,8 @@ import { siteSteps } from './missions/site-steps'
 import { marswalkSteps } from './missions/marswalk-steps'
 import { greenhouseSteps } from './missions/greenhouse-steps'
 import { stormSteps } from './missions/storm-steps'
+import { waterSteps } from './missions/water-steps'
+import { iceAt } from '../core/site-report'
 import { SITE_BRIEFS } from '../core/site-features'
 import type { StoryServices } from './story'
 import { runStores } from '../core/base-stores'
@@ -97,6 +100,7 @@ export function playMission(id: string, ctx: PlayContext): void {
   else if (id === '1.5') playMarswalk(title, play)
   else if (id === '1.6') playGreenhouse(title, play)
   else if (id === '1.7') playStorm(title, play)
+  else if (id === '1.8') playWater(title, play)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -431,6 +435,45 @@ function playGreenhouse(title: string, ctx: Play): void {
       onLeave: () => end(ctx.progress, null),
     })
   })
+}
+
+function playWater(title: string, ctx: Play): void {
+  ctx.services.showImagery() // the crew are on the ground: show the real surface
+  const { site, base } = ctx.progress
+  if (!site || !base?.habitat)
+    throw new Error('Mission 1.8 needs the landing site (1.2) and the base (1.4)')
+  void Promise.all([ctx.services.siteGrid(site.siteId), ctx.services.swim()]).then(
+    ([grid, swim]) => {
+      if (!grid) {
+        ctx.onDone(ctx.progress, 'The site’s terrain could not be loaded. Start the mission again.')
+        return
+      }
+      ctx.services.declutter(true)
+      document.body.dataset.story = 'mission'
+      const end = (progress: Progress, note: string | null) => {
+        dock.remove()
+        ctx.services.base.pick(null)
+        ctx.services.pins.show([], () => undefined)
+        ctx.services.showBase(progress) // drop a preview that was not kept
+        ctx.services.declutter(false)
+        delete document.body.dataset.story
+        ctx.onDone(progress, note)
+      }
+      const reading = swim ? iceAt(swim, site.lon, site.lat) : null
+      const steps = waterSteps(grid, ctx.progress, reading, ctx.reports, ctx.services, (water) => {
+        const next = recordWater(MISSIONS, ctx.progress, water)
+        end(next, saved(ctx, next, 'The water plant is running. Mission 1.8 is done.'))
+      })
+      const dock = openDock({
+        missionTitle: title,
+        lessons: lessonsButton(ctx.reports, '1.8'),
+        status: () => storesBar(ctx.progress),
+        steps,
+        onFinish: () => undefined, // the last step's own button finishes the mission
+        onLeave: () => end(ctx.progress, null),
+      })
+    },
+  )
 }
 
 function playStorm(title: string, ctx: Play): void {
