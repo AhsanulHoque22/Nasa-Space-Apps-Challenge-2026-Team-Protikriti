@@ -1,4 +1,4 @@
-.PHONY: install test lint data colony-data dev build
+.PHONY: install test lint data colony-data dev build cdn
 
 install:
 	cd pipeline && uv sync
@@ -41,3 +41,10 @@ dev:
 
 build:
 	cd web && npm run build
+
+# Laptop CDN: panoramas and 1 m terrain tiles (data/pano) at VITE_PANO_CDN from web/.env.
+# Ctrl-C stops both the file server and the tunnel.
+cdn:
+	trap 'kill 0' EXIT; \
+	npx --yes serve@14 data/pano --cors -l 9876 & \
+	ngrok http 9876 --url=$$(grep '^VITE_PANO_CDN=' web/.env | cut -d= -f2)
