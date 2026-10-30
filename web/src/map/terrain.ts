@@ -34,7 +34,13 @@ export function sampleHeights(height: HeightFn, rect: DegreeRect, size: number):
   return heights
 }
 
-export function createTerrain(height: HeightFn): CustomHeightmapTerrainProvider {
+/** Before tile (x, y, level) is sampled: a promise when its data must load first. */
+export type PrepareTile = (x: number, y: number, level: number) => Promise<void> | undefined
+
+export function createTerrain(
+  height: HeightFn,
+  prepare?: PrepareTile,
+): CustomHeightmapTerrainProvider {
   const tilingScheme = new GeographicTilingScheme({ ellipsoid: MARS_SPHERE })
   const toDeg = 180 / Math.PI
   const provider = new CustomHeightmapTerrainProvider({
@@ -43,16 +49,19 @@ export function createTerrain(height: HeightFn): CustomHeightmapTerrainProvider 
     tilingScheme,
     callback: (x, y, level) => {
       const r = tilingScheme.tileXYToRectangle(x, y, level)
-      return sampleHeights(
-        height,
-        {
-          west: r.west * toDeg,
-          south: r.south * toDeg,
-          east: r.east * toDeg,
-          north: r.north * toDeg,
-        },
-        HEIGHTMAP_SIZE,
-      )
+      const sample = () =>
+        sampleHeights(
+          height,
+          {
+            west: r.west * toDeg,
+            south: r.south * toDeg,
+            east: r.east * toDeg,
+            north: r.north * toDeg,
+          },
+          HEIGHTMAP_SIZE,
+        )
+      const loading = prepare?.(x, y, level)
+      return loading ? loading.then(sample) : sample()
     },
   })
   // Cesium refines a tile while its geometric error shows on screen; a 1 mm error never does.

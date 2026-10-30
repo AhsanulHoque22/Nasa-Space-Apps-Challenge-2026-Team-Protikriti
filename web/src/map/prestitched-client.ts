@@ -5,7 +5,11 @@ import type { Rover } from './raw-images'
 
 // VITE_PANO_CDN: laptop CDN URL (e.g. https://xyz.trycloudflare.com). Falls back to Vercel-hosted
 // demo stops when unset or unreachable.
-const CDN = (import.meta.env.VITE_PANO_CDN as string | undefined)?.replace(/\/$/, '')
+export const CDN = (import.meta.env.VITE_PANO_CDN as string | undefined)?.replace(/\/$/, '')
+
+/** fetch() options for a CDN URL: ngrok's free tier answers browsers with a warning page unless told to skip it. */
+export const cdnInit = (url: string): RequestInit | undefined =>
+  CDN && url.startsWith(CDN) ? { headers: { 'ngrok-skip-browser-warning': '1' } } : undefined
 
 const indexes = new Map<Rover, Promise<PrestitchedIndex | null>>()
 
@@ -18,10 +22,7 @@ export type Prestitched = {
 
 async function fetchFirst(...urls: string[]): Promise<Response | null> {
   for (const url of urls) {
-    // ngrok's free tier answers browsers with a warning page unless told to skip it.
-    const init =
-      CDN && url.startsWith(CDN) ? { headers: { 'ngrok-skip-browser-warning': '1' } } : undefined
-    const r = await fetch(url, init).catch(() => null)
+    const r = await fetch(url, cdnInit(url)).catch(() => null)
     if (r?.ok) return r
   }
   return null

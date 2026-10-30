@@ -229,6 +229,18 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Display enhancement | `pipeline/src/marsmap/enhance.py`, classical OpenCV filters, no learned model: light non-local-means denoising (h = 3 grey levels), an unsharp mask (sigma 1.2 px, amount 0.8) that undoes the softening of averaging 25 cm pixels to 0.32 m, and a gentle CLAHE local-contrast lift blended 50/50 with the original. Tiles are written at JPEG quality 90. It makes detail the camera captured easier to read and cannot add detail it did not capture; nothing is upscaled or generated. Brightness is no longer radiometric, so these tiles are for looking at, never for measuring. Measured on a 26 x 26-tile Jezero crop: edge sharpness (variance of the Laplacian) 3.2x higher. |
 | Blending | On the map, each walk patch blends into its site model over 60 m, and each site model into MOLA over 500 m, so no cliff shows where elevation models meet. On foot the walker stays inside the patch, and the slope warning uses the 15 deg route limit on the 2 m terrain. |
 
+## Fine terrain (1 m ground in the 3D view, `marsmap fine`)
+
+| Item | Source and method |
+|---|---|
+| Jezero | The same USGS Mars 2020 TRN HiRISE DTM mosaic, 1 m, as the walk patch, over the whole site box. |
+| Gale | The same USGS MSL Gale Merged DEM Mosaic v3, 1 m, over the whole site box. |
+| Columbia Hills, Viking 2, Pathfinder, Ius Chasma | The HiRISE stereo DTMs already listed under Terrain (`DTEEC_*.IMG`, about 1 m posts), read at full resolution; 0.0 (failed stereo) is no data. |
+| Method | Cut into Cesium geographic level-15 tiles (about 326 m), 326 x 326 samples each (about 1 m apart, the DTMs' own posting), bilinear from the source projection to longitude/latitude on the 3,396,190 m sphere, stored as int16 in 2 cm steps around each tile's median. Tiles with no data are not written. |
+| Use | View only: the ground Cesium draws from level 15 down, loaded as the camera comes close. Route planning, slope and hazard layers keep the 5-32 m site grids. |
+| Hosting | About 1 GB, so not in the repo: served from the team laptop beside the panoramas (`data/pano/terrain`, `VITE_PANO_CDN`). With the laptop off, the app draws the site grids as before. |
+| Edge | No blending where a DTM's coverage ends: the site grids are made from the same DTMs, and at Jezero the CTX site model agrees with the HiRISE DTM to -1.8 +/- 2.4 m. |
+
 ## Street View terrain labels (AI4Mars)
 
 | Item | Source and method |

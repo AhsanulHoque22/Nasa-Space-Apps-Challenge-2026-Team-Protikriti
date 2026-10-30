@@ -308,7 +308,7 @@ async function main() {
   installKeyboardCamera(viewer, () =>
     document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),
   )
-  viewer.terrainProvider = createTerrain(groundM)
+  viewer.terrainProvider = createTerrain(groundM, ground.prepare)
   keepCameraAboveGround(viewer, groundM)
   // A shared link opens on its own view; a plain visit opens on Mars, 500 km up, turning slowly.
   const spin = shared
