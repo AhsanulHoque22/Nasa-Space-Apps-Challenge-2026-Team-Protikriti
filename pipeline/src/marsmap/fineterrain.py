@@ -19,12 +19,11 @@ from rasterio.transform import from_bounds as transform_from_bounds
 from rasterio.warp import reproject, transform_bounds
 from rasterio.windows import Window, from_bounds
 
-from marsmap.dem import MARS_LONLAT
+from marsmap.dem import FAILED_STEREO_M, MARS_LONLAT
 from marsmap.walkpatch import HEIGHT_STEP_M, NODATA_I16, Box, encode_heights, tile_box, tile_range
 
 LEVEL = 15  # a level-15 tile is 180 / 2^15 deg, about 326 m north-south
 SAMPLES = 326  # per tile edge: about 1 m apart, the DTMs' own post spacing
-ZERO_M = 1e-6  # no Mars ground in these DTMs is within a micrometre of the datum
 MARGIN = 0.1  # of a tile, read around it so bilinear samples at the edge have neighbours
 
 __all__ = ["HEIGHT_STEP_M", "LEVEL", "NODATA_I16", "SAMPLES", "build_fine_terrain"]
@@ -50,8 +49,7 @@ def _read(src: rasterio.DatasetReader, box: Box, zero_is_nodata: bool) -> Source
     window = window.intersection(Window(0, 0, src.width, src.height))
     pixels = src.read(1, window=window, masked=True).filled(np.nan).astype(np.float32)
     if zero_is_nodata:
-        # HiRISE DTEEC: failed stereo matching is 0, or a denormal such as 3.5e-43.
-        pixels[np.abs(pixels) < ZERO_M] = np.nan
+        pixels[np.abs(pixels) < FAILED_STEREO_M] = np.nan  # HiRISE DTEEC failed stereo
     if not np.isfinite(pixels).any():
         return None
     return pixels, src.window_transform(window), src.crs

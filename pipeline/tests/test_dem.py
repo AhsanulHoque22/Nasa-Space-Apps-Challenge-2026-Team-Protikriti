@@ -123,3 +123,14 @@ def test_zero_is_nodata_also_honours_the_files_nodata(tmp_path: Path) -> None:
     dem = load_dem(path, lonlat_box(0, 0, 4, 4), target_pixel_m=40.0, zero_is_nodata=True)
     assert np.isnan(dem.elevation_m[0, 0])
     assert dem.elevation_m[1, 1] == pytest.approx(-2000.0)
+
+
+def test_zero_is_nodata_also_masks_denormal_failed_stereo(tmp_path: Path) -> None:
+    # Columbia Hills' DTEEC also marks failed stereo as 3.5e-43, not exactly 0: averaged into a
+    # 40 m cell it had dug a pit tens of metres deep in the route grid.
+    elevation = np.full((4, 4), -2000.0)
+    elevation[1, 1] = 3.52e-43
+    path = _write(tmp_path / "denormal.tif", elevation)
+    dem = load_dem(path, lonlat_box(0, 0, 4, 4), target_pixel_m=40.0, zero_is_nodata=True)
+    assert np.isnan(dem.elevation_m[0, 0])
+    assert dem.elevation_m[1, 1] == pytest.approx(-2000.0)

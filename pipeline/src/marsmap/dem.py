@@ -13,6 +13,9 @@ from rasterio.windows import Window, from_bounds
 
 MARS_RADIUS_M = 3_396_190.0  # Mars 2000 sphere (IAU), used by USGS Mars products
 MARS_LONLAT = f"+proj=longlat +R={MARS_RADIUS_M:.0f} +no_defs"
+# HiRISE DTEEC failed stereo is 0.0 or a denormal such as 3.5e-43; no real ground in these DTMs
+# is within a micrometre of the datum.
+FAILED_STEREO_M = 1e-6
 
 
 @dataclass(frozen=True)
@@ -53,7 +56,7 @@ def load_dem(
         shape = (max(1, round(window.height / factor)), max(1, round(window.width / factor)))
         if zero_is_nodata:
             full_res = src.read(1, window=window, masked=True).filled(np.nan).astype(np.float32)
-            full_res[full_res == 0.0] = np.nan
+            full_res[np.abs(full_res) < FAILED_STEREO_M] = np.nan
             elevation = _block_mean_all_valid(full_res, factor)
             shape = elevation.shape
             window = Window(window.col_off, window.row_off, shape[1] * factor, shape[0] * factor)
