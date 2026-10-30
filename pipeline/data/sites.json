@@ -27,6 +27,10 @@
         "dem": "/vsicurl/https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
         "ortho": "/vsicurl/https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif",
         "source": "USGS Mars 2020 TRN HiRISE DTM (1 m, shown at 2 m) and 25 cm orthomosaic, soc_006; centred on the Octavia E. Butler landing site"
+      },
+      "fine": {
+        "dem": "/vsicurl/https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+        "source": "USGS Mars 2020 TRN HiRISE DTM mosaic, 1 m (soc_006)"
       }
     },
     {
@@ -56,6 +60,10 @@
         "dem": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
         "ortho": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_Orthophoto_Mosaic_25cm_v3.tif",
         "source": "USGS MSL Gale Merged DEM Mosaic v3 (1 m, shown at 2 m) and 25 cm HiRISE orthophoto mosaic v3; centred on Bradbury Landing"
+      },
+      "fine": {
+        "dem": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+        "source": "USGS MSL Gale Merged DEM Mosaic v3, 1 m"
       }
     },
     {
@@ -85,7 +93,11 @@
       ],
       "pixel_m": 5,
       "source": "HiRISE DTEEC_001513_1655_001777_1650_U01, MRO HiRISE, 1 m/px native, read at 5 m/px — Spirit rover, Gusev crater",
-      "zero_is_nodata": true
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_001513_1655_001777_1650_U01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_001513_1655_001777_1650_U01, 1 m"
+      }
     },
     {
       "id": "viking2",
@@ -100,7 +112,11 @@
       ],
       "pixel_m": 5,
       "source": "HiRISE DTEEC_002055_2280_001976_2280_A01, MRO HiRISE, 1 m/px native, read at 5 m/px — Viking 2 landing site, Utopia Planitia",
-      "zero_is_nodata": true
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_002055_2280_001976_2280_A01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_002055_2280_001976_2280_A01, 1 m"
+      }
     },
     {
       "id": "pathfinder",
@@ -115,7 +131,11 @@
       ],
       "pixel_m": 5,
       "source": "HiRISE DTEEC_002391_1995_001890_1995_A01, MRO HiRISE, 1 m/px native, read at 5 m/px — Mars Pathfinder / Sojourner, Ares Vallis",
-      "zero_is_nodata": true
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_002391_1995_001890_1995_A01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_002391_1995_001890_1995_A01, 1 m"
+      }
     },
     {
       "id": "ius_chasma",
@@ -130,7 +150,11 @@
       ],
       "pixel_m": 5,
       "source": "HiRISE DTEEC_001918_1735_001984_1735_U01, MRO HiRISE, 1 m/px native, read at 5 m/px — Ius Chasma, western Valles Marineris",
-      "zero_is_nodata": true
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_001918_1735_001984_1735_U01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_001918_1735_001984_1735_U01, 1 m"
+      }
     },
     {
       "id": "meridiani",

@@ -85,14 +85,14 @@ def _dem(walk: dict[str, Any], box: Box) -> tuple[NDArray[np.float32], dict[str,
     return dem, {"width": cols, "height": rows}
 
 
-def _encode(dem: NDArray[np.float32]) -> tuple[NDArray[np.int16], float]:
+def encode_heights(dem: NDArray[np.float32]) -> tuple[NDArray[np.int16], float]:
     finite = dem[np.isfinite(dem)]
     if finite.size == 0:
-        raise ValueError("walk patch: the DEM has no data over the patch")
+        raise ValueError("the DEM has no data here")
     offset = float(np.round(np.median(finite), 2))
     steps = np.round((dem - offset) / HEIGHT_STEP_M)
     if np.nanmax(np.abs(steps)) >= 32767:
-        raise ValueError("walk patch: relief exceeds the int16 range; raise HEIGHT_STEP_M")
+        raise ValueError("relief exceeds the int16 range; raise HEIGHT_STEP_M")
     out = np.where(np.isfinite(steps), steps, NODATA_I16).astype("<i2")
     return out, offset
 
@@ -156,7 +156,7 @@ def build_walk_patch(
         existing: dict[str, Any] = json.loads((out / "walk.json").read_text())
         return existing
     dem, size = _dem(walk, box)
-    encoded, offset = _encode(dem)
+    encoded, offset = encode_heights(dem)
     encoded.tofile(out / "dem.bin")
     _tiles(walk, box, out)
     meta: dict[str, Any] = {

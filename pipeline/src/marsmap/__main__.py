@@ -22,6 +22,7 @@ from marsmap.crism import export_crism_grid
 from marsmap.dem import load_dem
 from marsmap.dust import build_dust
 from marsmap.export import export_grid, export_slope_overlay
+from marsmap.fineterrain import build_fine_terrain
 from marsmap.layers import (
     Feature,
     landing_features,
@@ -221,6 +222,14 @@ def _walk(args: argparse.Namespace) -> None:
             continue
         meta = build_walk_patch(site["id"], site["walk"], args.out, args.tiles_only)
         print(f"wrote walk patch for {site['id']}: {meta['width']}x{meta['height']} at 2 m")
+
+
+def _fine(args: argparse.Namespace) -> None:
+    sites = json.loads(args.config.read_text())["sites"]
+    if args.sites:
+        sites = [s for s in sites if s["id"] in args.sites.split(",")]
+    index = build_fine_terrain(sites, args.out)
+    print(f"wrote {len(index['tiles'])} fine terrain tiles for {', '.join(index['sources'])}")
 
 
 def _strips(args: argparse.Namespace) -> None:
@@ -616,6 +625,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     walk.add_argument("--config", type=Path, required=True)
     walk.add_argument("--out", type=Path, required=True)
     walk.add_argument("--tiles-only", action="store_true", help="redraw imagery tiles only")
+    fine = sub.add_parser("fine", help="1 m HiRISE DTM tiles for the 3D view (laptop CDN)")
+    fine.add_argument("--config", type=Path, required=True)
+    fine.add_argument("--out", type=Path, required=True, help="CDN folder (writes terrain/)")
+    fine.add_argument("--sites", help="comma-separated site ids to (re)build; default all")
     strips = sub.add_parser("strips", help="tidy the HiRISE strip mosaic: seams and alignment")
     strips.add_argument("--name", required=True)
     strips.add_argument(
@@ -707,6 +720,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "caves": _caves,
         "compare": _compare,
         "walk": _walk,
+        "fine": _fine,
         "ai4mars": _ai4mars,
         "dust": _dust,
         "build": _build,
