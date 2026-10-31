@@ -1,0 +1,60 @@
+{
+  "flow": "ask-atlas",
+  "metrics": [
+    {
+      "id": "all_pass",
+      "label": "All checks",
+      "kind": "binary"
+    },
+    {
+      "id": "no_invented_numbers",
+      "label": "No new nums",
+      "kind": "binary"
+    },
+    {
+      "id": "cites_ok",
+      "label": "Cites [S#]",
+      "kind": "binary"
+    },
+    {
+      "id": "format_ok",
+      "label": "Plain, short",
+      "kind": "binary"
+    },
+    {
+      "id": "correct",
+      "label": "Correct",
+      "kind": "binary"
+    },
+    {
+      "id": "no_hallucination",
+      "label": "No halluc.",
+      "kind": "binary"
+    },
+    {
+      "id": "behaviour",
+      "label": "Behaviour",
+      "kind": "binary"
+    },
+    {
+      "id": "sources_named",
+      "label": "Sources",
+      "kind": "binary"
+    }
+  ],
+  "perf_fields": [
+    "latency_s",
+    "usage",
+    "cost_usd"
+  ],
+  "prices": {
+    "claude-haiku-5-5": {
+      "in": 0.1,
+      "out": 0.5
+    },
+    "claude-sonnet-5-5": {
+      "in": 2,
+      "out": 10
+    }
+  }
+}

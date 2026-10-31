@@ -15,3 +15,9 @@ dist/
 data/pano/
 .vercel
 .env*
+
+# Eval runs: keep results and change notes; transcripts and the report are rebuilt from them
+.claude/hillclimb/**/traces/
+.claude/hillclimb/**/report.html
+.claude/hillclimb/**/trajectory/
+.claude/hillclimb/**/state.json
