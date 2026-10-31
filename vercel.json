@@ -4,5 +4,16 @@
   "installCommand": "npm ci --prefix web",
   "buildCommand": "npm run build --prefix web",
   "outputDirectory": "web/dist",
-  "rewrites": [{ "source": "/nasa-raw/:path*", "destination": "https://mars.nasa.gov/:path*" }]
+  "rewrites": [
+    {
+      "source": "/nasa-raw/:path*",
+      "destination": "https://mars.nasa.gov/:path*"
+    }
+  ],
+  "functions": {
+    "api/explain.ts": {
+      "includeFiles": "docs/data-sources.md",
+      "maxDuration": 60
+    }
+  }
 }

@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Repo root: only marks the Vercel function in api/ as an ES module. The app is in web/."
+}

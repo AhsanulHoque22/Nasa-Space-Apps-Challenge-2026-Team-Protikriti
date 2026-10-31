@@ -48,6 +48,8 @@ import { renderHeader } from './ui/header'
 import { openProfileGate } from './ui/profile-gate'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
+import { installAskAtlas } from './ui/ask-atlas'
+import { askScreen } from './ui/ask-atlas-screen'
 import { renderSiteReport } from './ui/site-report'
 import type { SwimGrid } from './core/site-report'
 import { ScreenSpaceEventHandler, ScreenSpaceEventType } from 'cesium'
@@ -465,6 +467,9 @@ async function main() {
     },
   ]
   renderReadout(ui, viewer, sites, mola)
+  installAskAtlas(
+    askScreen({ viewer, sites, mola, plan: routePanel.currentBundle, progress: savedProgress }),
+  )
   // Settlement guide: right-click anywhere, or the readout's button for the view centre.
   const thermalReady = loadThermalGrids(sites)
   void thermalReady.then((t) => (thermalGrids = t)).catch(() => undefined)

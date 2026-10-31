@@ -5918,3 +5918,228 @@ button.journey-label:focus-visible {
   outline-offset: 4px;
   border-radius: 6px;
 }
+
+/* Ask ATLAS: the explainer panel. It floats over the map and the mission dock, so it alone may
+   carry a shadow; surfaces are told apart by tone, not lines. */
+.ask-atlas-trigger {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 60;
+  width: 120px;
+  min-height: 62px; /* the height of the workbench bar beside it */
+  padding: 0 var(--space-4);
+  font: 600 14px var(--font);
+  color: #fff;
+  background: var(--nasa-blue);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.ask-atlas-trigger:hover,
+.ask-atlas-trigger[aria-expanded='true'] {
+  background: #1450b8;
+}
+
+.ask-atlas {
+  position: fixed;
+  top: 92px;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 95; /* above the mission dock: the panel explains it */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(400px, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-4);
+  color: var(--text);
+  background: rgb(18 26 44); /* opaque, like the mission dock: no map labels behind the text */
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* The workbench bar steps left so the Ask ATLAS button has the corner. */
+.ask-atlas-trigger ~ .dock-trigger,
+.dock-trigger:has(~ .ask-atlas-trigger) {
+  right: calc(var(--space-4) + 120px + var(--space-2));
+}
+
+.ask-atlas[hidden] {
+  display: none;
+}
+
+.ask-atlas button,
+.ask-atlas-trigger {
+  touch-action: manipulation;
+}
+
+.ask-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ask-head h2 {
+  margin: 0;
+  font: 700 20px/1.2 var(--font);
+}
+
+.ask-close {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font: 600 14px var(--font);
+  color: var(--text);
+  background: rgb(255 255 255 / 0.06);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ask-close:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.ask-intro,
+.ask-label {
+  margin: 0;
+  font: 400 14px/1.5 var(--font);
+  color: var(--text-muted);
+}
+
+.ask-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ask-suggestion {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  font: 500 14px/1.3 var(--font);
+  text-align: left;
+  color: var(--text);
+  background: rgb(91 141 239 / 0.16);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.ask-suggestion:hover {
+  background: rgb(91 141 239 / 0.28);
+}
+
+.ask-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ask-question {
+  align-self: flex-end;
+  overflow-wrap: anywhere;
+  max-width: 85%;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font: 500 15px/1.45 var(--font);
+  background: rgb(91 141 239 / 0.22);
+  border-radius: 8px;
+}
+
+.ask-answer {
+  padding: var(--space-3);
+  background: rgb(8 12 22);
+  border-radius: 8px;
+}
+
+.ask-answer-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 400 15px/1.55 var(--font);
+  white-space: pre-wrap;
+}
+
+.ask-answer.error .ask-answer-text {
+  color: var(--text-muted);
+}
+
+.ask-sources {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-4);
+  font: 400 13px/1.45 var(--font);
+  color: var(--text-muted);
+}
+
+.ask-sources strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ask-check {
+  margin: var(--space-2) 0 0;
+  font: 600 13px/1.4 var(--font);
+}
+
+.ask-check.ok {
+  color: #7fd6a0;
+}
+
+.ask-check.warn {
+  color: #ffb36b;
+}
+
+.ask-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+
+.ask-form .ask-label {
+  grid-column: 1 / -1;
+}
+
+.ask-input {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  font: 400 15px/1.45 var(--font);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.ask-send:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (max-width: 640px) {
+  .ask-atlas-trigger {
+    top: auto;
+    bottom: var(--space-4);
+    width: auto;
+    min-height: 48px;
+  }
+
+  .ask-atlas-trigger ~ .dock-trigger,
+  .dock-trigger:has(~ .ask-atlas-trigger) {
+    right: var(--space-4);
+  }
+
+  .ask-atlas {
+    inset: max(var(--space-2), env(safe-area-inset-top))
+      max(var(--space-2), env(safe-area-inset-right))
+      max(var(--space-2), env(safe-area-inset-bottom))
+      max(var(--space-2), env(safe-area-inset-left));
+    width: auto;
+  }
+}
