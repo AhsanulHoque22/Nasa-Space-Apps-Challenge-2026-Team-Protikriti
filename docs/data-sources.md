@@ -603,3 +603,12 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 | Cruise 1.8 mSv/day; surface 0.67 mSv/day; career limit 600 mSv | Debrief dose | Zeitlin et al. 2013; Hassler et al. 2014; NASA-STD-3001 Vol. 1 (NASA radiation protection technical brief, https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf) |
 | Habitat shielding not counted | Debrief dose | **Team simplification**, stated on screen |
 | Photos PIA17936 (Earth from Gale, 2014), KSC-314D-0556_0010 (Orion splashdown, 2014), PIA24176 (MOXIE) | Mission 1.11 | NASA/JPL-Caltech/MSSS/TAMU; NASA/KSC; NASA/JPL-Caltech |
+
+## Ask ATLAS (the explainer)
+
+| Item | Source and method |
+|---|---|
+| Model | Claude Sonnet 5.5 (`claude-sonnet-5-5`, Anthropic API), effort low, streamed; Anthropic's server-side fallback model if it declines. Explains only. |
+| What it knows | The facts on screen, built by `web/src/core/explain-context.ts` from the app's own results (route bundle, view centre and its elevation source, the saved Story run, the stores ledger, the numbers on the open mission step), each with its source; and this file, `docs/data-sources.md`, as its source notes. |
+| Check | `web/src/core/explain-check.ts`: every number in an answer must equal one of those facts (or the player's question), allowing rounding; others are shown as "not from the app's data". |
+| Limits | 500-character questions, about 20 questions per visitor per hour (per server instance), a monthly spend cap on the API key. |
