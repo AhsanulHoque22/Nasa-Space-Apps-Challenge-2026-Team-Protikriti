@@ -1,6 +1,7 @@
 /**
- * Fine terrain: 1 m HiRISE DTM tiles (pipeline `fine`) for the ground drawn near the camera.
- * Route planning keeps the 5-32 m site grids; these only sharpen what the 3D view shows.
+ * Fine terrain: 1 m HiRISE DTM tiles (pipeline `fine`), used on foot only: Explore loads every
+ * tile around the walk at once and walks on a single 1 m grid, so the ground never changes under
+ * markers or the walker. The map keeps the 2 m walk patches and the 5-32 m site grids.
  */
 import { sampleGrid } from './elevation'
 import type { Grid } from './grid'
@@ -49,13 +50,6 @@ export function fineTileXY(level: number, lon: number, lat: number): TileXY {
   return { x: Math.floor((lon + 180) / deg), y: Math.floor((90 - lat) / deg) }
 }
 
-/** The fine tile that holds Cesium tile (x, y, level), or null above the fine level. */
-export function fineTileOf(fineLevel: number, x: number, y: number, level: number): TileXY | null {
-  if (level < fineLevel) return null
-  const shift = level - fineLevel
-  return { x: x >> shift, y: y >> shift }
-}
-
 /** A tile's int16 LE steps as a north-up grid over the tile, nodata as NaN. */
 export function decodeFineTile(index: FineIndex, x: number, y: number, bin: ArrayBuffer): Grid {
   const n = index.samples
@@ -98,5 +92,42 @@ export function fineHeight(
     const tile = lookup(x, y)
     const h = tile ? sampleGrid(tile, lon, lat) : NaN
     return Number.isFinite(h) ? h : coarse(lon, lat)
+  }
+}
+
+const M_PER_DEG = (Math.PI * 3_396_190) / 180
+
+/**
+ * One 1 m grid over `like`'s bounds (cell centres) from the loaded tiles; cells with no tile or no
+ * data take `fallback` (the 2 m walk patch), so the grid has no holes.
+ */
+export function fineGrid(
+  index: FineIndex,
+  tiles: ReadonlyMap<string, Grid>,
+  like: Grid,
+  fallback: HeightFn,
+): Grid {
+  const { west, east, north, south } = like
+  const midLat = ((north + south) / 2) * (Math.PI / 180)
+  const height = Math.max(1, Math.round((north - south) * M_PER_DEG))
+  const width = Math.max(1, Math.round((east - west) * M_PER_DEG * Math.cos(midLat)))
+  const sample = fineHeight((x, y) => tiles.get(`${x}/${y}`), index.level, fallback)
+  const elevationM = new Float32Array(width * height)
+  const dLon = (east - west) / width
+  const dLat = (north - south) / height
+  for (let r = 0; r < height; r++) {
+    const lat = north - (r + 0.5) * dLat
+    for (let c = 0; c < width; c++) elevationM[r * width + c] = sample(west + (c + 0.5) * dLon, lat)
+  }
+  return {
+    width,
+    height,
+    pixelSizeM: 1,
+    west,
+    east,
+    north,
+    south,
+    maxSafeSlopeDeg: like.maxSafeSlopeDeg,
+    elevationM,
   }
 }

@@ -1,13 +1,13 @@
 /**
- * The ground Cesium draws: 1 m HiRISE tiles from the laptop CDN over walk patches (2 m) over site
- * models (20-32 m) over global MOLA, each feathered into the next so no cliff shows where they
- * meet. Walk patches load on first use, fine tiles as Cesium draws close-up ground.
+ * The ground Cesium draws: walk patches (2 m) over site models (20-32 m) over global MOLA, each
+ * feathered into the next so no cliff shows where they meet. Walk patches load on first use.
+ * On foot, the walk area switches to 1 m ground for the walk only (loaded whole, before it starts).
  */
 import { GeographicTilingScheme, Rectangle, UrlTemplateImageryProvider, type Viewer } from 'cesium'
 import { type Site, sampleGrid } from '../core/elevation'
 import type { Grid } from '../core/grid'
 import { type WalkPatch, feathered, parseWalkPatch } from '../core/walk-patch'
-import { createFineTerrain } from './fine-terrain'
+import { loadFineWalk } from './fine-terrain'
 import { MARS_SPHERE } from './mars'
 import { type HeightFn, createTerrain } from './terrain'
 
@@ -24,8 +24,6 @@ export function createWalkGround(viewer: Viewer, sites: readonly Site[], mola: G
     gridHeight(mola),
   )
   let height = base
-  const fine = createFineTerrain()
-  const drawn = fine.height((lon, lat) => height(lon, lat))
   const patches = new Map<string, Promise<WalkPatch | null>>()
 
   const addImagery = (siteId: string, p: WalkPatch) => {
@@ -52,15 +50,28 @@ export function createWalkGround(viewer: Viewer, sites: readonly Site[], mola: G
     height = feathered(gridHeight(p.grid), p.grid, height, PATCH_FEATHER_M)
     addImagery(siteId, p)
     // Tiles already made from the coarser model must be rebuilt: a new provider reloads them.
-    viewer.terrainProvider = createTerrain(drawn, fine.prepare)
+    viewer.terrainProvider = createTerrain((lon, lat) => height(lon, lat))
     return p
   }
 
   return {
-    /** Ground height as drawn (before vertical exaggeration); follows patches as they load. */
-    height: drawn,
-    /** For the terrain provider: loads fine tiles before Cesium samples close-up ground. */
-    prepare: fine.prepare,
+    /** Ground height as drawn on the map (before vertical exaggeration); follows patches. */
+    height: (lon: number, lat: number) => height(lon, lat),
+    /**
+     * Switch the walk area to 1 m ground and return that grid for the walker's footing, or null
+     * (no 1 m data or CDN off). The map's markers are hidden on foot, so nothing sits on it.
+     */
+    async startFineWalk(patch: WalkPatch): Promise<Grid | null> {
+      const grid = await loadFineWalk(patch.grid, gridHeight(patch.grid))
+      if (!grid) return null
+      const walk = feathered(gridHeight(grid), grid, height, PATCH_FEATHER_M)
+      viewer.terrainProvider = createTerrain((lon, lat) => walk(lon, lat))
+      return grid
+    },
+    /** Back to the map's ground after a walk. */
+    endFineWalk(): void {
+      viewer.terrainProvider = createTerrain((lon, lat) => height(lon, lat))
+    },
     /** The site's walk patch, loaded once; null when the site has none or it failed to load. */
     patch(siteId: string): Promise<WalkPatch | null> {
       let p = patches.get(siteId)

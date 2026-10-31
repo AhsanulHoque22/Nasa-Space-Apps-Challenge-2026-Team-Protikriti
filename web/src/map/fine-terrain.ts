@@ -1,92 +1,57 @@
 /**
- * Loads the 1 m HiRISE terrain tiles from the laptop CDN as Cesium asks for close-up ground.
- * With the CDN off (or no VITE_PANO_CDN), nothing loads and the site grids are drawn as before.
+ * 1 m ground for Explore on foot: every HiRISE DTM tile around the walk is fetched from the laptop
+ * CDN at once, before the walk starts, and joined into one grid. With the CDN off (or no
+ * VITE_PANO_CDN) it returns null and the walk uses the 2 m patch as before.
  */
-import type { Grid } from '../core/grid'
 import {
   type FineIndex,
+  fineGrid,
+  fineTileXY,
   decodeFineTile,
-  fineHeight,
-  fineTileOf,
   parseFineIndex,
 } from '../core/fine-terrain'
+import type { Grid } from '../core/grid'
 import { CDN, cdnInit } from './prestitched-client'
 
 type HeightFn = (lon: number, lat: number) => number
 
-// ponytail: insertion-order LRU of decoded tiles (~425 KB each); a smarter cache if memory bites.
-const MAX_TILES = 160
+const BASE = CDN ? `${CDN}/terrain` : undefined
+const FETCHES_AT_ONCE = 8 // the laptop's tunnel serves a few at a time; more only queue
 
-export function createFineTerrain() {
-  const cache = new Map<string, Grid>()
-  const loading = new Map<string, Promise<void>>()
-  const failed = new Set<string>()
-  const base = CDN ? `${CDN}/terrain` : undefined
+let index: Promise<FineIndex | null> | undefined
 
-  const index: Promise<FineIndex | null> = base
-    ? fetch(`${base}/index.json`, cdnInit(base))
+const getIndex = () =>
+  (index ??= BASE
+    ? fetch(`${BASE}/index.json`, cdnInit(BASE))
         .then((r) => (r.ok ? r.json() : null))
         .then((raw) => (raw ? parseFineIndex(raw) : null))
         .catch((error: unknown) => {
-          console.warn('Fine terrain off (laptop CDN unreachable):', error)
+          console.warn('1 m terrain off (laptop CDN unreachable):', error)
           return null
         })
-    : Promise.resolve(null)
-  let ready: FineIndex | null = null
-  void index.then((i) => (ready = i))
+    : Promise.resolve(null))
 
-  const load = (i: FineIndex, key: string): Promise<void> => {
-    let p = loading.get(key)
-    if (!p) {
-      const url = `${base}/${i.level}/${key}.bin`
-      p = fetch(url, cdnInit(url))
-        .then((r) => {
-          if (!r.ok) throw new Error(`${r.status} for ${url}`)
-          return r.arrayBuffer()
-        })
-        .then((bin) => {
-          const [x, y] = key.split('/').map(Number) as [number, number]
-          cache.set(key, decodeFineTile(i, x, y, bin))
-          if (cache.size > MAX_TILES) cache.delete(cache.keys().next().value as string)
-        })
-        .catch((error: unknown) => {
-          failed.add(key) // draw the site grid there rather than retry every frame
-          console.warn('Fine terrain tile not loaded:', error)
-        })
-        .finally(() => loading.delete(key))
-      loading.set(key, p)
+/** The walk's ground at 1 m over `patch`'s bounds, or null when no 1 m tile covers it. */
+export async function loadFineWalk(patch: Grid, fallback: HeightFn): Promise<Grid | null> {
+  const i = await getIndex()
+  if (!i) return null
+  const nw = fineTileXY(i.level, patch.west, patch.north)
+  const se = fineTileXY(i.level, patch.east, patch.south)
+  const keys: string[] = []
+  for (let x = nw.x; x <= se.x; x++)
+    for (let y = nw.y; y <= se.y; y++) if (i.tiles.has(`${x}/${y}`)) keys.push(`${x}/${y}`)
+  if (!keys.length) return null
+  const tiles = new Map<string, Grid>()
+  const queue = [...keys]
+  const worker = async () => {
+    for (let key = queue.shift(); key; key = queue.shift()) {
+      const url = `${BASE}/${i.level}/${key}.bin`
+      const res = await fetch(url, cdnInit(url)).catch(() => null)
+      if (!res?.ok) continue // a missing tile falls back to the 2 m patch there
+      const [x, y] = key.split('/').map(Number) as [number, number]
+      tiles.set(key, decodeFineTile(i, x, y, await res.arrayBuffer()))
     }
-    return p
   }
-
-  const lookup = (x: number, y: number) => cache.get(`${x}/${y}`)
-
-  return {
-    /** The coarse ground with loaded fine tiles over it. */
-    height: (coarse: HeightFn): HeightFn => {
-      let fine: HeightFn | undefined
-      return (lon, lat) => {
-        if (!ready) return coarse(lon, lat)
-        fine ??= fineHeight(lookup, ready.level, coarse)
-        return fine(lon, lat)
-      }
-    },
-    /** Before Cesium builds tile (x, y, level): a promise when its fine tile must load first. */
-    prepare: (x: number, y: number, level: number): Promise<void> | undefined => {
-      const go = (i: FineIndex | null): Promise<void> | undefined => {
-        const t = i && fineTileOf(i.level, x, y, level)
-        if (!i || !t) return undefined
-        const key = `${t.x}/${t.y}`
-        const tile = cache.get(key)
-        if (tile) {
-          cache.delete(key) // most recently used last
-          cache.set(key, tile)
-          return undefined
-        }
-        if (!i.tiles.has(key) || failed.has(key)) return undefined
-        return load(i, key)
-      }
-      return ready || !base ? go(ready) : index.then(go)
-    },
-  }
+  await Promise.all(Array.from({ length: FETCHES_AT_ONCE }, worker))
+  return tiles.size ? fineGrid(i, tiles, patch, fallback) : null
 }

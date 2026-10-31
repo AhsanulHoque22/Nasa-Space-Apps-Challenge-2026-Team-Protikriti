@@ -310,7 +310,7 @@ async function main() {
   installKeyboardCamera(viewer, () =>
     document.querySelector<HTMLButtonElement>('[data-act="add"]')?.click(),
   )
-  viewer.terrainProvider = createTerrain(groundM, ground.prepare)
+  viewer.terrainProvider = createTerrain(groundM)
   keepCameraAboveGround(viewer, groundM)
   // A shared link opens on its own view; a plain visit opens on Mars, 500 km up, turning slowly.
   const spin = shared
@@ -419,7 +419,13 @@ async function main() {
       let walkSite: Site = site
       let from = { lon: (g.west + g.east) / 2, lat: (g.south + g.north) / 2 }
       if (patch) {
-        walkSite = { ...site, grid: patch.grid, source: patch.source }
+        // On foot, the walk area is 1 m ground when the laptop CDN has it; else the 2 m patch.
+        b.disabled = true
+        const fine = await ground.startFineWalk(patch)
+        b.disabled = false
+        walkSite = fine
+          ? { ...site, grid: fine, source: `${patch.source}; 1 m HiRISE DTM on foot` }
+          : { ...site, grid: patch.grid, source: patch.source }
         from = patch.start
       } else {
         const positions = await roverPositions.catch(() => null)
@@ -445,6 +451,7 @@ async function main() {
         walkSite,
         from,
         () => {
+          ground.endFineWalk()
           for (const hide of exploreHooks) hide(false)
           viewAoi(viewer, g)
           b.focus()
