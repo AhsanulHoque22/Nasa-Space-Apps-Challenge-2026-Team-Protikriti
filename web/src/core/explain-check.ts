@@ -14,12 +14,28 @@ type Token = { text: string; value: number; decimals: number }
 
 // Numbers that are part of a name, not a measurement: "Rev2", "CO2" (glued to letters), "DRA 5.0"
 // (after an acronym), "mission 1.7", "Expedition 2".
-const NAME_BEFORE = /(?:[A-Za-z]|\b[A-Z]{2,}\s|\b[Mm]ission\s|\b[Ee]xpedition\s)$/
+const NAME_BEFORE = /(?:[A-Za-z]|\b[A-Z]{2,}\s|\b[Mm]ission\s|\b[Ee]xpedition\s|\bArchitecture\s)$/
+// Reference details, not measurements: "Table 5-1", "Fig. 3", "§2", and a citation's year
+// ("Rucker et al. 2016", "(Drake, ed., 2009)").
+const REF_BEFORE = /(?:\b(?:Table|Tables|Fig\.?|Figure|Eq\.?|Section|§)\s*(?:\d+[-–.])?)$/
+const YEAR_BEFORE = /(?:et al\.,?|ed\.,|\(|,)\s*$/
+const isCitationYear = (raw: string, before: string, after: string) =>
+  /^(19|20)\d\d$/.test(raw) && (YEAR_BEFORE.test(before) || after.startsWith(')'))
 
 function tokens(text: string): Token[] {
   const plainText = text.replace(CITATION, ' ')
   return [...plainText.matchAll(NUMBER)]
-    .filter((m) => !NAME_BEFORE.test(plainText.slice(Math.max(0, m.index - 12), m.index)))
+    .filter((m) => {
+      const before = plainText.slice(Math.max(0, m.index - 16), m.index)
+      const after = plainText.slice(m.index + m[0].length, m.index + m[0].length + 1)
+      // "5-1": the hyphen joins two parts of a reference; it is not a minus sign.
+      const hyphenated = /^[-−]/.test(m[0]) && /\d$/.test(before)
+      return !(
+        NAME_BEFORE.test(before) ||
+        REF_BEFORE.test(hyphenated ? before.replace(/\d+$/, (d) => `${d}-`) : before) ||
+        isCitationYear(m[0], before, after)
+      )
+    })
     .map(([raw]) => {
       const plain = raw.replace(/,/g, '').replace('−', '-')
       return { text: raw, value: Number(plain), decimals: plain.split('.')[1]?.length ?? 0 }

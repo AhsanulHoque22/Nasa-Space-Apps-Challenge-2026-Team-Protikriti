@@ -46,7 +46,7 @@ describe('checkAnswer', () => {
 describe('numbers inside names', () => {
   it('are not measurements: DRA 5.0, BVAD Rev2, CO2, mission 1.7 are never flagged', () => {
     const r = checkAnswer(
-      'NASA DRA 5.0 sets it; BVAD Rev2 gives CO2 rates; see mission 1.7 and Expedition 2.',
+      'NASA DRA 5.0 (Design Reference Architecture 5.0) sets it; BVAD Rev2 gives CO2 rates; see mission 1.7 and Expedition 2.',
       facts,
       '',
     )
@@ -55,5 +55,20 @@ describe('numbers inside names', () => {
 
   it('still flags a bare number after such a name', () => {
     expect(checkAnswer('DRA 5.0 says 42 tonnes.', facts, '').unverified).toEqual(['42'])
+  })
+})
+
+describe('reference details', () => {
+  it('years, table and figure numbers in citations are not measurements', () => {
+    const r = checkAnswer(
+      'From Rucker et al. 2016 (Table 5) and DRA 5.0 (Drake, ed., 2009), Table 5-1, Fig. 3.',
+      facts,
+      '',
+    )
+    expect(r.unverified).toEqual([])
+  })
+
+  it('a range quoted from the notes is still flagged', () => {
+    expect(checkAnswer('Landers carry 30–50 t.', facts, '').unverified).toEqual(['30', '50'])
   })
 })
