@@ -8,13 +8,14 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { Fact } from '../core/explain-context.js'
 import { MAX_FACTS } from '../core/explain-limits.js'
 
-export const MODEL = 'claude-sonnet-5-5'
+// Haiku: the facts and the number check do the hard part; the model only explains.
+export const MODEL = 'claude-haiku-5-5'
 export const MAX_QUESTION_CHARS = 500
 const MAX_TURNS = 4 // earlier user/assistant turns kept for follow-ups
 const MAX_TURN_CHARS = 4_000
 const MAX_FIELD_CHARS = 300
-// Room for low-effort thinking plus a ~600-word answer.
-const MAX_TOKENS = 4_000
+// Room for low-effort thinking plus a 150-word answer.
+const MAX_TOKENS = 2_000
 
 export type Turn = { role: 'user' | 'assistant'; text: string }
 /** Which source notes the question needs: the map's, or one mission's. */
@@ -121,21 +122,18 @@ export const userTurn = ({ facts, question }: Pick<ExplainBody, 'facts' | 'quest
 /** Streams the answer's text; the real one calls Claude, tests pass a fake. */
 export type TextStreamer = (
   system: string,
-  messages: Anthropic.Beta.BetaMessageParam[],
+  messages: Anthropic.MessageParam[],
 ) => AsyncIterable<string>
 
 export function claudeStreamer(client: Anthropic): TextStreamer {
   return async function* (system, messages) {
-    const stream = client.beta.messages.stream({
+    const stream = client.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      output_config: { effort: 'low' },
+      output_config: { effort: 'low' }, // Haiku 5.5 defaults to medium
       // The rules and source notes never change between questions: cache them.
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages,
-      // On a safety decline, Anthropic re-runs the request on its recommended fallback model.
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
     })
     for await (const event of stream)
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta')
@@ -173,7 +171,7 @@ export async function handleExplain(req: Request, deps: ExplainDeps): Promise<Re
     return text(429, `Too many questions: try again in ${Math.ceil(limit.retryAfterS / 60)} min.`, {
       'retry-after': String(limit.retryAfterS),
     })
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
+  const messages: Anthropic.MessageParam[] = [
     ...body.history.map((t) => ({ role: t.role, content: t.text })),
     { role: 'user', content: userTurn(body) },
   ]

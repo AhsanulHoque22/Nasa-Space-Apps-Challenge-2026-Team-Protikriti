@@ -15,7 +15,7 @@ handed to it. Judges must be able to see that (the number check below).
 | Decision | Choice |
 |---|---|
 | Scope | Whole app: map (routes, sites, layers) and Story mode |
-| Model | Claude Sonnet 5.5 (`claude-sonnet-5-5`), effort `low` (chat), streaming |
+| Model | Claude Haiku 5.5 (`claude-haiku-5-5`), effort `low`, streaming (changed from Sonnet 5.5 on 2026-10-31 for cost: about 20x cheaper; the facts and the number check do the hard part) |
 | Key | `ANTHROPIC_API_KEY` in Vercel project settings; never in the repo or the browser |
 | Abuse limit | Monthly spend cap set on the key in the Anthropic Console (the hard ceiling), plus about 20 questions per visitor per hour in the function and length caps |
 | Offline | No network or no key: the panel says so and points to the app's own written explanations |
@@ -30,11 +30,12 @@ handed to it. Judges must be able to see that (the number check below).
    step on screen.
 2. **Server** (`api/explain.ts`, a Vercel function, POST; the logic in
    `web/src/server/explain.ts` so tests and the Vite dev server share it): validates the body
-   (question ≤ 500 characters, ≤ 60 facts, ≤ 6 earlier turns), rate-limits by visitor IP
-   (in-memory per instance, best effort), and streams the answer as plain text. System prompt:
-   fixed rules, then `docs/data-sources.md` (about 18k tokens), cached. The snapshot and question
-   go in the user turn. `max_tokens` 4,000; refusal fallback `fallbacks: "default"`
-   (`server-side-fallback-2026-07-01`).
+   (question ≤ 500 characters, ≤ 40 facts, ≤ 4 earlier turns, a topic `map` or
+   `mission:<id>`), rate-limits by visitor IP (in-memory per instance, best effort), and streams
+   the answer as plain text. System prompt: fixed rules, then only the sections of
+   `docs/data-sources.md` for the topic (the mission's own sections plus the stores ledger, or the
+   map's terrain sections: 5-9k characters instead of 74k), cached. The snapshot and question
+   go in the user turn. `max_tokens` 2,000; no refusal fallback (Haiku has none).
 3. **Rules in the system prompt**: explain only; quote numbers only from the facts and cite each
    as [S#]; say "the app's data doesn't say" instead of guessing; never write a full plan for the
    player (same rule as the Flight Director); plain English, short.

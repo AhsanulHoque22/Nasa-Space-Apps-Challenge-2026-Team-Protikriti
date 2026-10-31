@@ -608,7 +608,7 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 
 | Item | Source and method |
 |---|---|
-| Model | Claude Sonnet 5.5 (`claude-sonnet-5-5`, Anthropic API), effort low, streamed; Anthropic's server-side fallback model if it declines. Explains only. |
+| Model | Claude Haiku 5.5 (`claude-haiku-5-5`, Anthropic API), effort low, streamed. Explains only. |
 | What it knows | The facts on screen, built by `web/src/core/explain-context.ts` from the app's own results (route bundle, view centre and its elevation source, the saved Story run, the stores ledger, the numbers on the open mission step), each with its source, on-screen results first, at most 40; and only the sections of this file for the screen in view (the open mission's sections and the stores ledger, or the map's terrain sections), about 5,000-9,000 characters instead of 74,000. |
 | Check | `web/src/core/explain-check.ts`: every number in an answer must equal one of those facts (or the player's question), allowing rounding; others are shown as "not from the app's data". |
 | Limits | 500-character questions, about 20 questions per visitor per hour (per server instance), a monthly spend cap on the API key. |
