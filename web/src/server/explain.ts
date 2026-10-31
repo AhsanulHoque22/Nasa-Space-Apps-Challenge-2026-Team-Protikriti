@@ -125,7 +125,11 @@ export type TextStreamer = (
   messages: Anthropic.MessageParam[],
 ) => AsyncIterable<string>
 
-export function claudeStreamer(client: Anthropic): TextStreamer {
+/** `onFinal` receives the finished message (model, usage, stop reason): the eval records it. */
+export function claudeStreamer(
+  client: Anthropic,
+  onFinal?: (message: Anthropic.Message) => void,
+): TextStreamer {
   return async function* (system, messages) {
     const stream = client.messages.stream({
       model: MODEL,
@@ -139,6 +143,7 @@ export function claudeStreamer(client: Anthropic): TextStreamer {
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta')
         yield event.delta.text
     const final = await stream.finalMessage()
+    onFinal?.(final)
     if (final.stop_reason === 'refusal') yield '\n\n[The model declined to answer this question.]'
     else if (final.stop_reason === 'max_tokens') yield '…'
   }
