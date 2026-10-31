@@ -66,7 +66,7 @@ describe('prompts', () => {
   it('puts the rules and the source notes in the system prompt', () => {
     const s = systemPrompt('## Terrain\nCTX DEM, 20 m.')
     expect(s).toMatch(/never compute/i)
-    expect(s).toMatch(/\[S#\]/)
+    expect(s).toMatch(/\[S\d\]/)
     expect(s).toContain('CTX DEM, 20 m.')
   })
 

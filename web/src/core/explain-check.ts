@@ -12,11 +12,18 @@ const NUMBER = /[-−]?\d{1,3}(?:,\d{3})+(?:\.\d+)?|[-−]?\d+(?:\.\d+)?/g
 
 type Token = { text: string; value: number; decimals: number }
 
+// Numbers that are part of a name, not a measurement: "Rev2", "CO2" (glued to letters), "DRA 5.0"
+// (after an acronym), "mission 1.7", "Expedition 2".
+const NAME_BEFORE = /(?:[A-Za-z]|\b[A-Z]{2,}\s|\b[Mm]ission\s|\b[Ee]xpedition\s)$/
+
 function tokens(text: string): Token[] {
-  return [...text.replace(CITATION, ' ').matchAll(NUMBER)].map(([raw]) => {
-    const plain = raw.replace(/,/g, '').replace('−', '-')
-    return { text: raw, value: Number(plain), decimals: plain.split('.')[1]?.length ?? 0 }
-  })
+  const plainText = text.replace(CITATION, ' ')
+  return [...plainText.matchAll(NUMBER)]
+    .filter((m) => !NAME_BEFORE.test(plainText.slice(Math.max(0, m.index - 12), m.index)))
+    .map(([raw]) => {
+      const plain = raw.replace(/,/g, '').replace('−', '-')
+      return { text: raw, value: Number(plain), decimals: plain.split('.')[1]?.length ?? 0 }
+    })
 }
 
 export const numbersIn = (text: string): number[] => tokens(text).map((t) => t.value)

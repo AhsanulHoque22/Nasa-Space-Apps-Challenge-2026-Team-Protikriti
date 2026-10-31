@@ -42,3 +42,18 @@ describe('checkAnswer', () => {
     expect(checkAnswer('See [S9].', facts, '').unknownCitations).toEqual(['S9'])
   })
 })
+
+describe('numbers inside names', () => {
+  it('are not measurements: DRA 5.0, BVAD Rev2, CO2, mission 1.7 are never flagged', () => {
+    const r = checkAnswer(
+      'NASA DRA 5.0 sets it; BVAD Rev2 gives CO2 rates; see mission 1.7 and Expedition 2.',
+      facts,
+      '',
+    )
+    expect(r.unverified).toEqual([])
+  })
+
+  it('still flags a bare number after such a name', () => {
+    expect(checkAnswer('DRA 5.0 says 42 tonnes.', facts, '').unverified).toEqual(['42'])
+  })
+})
