@@ -167,7 +167,7 @@ export async function handleExplain(req: Request, deps: ExplainDeps): Promise<Re
   const body = parseBody(await req.json().catch(() => null))
   if (typeof body === 'string') return text(400, body)
   const limit = deps.limit(visitorOf(req))
-  if (!limit.ok)
+  if ('retryAfterS' in limit)
     return text(429, `Too many questions: try again in ${Math.ceil(limit.retryAfterS / 60)} min.`, {
       'retry-after': String(limit.retryAfterS),
     })
