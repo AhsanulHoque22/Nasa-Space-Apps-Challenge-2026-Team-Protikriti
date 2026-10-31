@@ -7,11 +7,12 @@ import { checkAnswer } from '../core/explain-check'
 import type { Fact } from '../core/explain-context'
 import { el } from './dom'
 
-export type AskScreen = { facts: Fact[]; suggestions: string[] }
+/** `topic` picks the source notes the server sends: 'map' or 'mission:<id>'. */
+export type AskScreen = { facts: Fact[]; suggestions: string[]; topic: string }
 type Turn = { role: 'user' | 'assistant'; text: string }
 
 const MAX_QUESTION = 500
-const KEPT_TURNS = 6 // three earlier questions and answers, for follow-ups
+const KEPT_TURNS = 4 // two earlier questions and answers, for follow-ups (server limit)
 
 const OFFLINE =
   'Ask ATLAS is offline right now. The app still explains itself: open "Show the maths" on a ' +
@@ -114,11 +115,13 @@ export function installAskAtlas(screen: () => Promise<AskScreen>): void {
 
   let history: Turn[] = []
   let facts: Fact[] = []
+  let topic = 'map'
   let busy = false
 
   const refresh = async () => {
     const s = await screen()
     facts = s.facts
+    topic = s.topic
     suggestions.replaceChildren(
       ...s.suggestions.map((q) => {
         const b = el('button', { type: 'button', className: 'ask-suggestion', textContent: q })
@@ -155,7 +158,7 @@ export function installAskAtlas(screen: () => Promise<AskScreen>): void {
       const res = await fetch('api/explain', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ question: q, facts: asked, history }),
+        body: JSON.stringify({ question: q, facts: asked, history, topic }),
       })
       if (!res.ok || !res.body) {
         const reason = res.status === 503 || res.status === 404 ? OFFLINE : await res.text()

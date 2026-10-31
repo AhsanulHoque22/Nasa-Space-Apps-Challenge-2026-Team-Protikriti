@@ -209,7 +209,7 @@ export function mapFacts({ view, plan, notice }: MapScreen): Draft[] {
 }
 
 const SCREEN_LINES = 25
-const MAX_VALUE_CHARS = 300 // the server's limit per field
+const SCREEN_LINE_CHARS = 160
 
 /**
  * The lines on screen that carry the app's computed results (a number or a verdict): what the
@@ -219,12 +219,11 @@ export function screenFacts(text: string, source: string): Draft[] {
   const lines = text
     .split('\n')
     .map((l) => l.trim().replace(/\s+/g, ' '))
-    .filter((l) => /\d|\bGO\b|NO-GO/.test(l))
-  return [...new Set(lines)].slice(0, SCREEN_LINES).map((l) => ({
-    label: 'On screen',
-    value: l.length > MAX_VALUE_CHARS ? `${l.slice(0, MAX_VALUE_CHARS - 1).trimEnd()}…` : l,
-    source,
-  }))
+    // Results are short lines; long ones are instructions or prose that only cost tokens.
+    .filter((l) => l.length <= SCREEN_LINE_CHARS && /\d|\bGO\b|NO-GO/.test(l))
+  return [...new Set(lines)]
+    .slice(0, SCREEN_LINES)
+    .map((l) => ({ label: 'On screen', value: l, source }))
 }
 
 /** Ids S1, S2, … in order, at most MAX_FACTS. */

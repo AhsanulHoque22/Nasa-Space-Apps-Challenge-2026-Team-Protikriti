@@ -10,14 +10,18 @@ import { MAX_FACTS } from '../core/explain-limits.js'
 
 export const MODEL = 'claude-sonnet-5-5'
 export const MAX_QUESTION_CHARS = 500
-const MAX_TURNS = 6 // earlier user/assistant turns kept for follow-ups
+const MAX_TURNS = 4 // earlier user/assistant turns kept for follow-ups
 const MAX_TURN_CHARS = 4_000
 const MAX_FIELD_CHARS = 300
 // Room for low-effort thinking plus a ~600-word answer.
 const MAX_TOKENS = 4_000
 
 export type Turn = { role: 'user' | 'assistant'; text: string }
-export type ExplainBody = { question: string; facts: Fact[]; history: Turn[] }
+/** Which source notes the question needs: the map's, or one mission's. */
+export type Topic = 'map' | `mission:${string}`
+export type ExplainBody = { question: string; facts: Fact[]; history: Turn[]; topic: Topic }
+
+const TOPIC = /^(map|mission:\d+\.\d+)$/
 
 const isText = (v: unknown, max: number) => typeof v === 'string' && v.length > 0 && v.length <= max
 
@@ -47,7 +51,14 @@ export function parseBody(raw: unknown): ExplainBody | string {
     )
   )
     return `Send up to ${MAX_TURNS} earlier turns, each a user or assistant text.`
-  return { question: b.question.trim(), facts: facts as Fact[], history: history as Turn[] }
+  const topic = b.topic ?? 'map'
+  if (typeof topic !== 'string' || !TOPIC.test(topic)) return 'Send topic "map" or "mission:<id>".'
+  return {
+    question: b.question.trim(),
+    facts: facts as Fact[],
+    history: history as Turn[],
+    topic: topic as Topic,
+  }
 }
 
 export type Limit = { ok: true } | { ok: false; retryAfterS: number }
@@ -69,23 +80,40 @@ export function createRateLimiter(perWindow: number, windowMs: number, now = Dat
   }
 }
 
-const RULES = `You are Ask ATLAS, the explainer inside ATLAS, a Mars survival planning app built for the NASA Space Apps Challenge 2026 from real NASA data.
-
-Your job is to explain the what, why and how of what the player sees: a verdict, a route, a rejected leg, a number and where it comes from.
+const RULES = `You are Ask ATLAS, the explainer in ATLAS, a Mars survival game built on NASA data. Help the player understand the mission on screen: what each step and each component (reactor, lander, greenhouse, rover…) is for, why a result came out as it did, and where a number comes from.
 
 Rules:
-- You explain; you never compute. Every number you write must appear in the facts given with the question (or in the player's own question). If a number is not there, describe it in words or say the app's data doesn't give it. Never estimate, add, multiply or convert.
-- Cite the fact behind each number as [S#], using the ids given, for example "food runs out on sol 742 [S3]".
-- You may explain methods and sources using the source notes below; name the dataset or paper.
-- Do not write a complete plan for the player (what to pack, where to build). You may say which choice matters and why, as a hint, never the full answer.
-- If the facts don't cover the question, say "The app's data on this screen doesn't say" and suggest where in the app to look.
-- Be short and plain: a few sentences or a short list, under 250 words. No headings.
+- Explain, never compute. Use only numbers from the facts or the player's question; never estimate, add or convert. Cite the fact behind each number as [S#].
+- Name the dataset or paper from the source notes when explaining a method.
+- Give hints, never a complete plan (what to pack, where to build).
+- If the facts don't cover it, say "The app's data on this screen doesn't say."
+- Plain words, under 150 words, no headings.
 
-Source notes (docs/data-sources.md, the app's own record of every dataset and assumption):
-
+Source notes for this screen:
 `
 
 export const systemPrompt = (sourceNotes: string) => RULES + sourceNotes
+
+// The map's questions are about terrain and routes; each mission also needs the stores ledger
+// behind its verdicts. Credits for photos, charts and models are left out.
+const MAP_SECTIONS = /^## (Coordinate system|Terrain|Fine terrain|Walk patches|Explore on foot)/
+const LEDGER_SECTION = /^## Story mode: stay, base stores/
+const MISSION_EXTRAS: Readonly<Record<string, RegExp>> = {
+  '1.4': /^## Hardware on the map/,
+  '1.7': /^## Sols and the dust storm season/,
+}
+
+/** The sections of docs/data-sources.md a topic needs, instead of the whole file. */
+export function notesFor(notes: string, topic: Topic): string {
+  const sections = notes.split(/\n(?=## )/).filter((s) => s.startsWith('## '))
+  const id = topic.startsWith('mission:') ? topic.slice('mission:'.length) : null
+  if (!id) return sections.filter((s) => MAP_SECTIONS.test(s)).join('\n\n')
+  const esc = id.replace('.', '\\.')
+  const own = new RegExp(`^## ((Story )?[Mm]ission ${esc}[ :]|.*\\(mission ${esc}:)`)
+  return sections
+    .filter((s) => own.test(s) || LEDGER_SECTION.test(s) || MISSION_EXTRAS[id]?.test(s))
+    .join('\n\n')
+}
 
 export const userTurn = ({ facts, question }: Pick<ExplainBody, 'facts' | 'question'>) =>
   `Facts from the app:\n${facts.map((f) => `[${f.id}] ${f.label}: ${f.value} (source: ${f.source})`).join('\n')}\n\nQuestion: ${question}`
@@ -149,7 +177,7 @@ export async function handleExplain(req: Request, deps: ExplainDeps): Promise<Re
     ...body.history.map((t) => ({ role: t.role, content: t.text })),
     { role: 'user', content: userTurn(body) },
   ]
-  const parts = deps.stream(systemPrompt(deps.sourceNotes), messages)
+  const parts = deps.stream(systemPrompt(notesFor(deps.sourceNotes, body.topic)), messages)
   const encoder = new TextEncoder()
   return new Response(
     new ReadableStream<Uint8Array>({

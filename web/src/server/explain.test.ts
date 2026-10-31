@@ -4,6 +4,7 @@ import {
   type TextStreamer,
   createRateLimiter,
   handleExplain,
+  notesFor,
   parseBody,
   systemPrompt,
   userTurn,
@@ -29,6 +30,7 @@ describe('parseBody', () => {
       }),
     ).toEqual({
       ...body,
+      topic: 'map',
       history: [
         { role: 'user', text: 'Hi' },
         { role: 'assistant', text: 'Hello' },
@@ -122,5 +124,53 @@ describe('handleExplain', () => {
     expect(await res.text()).toBe(
       'Partial\n\n[The explainer stopped: the model call failed. Try again.]',
     )
+  })
+})
+
+describe('notesFor', () => {
+  const notes = [
+    '# Data sources',
+    '| big table |',
+    '## Terrain (multi-site + global)',
+    'CTX DEM 20 m.',
+    '## Story mode (mission 1.1: cargo)',
+    'DRA 5.0 masses.',
+    '## Story mode photos (mission 1.1 cards)',
+    'Photo credits.',
+    '## Mission 1.7 Dust storm',
+    'Montabone tau.',
+    '## Sols and the dust storm season',
+    'Ls 180-360.',
+    '## Story mode: stay, base stores and mission reports',
+    'BVAD food.',
+  ].join('\n')
+
+  it('sends a mission only its own sections and the stores ledger', () => {
+    const n = notesFor(notes, 'mission:1.7')
+    expect(n).toContain('Montabone tau.')
+    expect(n).toContain('Ls 180-360.')
+    expect(n).toContain('BVAD food.')
+    expect(n).not.toContain('CTX DEM')
+    expect(n).not.toContain('big table')
+  })
+
+  it('leaves out the photo and chart credits of a mission', () => {
+    const n = notesFor(notes, 'mission:1.1')
+    expect(n).toContain('DRA 5.0 masses.')
+    expect(n).not.toContain('Photo credits.')
+  })
+
+  it('sends the map the terrain sections only', () => {
+    const n = notesFor(notes, 'map')
+    expect(n).toContain('CTX DEM 20 m.')
+    expect(n).not.toContain('BVAD food.')
+  })
+})
+
+describe('parseBody topic', () => {
+  it('accepts map or a mission id and rejects anything else', () => {
+    expect(parseBody({ ...body, topic: 'mission:1.10' })).toMatchObject({ topic: 'mission:1.10' })
+    expect(parseBody({ ...body })).toMatchObject({ topic: 'map' })
+    expect(parseBody({ ...body, topic: 'everything' })).toMatch(/topic/)
   })
 })

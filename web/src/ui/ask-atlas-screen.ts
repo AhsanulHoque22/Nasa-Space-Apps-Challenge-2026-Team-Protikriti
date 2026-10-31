@@ -22,9 +22,9 @@ type Deps = {
 }
 
 const STORY_QUESTIONS = [
+  'What is this step for?',
+  'What does each part here do?',
   'Why did this come out the way it did?',
-  'What runs out first, and why?',
-  'Where do these numbers come from?',
 ]
 const MAP_QUESTIONS = [
   'Is this route safe to walk?',
@@ -58,25 +58,38 @@ export function askScreen(deps: Deps): () => Promise<AskScreen> {
     if (dock) {
       const progress = deps.progress() ?? { version: 1 as const, owner: '', completed: [] }
       const run = deps.progress() ? await storesTo(progress, solReached(progress)) : null
+      const title = dock.getAttribute('aria-label') ?? ''
+      const purpose = dock.querySelector('.dock-why')?.textContent?.trim()
+      const [screen, ...background] = storyFacts({
+        mission: title || undefined,
+        step: dock.querySelector('.dock-title')?.textContent?.trim() || undefined,
+        progress,
+        run,
+      })
+      // What is on screen first: the fact cap trims the background (saved run, ledger), not this.
       const facts = [
-        ...storyFacts({
-          mission: dock.getAttribute('aria-label') ?? undefined,
-          step: dock.querySelector('.dock-title')?.textContent?.trim() || undefined,
-          progress,
-          run,
-        }),
+        ...(screen ? [screen] : []),
+        ...(purpose
+          ? [{ label: 'Step purpose', value: purpose.slice(0, 300), source: 'ATLAS' }]
+          : []),
         ...screenFacts(
           dock.querySelector<HTMLElement>('.dock-content')?.innerText ?? '',
           'On screen (mission step)',
         ),
+        ...background,
       ]
-      return { facts: numbered(facts), suggestions: STORY_QUESTIONS }
+      const id = /^\d+\.\d+/.exec(title)?.[0]
+      return {
+        facts: numbered(facts),
+        suggestions: STORY_QUESTIONS,
+        topic: id ? `mission:${id}` : 'map',
+      }
     }
     const routeLines = document.querySelector<HTMLElement>('.route')?.innerText ?? ''
     const facts = [
       ...mapFacts({ view: viewCentre(deps), plan: deps.plan(), notice: null }),
       ...screenFacts(routeLines, 'On screen (route planner)'),
     ]
-    return { facts: numbered(facts), suggestions: MAP_QUESTIONS }
+    return { facts: numbered(facts), suggestions: MAP_QUESTIONS, topic: 'map' }
   }
 }

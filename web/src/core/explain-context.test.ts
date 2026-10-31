@@ -152,16 +152,13 @@ describe('numbered', () => {
 })
 
 describe('screenFacts', () => {
-  it('keeps the visible lines that carry numbers or a verdict, trimmed and without repeats', () => {
+  it('keeps the short visible lines that carry numbers or a verdict, trimmed and without repeats', () => {
     const text =
       'Pack the landers\n\n  Food lasts to sol 742  \nVerdict: NO-GO\nChoose wisely\nFood lasts to sol 742\n' +
       'x1 '.repeat(200)
     const facts = screenFacts(text, 'On screen (mission step)')
-    expect(facts.map((f) => f.value)).toEqual([
-      'Food lasts to sol 742',
-      'Verdict: NO-GO',
-      `${'x1 '.repeat(100).trim()}…`,
-    ])
+    // The 600-character line is an instruction or prose, not a result: left out.
+    expect(facts.map((f) => f.value)).toEqual(['Food lasts to sol 742', 'Verdict: NO-GO'])
     expect(facts[0]).toEqual({
       label: 'On screen',
       value: 'Food lasts to sol 742',
