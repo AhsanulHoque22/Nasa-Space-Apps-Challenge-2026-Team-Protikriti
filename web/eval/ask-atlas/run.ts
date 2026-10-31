@@ -246,8 +246,9 @@ if (process.argv.includes('--rescore')) {
       cites_ok: +code.cites_ok,
       format_ok: +code.format_ok,
     })
-    const { all_pass: _, ...g } = r.grade
-    r.grade.all_pass = +Object.values(g).every(Boolean)
+    r.grade.all_pass = +Object.entries(r.grade)
+      .filter(([k]) => k !== 'all_pass')
+      .every(([, v]) => v)
     r.explanation.no_invented_numbers = code.check.unverified.length
       ? `not in the facts: ${code.check.unverified.join(', ')}`
       : 'all numbers from facts'
