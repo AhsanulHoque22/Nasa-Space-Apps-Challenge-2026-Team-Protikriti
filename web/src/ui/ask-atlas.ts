@@ -47,10 +47,10 @@ function checkLine(unverified: readonly string[], unknown: readonly string[]): H
   if (!unverified.length && !unknown.length)
     return el('p', {
       className: 'ask-check ok',
-      textContent: 'Checked: every number above is one of the app’s own numbers.',
+      textContent: 'Checked: every number above comes from the app’s data or its cited sources.',
     })
   const parts = [
-    unverified.length && `not from the app’s data: ${unverified.join(', ')}`,
+    unverified.length && `not from the app’s data or sources: ${unverified.join(', ')}`,
     unknown.length && `cites facts that don’t exist: ${unknown.join(', ')}`,
   ].filter(Boolean)
   return el('p', {
@@ -174,7 +174,11 @@ export function installAskAtlas(screen: () => Promise<AskScreen>): void {
         block.body.textContent = text
         log.scrollTop = log.scrollHeight
       }
-      const check = checkAnswer(text, asked, q)
+      const notesNumbers = (res.headers.get('x-notes-numbers') ?? '')
+        .split(',')
+        .filter(Boolean)
+        .map(Number)
+      const check = checkAnswer(text, asked, q, notesNumbers)
       block.after.append(
         ...[
           sourcesList(asked, check.cited),

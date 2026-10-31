@@ -15,25 +15,25 @@ type Token = { text: string; value: number; decimals: number }
 // Numbers that are part of a name, not a measurement: "Rev2", "CO2" (glued to letters), "DRA 5.0"
 // (after an acronym), "mission 1.7", "Expedition 2".
 const NAME_BEFORE = /(?:[A-Za-z]|\b[A-Z]{2,}\s|\b[Mm]ission\s|\b[Ee]xpedition\s|\bArchitecture\s)$/
-// Reference details, not measurements: "Table 5-1", "Fig. 3", "§2", and a citation's year
-// ("Rucker et al. 2016", "(Drake, ed., 2009)").
+// Reference details, not measurements: "Table 5-1", "Fig. 3", "§2".
 const REF_BEFORE = /(?:\b(?:Table|Tables|Fig\.?|Figure|Eq\.?|Section|§)\s*(?:\d+[-–.])?)$/
-const YEAR_BEFORE = /(?:et al\.,?|ed\.,|\(|,)\s*$/
-const isCitationYear = (raw: string, before: string, after: string) =>
-  /^(19|20)\d\d$/.test(raw) && (YEAR_BEFORE.test(before) || after.startsWith(')'))
-
+// A year ("Mars 2020", "the 2018 storm", "Rucker et al. 2016") or a document id (NTRS 20090040343)
+// names something; a year-like value followed by a unit ("2018 m") is still a measurement.
+const UNIT_AFTER = /^\s*(?:m|km|kg|t|kW|kWh|W|mSv|Sv|sols?|days?|h|hours?|min|s|°|%|K|Pa|hPa|bar)\b/
+const isYearOrId = (raw: string, after: string) =>
+  /^\d{8,}$/.test(raw) || (/^(19|20)\d\d$/.test(raw) && !UNIT_AFTER.test(after))
 function tokens(text: string): Token[] {
   const plainText = text.replace(CITATION, ' ')
   return [...plainText.matchAll(NUMBER)]
     .filter((m) => {
       const before = plainText.slice(Math.max(0, m.index - 16), m.index)
-      const after = plainText.slice(m.index + m[0].length, m.index + m[0].length + 1)
+      const after = plainText.slice(m.index + m[0].length, m.index + m[0].length + 8)
       // "5-1": the hyphen joins two parts of a reference; it is not a minus sign.
       const hyphenated = /^[-−]/.test(m[0]) && /\d$/.test(before)
       return !(
         NAME_BEFORE.test(before) ||
         REF_BEFORE.test(hyphenated ? before.replace(/\d+$/, (d) => `${d}-`) : before) ||
-        isCitationYear(m[0], before, after)
+        isYearOrId(m[0], after)
       )
     })
     .map(([raw]) => {
@@ -66,10 +66,17 @@ export type AnswerCheck = {
   unknownCitations: string[]
 }
 
-export function checkAnswer(answer: string, facts: readonly Fact[], question: string): AnswerCheck {
+/** `notesNumbers`: numbers in the source notes the server sent with the answer (cited datasets). */
+export function checkAnswer(
+  answer: string,
+  facts: readonly Fact[],
+  question: string,
+  notesNumbers: readonly number[] = [],
+): AnswerCheck {
   const known = [
     ...facts.flatMap((f) => numbersIn(`${f.label} ${f.value}`)),
     ...numbersIn(question),
+    ...notesNumbers,
   ]
   const unverified = tokens(answer)
     .filter((t) => !known.some((k) => sameNumber(t, k)))

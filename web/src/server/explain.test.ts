@@ -97,6 +97,15 @@ describe('handleExplain', () => {
     sourceNotes: 'notes',
   })
 
+  it('sends the numbers of the source notes it used, for the number check', async () => {
+    const res = await handleExplain(post({ ...body, topic: 'map' }), {
+      ...deps(fakeStream(['ok'])),
+      sourceNotes:
+        '## Terrain (multi-site + global)\nCTX DEM at 20 m, 1,284 sols.\n## Other\n99 kg.',
+    })
+    expect(res.headers.get('x-notes-numbers')).toBe('20,1284')
+  })
+
   it('streams the answer as plain text', async () => {
     const res = await handleExplain(
       post(body),
@@ -143,7 +152,14 @@ describe('notesFor', () => {
     'Ls 180-360.',
     '## Story mode: stay, base stores and mission reports',
     'BVAD food.',
+    '## Ask ATLAS (the explainer)',
+    'Every number is checked.',
   ].join('\n')
+
+  it('sends every topic the notes on how the explainer itself works', () => {
+    expect(notesFor(notes, 'map')).toContain('Every number is checked.')
+    expect(notesFor(notes, 'mission:1.7')).toContain('Every number is checked.')
+  })
 
   it('sends a mission only its own sections and the stores ledger', () => {
     const n = notesFor(notes, 'mission:1.7')

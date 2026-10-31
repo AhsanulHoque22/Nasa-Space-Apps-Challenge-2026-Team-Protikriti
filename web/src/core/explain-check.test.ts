@@ -72,3 +72,23 @@ describe('reference details', () => {
     expect(checkAnswer('Landers carry 30–50 t.', facts, '').unverified).toEqual(['30', '50'])
   })
 })
+
+describe('years, document ids and source-note numbers', () => {
+  it('years and long document ids are not measurements', () => {
+    const r = checkAnswer(
+      'NASA Mars 2020 and IAU Mars 2000; the 2018 storm; NTRS 20090040343.',
+      facts,
+      '',
+    )
+    expect(r.unverified).toEqual([])
+  })
+
+  it('a year-like value with a unit is still a measurement', () => {
+    expect(checkAnswer('It climbs 2018 m.', facts, '').unverified).toEqual(['2018'])
+  })
+
+  it('accepts numbers from the source notes the server sent, but not others', () => {
+    const r = checkAnswer('RASSOR digs 2.7 t a day and 9 t more.', facts, '', [2.7])
+    expect(r.unverified).toEqual(['9'])
+  })
+})
