@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { type Plugin, defineConfig } from 'vite'
+import { type Plugin, defineConfig, loadEnv } from 'vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 // Cesium ships workers/assets that must be served as static files (official Cesium + Vite recipe).
@@ -17,7 +17,8 @@ const nasaRaw = {
 }
 
 // Ask ATLAS in dev: /api/explain runs the same handler as the Vercel function (api/explain.ts),
-// with the key from the shell (ANTHROPIC_API_KEY). Without a key it answers 503, as on Vercel.
+// with the key from the shell or web/.env.local (ANTHROPIC_API_KEY; server-side only, no VITE_
+// prefix, so it never reaches the browser). Without a key it answers 503, as on Vercel.
 function askAtlasApi(): Plugin {
   let handle: ((req: Request) => Promise<Response>) | undefined
   return {
@@ -29,7 +30,8 @@ function askAtlasApi(): Plugin {
             '/src/server/explain.ts',
           )) as typeof import('./src/server/explain')
           handle ??= mod.explainHandler(
-            process.env.ANTHROPIC_API_KEY,
+            process.env.ANTHROPIC_API_KEY ??
+              loadEnv(server.config.mode, process.cwd(), 'ANTHROPIC_').ANTHROPIC_API_KEY,
             readFileSync('../docs/data-sources.md', 'utf8'),
           )
           const chunks: Buffer[] = []
