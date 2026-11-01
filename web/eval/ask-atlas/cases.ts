@@ -412,7 +412,13 @@ const ROWS: Row[] = [
     'Why did the battery run out?',
     'it did not: lowest 212 kWh, verdict GO',
   ],
-  ['storm', 'not-on-screen', 'not-on-screen', 'How long does the storm last?'],
+  [
+    'storm',
+    'not-on-screen',
+    'explain',
+    'How long does the storm last?',
+    'the notes say the game storm lasts 100 sols from its real arrival sol (team assumption)',
+  ],
   // 1.8 water
   ['water', 'mission', 'explain', 'What is SWIM?'],
   ['water', 'mission', 'explain', 'Why is ice better than gypsum?'],

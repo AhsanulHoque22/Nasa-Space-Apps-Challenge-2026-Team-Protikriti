@@ -4,6 +4,8 @@
  * results.jsonl, traces/ and errors.jsonl under .claude/hillclimb/ask-atlas/<variant>/.
  *
  *   npx tsx eval/ask-atlas/run.ts [--limit N] [--ids c001,c002] [--variant baseline] [--concurrency 4]
+ *   --no-judge: answers and the free code checks only (about $0.0005 a case); judge grades are
+ *   left out of the row, to be graded by hand.
  *
  * The key comes from web/.env.local (git-ignored). Resumes: cases already in results.jsonl are skipped.
  */
@@ -21,6 +23,7 @@ import {
 import { type Case, buildCases } from './cases.ts'
 
 const JUDGE_MODEL = 'claude-sonnet-5-5'
+const NO_JUDGE = process.argv.includes('--no-judge')
 const CASE_TIMEOUT_MS = 120_000
 const MAX_WORDS = 170 // the prompt asks for under 150; a little slack
 
@@ -184,15 +187,17 @@ async function runCase(c: Case) {
     .filter(Boolean)
     .map(Number)
   const code = codeChecks(c, answer, notesNumbers)
-  const j = await judge(c, answer)
+  const j = NO_JUDGE ? null : await judge(c, answer)
   const g = {
     no_invented_numbers: +code.no_invented_numbers,
     cites_ok: +code.cites_ok,
     format_ok: +code.format_ok,
-    correct: +j.verdict.correct.pass,
-    no_hallucination: +j.verdict.no_hallucination.pass,
-    behaviour: +j.verdict.behaviour.pass,
-    sources_named: +j.verdict.sources_named.pass,
+    ...(j && {
+      correct: +j.verdict.correct.pass,
+      no_hallucination: +j.verdict.no_hallucination.pass,
+      behaviour: +j.verdict.behaviour.pass,
+      sources_named: +j.verdict.sources_named.pass,
+    }),
   }
   const row = {
     prompt_id: c.id,
@@ -202,7 +207,7 @@ async function runCase(c: Case) {
     stop_reason: final.stop_reason,
     grade: { all_pass: +Object.values(g).every(Boolean), ...g },
     explanation: {
-      ...Object.fromEntries(Object.entries(j.verdict).map(([k, v]) => [k, v.reason])),
+      ...(j && Object.fromEntries(Object.entries(j.verdict).map(([k, v]) => [k, v.reason]))),
       no_invented_numbers: code.check.unverified.length
         ? `not in the facts: ${code.check.unverified.join(', ')}`
         : 'all numbers from facts',
@@ -213,8 +218,7 @@ async function runCase(c: Case) {
     notes_numbers: notesNumbers,
     model: final.model,
     usage: final.usage,
-    judge_model: j.model,
-    judge_usage: j.usage,
+    ...(j && { judge_model: j.model, judge_usage: j.usage }),
     latency_s,
   }
   const trace = [
@@ -289,7 +293,7 @@ let cases = buildCases().filter((c) => !done.has(c.id) && (!ids || ids.includes(
 const limit = arg('limit')
 if (limit) cases = cases.slice(0, Number(limit))
 console.log(
-  `running ${cases.length} cases (${done.size} already done) with ${MODEL}, judge ${JUDGE_MODEL}`,
+  `running ${cases.length} cases (${done.size} already done) with ${MODEL}, judge ${NO_JUDGE ? 'none (by hand)' : JUDGE_MODEL}`,
 )
 
 const queue = [...cases]
@@ -330,7 +334,7 @@ const rows = readFileSync(join(out, 'results.jsonl'), 'utf8')
   .filter(Boolean)
   .map((l) => JSON.parse(l))
 const ok = rows.filter((r) => r.status === 'ok')
-for (const m of state.metrics) {
+for (const m of state.metrics.filter((m: { id: string }) => m.id in (ok[0]?.grade ?? {}))) {
   const p = ok.reduce((a, r) => a + r.grade[m.id], 0) / ok.length
   const half = 1.96 * Math.sqrt((p * (1 - p)) / ok.length)
   console.log(`${m.label.padEnd(14)} ${(100 * p).toFixed(1)}% ± ${(100 * half).toFixed(1)}`)
@@ -349,7 +353,7 @@ const cost = rows.reduce((a, r) => {
       1e6
     )
   }
-  return a + price(r.model, r.usage) + price(r.judge_model, r.judge_usage)
+  return a + price(r.model, r.usage) + (r.judge_model ? price(r.judge_model, r.judge_usage) : 0)
 }, 0)
 console.log(
   `${ok.length} graded (${rows.length - ok.length} truncated) · cost so far $${cost.toFixed(3)}`,
