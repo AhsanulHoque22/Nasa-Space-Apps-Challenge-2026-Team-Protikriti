@@ -44,6 +44,15 @@ function tokens(text: string): Token[] {
 
 export const numbersIn = (text: string): number[] => tokens(text).map((t) => t.value)
 
+/**
+ * Every number in a trusted text (facts, notes, the question), names included: the skips above are
+ * only for deciding what an answer claims, so "LED 1.66" in the notes still makes 1.66 known.
+ */
+export const allNumbersIn = (text: string): number[] =>
+  [...text.replace(CITATION, ' ').matchAll(NUMBER)].map(([raw]) =>
+    Number(raw.replace(/,/g, '').replace('−', '-')),
+  )
+
 const roundTo = (x: number, places: number) => {
   const f = 10 ** places
   return Math.round(x * f) / f
@@ -74,8 +83,8 @@ export function checkAnswer(
   notesNumbers: readonly number[] = [],
 ): AnswerCheck {
   const known = [
-    ...facts.flatMap((f) => numbersIn(`${f.label} ${f.value}`)),
-    ...numbersIn(question),
+    ...facts.flatMap((f) => allNumbersIn(`${f.label} ${f.value}`)),
+    ...allNumbersIn(question),
     ...notesNumbers,
   ]
   const unverified = tokens(answer)

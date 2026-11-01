@@ -6,7 +6,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 // Relative imports carry .js: the Vercel function runs this file under Node's own ESM rules.
 import type { Fact } from '../core/explain-context.js'
-import { numbersIn } from '../core/explain-check.js'
+import { allNumbersIn } from '../core/explain-check.js'
 import { MAX_FACTS } from '../core/explain-limits.js'
 
 // Haiku: the facts and the number check do the hard part; the model only explains.
@@ -197,7 +197,7 @@ export async function handleExplain(req: Request, deps: ExplainDeps): Promise<Re
   const notes = notesFor(deps.sourceNotes, body.topic)
   const parts = deps.stream(systemPrompt(notes), messages)
   // The panel checks every number in the answer against the facts and these, the cited notes'.
-  const notesNumbers = [...new Set(numbersIn(notes))].join(',')
+  const notesNumbers = [...new Set(allNumbersIn(notes))].join(',')
   const encoder = new TextEncoder()
   return new Response(
     new ReadableStream<Uint8Array>({

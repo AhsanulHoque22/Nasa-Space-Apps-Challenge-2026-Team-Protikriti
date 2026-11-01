@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkAnswer, numbersIn } from './explain-check'
+import { allNumbersIn, checkAnswer, numbersIn } from './explain-check'
 import type { Fact } from './explain-context'
 
 const facts: Fact[] = [
@@ -90,5 +90,13 @@ describe('years, document ids and source-note numbers', () => {
   it('accepts numbers from the source notes the server sent, but not others', () => {
     const r = checkAnswer('RASSOR digs 2.7 t a day and 9 t more.', facts, '', [2.7])
     expect(r.unverified).toEqual(['9'])
+  })
+
+  it('a known number written after an acronym still counts as known: "LED 1.66", "GM 42,828.37"', () => {
+    const notes = allNumbersIn('LED 1.66 µmol/J; Mars GM 42,828.37 km³/s²')
+    expect(notes).toEqual([1.66, 42828.37])
+    expect(
+      checkAnswer('They run at 1.66 µmol/J; GM is 42,828.37.', facts, '', notes).unverified,
+    ).toEqual([])
   })
 })
