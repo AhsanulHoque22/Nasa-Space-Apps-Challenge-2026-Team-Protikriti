@@ -1,118 +1,73 @@
-/** Story mode's mission list: expeditions, their missions, status and readable briefings. */
+/**
+ * The trail: acts in story order, one obvious next mission. Finished missions stay playable; locked ones
+ * show what is coming. Expedition 3 is not built, so it is not shown.
+ */
+import { type Mission } from '../core/missions'
 import { type MissionStatus, missionStatus } from '../core/mission-progress'
-import type { Expedition, Mission } from '../core/missions'
+import { ACTS, episodeField } from '../core/story-acts'
+import { el } from './dom'
 
-function statusText(s: MissionStatus): string {
-  switch (s.kind) {
-    case 'done':
-      return 'Done'
-    case 'open':
-      return 'Open'
-    case 'locked':
-      return `After ${s.after}`
-    case 'soon':
-      return 'Coming soon'
-  }
-}
-
-function missionRow(
-  m: Mission,
-  status: MissionStatus,
-  onStart: (id: string) => void,
-): HTMLLIElement {
-  const li = document.createElement('li')
-  li.className = 'mission'
-  li.dataset.status = status.kind
-  const details = document.createElement('details')
-  const summary = document.createElement('summary')
-  const id = Object.assign(document.createElement('span'), {
-    className: 'mission-id',
-    textContent: m.id,
-  })
-  const title = Object.assign(document.createElement('span'), {
-    className: 'mission-title',
-    textContent: m.title,
-  })
-  const state = Object.assign(document.createElement('span'), {
-    className: 'mission-status',
-    textContent: statusText(status),
-  })
-  summary.append(id, title, state)
-  const briefing = Object.assign(document.createElement('p'), {
-    className: 'mission-briefing',
-    textContent: m.briefing,
-  })
-  const hats = Object.assign(document.createElement('p'), {
-    className: 'mission-hats',
-    textContent: `Decisions: ${m.hats.join(', ')}`,
-  })
-  details.append(summary, briefing, hats)
+function trailStop(m: Mission, status: MissionStatus, onStart: (id: string) => void): HTMLElement {
+  const li = el('li', { className: `trail-stop is-${status.kind}` })
+  li.dataset.field = episodeField(m.id)
+  const head = el(
+    'div',
+    { className: 'trail-head' },
+    el('span', { className: 'trail-ep', textContent: m.id }),
+    el('h4', { className: 'trail-title', textContent: m.title }),
+  )
+  li.append(head)
   if (status.kind === 'open') {
-    details.open = true // the next mission to play is shown with its start button
-    const start = Object.assign(document.createElement('button'), {
+    li.append(el('p', { className: 'trail-briefing', textContent: m.briefing }))
+    const start = el('button', {
       type: 'button',
       className: 'gate-primary mission-start',
-      textContent: 'Start mission',
+      textContent: 'Play this episode',
     })
     start.addEventListener('click', () => onStart(m.id))
-    details.append(start)
-  } else if (status.kind === 'done' && m.built) {
-    const again = Object.assign(document.createElement('button'), {
+    li.append(start)
+  } else if (status.kind === 'done') {
+    head.append(el('span', { className: 'trail-state', textContent: 'Done' }))
+    const again = el('button', {
       type: 'button',
       className: 'gate-link mission-start',
       textContent: 'Play again',
     })
     again.addEventListener('click', () => onStart(m.id))
-    const warn = Object.assign(document.createElement('p'), {
-      className: 'mission-hats',
-      textContent: 'Finishing it again reopens the missions after it.',
-    })
-    details.append(again, warn)
+    li.append(
+      again,
+      el('p', {
+        className: 'trail-warn',
+        textContent: 'Finishing it again reopens the episodes after it.',
+      }),
+    )
+  } else {
+    head.append(el('span', { className: 'trail-state', textContent: 'Locked' }))
   }
-  li.append(details)
   return li
 }
 
 export function renderMissionList(
-  expeditions: readonly Expedition[],
   missions: readonly Mission[],
   completed: readonly string[],
   onStart: (id: string) => void,
 ): HTMLElement {
-  const root = document.createElement('div')
-  root.className = 'missions'
-  if (!missions.some((m) => m.built)) {
-    root.append(
-      Object.assign(document.createElement('p'), {
-        className: 'gate-text',
-        textContent:
-          'The first missions are being built. Read the briefings now; each mission opens here when it is ready.',
-      }),
-    )
-  }
-  for (const e of expeditions) {
-    const section = document.createElement('details')
-    section.className = 'expedition'
-    section.open = e.n === 1
-    const heading = Object.assign(document.createElement('summary'), {
-      className: 'expedition-title',
-    })
-    heading.append(
-      Object.assign(document.createElement('h3'), {
-        textContent: `Expedition ${e.n}: ${e.title}`,
-      }),
-    )
-    const summary = Object.assign(document.createElement('p'), {
-      className: 'expedition-summary',
-      textContent: e.summary,
-    })
-    const list = document.createElement('ol')
-    list.className = 'mission-list'
-    for (const m of missions.filter((x) => x.expedition === e.n)) {
-      list.append(missionRow(m, missionStatus(missions, completed, m.id), onStart))
+  const root = el('div', { className: 'trail' })
+  for (const act of ACTS) {
+    const list = el('ol', { className: 'trail-list' })
+    for (const id of act.missions) {
+      const m = missions.find((x) => x.id === id)
+      if (m) list.append(trailStop(m, missionStatus(missions, completed, m.id), onStart))
     }
-    section.append(heading, summary, list)
-    root.append(section)
+    root.append(
+      el(
+        'section',
+        { className: 'trail-act' },
+        el('h3', { className: 'trail-act-title', textContent: act.title }),
+        el('p', { className: 'trail-act-line', textContent: act.line }),
+        list,
+      ),
+    )
   }
   return root
 }

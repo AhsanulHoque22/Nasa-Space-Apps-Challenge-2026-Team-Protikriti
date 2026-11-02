@@ -1,7 +1,7 @@
 /** Story mode inside the start screen: the mission list, opening a mission, saving the result. */
 import { type Progress, loadProgress } from '../core/mission-progress'
 import type { WalkMap } from '../map/marswalk-map'
-import { EXPEDITIONS, MISSIONS } from '../core/missions'
+import { MISSIONS } from '../core/missions'
 import type { Profile } from '../core/profile'
 import type { KeyValueStore } from '../core/streetview'
 import type { Grid } from '../core/grid'
@@ -118,13 +118,13 @@ export function showStory(ctx: StoryContext): void {
     const map = el('button', {
       type: 'button',
       className: 'gate-link',
-      textContent: 'Open Martian Map instead',
+      textContent: 'Explore Mars',
     })
     map.addEventListener('click', ctx.onMap)
     ctx.body.replaceChildren(
-      el('h2', { className: 'gate-heading', textContent: 'Story mode', tabIndex: -1 }),
+      el('h2', { className: 'trail-heading', textContent: 'The story so far', tabIndex: -1 }),
       note ? el('p', { className: 'gate-note', textContent: note }) : '',
-      renderMissionList(EXPEDITIONS, MISSIONS, progress.completed, showMission),
+      renderMissionList(MISSIONS, progress.completed, showMission),
       reportList(),
       el('div', { className: 'gate-actions' }, back, map),
     )

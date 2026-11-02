@@ -8,7 +8,8 @@ import type { KeyValueStore } from './streetview'
 export const PROFILE_KEY = 'atlas.profile'
 const NAME_MAX_CHARS = 40
 
-export type Profile = { version: 1; name: string; createdAt: string }
+/** `signed` is false until the player names themselves; older saves without it already have a name. */
+export type Profile = { version: 1; name: string; createdAt: string; signed?: boolean }
 
 export type NameCheck = { ok: true; name: string } | { ok: false; reason: string }
 
@@ -25,6 +26,25 @@ export function checkName(raw: string): NameCheck {
   }
   return { ok: true, name }
 }
+
+const UNSIGNED_NAME = 'Crew'
+
+/** A first-time player starts playing at once; the name comes after their first mission. */
+export const unsignedProfile = (createdAt: string): Profile => ({
+  version: 1,
+  name: UNSIGNED_NAME,
+  createdAt,
+  signed: false,
+})
+
+export const needsSignature = (profile: Profile, completed: readonly string[]): boolean =>
+  profile.signed === false && completed.length > 0
+
+export const signProfile = (profile: Profile, name: string): Profile => ({
+  ...profile,
+  name,
+  signed: true,
+})
 
 function isProfile(v: unknown): v is Profile {
   const p = v as Partial<Profile> | null

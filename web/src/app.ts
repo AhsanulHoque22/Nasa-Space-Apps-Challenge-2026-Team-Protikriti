@@ -9,6 +9,7 @@ import { type BasePlacer, createBasePlacer } from './map/base-placer'
 import { type LandingScene, createLandingScene } from './map/landing-scene'
 import { type FeaturePins, createFeaturePins } from './map/feature-pins'
 import './style.css'
+import './episodes.css'
 import { type Site, elevationAt, parseMola } from './core/elevation'
 import { type Grid, lonLatToCell, parseGrid } from './core/grid'
 import { type LayerId, addLayers } from './map/layers'
@@ -45,7 +46,7 @@ import { renderConnectionBadge } from './ui/connection-badge'
 import { openExplore } from './ui/explore-hud'
 import { renderDock } from './ui/dock'
 import { renderHeader } from './ui/header'
-import { openProfileGate } from './ui/profile-gate'
+import { dismissFirstScreen, openProfileGate } from './ui/profile-gate'
 import { renderLayerPanel } from './ui/layer-panel'
 import { renderReadout } from './ui/readout'
 import { installAskAtlas } from './ui/ask-atlas'
@@ -252,7 +253,8 @@ async function main() {
       },
       resume,
     )
-  if (!decodeView(window.location.search)) openStart()
+  if (decodeView(window.location.search)) dismissFirstScreen()
+  else openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
   setGlobePause((paused) => {
     viewer.useDefaultRenderLoop = !paused

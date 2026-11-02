@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { PROFILE_KEY, checkName, loadProfile, saveProfile } from './profile'
+import {
+  PROFILE_KEY,
+  checkName,
+  loadProfile,
+  needsSignature,
+  saveProfile,
+  signProfile,
+  unsignedProfile,
+} from './profile'
 
 /** A Map-backed store; `broken` makes every call throw, like a blocked private window. */
 function store(initial: Record<string, string> = {}, broken = false) {
@@ -66,5 +74,27 @@ describe('profile storage', () => {
     expect(loadProfile(store({}, true))).toEqual({ profile: null, note })
     expect(saveProfile(store({}, true), ada)).toBe(false)
     expect(saveProfile(undefined, ada)).toBe(false)
+  })
+})
+
+describe('the unsigned crew log', () => {
+  it('starts a player with no name, so the name form never comes first', () => {
+    const p = unsignedProfile('2026-11-02T00:00:00.000Z')
+    expect(p.signed).toBe(false)
+    expect(needsSignature(p, [])).toBe(false)
+  })
+
+  it('asks for the name after the first mission is done', () => {
+    expect(needsSignature(unsignedProfile('t'), ['1.1'])).toBe(true)
+  })
+
+  it('never asks a player who already has a name, including older saves', () => {
+    expect(needsSignature({ version: 1, name: 'Mina', createdAt: 't' }, ['1.1'])).toBe(false)
+  })
+
+  it('keeps createdAt when signing, because progress is stored under it', () => {
+    const signed = signProfile(unsignedProfile('t'), 'Mina')
+    expect(signed).toEqual({ version: 1, name: 'Mina', createdAt: 't', signed: true })
+    expect(needsSignature(signed, ['1.1'])).toBe(false)
   })
 })

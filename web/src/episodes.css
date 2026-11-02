@@ -1,0 +1,212 @@
+/* Mission Episodes on the app's own surfaces: the trail, the way in, and the mission panel. */
+
+.gate.episodes {
+  background: var(--ink);
+  padding: 0;
+  align-items: stretch;
+  justify-items: stretch;
+  overflow-y: auto;
+}
+
+.episodes .gate-panel {
+  width: min(100%, 980px);
+  max-width: none;
+  max-height: none;
+  margin: 0 auto;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: max(16px, env(safe-area-inset-top)) 16px 48px;
+  overflow: visible;
+}
+
+.gate-wordmark {
+  margin: 0;
+  font: 400 40px/1 var(--font-title);
+  color: var(--mustard);
+}
+
+.trail-heading {
+  margin: 8px 0 24px;
+  font: 400 clamp(52px, 12vw, 96px) / 0.95 var(--font-title);
+  text-transform: uppercase;
+  color: var(--cream);
+}
+
+.trail-heading:focus {
+  outline: none;
+}
+
+.trail-act {
+  margin-bottom: 40px;
+}
+
+.trail-act-title {
+  margin: 0;
+  font: 400 34px/1.05 var(--font-title);
+  text-transform: uppercase;
+  color: var(--mustard);
+}
+
+.trail-act-line {
+  margin: 4px 0 12px;
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.trail-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trail-stop {
+  background: var(--surface-raised);
+  color: var(--text);
+  padding: 14px 16px;
+}
+
+.trail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.trail-ep {
+  font: 400 22px/1 var(--font-title);
+  flex: none;
+}
+
+.trail-title {
+  margin: 0;
+  flex: 1;
+  font: 700 18px/1.25 var(--font);
+}
+
+.trail-state {
+  flex: none;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.trail-stop.is-locked {
+  color: var(--text-muted);
+}
+
+.trail-stop.is-open {
+  background: var(--field);
+  color: var(--on-field);
+  padding: 22px 16px;
+}
+
+.trail-stop.is-open .trail-ep {
+  font-size: 56px;
+}
+
+.trail-stop.is-open .trail-title {
+  font: 400 clamp(38px, 8vw, 64px) / 1 var(--font-title);
+  text-transform: uppercase;
+}
+
+.trail-briefing {
+  margin: 12px 0;
+  max-width: 62ch;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.trail-warn {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.episodes .gate-primary {
+  min-height: 56px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 0;
+  background: var(--mustard);
+  color: var(--ink);
+  font: 400 26px/1 var(--font-title);
+  text-transform: uppercase;
+}
+
+.episodes .gate-primary:hover {
+  background: var(--cream);
+}
+
+.trail-stop.is-open .gate-primary {
+  background: var(--ink);
+  color: var(--mustard);
+  width: 100%;
+}
+
+.episodes .gate-link {
+  min-height: 44px;
+  color: var(--text);
+}
+
+.episodes .gate-form input {
+  min-height: 56px;
+  border-radius: 0;
+  font-size: 18px;
+}
+
+.episodes .gate-form label {
+  font: 400 clamp(38px, 9vw, 72px) / 1 var(--font-title);
+  text-transform: uppercase;
+  color: var(--mustard);
+}
+
+/* The mission panel */
+.mission-dock.episodes {
+  background: var(--ink);
+  color: var(--text);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.mission-dock.episodes .dock-header {
+  background: var(--field);
+  color: var(--on-field);
+  padding: 10px 14px;
+}
+
+.mission-dock.episodes .dock-mission,
+.mission-dock.episodes .dock-step,
+.mission-dock.episodes .dock-leave {
+  color: var(--on-field);
+}
+
+.mission-dock.episodes .dock-title {
+  margin: 12px 14px 4px;
+  font: 400 clamp(36px, 7vw, 56px) / 1 var(--font-title);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--cream);
+}
+
+.mission-dock.episodes .dock-why {
+  margin: 0 14px 12px;
+  font-size: 17px;
+}
+
+.mission-dock.episodes .dock-content {
+  padding: 0 14px;
+}
+
+.mission-dock.episodes .dock-footer {
+  padding: 10px 14px max(10px, env(safe-area-inset-bottom));
+  background: var(--ink);
+}
+
+.mission-dock.episodes .dock-back {
+  min-height: 56px;
+  border-radius: 0;
+  font: 400 22px/1 var(--font-title);
+  text-transform: uppercase;
+}

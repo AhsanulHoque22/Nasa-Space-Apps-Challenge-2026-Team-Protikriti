@@ -3,6 +3,7 @@
  * map. One decision per step; Back and Next move between steps; the last step finishes.
  */
 import { parseCount } from '../core/cargo'
+import { episodeField } from '../core/story-acts'
 import { el } from './dom'
 
 export type DockStep = {
@@ -52,7 +53,7 @@ export function openDock(opts: DockOptions): Dock {
 
   const root = el(
     'section',
-    { className: 'mission-dock', ariaLabel: opts.missionTitle },
+    { className: 'mission-dock episodes', ariaLabel: opts.missionTitle },
     el(
       'header',
       { className: 'dock-header' },
@@ -71,6 +72,9 @@ export function openDock(opts: DockOptions): Dock {
     content,
     el('footer', { className: 'dock-footer' }, back, next),
   )
+
+  // The title reads "<id> <name>": the id picks the mission's colour field.
+  root.dataset.field = episodeField(opts.missionTitle.split(' ')[0] ?? '')
 
   let shown: DockStep | undefined
   const show = (i: number) => {

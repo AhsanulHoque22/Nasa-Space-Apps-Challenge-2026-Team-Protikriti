@@ -4,11 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
-    <title>ATLAS · Jezero Marswalk planner</title>
+    <meta
+      name="description"
+      content="Four people are going to Mars. Keep them alive, with real NASA data and working astronaut tools."
+    />
+    <title>ATLAS: a Mars survival story</title>
+    <link rel="icon" href="data:," />
+    <link
+      rel="preload"
+      href="/fonts/anton-latin-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/src/theme.css" />
   </head>
   <body>
     <main id="globe" aria-label="3D map of Mars"></main>
     <div id="ui"></div>
+    <section id="first-screen" class="title-card episodes" data-field="mustard" aria-label="ATLAS">
+      <div class="card-bar"></div>
+      <p class="card-ep">ATLAS<b>1.1</b></p>
+      <h1 class="card-title card-title-long">
+        <span>Four people are going to</span>
+        <span class="card-title-2">Mars.</span>
+      </h1>
+      <p class="card-line">Keep them alive.</p>
+      <button type="button" class="card-go">Pack the lander</button>
+      <div class="card-links">
+        <button type="button" class="card-link" data-action="explore">Explore Mars</button>
+        <small>Independent student project. Not endorsed by NASA.</small>
+      </div>
+    </section>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

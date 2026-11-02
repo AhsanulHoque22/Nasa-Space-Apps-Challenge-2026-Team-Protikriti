@@ -1,60 +1,112 @@
 /**
- * Start screen: create a local profile, then choose Story mode or Martian Map. It sits over the
- * live globe (which keeps loading behind it) and makes the app underneath inert until closed.
+ * The way in. A new player taps once and is packing a lander; a name is asked only after their first
+ * mission. The first screen itself is plain HTML in index.html, so it paints before the app loads.
  */
-import { type Profile, checkName, loadProfile, saveProfile } from '../core/profile'
+import { MISSIONS } from '../core/missions'
+import { type Progress, loadProgress } from '../core/mission-progress'
+import {
+  type Profile,
+  checkName,
+  loadProfile,
+  needsSignature,
+  saveProfile,
+  signProfile,
+  unsignedProfile,
+} from '../core/profile'
+import { firstScreenAction } from '../core/story-acts'
 import type { KeyValueStore } from '../core/streetview'
 import { el } from './dom'
-import type { Progress } from '../core/mission-progress'
 import { playMission } from './mission-play'
 import { type StoryServices, showStory } from './story'
+import { showTitleCard } from './title-card'
 
-const BRAND_MARK = `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B3D91"/><path d="M4 15c5-4 11-6 17-6" stroke="#FC3D21" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="8" r="1.4" fill="#fff"/></svg>`
+const NO_SAVE_NOTE = 'This browser is not saving data, so progress lasts for this visit only.'
 
-/** Show the start screen. `onMap` runs when the visitor opens Martian Map. */
+const firstScreen = () => document.querySelector<HTMLElement>('#first-screen')
+
+/** Deep links open straight on the map, so the title card must not cover them. */
+export function dismissFirstScreen(): void {
+  firstScreen()?.remove()
+}
+
+/** Show the way in. `onMap` runs when the visitor chooses to explore. */
 export function openProfileGate(
   store: KeyValueStore | undefined,
   behind: readonly HTMLElement[],
   onMap: () => void,
   services: StoryServices,
-  /** Reopen straight on the mission list: after a mission ends, or 'story' from the map. */
+  /** Reopen on the trail: after a mission ends, or 'story' from the map. */
   resume?: { progress: Progress; note: string | null } | 'story',
 ): void {
-  if (document.querySelector('.gate')) return // already showing
+  if (document.querySelector('.gate')) return
   const loaded = loadProfile(store)
-  let profile = loaded.profile
+  let profile: Profile = loaded.profile ?? unsignedProfile(new Date().toISOString())
   let note = loaded.note
+  if (!loaded.profile && !saveProfile(store, profile)) note = NO_SAVE_NOTE
 
   const body = el('div', { className: 'gate-body' })
-  const panel = el('div', { className: 'gate-panel panel' })
-  const root = el('section', { className: 'gate', ariaLabel: 'Start' }, panel)
-  panel.append(
+  const panel = el(
+    'div',
+    { className: 'gate-panel gate-panel-wide' },
     el(
       'header',
       { className: 'gate-brand' },
-      el('span', { innerHTML: BRAND_MARK }),
-      el('h1', { textContent: 'ATLAS' }),
+      el('p', { className: 'gate-wordmark', textContent: 'ATLAS' }),
     ),
-    el('p', {
-      className: 'gate-lede',
-      textContent: 'A survival guide for Mars, built on NASA mission data.',
-    }),
     body,
   )
+  const root = el('section', { className: 'gate episodes', ariaLabel: 'The story' }, panel)
   root.setAttribute('role', 'dialog')
   root.setAttribute('aria-modal', 'true')
 
   for (const node of behind) node.inert = true
-  document.body.append(root)
 
   const close = () => {
     for (const node of behind) node.inert = false
     root.remove()
+    firstScreen()?.remove()
   }
 
-  const noteLine = () => (note ? el('p', { className: 'gate-note', textContent: note }) : '')
+  const loadRun = () =>
+    loadProgress(
+      store,
+      profile.createdAt,
+      MISSIONS.map((m) => m.id),
+    )
 
-  function showCreate() {
+  const reopen = (progress: Progress, endNote: string | null) => {
+    services.showBase(progress)
+    openProfileGate(store, behind, onMap, services, { progress, note: endNote })
+  }
+
+  const play = (id: string, progress: Progress) => {
+    const mission = MISSIONS.find((m) => m.id === id)
+    if (!mission) throw new Error(`No mission with id "${id}"`)
+    close()
+    for (const node of behind) node.inert = true
+    showTitleCard(mission, () => {
+      for (const node of behind) node.inert = false
+      playMission(id, { store, progress, services, onDone: reopen })
+    })
+  }
+
+  const showTrail = (back?: { progress: Progress; note: string | null }) => {
+    showStory({
+      store,
+      profile,
+      body,
+      services,
+      resume: back,
+      onPlay: play,
+      onBack: () => undefined,
+      onMap: () => {
+        close()
+        onMap()
+      },
+    })
+  }
+
+  const showSignature = (back: { progress: Progress; note: string | null }) => {
     const input = el('input', {
       id: 'gate-name',
       type: 'text',
@@ -66,10 +118,12 @@ export function openProfileGate(
     const error = el('p', { className: 'gate-error', id: 'gate-name-error' })
     error.setAttribute('aria-live', 'polite')
     input.setAttribute('aria-describedby', 'gate-name-hint gate-name-error')
+    const skip = el('button', { type: 'button', className: 'gate-link', textContent: 'Not now' })
+    skip.addEventListener('click', () => showTrail(back))
     const form = el(
       'form',
       { className: 'gate-form', noValidate: true },
-      el('label', { htmlFor: 'gate-name', textContent: 'Name for the crew log' }),
+      el('label', { htmlFor: 'gate-name', textContent: 'Who packed this lander?' }),
       input,
       el('p', {
         className: 'gate-hint',
@@ -77,7 +131,8 @@ export function openProfileGate(
         textContent: 'Saved in this browser only. No account and no password.',
       }),
       error,
-      el('button', { type: 'submit', className: 'gate-primary', textContent: 'Create profile' }),
+      el('button', { type: 'submit', className: 'gate-primary', textContent: 'Sign the crew log' }),
+      skip,
     )
     form.addEventListener('submit', (event) => {
       event.preventDefault()
@@ -88,93 +143,50 @@ export function openProfileGate(
         input.focus()
         return
       }
-      profile = { version: 1, name: checked.name, createdAt: new Date().toISOString() }
-      note = saveProfile(store, profile)
-        ? null
-        : 'This browser is not saving data, so progress lasts for this visit only.'
-      showModes(profile)
+      profile = signProfile(profile, checked.name)
+      saveProfile(store, profile)
+      showTrail(back)
     })
-    body.replaceChildren(noteLine(), form)
+    body.replaceChildren(form)
     input.focus()
   }
 
-  function modeButton(title: string, detail: string, onClick: () => void): HTMLButtonElement {
-    const button = el(
-      'button',
-      { type: 'button', className: 'gate-mode' },
-      el('span', { className: 'gate-mode-title', textContent: title }),
-      el('span', { className: 'gate-mode-detail', textContent: detail }),
-    )
-    button.addEventListener('click', onClick)
-    return button
+  /** The first screen was tapped: go where the run says. */
+  const act = () => {
+    const run = loadRun()
+    const action = firstScreenAction(run.progress.completed)
+    if (action.kind === 'play') play(action.id, run.progress)
+    else {
+      firstScreen()?.remove()
+      document.body.append(root)
+      showTrail(run)
+    }
   }
 
-  function showModes(p: Profile) {
-    panel.classList.remove('gate-panel-wide')
-    const change = el('button', {
-      type: 'button',
-      className: 'gate-link',
-      textContent: `Not ${p.name}? Change name`,
-    })
-    change.addEventListener('click', () => {
-      note = null
-      showCreate()
-    })
-    const story = modeButton(
-      'Story mode',
-      'Land a crew of four on Mars and keep them alive until the trip home.',
-      () => openStory(p),
-    )
-    body.replaceChildren(
-      noteLine(),
-      el('h2', { className: 'gate-heading', textContent: `Crew log: ${p.name}` }),
-      el(
-        'div',
-        { className: 'gate-modes' },
-        story,
-        modeButton(
-          'Martian Map',
-          'Explore the map, data layers, route planner and rover views freely.',
-          () => {
-            close()
-            onMap()
-          },
-        ),
-      ),
-      change,
-    )
-    story.focus()
+  if (resume) {
+    firstScreen()?.remove()
+    document.body.append(root)
+    const back = resume === 'story' ? loadRun() : resume
+    if (needsSignature(profile, back.progress.completed)) showSignature(back)
+    else showTrail(back)
+    return
   }
 
-  function openStory(p: Profile, back?: { progress: Progress; note: string | null }) {
-    panel.classList.add('gate-panel-wide')
-    showStory({
-      store,
-      profile: p,
-      body,
-      services,
-      resume: back,
-      onPlay: (id, progress) => {
-        close()
-        playMission(id, {
-          store,
-          progress,
-          services,
-          onDone: (after, note) => {
-            services.showBase(after)
-            openProfileGate(store, behind, onMap, services, { progress: after, note })
-          },
-        })
-      },
-      onBack: () => showModes(p),
-      onMap: () => {
-        close()
-        onMap()
-      },
-    })
+  const screen = firstScreen()
+  const start = screen?.querySelector<HTMLButtonElement>('.card-go')
+  if (!screen || !start) {
+    document.body.append(root)
+    showTrail(loadRun())
+    return
   }
-
-  if (profile && resume) openStory(profile, resume === 'story' ? undefined : resume)
-  else if (profile) showModes(profile)
-  else showCreate()
+  if (note) screen.querySelector('small')?.append(` ${note}`)
+  const wanted = start.dataset.wanted === 'true'
+  start.dataset.ready = 'true'
+  start.textContent = firstScreenAction(loadRun().progress.completed).label
+  start.addEventListener('click', act)
+  screen.querySelector('[data-action="explore"]')?.addEventListener('click', () => {
+    close()
+    onMap()
+  })
+  if (wanted) act()
 }
