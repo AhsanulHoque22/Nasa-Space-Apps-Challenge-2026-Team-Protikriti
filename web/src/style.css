@@ -1,25 +1,4 @@
 /* Martian Map: mission-control chrome over a full-bleed globe. Tokens first. */
-:root {
-  --nasa-blue: #0b3d91;
-  --nasa-blue-lift: #5b8def; /* blue lifted for text/focus contrast on dark panels */
-  --nasa-red: #fc3d21;
-  --surface: rgb(8 12 22 / 0.86);
-  --surface-raised: rgb(18 26 44 / 0.94);
-  --rule: rgb(148 170 210 / 0.18);
-  --text: #eef2f8;
-  --text-muted: #a9b6cc; /* 7.9:1 on --surface */
-  --radius: 12px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --shadow: 0 8px 24px rgb(0 0 0 / 0.45);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-
-  color-scheme: dark;
-  accent-color: var(--nasa-blue-lift);
-}
 
 html,
 body {
@@ -32,12 +11,12 @@ body {
 }
 
 ::selection {
-  background: var(--nasa-blue);
-  color: #fff;
+  background: var(--accent-fill);
+  color: var(--text);
 }
 
 :focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -135,7 +114,7 @@ body {
   min-width: 0;
   padding: 2px;
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -162,8 +141,8 @@ body {
 }
 
 .view-switch button[aria-pressed='true'] {
-  background: var(--nasa-blue);
-  color: #fff;
+  background: var(--accent-fill);
+  color: var(--text);
 }
 
 .story-link {
@@ -173,7 +152,7 @@ body {
   font: 600 13px var(--font);
   white-space: nowrap;
   color: var(--text);
-  background: rgb(91 141 239 / 0.28);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
   border: 0;
   border-radius: 6px;
   cursor: pointer;
@@ -181,7 +160,7 @@ body {
 }
 
 .story-link:hover {
-  background: rgb(91 141 239 / 0.45);
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* Search */
@@ -228,7 +207,7 @@ body {
 
 .search:focus-within {
   box-shadow:
-    0 0 0 2px var(--nasa-blue-lift),
+    0 0 0 2px var(--accent),
     var(--shadow);
 }
 
@@ -253,7 +232,7 @@ body {
 
 .search-results li[aria-selected='true'],
 .search-results li:hover {
-  background: rgb(91 141 239 / 0.18);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .result-name {
@@ -361,7 +340,7 @@ body {
 .layer-info:hover,
 .layer-info[aria-expanded='true'] {
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .provenance {
@@ -388,11 +367,11 @@ body {
 }
 
 .provenance a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .layer:hover {
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .layer input {
@@ -434,7 +413,7 @@ body {
   /* floating card */
   background: var(--surface-raised);
   border: 1px solid var(--rule);
-  border-top: 3px solid var(--mode-accent, var(--nasa-blue));
+  border-top: 3px solid var(--mode-accent, var(--accent-fill));
   border-radius: var(--radius);
   box-shadow:
     0 20px 60px rgb(0 0 0 / 0.7),
@@ -496,11 +475,11 @@ body[data-panel-open] .side {
 }
 
 .eva-card[data-verdict='GO'] .eva-badge {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .eva-card[data-verdict='NO-GO'] .eva-badge {
-  color: #ff8a73; /* route red lifted for text contrast (6.6:1 on --surface) */
+  color: var(--hazard); /* route red lifted for text contrast (6.6:1 on --surface) */
 }
 
 .eva-detail {
@@ -528,11 +507,11 @@ body[data-panel-open] .side {
   background: var(--hazard, #c0392b);
 }
 [data-verdict='GO'] .eva-bar-used {
-  background: #0b3d91;
+  background: var(--accent-fill);
 }
 .eva-bar-margin {
   height: 100%;
-  background: #2aab96;
+  background: var(--good);
   opacity: 0.5;
   transition: width 0.3s ease-out;
 }
@@ -598,7 +577,7 @@ body[data-panel-open] .side {
 .eva-why summary,
 .route-tools summary {
   cursor: pointer;
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .route-words {
@@ -608,7 +587,7 @@ body[data-panel-open] .side {
 
 .route-words summary {
   cursor: pointer;
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .route-words p {
@@ -658,7 +637,7 @@ body[data-panel-open] .side {
 }
 
 .route-summary div:first-child dd {
-  color: #ff8a73; /* route red lifted for text contrast (6.6:1 on --surface) */
+  color: var(--hazard); /* route red lifted for text contrast (6.6:1 on --surface) */
   font-size: 20px;
 }
 
@@ -671,8 +650,8 @@ body[data-panel-open] .side {
 
 .route-actions button {
   font: 600 12px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
   padding: 8px 12px;
@@ -682,16 +661,16 @@ body[data-panel-open] .side {
 }
 
 .route-actions button:hover {
-  background: #1450b8;
+  background: var(--accent-fill);
 }
 
 .route-actions button.quiet {
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   color: var(--text);
 }
 
 .route-actions button.quiet:hover {
-  background: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 /* Weather */
@@ -712,8 +691,8 @@ body[data-panel-open] .side {
 
 .wx-launch button {
   font: 600 12px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
   padding: 6px 12px;
@@ -741,7 +720,7 @@ body[data-panel-open] .side {
 .wx-close {
   font: 600 12px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 0;
   border-radius: 6px;
   padding: 6px 10px;
@@ -916,7 +895,7 @@ body[data-panel-open] .side {
   height: 88px;
   border: 0;
   border-radius: 50%;
-  background: rgb(5 7 12 / 0.45);
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
   cursor: pointer;
   pointer-events: auto;
   backface-visibility: hidden;
@@ -926,14 +905,14 @@ body[data-panel-open] .side {
   content: '';
   position: absolute;
   inset: 22px 24px 30px;
-  background: #fff;
+  background: var(--text);
   clip-path: polygon(50% 0, 100% 70%, 78% 100%, 50% 58%, 22% 100%, 0 70%);
 }
 
 .sv-arrow:hover,
 .sv-arrow:focus-visible {
-  background: var(--nasa-blue);
-  outline: 3px solid #fff;
+  background: var(--accent-fill);
+  outline: 3px solid var(--text);
 }
 
 .sv-compass {
@@ -944,18 +923,18 @@ body[data-panel-open] .side {
   margin: 0;
   padding: 4px 12px;
   border-radius: 999px;
-  background: rgb(5 7 12 / 0.6);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
   font: 600 12px var(--font);
   font-variant-numeric: tabular-nums;
-  color: #fff;
+  color: var(--text);
   pointer-events: none;
 }
 
 .sv-retry {
   margin-left: var(--space-2);
   font: 600 13px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
   padding: 6px 12px;
@@ -994,8 +973,8 @@ body[data-panel-open] .side {
 
 .sv-nav button {
   font: 600 13px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
   padding: 8px 14px;
@@ -1004,7 +983,7 @@ body[data-panel-open] .side {
 }
 
 .sv-nav button[data-act='close'] {
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
 .sv-nav button:disabled {
@@ -1033,7 +1012,7 @@ body[data-panel-open] .side {
 }
 
 .sv-credit a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .sv-labels {
@@ -1142,8 +1121,8 @@ body[data-panel-open] .side {
 .tl-play,
 .tl-close {
   font: 600 12px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
   padding: 6px 12px;
@@ -1153,7 +1132,7 @@ body[data-panel-open] .side {
 
 .tl-close {
   margin-left: auto;
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   color: var(--text);
 }
 
@@ -1176,8 +1155,8 @@ body[data-panel-open] .side {
 .tl-speed select {
   font: 600 12px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
-  border: 1px solid rgb(255 255 255 / 0.16);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
   border-radius: 6px;
   min-height: 32px;
   padding: 0 6px;
@@ -1249,7 +1228,7 @@ body.exploring #ui {
   margin-top: var(--space-2);
   font: 600 12px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 0;
   border-radius: 6px;
   min-height: 32px;
@@ -1257,12 +1236,12 @@ body.exploring #ui {
 }
 
 .xh-storm:hover {
-  background: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 .xh-storm[aria-pressed='true'] {
   background: #8a4b17; /* dust-storm ochre; the label says what is shown, not the colour */
-  color: #fff;
+  color: var(--text);
 }
 
 .xh-haze {
@@ -1294,8 +1273,8 @@ body.exploring #ui {
 .xh-warn.active {
   padding: var(--space-2) var(--space-3);
   border-radius: 8px;
-  background: #6e1407;
-  color: #fff;
+  background: var(--hazard-deep);
+  color: var(--text);
 }
 
 .xh-help {
@@ -1351,7 +1330,7 @@ body.exploring #ui {
   margin-top: var(--space-2);
 }
 .xh-marsbase-btn[aria-pressed='true'] {
-  background: rgb(255 255 255 / 0.15);
+  background: color-mix(in srgb, var(--text) 15%, transparent);
 }
 
 /* Site report */
@@ -1386,8 +1365,8 @@ body.exploring #ui {
   margin-top: var(--space-2);
   width: 100%;
   font: 600 12px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
   min-height: 32px;
@@ -1464,7 +1443,7 @@ body.exploring #ui {
   flex: 1;
   font: 600 11px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 0;
   border-radius: 6px;
   min-height: 32px;
@@ -1472,12 +1451,12 @@ body.exploring #ui {
 }
 
 .clock-controls button:hover {
-  background: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 .clock-controls button[aria-pressed='true'] {
-  background: var(--nasa-blue);
-  color: #fff;
+  background: var(--accent-fill);
+  color: var(--text);
 }
 
 /* Readout */
@@ -1533,9 +1512,9 @@ body.exploring #ui {
   inset: var(--space-4) var(--space-4) auto;
   margin: 0;
   padding: var(--space-3) var(--space-4);
-  background: #6e1407;
+  background: var(--hazard-deep);
   border-radius: var(--radius);
-  color: #fff;
+  color: var(--text);
 }
 
 /* Cesium chrome, themed to match */
@@ -1601,7 +1580,7 @@ body.exploring #ui {
 }
 
 #globe canvas:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
@@ -1662,12 +1641,12 @@ body.exploring #ui {
 .zone-name {
   all: unset;
   cursor: pointer;
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
   text-align: left;
 }
 
 .zone-name:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -1719,8 +1698,8 @@ body.exploring #ui {
 
 .link button {
   font: 600 12px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
   padding: var(--space-2) var(--space-3);
@@ -1728,7 +1707,7 @@ body.exploring #ui {
 }
 
 .link .quiet {
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
 .link button:disabled {
@@ -1813,7 +1792,7 @@ body.exploring #ui {
 }
 
 .quest-steps li[data-state='done'] .quest-state {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .quest-steps li[data-state='next'] {
@@ -1853,7 +1832,7 @@ body.exploring #ui {
   width: 6em;
   font: inherit;
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 1px solid var(--rule);
   border-radius: 6px;
   padding: 2px var(--space-2);
@@ -1883,7 +1862,7 @@ body.exploring #ui {
 .dust-sites button {
   font: 600 12px var(--font);
   color: var(--text-muted);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 1px solid transparent;
   border-radius: 8px;
   padding: var(--space-1) var(--space-3);
@@ -1891,7 +1870,7 @@ body.exploring #ui {
 }
 
 .dust-sites [aria-checked='true'] {
-  border-color: var(--nasa-blue-lift);
+  border-color: var(--accent);
   color: var(--text);
 }
 
@@ -1921,7 +1900,7 @@ body.exploring #ui {
   padding: var(--space-2) var(--space-3);
   font-size: 12px;
   color: var(--text);
-  background: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   border: 1px solid var(--rule);
   border-radius: 4px;
 }
@@ -1953,7 +1932,7 @@ body.exploring #ui {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: #fff;
+  background: var(--text);
   box-shadow: 0 0 0 1px rgb(0 0 0 / 0.5);
 }
 
@@ -1961,8 +1940,8 @@ body.exploring #ui {
 .compare-scale {
   position: absolute;
   font: 600 11px var(--font);
-  color: #fff;
-  background: rgb(5 7 12 / 0.72);
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -1982,7 +1961,7 @@ body.exploring #ui {
 .compare-scale {
   bottom: var(--space-2);
   left: var(--space-2);
-  border-bottom: 2px solid #fff;
+  border-bottom: 2px solid var(--text);
   border-radius: 0;
   text-align: center;
   box-sizing: border-box;
@@ -2113,7 +2092,7 @@ body.exploring #ui {
 .delta-samples button {
   font: 600 11px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 0;
   border-radius: 6px;
   padding: 2px var(--space-2);
@@ -2124,7 +2103,7 @@ body.exploring #ui {
   display: inline-block;
   margin-top: var(--space-1);
   font-size: 11px;
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .scale-bar {
@@ -2186,21 +2165,21 @@ body.eva-mode #ui {
   min-height: 44px;
   padding: 0 18px;
   font: 700 15px var(--font);
-  color: #fff;
+  color: var(--text);
   cursor: pointer;
   pointer-events: auto;
   background: rgb(190 50 40 / 0.92);
-  border: 2px solid rgb(255 255 255 / 0.85);
+  border: 2px solid color-mix(in srgb, var(--text) 85%, transparent);
   border-radius: 10px;
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
 }
 
 .eva-exit:hover {
-  background: rgb(215 65 50);
+  background: var(--hazard);
 }
 
 .eva-exit:focus-visible {
-  outline: 3px solid #fff;
+  outline: 3px solid var(--text);
   outline-offset: 3px;
 }
 
@@ -2230,7 +2209,7 @@ body.eva-mode #ui {
   padding: 10px 12px;
   color: var(--text);
   font: 14px/1.3 var(--font);
-  background: #05080e;
+  background: var(--surface);
   border-radius: 10px;
   transform-origin: 0 0;
   pointer-events: auto;
@@ -2242,7 +2221,7 @@ body.eva-mode #ui {
   inset: 0;
   content: '';
   pointer-events: none;
-  background: linear-gradient(115deg, rgb(255 255 255 / 0.08), transparent 36%);
+  background: linear-gradient(115deg, color-mix(in srgb, var(--text) 8%, transparent), transparent 36%);
   box-shadow: inset 0 0 26px rgb(0 0 0 / 0.65);
 }
 
@@ -2263,14 +2242,14 @@ body.eva-mode #ui {
   padding: 0 10px;
   font: 600 13px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
   border: 0;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .eva-glass button:hover:not(:disabled) {
-  background: rgb(255 255 255 / 0.18);
+  background: color-mix(in srgb, var(--text) 18%, transparent);
 }
 
 .ws-top {
@@ -2325,11 +2304,11 @@ body.eva-mode #ui {
 }
 
 .wp-go {
-  color: #7be0a0;
+  color: var(--good);
 }
 
 .wp-nogo {
-  color: #ff8a73;
+  color: var(--hazard);
 }
 
 .ws-clock {
@@ -2367,7 +2346,7 @@ body.eva-mode #ui {
   justify-content: space-between;
   gap: 8px;
   padding: 3px 0;
-  border-bottom: 1px solid rgb(148 170 210 / 0.14);
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 .ws-tile dt {
@@ -2384,15 +2363,15 @@ body.eva-mode #ui {
 }
 
 .ws-tile[data-tone='ok'] dd {
-  color: #7be0a0;
+  color: var(--good);
 }
 
 .ws-tile[data-tone='warn'] dd {
-  color: #ffc857;
+  color: var(--caution);
 }
 
 .ws-tile[data-tone='bad'] dd {
-  color: #ff8a73;
+  color: var(--hazard);
 }
 
 .ws-dial {
@@ -2413,32 +2392,32 @@ body.eva-mode #ui {
 
 .ws-mm-ring {
   fill: none;
-  stroke: rgb(255 255 255 / 0.12);
+  stroke: color-mix(in srgb, var(--text) 12%, transparent);
 }
 
 .ws-mm-path {
   fill: none;
-  stroke: #fc7a3c;
+  stroke: var(--hazard);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .ws-mm-next {
-  stroke: #5b8def;
+  stroke: var(--accent);
   stroke-width: 1.4;
   stroke-dasharray: 3 2;
 }
 
 .ws-mm-stop {
-  fill: #fff;
-  stroke: #05080e;
+  fill: var(--text);
+  stroke: var(--surface);
   stroke-width: 0.8;
 }
 
 .ws-mm-you {
   fill: #6fd3ff;
-  stroke: #fff;
+  stroke: var(--text);
   stroke-width: 1.2;
 }
 
@@ -2450,7 +2429,7 @@ body.eva-mode #ui {
 }
 
 .ws-mm-n {
-  fill: #fff;
+  fill: var(--text);
 }
 
 .ws-next .ws-big {
@@ -2476,14 +2455,14 @@ body.eva-mode #ui {
   height: 8px;
   margin-top: 10px;
   overflow: hidden;
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
   border-radius: 4px;
 }
 
 .ws-bar i {
   display: block;
   height: 100%;
-  background: var(--nasa-blue-lift);
+  background: var(--accent);
   border-radius: 4px;
   transition: width 300ms var(--ease-out);
 }
@@ -2532,8 +2511,8 @@ body.eva-mode #ui {
 }
 
 .ws-stops .is-current button {
-  background: rgb(91 141 239 / 0.18);
-  border-color: var(--nasa-blue-lift);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: var(--accent);
 }
 
 .ws-stops .is-done .ws-stop-name::after {
@@ -2555,7 +2534,7 @@ body.eva-mode #ui {
   display: grid;
   gap: 1px;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgb(148 170 210 / 0.14);
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 .ws-near-name {
@@ -2568,28 +2547,28 @@ body.eva-mode #ui {
 }
 
 .ws-pf-area {
-  fill: rgb(91 141 239 / 0.22);
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .ws-pf-line {
   fill: none;
-  stroke: var(--nasa-blue-lift);
+  stroke: var(--accent);
   stroke-width: 2;
 }
 
 .ws-pf-stop {
-  stroke: rgb(255 255 255 / 0.25);
+  stroke: color-mix(in srgb, var(--text) 25%, transparent);
   stroke-dasharray: 2 3;
 }
 
 .ws-pf-dot {
-  fill: #fff;
-  stroke: #05080e;
+  fill: var(--text);
+  stroke: var(--surface);
 }
 
 .ws-pf-here {
-  fill: #fc7a3c;
-  stroke: #fff;
+  fill: var(--hazard);
+  stroke: var(--text);
   stroke-width: 2.5;
 }
 
@@ -2659,8 +2638,8 @@ body.eva-mode #ui {
   margin-top: var(--space-3);
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  background: var(--nasa-blue);
-  color: #fff;
+  background: var(--accent-fill);
+  color: var(--text);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -2689,7 +2668,7 @@ body.eva-mode #ui {
   padding: var(--space-1);
   background: var(--surface-raised);
   border: 1px solid var(--rule);
-  border-top: 3px solid var(--mode-accent, var(--nasa-blue));
+  border-top: 3px solid var(--mode-accent, var(--accent-fill));
   border-radius: 10px;
   backdrop-filter: blur(10px) saturate(1.2);
   pointer-events: auto;
@@ -2716,7 +2695,7 @@ body.eva-mode #ui {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--mode-accent-lift, var(--nasa-blue-lift));
+  color: var(--mode-accent-lift, var(--accent));
   transition: color 250ms var(--ease-out);
 }
 
@@ -2738,7 +2717,7 @@ body.eva-mode #ui {
 }
 
 .dock-close:hover {
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
   color: var(--text);
 }
 
@@ -2748,7 +2727,7 @@ body.eva-mode #ui {
   gap: var(--space-1);
   padding: var(--space-1);
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .dock-tabs button {
@@ -2782,7 +2761,7 @@ body.eva-mode #ui {
 
 .dock-tabs button:hover {
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .dock-hint {
@@ -2800,11 +2779,11 @@ body.eva-mode #ui {
 button[aria-pressed='true'],
 button[aria-checked='true'],
 [role='tab'][aria-selected='true'] {
-  color: #fff !important;
+  color: var(--text) !important;
   font-weight: 700;
-  background: linear-gradient(180deg, #2468e0, var(--nasa-blue)) !important;
+  background: linear-gradient(180deg, #2468e0, var(--accent-fill)) !important;
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.32),
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 32%, transparent),
     0 2px 8px rgb(11 61 145 / 0.6) !important;
 }
 
@@ -2844,13 +2823,13 @@ button[aria-checked='true']::before {
 
 /* Layer rows: the ones that are on read as on. */
 .layer:has(input:checked) {
-  background: rgb(91 141 239 / 0.12);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 /* Panels: a hairline highlight on the top edge gives the instrument-panel depth. */
 .panel {
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent),
     var(--shadow);
 }
 
@@ -2918,21 +2897,21 @@ button[aria-checked='true']::before {
   padding: 0 var(--space-3);
   font: 600 12px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 0;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .label-tool button:hover {
-  background: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 .lt-brush i {
   width: 12px;
   height: 12px;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.5);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 50%, transparent);
 }
 
 .lt-canvas {
@@ -2991,8 +2970,8 @@ button[aria-checked='true']::before {
 
 /* ---- Dashboard mode: per-mode accent tokens ---- */
 body[data-mode='plan'] {
-  --mode-accent: #0b3d91;
-  --mode-accent-lift: #5b8def;
+  --mode-accent: var(--accent-fill);
+  --mode-accent-lift: var(--accent);
 }
 body[data-mode='explore'] {
   --mode-accent: #b84a10;
@@ -3000,7 +2979,7 @@ body[data-mode='explore'] {
 }
 body[data-mode='science'] {
   --mode-accent: #156b5e;
-  --mode-accent-lift: #2aab96;
+  --mode-accent-lift: var(--good);
 }
 
 /* ---- Hero card: 4-stat KPI strip inside the floating panel ---- */
@@ -3009,9 +2988,9 @@ body[data-mode='science'] {
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   border-bottom: 1px solid var(--rule);
-  border-left: 3px solid var(--mode-accent-lift, var(--nasa-blue));
+  border-left: 3px solid var(--mode-accent-lift, var(--accent-fill));
   transition: border-color 250ms var(--ease-out);
 }
 
@@ -3043,11 +3022,11 @@ body[data-mode='science'] {
 
 /* Active tab uses mode accent fill */
 .dock-tabs [role='tab'][aria-selected='true'] {
-  background: color-mix(in srgb, var(--mode-accent, var(--nasa-blue)) 85%, transparent) !important;
-  color: #fff !important;
+  background: color-mix(in srgb, var(--mode-accent, var(--accent-fill)) 85%, transparent) !important;
+  color: var(--text) !important;
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.25),
-    0 2px 8px color-mix(in srgb, var(--mode-accent, var(--nasa-blue)) 60%, transparent) !important;
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 25%, transparent),
+    0 2px 8px color-mix(in srgb, var(--mode-accent, var(--accent-fill)) 60%, transparent) !important;
 }
 
 /* ---- Layer group spotlight: dims non-relevant groups per active mode ---- */
@@ -3141,19 +3120,19 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 .gate-form input {
   font: 16px var(--font); /* 16px stops iOS zooming on focus */
   color: var(--text);
-  background: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   border: 1px solid var(--rule);
   border-radius: 6px;
   padding: 10px 12px;
-  caret-color: var(--nasa-blue-lift);
+  caret-color: var(--accent);
 }
 
 .gate-form input:focus-visible {
-  border-color: var(--nasa-blue-lift);
+  border-color: var(--accent);
 }
 
 .gate-form input[aria-invalid='true'] {
-  border-color: var(--nasa-red);
+  border-color: var(--hazard);
 }
 
 .gate-hint,
@@ -3171,14 +3150,14 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
   margin: 0;
   min-height: 1.4em;
   font-size: 13px;
-  color: #ff8a78; /* NASA red lifted to 5.6:1 on the raised surface */
+  color: var(--hazard); /* NASA red lifted to 5.6:1 on the raised surface */
 }
 
 .gate-primary {
   justify-self: start;
   font: 600 14px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
   min-height: 44px;
@@ -3188,7 +3167,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .gate-primary:hover {
-  background: #1450b8;
+  background: var(--accent-fill);
 }
 
 .gate-modes {
@@ -3202,7 +3181,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
   text-align: left;
   font: inherit;
   color: var(--text);
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
   border: 0;
   border-radius: 8px;
   padding: 14px 16px;
@@ -3212,7 +3191,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .gate-mode:hover {
-  background: rgb(91 141 239 / 0.18);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .gate-mode-title {
@@ -3230,7 +3209,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
   display: block;
   margin-top: var(--space-3);
   font: 13px var(--font);
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
   background: none;
   border: 0;
   padding: var(--space-2) 0;
@@ -3282,7 +3261,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .expedition {
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   border-radius: 8px;
   padding: var(--space-1) var(--space-3) var(--space-3);
 }
@@ -3336,7 +3315,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .mission summary:hover {
-  background: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 
 .mission-id {
@@ -3356,12 +3335,12 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .mission[data-status='open'] .mission-status {
-  color: #fff;
+  color: var(--text);
   font-weight: 600;
 }
 
 .mission[data-status='done'] .mission-status {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -3409,7 +3388,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .cargo-issues:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: 4px;
   border-radius: 4px;
 }
@@ -3431,7 +3410,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .cargo-issue-group.blocking .cargo-issue-title {
-  color: #ff8a78; /* NASA red lifted to 5.6:1 on the raised surface */
+  color: var(--hazard); /* NASA red lifted to 5.6:1 on the raised surface */
 }
 
 @media (max-width: 480px) {
@@ -3456,11 +3435,11 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
   align-items: start;
   padding: var(--space-3);
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .zone-option:has(input:checked) {
-  background: rgb(91 141 239 / 0.16);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .zone-option input {
@@ -3507,13 +3486,13 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 .site-verdict {
   padding: var(--space-3) var(--space-4);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
   font-size: 14px;
   line-height: 1.5;
 }
 
 .site-verdict:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -3527,11 +3506,11 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 }
 
 .site-verdict.go .site-verdict-title {
-  color: #8fd19e; /* green lifted to 7:1 on the raised surface; the words carry the meaning */
+  color: var(--good); /* green lifted to 7:1 on the raised surface; the words carry the meaning */
 }
 
 .site-verdict.no-go .site-verdict-title {
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 .site-verdict-power,
@@ -3565,7 +3544,7 @@ body[data-story='mission'] .line-legend {
   box-sizing: border-box;
   padding: var(--space-4) 20px;
   border-radius: var(--radius);
-  background: rgb(18 26 44); /* opaque: map labels must not show through the mission text */
+  background: var(--surface-raised); /* opaque: map labels must not show through the mission text */
   box-shadow: var(--shadow);
 }
 
@@ -3626,7 +3605,7 @@ body[data-story='mission'] .line-legend {
 .dock-back {
   font: 600 14px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 0;
   border-radius: 6px;
   min-height: 44px;
@@ -3635,7 +3614,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .dock-back:hover {
-  background: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 .dock-note {
@@ -3662,19 +3641,19 @@ body[data-story='mission'] .line-legend {
 .gauge-track {
   height: 6px;
   border-radius: 3px;
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
   overflow: hidden;
 }
 
 .gauge-fill {
   display: block;
   height: 100%;
-  background: var(--nasa-blue-lift);
+  background: var(--accent);
   transition: width 180ms var(--ease-out);
 }
 
 .gauge-fill[data-over='true'] {
-  background: var(--nasa-red);
+  background: var(--hazard);
 }
 
 /* Two landers, two gauges side by side */
@@ -3703,13 +3682,13 @@ body[data-story='mission'] .line-legend {
   gap: var(--space-1);
   align-content: start;
   padding-top: var(--space-3);
-  border-top: 3px solid var(--nasa-blue-lift);
+  border-top: 3px solid var(--accent);
   font-size: 15px;
   line-height: 1.45;
 }
 
 .plan-timeline li:last-child {
-  border-top-color: var(--nasa-red);
+  border-top-color: var(--hazard);
 }
 
 .plan-timeline strong {
@@ -3733,7 +3712,7 @@ body[data-story='mission'] .line-legend {
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .item-name {
@@ -3757,7 +3736,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .item-meta a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
   text-underline-offset: 3px;
 }
 
@@ -3771,7 +3750,7 @@ body[data-story='mission'] .line-legend {
 .stepper-btn {
   font: 600 20px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
   border: 0;
   border-radius: 6px;
   height: 44px;
@@ -3780,7 +3759,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .stepper-btn:hover:not(:disabled) {
-  background: rgb(91 141 239 / 0.3);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .stepper-btn:disabled {
@@ -3814,7 +3793,7 @@ body[data-story='mission'] .line-legend {
   font-variant-numeric: tabular-nums;
   text-align: center;
   color: var(--text);
-  background: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   border: 1px solid var(--rule);
   border-radius: 6px;
   appearance: textfield;
@@ -3833,8 +3812,8 @@ body[data-story='mission'] .line-legend {
 }
 
 .drive-controls [aria-pressed='true'] {
-  background: var(--nasa-blue);
-  color: #fff;
+  background: var(--accent-fill);
+  color: var(--text);
 }
 
 .drive-speed {
@@ -3848,7 +3827,7 @@ body[data-story='mission'] .line-legend {
 .drive-speed input {
   width: 100%;
   min-height: 32px;
-  accent-color: var(--nasa-blue-lift);
+  accent-color: var(--accent);
 }
 
 .drive-speed-value {
@@ -3866,7 +3845,7 @@ body[data-story='mission'] .line-legend {
 .place-entry {
   padding: var(--space-2) var(--space-3);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .place-entry > summary {
@@ -3891,7 +3870,7 @@ body[data-story='mission'] .line-legend {
 
 .place-ring {
   fill: none;
-  stroke: #fff;
+  stroke: var(--text);
   stroke-width: 2;
   paint-order: stroke;
 }
@@ -3912,7 +3891,7 @@ body[data-story='mission'] .line-legend {
   gap: var(--space-3);
   padding: 0 var(--space-3);
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   font-size: 16px;
 }
 
@@ -4017,7 +3996,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .journey-label.accent {
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 .journey-label.below {
@@ -4077,7 +4056,7 @@ body[data-story='mission'] .line-legend {
   align-items: start;
   padding: var(--space-3);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .route-card:has(input:checked) {
@@ -4089,7 +4068,7 @@ body[data-story='mission'] .line-legend {
   margin: 3px 0 0;
   width: 18px;
   height: 18px;
-  accent-color: var(--nasa-red);
+  accent-color: var(--hazard);
 }
 
 .route-card label {
@@ -4141,7 +4120,7 @@ body[data-story='mission'] .line-legend {
   min-height: 44px;
   line-height: 44px;
   cursor: pointer;
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -4169,7 +4148,7 @@ body[data-story='mission'] .line-legend {
   aspect-ratio: 21 / 9; /* a strip: the controls stay in view under it */
   object-fit: cover;
   border-radius: 8px 8px 0 0;
-  background: rgb(255 255 255 / 0.06); /* holds the space while the photo loads */
+  background: color-mix(in srgb, var(--text) 6%, transparent); /* holds the space while the photo loads */
 }
 
 .item-photo-caption {
@@ -4180,7 +4159,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .item-photo-caption a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
   text-underline-offset: 2px;
 }
 
@@ -4225,11 +4204,11 @@ body[data-story='mission'] .line-legend {
 }
 
 .legend-key.reactor {
-  background: #5b8def;
+  background: var(--accent);
 }
 
 .legend-key.solar {
-  background: #c27c22;
+  background: var(--caution);
 }
 
 .legend-key.demand {
@@ -4239,7 +4218,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .legend-key.short {
-  background: repeating-linear-gradient(45deg, #ff8a78 0 2px, transparent 2px 5px);
+  background: repeating-linear-gradient(45deg, var(--hazard) 0 2px, transparent 2px 5px);
 }
 
 .chart-svg {
@@ -4250,7 +4229,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .chart-grid {
-  stroke: rgb(255 255 255 / 0.08);
+  stroke: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .chart-tick,
@@ -4275,12 +4254,12 @@ body[data-story='mission'] .line-legend {
 }
 
 .chart-hatch {
-  stroke: #ff8a78;
+  stroke: var(--hazard);
   stroke-width: 2;
 }
 
 .chart-crosshair {
-  stroke: rgb(255 255 255 / 0.5);
+  stroke: color-mix(in srgb, var(--text) 50%, transparent);
   stroke-width: 1;
 }
 
@@ -4305,28 +4284,28 @@ body[data-story='mission'] .line-legend {
 }
 
 .view-verdict.good {
-  color: #8fd19e;
+  color: var(--good);
 }
 
 .view-verdict.bad {
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 .meter {
   height: 12px;
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
   overflow: hidden;
 }
 
 .meter-fill {
   display: block;
   height: 100%;
-  background: #5b8def;
+  background: var(--accent);
 }
 
 .meter-fill[data-short='true'] {
-  background: #c27c22;
+  background: var(--caution);
 }
 
 /* Wide screens: mission dock and stage side by side instead of stacked. */
@@ -4397,7 +4376,7 @@ body[data-story='mission'] .line-legend {
 }
 
 .cargo-bay-credit a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
   text-underline-offset: 2px;
 }
 
@@ -4411,7 +4390,7 @@ body[data-story='mission'] .line-legend {
 /* The habitat label in the cargo bay is a button that opens the full-screen habitat view. */
 button.journey-label {
   pointer-events: auto;
-  border: 1px solid var(--nasa-blue-lift);
+  border: 1px solid var(--accent);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -4419,11 +4398,11 @@ button.journey-label {
 }
 
 button.journey-label:hover {
-  background: var(--nasa-blue);
+  background: var(--accent-fill);
 }
 
 button.journey-label:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -4478,7 +4457,7 @@ button.journey-label:focus-visible {
 }
 
 .habitat-viewer-credit a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 /* Mission 1.2: each certified site, its numbers and its pinned points of interest */
@@ -4498,7 +4477,7 @@ button.journey-label:focus-visible {
 .zone-facts div {
   padding: var(--space-2) var(--space-3);
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .zone-facts dt {
@@ -4527,14 +4506,14 @@ button.journey-label:focus-visible {
 
 .feature-card {
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   font-size: 15px;
   line-height: 1.55;
 }
 
 .feature-card[open] {
   background: rgb(252 61 33 / 0.1);
-  box-shadow: inset 3px 0 0 var(--nasa-red); /* the pin being read is red on the map too */
+  box-shadow: inset 3px 0 0 var(--hazard); /* the pin being read is red on the map too */
 }
 
 .feature-card summary {
@@ -4549,7 +4528,7 @@ button.journey-label:focus-visible {
 }
 
 .feature-card summary:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
   border-radius: 6px;
 }
@@ -4562,13 +4541,13 @@ button.journey-label:focus-visible {
   height: 26px;
   border-radius: 50%;
   background: var(--text);
-  color: #05070c;
+  color: var(--surface);
   font-size: 14px;
 }
 
 .feature-card[open] .feature-number {
-  background: var(--nasa-red);
-  color: #fff;
+  background: var(--hazard);
+  color: var(--text);
 }
 
 .feature-card p {
@@ -4582,17 +4561,17 @@ button.journey-label:focus-visible {
 }
 
 .feature-source a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 /* Mission 1.2: every proposed zone against the landing limits */
 .zone-allowed {
-  fill: rgb(91 141 239 / 0.08);
+  fill: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .zone-mark.visit circle:first-child {
-  fill: #5b8def;
-  stroke: #05070c;
+  fill: var(--accent);
+  stroke: var(--surface);
   stroke-width: 1.5;
 }
 
@@ -4603,14 +4582,14 @@ button.journey-label:focus-visible {
 }
 
 .zone-mark.out path {
-  stroke: #ff8a78;
+  stroke: var(--hazard);
   stroke-width: 2.5;
 }
 
 .legend-key.zone-visit {
   width: 10px;
   border-radius: 50%;
-  background: #5b8def;
+  background: var(--accent);
 }
 
 .legend-key.zone-plain {
@@ -4622,8 +4601,8 @@ button.journey-label:focus-visible {
 .legend-key.zone-out {
   width: 10px;
   background:
-    linear-gradient(45deg, transparent 42%, #ff8a78 42% 58%, transparent 58%),
-    linear-gradient(-45deg, transparent 42%, #ff8a78 42% 58%, transparent 58%);
+    linear-gradient(45deg, transparent 42%, var(--hazard) 42% 58%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, var(--hazard) 42% 58%, transparent 58%);
 }
 
 .feature-photo {
@@ -4636,7 +4615,7 @@ button.journey-label:focus-visible {
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border-radius: 4px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .feature-photo figcaption {
@@ -4647,13 +4626,13 @@ button.journey-label:focus-visible {
 }
 
 .feature-photo a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .zone-chart-label {
   font-size: 12px;
   paint-order: stroke;
-  stroke: #121a2c; /* a halo in the dock colour keeps labels readable over marks */
+  stroke: var(--surface-raised); /* a halo in the dock colour keeps labels readable over marks */
   stroke-width: 4px;
   stroke-linejoin: round;
 }
@@ -4666,7 +4645,7 @@ button.journey-label:focus-visible {
 .fd-ask {
   min-height: 44px;
   padding: 0 var(--space-3);
-  border: 1px solid var(--nasa-blue-lift);
+  border: 1px solid var(--accent);
   border-radius: 6px;
   background: transparent;
   color: var(--text);
@@ -4677,20 +4656,20 @@ button.journey-label:focus-visible {
 }
 
 .fd-ask:hover {
-  background: rgb(91 141 239 / 0.16);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .fd-ask:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 .fd-panel {
   margin-top: var(--space-2);
   padding: var(--space-3);
-  border-left: 3px solid var(--nasa-blue-lift);
+  border-left: 3px solid var(--accent);
   border-radius: 6px;
-  background: rgb(91 141 239 / 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   font-size: 15px;
   line-height: 1.55;
 }
@@ -4720,14 +4699,14 @@ button.journey-label:focus-visible {
 
 /* Mission 1.3: air pressure against landing elevation */
 .pressure-site {
-  fill: #121a2c;
+  fill: var(--surface-raised);
   stroke: var(--text-muted);
   stroke-width: 2;
 }
 
 .pressure-site.chosen {
-  fill: #5b8def;
-  stroke: #05070c;
+  fill: var(--accent);
+  stroke: var(--surface);
 }
 
 /* Mission 1.3: landing photos and the real footage */
@@ -4741,7 +4720,7 @@ button.journey-label:focus-visible {
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .edl-photo figcaption {
@@ -4752,7 +4731,7 @@ button.journey-label:focus-visible {
 }
 
 .edl-photo a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .edl-photos {
@@ -4795,7 +4774,7 @@ button.journey-label:focus-visible {
 }
 
 .pressure-table tr.chosen {
-  background: rgb(91 141 239 / 0.14);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 /* Mission 1.4: placing the base */
@@ -4819,15 +4798,15 @@ button.journey-label:focus-visible {
   padding: var(--space-2) var(--space-3);
   border-radius: 6px;
   border-left: 3px solid transparent;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .base-part.ok {
-  border-left-color: #5b8def;
+  border-left-color: var(--accent);
 }
 
 .base-part.bad {
-  border-left-color: #fc3d21;
+  border-left-color: var(--hazard);
   background: rgb(252 61 33 / 0.08);
 }
 
@@ -4845,18 +4824,18 @@ button.journey-label:focus-visible {
 }
 
 .base-part.ok .base-part-mark {
-  color: #5b8def;
+  color: var(--accent);
 }
 
 .base-part.bad .base-part-mark {
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 .base-place {
   margin-left: auto;
   min-height: 40px;
   padding: 0 var(--space-3);
-  border: 1px solid var(--nasa-blue-lift);
+  border: 1px solid var(--accent);
   border-radius: 6px;
   background: transparent;
   color: var(--text);
@@ -4867,11 +4846,11 @@ button.journey-label:focus-visible {
 }
 
 .base-place[aria-pressed='true'] {
-  background: var(--nasa-blue);
+  background: var(--accent-fill);
 }
 
 .base-place:focus-visible {
-  outline: 2px solid var(--nasa-blue-lift);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -4884,7 +4863,7 @@ button.journey-label:focus-visible {
 .base-part-problem {
   margin: var(--space-1) 0 0 calc(1.2em + var(--space-2));
   font-size: 14px;
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 /* A card about hardware clicked on the map */
@@ -4939,7 +4918,7 @@ button.journey-label:focus-visible {
 
 .hardware-links a,
 .hardware-facts a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 /* Sols: the explainer bars (mission 1.1), the sol dial and the stay timeline (mission 1.4) */
@@ -4947,7 +4926,7 @@ button.journey-label:focus-visible {
   margin: var(--space-4) 0 0;
   padding: var(--space-3);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .sol-explainer p {
@@ -4969,12 +4948,12 @@ button.journey-label:focus-visible {
 }
 
 .sol-bar-base {
-  background: var(--nasa-blue-lift);
+  background: var(--accent);
   border-radius: 3px 0 0 3px;
 }
 
 .sol-bar-extra {
-  background: #c27c22;
+  background: var(--caution);
   border-radius: 0 3px 3px 0;
 }
 
@@ -5029,26 +5008,26 @@ button.journey-label:focus-visible {
 }
 
 .sol-season {
-  fill: rgb(255 255 255 / 0.1);
+  fill: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
 .sol-season.alt {
-  fill: rgb(255 255 255 / 0.18);
+  fill: color-mix(in srgb, var(--text) 18%, transparent);
 }
 
 .sol-dust,
 .legend-key.sol-key-dust {
-  fill: rgb(194 124 34 / 0.55);
-  background: rgb(194 124 34 / 0.55);
+  fill: color-mix(in srgb, var(--caution) 55%, transparent);
+  background: color-mix(in srgb, var(--caution) 55%, transparent);
 }
 
 .legend-key.sol-key-supply {
-  background: #5b8def;
+  background: var(--accent);
 }
 
 .sol-short {
   fill: rgb(255 138 120 / 0.28);
-  stroke: #ff8a78;
+  stroke: var(--hazard);
   stroke-dasharray: 4 3;
 }
 
@@ -5097,7 +5076,7 @@ button.journey-label:focus-visible {
 
 .eva-seg.out,
 .eva-seg.back {
-  background: #2f5fb8;
+  background: var(--accent-fill);
 }
 
 .eva-seg.stay {
@@ -5105,16 +5084,16 @@ button.journey-label:focus-visible {
 }
 
 .eva-seg.pad {
-  background: repeating-linear-gradient(45deg, #2f5fb8 0 3px, transparent 3px 7px);
-  outline: 1px solid #2f5fb8;
+  background: repeating-linear-gradient(45deg, var(--accent-fill) 0 3px, transparent 3px 7px);
+  outline: 1px solid var(--accent-fill);
 }
 
 .eva-seg.spare {
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .eva-seg.reserve {
-  background: rgb(194 124 34 / 0.45);
+  background: color-mix(in srgb, var(--caution) 45%, transparent);
 }
 
 .walk-stops {
@@ -5132,12 +5111,12 @@ button.journey-label:focus-visible {
   align-items: center;
   padding: var(--space-2);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   border: 1px solid transparent;
 }
 
 .walk-stop.chosen {
-  border-color: var(--nasa-blue-lift);
+  border-color: var(--accent);
 }
 
 .walk-stop img {
@@ -5201,12 +5180,12 @@ button.journey-label:focus-visible {
 .science-card {
   overflow: hidden;
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   border: 2px solid transparent;
 }
 
 .science-card.chosen {
-  border-color: var(--nasa-blue-lift);
+  border-color: var(--accent);
 }
 
 .science-card figure {
@@ -5264,7 +5243,7 @@ button.journey-label:focus-visible {
 
 .science-links a,
 .science-card figcaption a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .science-actions {
@@ -5286,7 +5265,7 @@ button.journey-label:focus-visible {
   margin: 0 0 var(--space-4);
   padding: var(--space-3);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .brief-section h3 {
@@ -5320,7 +5299,7 @@ button.journey-label:focus-visible {
   width: 18px;
   height: 18px;
   margin-top: 2px;
-  accent-color: var(--nasa-blue-lift);
+  accent-color: var(--accent);
 }
 
 .task-list li.done label {
@@ -5329,7 +5308,7 @@ button.journey-label:focus-visible {
 }
 
 .walk-gate {
-  color: #ff8a78;
+  color: var(--hazard);
   font-weight: 600;
 }
 
@@ -5370,7 +5349,7 @@ button.journey-label:focus-visible {
   min-height: 30px;
   font: 600 12px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
   border: 0;
   border-radius: 8px;
 }
@@ -5385,7 +5364,7 @@ button.journey-label:focus-visible {
 .sw-critical .ws-tile {
   display: block;
   padding: 4px 6px;
-  border: 1px solid rgb(148 170 210 / 0.2);
+  border: 1px solid color-mix(in srgb, var(--text) 20%, transparent);
   border-radius: 8px;
 }
 
@@ -5409,17 +5388,17 @@ button.journey-label:focus-visible {
   text-overflow: ellipsis;
   border-radius: 8px;
   background: rgb(123 224 160 / 0.14);
-  color: #7be0a0;
+  color: var(--good);
 }
 
 .sw-alert[data-level='warn'] {
   background: rgb(255 200 87 / 0.18);
-  color: #ffc857;
+  color: var(--caution);
 }
 
 .sw-alert[data-level='bad'] {
   background: rgb(255 138 115 / 0.22);
-  color: #ff8a73;
+  color: var(--hazard);
   animation: sw-pulse 1.2s ease-in-out infinite;
 }
 
@@ -5454,7 +5433,7 @@ button.journey-label:focus-visible {
 }
 
 .sw-stops li.current {
-  color: #ffc857;
+  color: var(--caution);
 }
 
 .sw-stops span {
@@ -5469,11 +5448,11 @@ button.journey-label:focus-visible {
 }
 
 .sw-more.bad {
-  color: #ff8a73;
+  color: var(--hazard);
 }
 
 .sw-more.warn {
-  color: #ffc857;
+  color: var(--caution);
 }
 
 .sw-map svg {
@@ -5490,7 +5469,7 @@ button.journey-label:focus-visible {
 }
 
 .sw-tabs button[aria-selected='true'] {
-  background: rgb(91 141 239 / 0.35);
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .sw-messages {
@@ -5512,11 +5491,11 @@ button.journey-label:focus-visible {
 
 /* Mission 1.5: the base crew panel (the dock during the walk) */
 .base-crew .zone-facts div[data-tone='warn'] dd {
-  color: #ffc857;
+  color: var(--caution);
 }
 
 .base-crew .zone-facts div[data-tone='bad'] dd {
-  color: #ff8a73;
+  color: var(--hazard);
 }
 
 .base-tools {
@@ -5531,15 +5510,15 @@ button.journey-label:focus-visible {
   padding: 0 14px;
   font: 600 14px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   border: 1px solid var(--rule);
   border-radius: 8px;
   cursor: pointer;
 }
 
 .base-tools button[aria-pressed='true'] {
-  background: rgb(91 141 239 / 0.3);
-  border-color: var(--nasa-blue-lift);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  border-color: var(--accent);
 }
 
 .base-notes {
@@ -5558,12 +5537,12 @@ button.journey-label:focus-visible {
 }
 
 .eva-glass button.sw-turn {
-  color: #fff;
+  color: var(--text);
   background: rgb(190 50 40 / 0.85);
 }
 
 .eva-glass button.sw-turn:hover:not(:disabled) {
-  background: rgb(215 65 50);
+  background: var(--hazard);
 }
 
 /* Mission 1.6: the greenhouse trial */
@@ -5587,7 +5566,7 @@ button.journey-label:focus-visible {
 
 .gh-photo a,
 .gh-crop a {
-  color: var(--nasa-blue-lift);
+  color: var(--accent);
 }
 
 .gh-pair {
@@ -5603,7 +5582,7 @@ button.journey-label:focus-visible {
   margin: 0 0 var(--space-3);
   padding: var(--space-3);
   border-radius: 8px;
-  background: rgb(18 26 44);
+  background: var(--surface-raised);
   border: 1px solid var(--rule);
 }
 
@@ -5622,7 +5601,7 @@ button.journey-label:focus-visible {
 .gh-track {
   height: 12px;
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   overflow: hidden;
 }
 
@@ -5630,11 +5609,11 @@ button.journey-label:focus-visible {
   display: block;
   height: 100%;
   border-radius: 6px;
-  background: #5fae4a;
+  background: var(--good);
 }
 
 .gh-fill[data-bad='true'] {
-  background: #ff8a78;
+  background: var(--hazard);
 }
 
 .gh-meter-value {
@@ -5653,7 +5632,7 @@ button.journey-label:focus-visible {
 .gh-facts div {
   padding: var(--space-2);
   border-radius: 6px;
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .gh-facts dt {
@@ -5676,7 +5655,7 @@ button.journey-label:focus-visible {
 
 .gh-day input {
   flex: 1 1 180px;
-  accent-color: #5fae4a;
+  accent-color: var(--good);
 }
 
 .gh-day output {
@@ -5703,7 +5682,7 @@ button.journey-label:focus-visible {
 .gh-tl-track {
   height: 10px;
   border-radius: 5px;
-  background: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 
 .gh-tl-bar {
@@ -5725,11 +5704,11 @@ button.journey-label:focus-visible {
 }
 
 .gh-problems .bad {
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 .gh-problems .ok {
-  color: #7be0a0;
+  color: var(--good);
 }
 
 /* Mission 1.7: the dust storm */
@@ -5748,7 +5727,7 @@ button.journey-label:focus-visible {
 }
 
 .storm-choice input {
-  accent-color: var(--nasa-blue-lift);
+  accent-color: var(--accent);
 }
 
 .storm-chart {
@@ -5757,22 +5736,22 @@ button.journey-label:focus-visible {
 
 /* Mission 1.1 stay timeline: what was packed carries the crew to the next ship. */
 .stay-own {
-  fill: #c27c22;
+  fill: var(--caution);
 }
 
 .stay-grown {
-  fill: #5b8def;
+  fill: var(--accent);
   opacity: 0.55;
 }
 
 /* Mission 1.1 briefing: NASA's two landers to scale, the limits, the terms */
 .lander-room {
-  fill: rgb(255 255 255 / 0.08);
+  fill: color-mix(in srgb, var(--text) 8%, transparent);
   stroke: var(--rule);
 }
 
 .lander-load {
-  fill: var(--nasa-blue-lift);
+  fill: var(--accent);
   opacity: 0.8;
 }
 
@@ -5827,11 +5806,11 @@ button.journey-label:focus-visible {
 }
 
 .later-needs .ok .later-mark {
-  color: #8fd19e;
+  color: var(--good);
 }
 
 .later-needs .short .later-mark {
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 @media (max-width: 640px) {
@@ -5853,7 +5832,7 @@ button.journey-label:focus-visible {
   position: relative;
   height: 12px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #8a5532, rgb(255 255 255 / 0.12) 50%, #9fd3f2);
+  background: linear-gradient(90deg, #8a5532, color-mix(in srgb, var(--text) 12%, transparent) 50%, #9fd3f2);
 }
 
 .swim-zero {
@@ -5872,7 +5851,7 @@ button.journey-label:focus-visible {
   height: 16px;
   border-radius: 50%;
   background: var(--text);
-  border: 3px solid var(--nasa-blue);
+  border: 3px solid var(--accent-fill);
   transform: translate(-50%, -50%);
 }
 
@@ -5895,7 +5874,7 @@ button.journey-label:focus-visible {
 }
 
 .gate-note.ok {
-  color: #8fd19e;
+  color: var(--good);
 }
 
 /* Base stores in the mission header: a word on every reading, never colour alone. */
@@ -5923,11 +5902,11 @@ button.journey-label:focus-visible {
 }
 
 .stores-item[data-level='low'] .stores-level {
-  color: #ffc35a;
+  color: var(--caution);
 }
 
 .stores-item[data-level='out'] .stores-level {
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 /* Mission over and mission reports. */
@@ -5956,7 +5935,7 @@ button.journey-label:focus-visible {
 .mission-over-cause {
   font-size: 17px;
   font-weight: 600;
-  color: #ff8a78;
+  color: var(--hazard);
 }
 
 .report-lessons {
@@ -5970,11 +5949,11 @@ button.journey-label:focus-visible {
 .report-lesson {
   padding: var(--space-3);
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .report-lesson.ended {
-  box-shadow: inset 3px 0 0 var(--nasa-red);
+  box-shadow: inset 3px 0 0 var(--hazard);
 }
 
 .report-lesson p {
@@ -5984,7 +5963,7 @@ button.journey-label:focus-visible {
 .report-tag {
   display: inline-block;
   margin-bottom: var(--space-1);
-  color: #ff8a78;
+  color: var(--hazard);
   font-size: 13px;
 }
 
@@ -5995,7 +5974,7 @@ button.journey-label:focus-visible {
 
 .lessons summary {
   cursor: pointer;
-  color: #ffc35a;
+  color: var(--caution);
   font-weight: 600;
 }
 
@@ -6011,9 +5990,9 @@ button.journey-label:focus-visible {
 .report-warning {
   margin: var(--space-2) 0;
   padding: var(--space-2) var(--space-3);
-  border-left: 3px solid #ffc35a;
+  border-left: 3px solid var(--caution);
   border-radius: 6px;
-  background: rgb(255 195 90 / 0.1);
+  background: color-mix(in srgb, var(--caution) 10%, transparent);
   font-size: 14px;
 }
 
@@ -6033,7 +6012,7 @@ button.journey-label:focus-visible {
 
 /* A step's blocking reason, flashed when its main button was pressed too early. */
 .gh-problems[data-flash] {
-  outline: 2px solid #ffc35a;
+  outline: 2px solid var(--caution);
   outline-offset: 4px;
   border-radius: 6px;
 }
@@ -6049,8 +6028,8 @@ button.journey-label:focus-visible {
   min-height: 62px; /* the height of the workbench bar beside it */
   padding: 0 var(--space-4);
   font: 600 14px var(--font);
-  color: #fff;
-  background: var(--nasa-blue);
+  color: var(--text);
+  background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
   cursor: pointer;
@@ -6059,7 +6038,7 @@ button.journey-label:focus-visible {
 
 .ask-atlas-trigger:hover,
 .ask-atlas-trigger[aria-expanded='true'] {
-  background: #1450b8;
+  background: var(--accent-fill);
 }
 
 .ask-atlas {
@@ -6074,7 +6053,7 @@ button.journey-label:focus-visible {
   width: min(400px, calc(100vw - 2 * var(--space-4)));
   padding: var(--space-4);
   color: var(--text);
-  background: rgb(18 26 44); /* opaque, like the mission dock: no map labels behind the text */
+  background: var(--surface-raised); /* opaque, like the mission dock: no map labels behind the text */
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
@@ -6111,14 +6090,14 @@ button.journey-label:focus-visible {
   padding: 0 var(--space-3);
   font: 600 14px var(--font);
   color: var(--text);
-  background: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   border: 0;
   border-radius: 6px;
   cursor: pointer;
 }
 
 .ask-close:hover {
-  background: rgb(255 255 255 / 0.12);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
 }
 
 .ask-intro,
@@ -6140,7 +6119,7 @@ button.journey-label:focus-visible {
   font: 500 14px/1.3 var(--font);
   text-align: left;
   color: var(--text);
-  background: rgb(91 141 239 / 0.16);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
   border: 0;
   border-radius: 6px;
   cursor: pointer;
@@ -6148,7 +6127,7 @@ button.journey-label:focus-visible {
 }
 
 .ask-suggestion:hover {
-  background: rgb(91 141 239 / 0.28);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .ask-log {
@@ -6168,13 +6147,13 @@ button.journey-label:focus-visible {
   margin: 0;
   padding: var(--space-2) var(--space-3);
   font: 500 15px/1.45 var(--font);
-  background: rgb(91 141 239 / 0.22);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
   border-radius: 8px;
 }
 
 .ask-answer {
   padding: var(--space-3);
-  background: rgb(8 12 22);
+  background: var(--surface);
   border-radius: 8px;
 }
 
@@ -6282,7 +6261,7 @@ button.journey-label:focus-visible {
 
 .wear-item {
   padding: var(--space-2) 0;
-  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .wear-item:last-child {
@@ -6305,34 +6284,34 @@ button.journey-label:focus-visible {
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgb(255 195 90 / 0.15);
-  color: #ffc35a;
+  background: color-mix(in srgb, var(--caution) 15%, transparent);
+  color: var(--caution);
 }
 
 .wear-status.warn {
-  background: rgb(255 195 90 / 0.15);
-  color: #ffc35a;
+  background: color-mix(in srgb, var(--caution) 15%, transparent);
+  color: var(--caution);
 }
 
 .wear-status.bad {
-  background: rgb(244 67 54 / 0.2);
-  color: #e57373;
+  background: color-mix(in srgb, var(--hazard) 20%, transparent);
+  color: var(--hazard);
 }
 
 .wear-status.ok {
-  background: rgb(46 125 50 / 0.2);
-  color: #81c784;
+  background: color-mix(in srgb, var(--good) 20%, transparent);
+  color: var(--good);
 }
 
 .wear-item.ok .wear-status {
-  background: rgb(46 125 50 / 0.2);
-  color: #81c784;
+  background: color-mix(in srgb, var(--good) 20%, transparent);
+  color: var(--good);
 }
 
 .wear-bar {
   height: 8px;
   border-radius: 4px;
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   overflow: hidden;
   margin: var(--space-1) 0;
 }
@@ -6341,12 +6320,12 @@ button.journey-label:focus-visible {
   display: block;
   height: 100%;
   border-radius: 4px;
-  background: #5fae4a;
+  background: var(--good);
   transition: width 0.3s ease;
 }
 
 .wear-fill[data-tone='warn'] {
-  background: #ffc35a;
+  background: var(--caution);
 }
 
 .wear-fill[data-tone='bad'] {
@@ -6372,7 +6351,7 @@ button.journey-label:focus-visible {
   column-gap: var(--space-2);
   row-gap: 2px;
   padding: var(--space-2);
-  background: rgb(255 255 255 / 0.03);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
   border-radius: 6px;
 }
 
@@ -6388,13 +6367,13 @@ button.journey-label:focus-visible {
 }
 
 .readiness-item.ready .readiness-badge {
-  background: rgb(46 125 50 / 0.3);
-  color: #81c784;
+  background: color-mix(in srgb, var(--good) 30%, transparent);
+  color: var(--good);
 }
 
 .readiness-item.not-ready .readiness-badge {
-  background: rgb(244 67 54 / 0.2);
-  color: #e57373;
+  background: color-mix(in srgb, var(--hazard) 20%, transparent);
+  color: var(--hazard);
 }
 
 .readiness-item strong {
@@ -6434,21 +6413,21 @@ button.journey-label:focus-visible {
 
 .wake-meter-card {
   padding: var(--space-2);
-  background: rgb(255 255 255 / 0.03);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
   border-radius: 6px;
   border-left: 3px solid transparent;
 }
 
 .wake-meter-card.nominal {
-  border-left-color: #81c784;
+  border-left-color: var(--good);
 }
 
 .wake-meter-card.warning {
-  border-left-color: #ffc35a;
+  border-left-color: var(--caution);
 }
 
 .wake-meter-card.alert {
-  border-left-color: #e57373;
+  border-left-color: var(--hazard);
 }
 
 .wake-meter-head {
@@ -6471,7 +6450,7 @@ button.journey-label:focus-visible {
 .wake-track {
   height: 6px;
   border-radius: 3px;
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   overflow: hidden;
 }
 
@@ -6479,16 +6458,16 @@ button.journey-label:focus-visible {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: #81c784;
+  background: var(--good);
   transition: width 0.3s ease;
 }
 
 .wake-fill[data-status='warning'] {
-  background: #ffc35a;
+  background: var(--caution);
 }
 
 .wake-fill[data-status='alert'] {
-  background: #e57373;
+  background: var(--hazard);
 }
 
 .wake-actions-deck {
@@ -6509,8 +6488,8 @@ button.journey-label:focus-visible {
 }
 
 .wake-action-card.completed {
-  border-color: rgb(46 125 50 / 0.4);
-  background: rgb(46 125 50 / 0.06);
+  border-color: color-mix(in srgb, var(--good) 40%, transparent);
+  background: color-mix(in srgb, var(--good) 6%, transparent);
 }
 
 .action-card-text strong {
@@ -6538,7 +6517,7 @@ button.journey-label:focus-visible {
 
 .action-btn.primary {
   background: var(--nasa-blue-lift, #3b82f6);
-  color: #fff;
+  color: var(--text);
 }
 
 .action-btn.primary:hover {
@@ -6546,8 +6525,8 @@ button.journey-label:focus-visible {
 }
 
 .action-btn.done {
-  background: rgb(46 125 50 / 0.25);
-  color: #81c784;
+  background: color-mix(in srgb, var(--good) 25%, transparent);
+  color: var(--good);
   cursor: default;
 }
 
@@ -6588,8 +6567,8 @@ button.journey-label:focus-visible {
   align-items: flex-start;
   text-align: left;
   padding: var(--space-2) var(--space-3);
-  background: rgb(255 255 255 / 0.04);
-  border: 1px solid rgb(255 255 255 / 0.1);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
   border-radius: 6px;
   color: inherit;
   cursor: pointer;
@@ -6608,12 +6587,12 @@ button.journey-label:focus-visible {
 }
 
 .triage-btn:hover {
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .triage-btn.active {
-  border-color: #81c784;
-  background: rgb(46 125 50 / 0.15);
+  border-color: var(--good);
+  background: color-mix(in srgb, var(--good) 15%, transparent);
 }
 
 .cert-deck {
@@ -6640,7 +6619,7 @@ button.journey-label:focus-visible {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2);
-  background: rgb(255 255 255 / 0.03);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
   border-radius: 6px;
 }
 
@@ -6653,13 +6632,13 @@ button.journey-label:focus-visible {
 }
 
 .cert-row.pass .cert-badge {
-  background: rgb(46 125 50 / 0.3);
-  color: #81c784;
+  background: color-mix(in srgb, var(--good) 30%, transparent);
+  color: var(--good);
 }
 
 .cert-row.fail .cert-badge {
-  background: rgb(244 67 54 / 0.2);
-  color: #e57373;
+  background: color-mix(in srgb, var(--hazard) 20%, transparent);
+  color: var(--hazard);
 }
 
 .cert-info strong {
@@ -6682,7 +6661,7 @@ button.journey-label:focus-visible {
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 12px;
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   color: var(--text-main);
 }
 

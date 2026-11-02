@@ -1,0 +1,264 @@
+/*
+ * ATLAS's two looks. The root is the retro terminal: every astronaut tool and map panel. Story surfaces
+ * (.episodes) override it with Mission Episodes. Contrast figures are measured; see the design spec.
+ */
+@font-face {
+  font-family: 'Anton';
+  src: url('/fonts/anton-latin-400.woff2') format('woff2');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson';
+  src: url('/fonts/atkinson-hyperlegible-next-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson';
+  src: url('/fonts/atkinson-hyperlegible-next-latin-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DotGothic16';
+  src: url('/fonts/dotgothic16-latin-400.woff2') format('woff2');
+  font-display: swap;
+}
+
+:root {
+  /* Retro tools: text 16.6:1, values 10.64:1 on the ground */
+  --surface: #07072b;
+  --surface-raised: #14144a;
+  --text: #f4ecd8;
+  --text-muted: #cfc8e0;
+  --rule: #f0ddb0;
+  --line: #f0ddb0;
+  --accent: #58d0d8;
+  --accent-fill: #e0467c;
+  --on-accent: #07072b;
+  --caution: #ffd86b;
+  --good: #8fd19e;
+  --hazard: #ff8a78;
+  --hazard-deep: #6e1407;
+  --radius: 0;
+  --shadow: none;
+  --font: 'DotGothic16', 'Atkinson', system-ui, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Mission Episodes colours */
+  --mustard: #e0a82a;
+  --brick: #a8341f;
+  --brick-deep: #7e2413;
+  --teal: #0f5f62;
+  --cream: #f1e6cf;
+  --ink: #0e0e0e;
+  --font-title: 'Anton', 'Atkinson', system-ui, sans-serif;
+
+  color-scheme: dark;
+  accent-color: var(--accent);
+}
+
+/* Story surfaces: light text on ink, with colour fields for titles. Mustard on ink 9.01:1. */
+.episodes {
+  --surface: #0e0e0e;
+  --surface-raised: #1d1b17;
+  --text: #f1e6cf;
+  --text-muted: #d4c8ae;
+  --rule: color-mix(in srgb, #f1e6cf 30%, transparent);
+  --line: color-mix(in srgb, #f1e6cf 30%, transparent);
+  --accent: #e0a82a;
+  --accent-fill: #e0a82a;
+  --on-accent: #0e0e0e;
+  --font: 'Atkinson', system-ui, sans-serif;
+  accent-color: var(--accent);
+  font-family: var(--font);
+}
+
+/* The title card: a full-screen episode opening, also the first screen, painted before any script. */
+[data-field='mustard'] {
+  --field: var(--mustard);
+  --on-field: var(--ink);
+  --field-2: var(--brick);
+  --bar: var(--teal);
+  --visor: var(--mustard);
+  --accent-title: var(--brick);
+}
+[data-field='brick'] {
+  --field: var(--brick);
+  --on-field: var(--cream);
+  --field-2: var(--ink);
+  --bar: var(--mustard);
+  --visor: var(--brick);
+  --accent-title: var(--cream);
+}
+[data-field='teal'] {
+  --field: var(--teal);
+  --on-field: var(--cream);
+  --field-2: var(--brick);
+  --bar: var(--mustard);
+  --visor: var(--teal);
+  --accent-title: var(--mustard);
+}
+[data-field='cream'] {
+  --field: var(--cream);
+  --on-field: var(--ink);
+  --field-2: var(--teal);
+  --bar: var(--brick);
+  --visor: var(--cream);
+  --accent-title: var(--brick-deep);
+}
+
+.title-card {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+  background: var(--field);
+  color: var(--on-field);
+  font-family: var(--font);
+}
+
+.card-bar {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 34%;
+  height: 12vh;
+  background: var(--bar);
+  transform: rotate(-7deg);
+}
+
+.card-ep {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  margin: 0;
+  text-align: right;
+  font: 700 16px/1.2 var(--font);
+}
+
+.card-ep b {
+  display: block;
+  font: 400 clamp(56px, 12vw, 120px) / 1 var(--font-title);
+}
+
+.card-figure {
+  position: absolute;
+  right: 6vw;
+  top: 16%;
+  width: clamp(110px, 22vw, 260px);
+  color: var(--ink);
+}
+
+[data-field='brick'] .card-figure,
+[data-field='teal'] .card-figure {
+  color: var(--cream);
+}
+
+.crew-silhouette {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.card-title {
+  position: relative;
+  margin: 0 0 auto;
+  padding-top: 7vh;
+  max-width: 88%;
+  font: 400 clamp(84px, 24vw, 230px) / 0.88 var(--font-title);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.card-title span {
+  display: block;
+}
+
+.card-title-2 {
+  margin-left: 0.3em;
+  margin-top: -0.02em;
+  color: var(--accent-title);
+}
+
+.card-title-long {
+  font-size: clamp(72px, 20vw, 190px);
+}
+
+.card-line {
+  position: relative;
+  margin: 0;
+  max-width: 34em;
+  font: 700 clamp(19px, 2.6vw, 28px) / 1.25 var(--font);
+}
+
+.card-go {
+  position: relative;
+  min-height: 72px;
+  padding: 0 28px;
+  border: 0;
+  background: var(--ink);
+  color: var(--mustard);
+  font: 400 clamp(30px, 4vw, 44px) / 1 var(--font-title);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out);
+}
+
+.card-go:hover {
+  transform: translateY(-2px);
+}
+
+.card-go:focus-visible,
+.card-link:focus-visible {
+  outline: 3px solid var(--on-field);
+  outline-offset: 3px;
+}
+
+.card-links {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.card-links small {
+  font-size: 14px;
+}
+
+.card-link {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: 700 17px var(--font);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+@media (min-width: 900px) {
+  .card-go {
+    align-self: flex-start;
+    min-width: 420px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-go {
+    transition: none;
+  }
+}
