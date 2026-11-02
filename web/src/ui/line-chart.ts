@@ -26,7 +26,7 @@ export function lineChart(
     svg('polyline', {
       points: xs.map((v, i) => `${x(v)},${y(ys[i] ?? 0)}`).join(' '),
       fill: 'none',
-      stroke: 'var(--nasa-blue-lift)',
+      stroke: 'var(--accent)',
       'stroke-width': 2,
     }),
     svg('text', { x: L, y: H - 6, class: 'chart-axis' }, opts.xLabel),
@@ -41,7 +41,7 @@ export function lineChart(
         x2: W - 12,
         y1: y(opts.level),
         y2: y(opts.level),
-        stroke: '#ff8a78',
+        stroke: 'var(--hazard)',
         'stroke-dasharray': '6 4',
       }),
       svg(

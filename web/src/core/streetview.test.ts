@@ -4,6 +4,7 @@ import {
   type Stop,
   bearingDeg,
   nearestRoverStop,
+  thinFrames,
   exposureId,
   isRightNavcam,
   compassPoint,
@@ -210,5 +211,27 @@ describe('nearestRoverStop', () => {
 
   it('returns null when there are no stops', () => {
     expect(nearestRoverStop({ m20: [], msl: [] }, 0, 0)).toBeNull()
+  })
+})
+
+describe('thinFrames', () => {
+  const frames = Array.from({ length: 345 }, (_, i) => i)
+
+  it('caps a huge sweep so one stop can never download hundreds of images', () => {
+    expect(thinFrames(frames, 80)).toHaveLength(80)
+  })
+
+  it('keeps the first and last frames, so the sweep keeps its full width', () => {
+    const thin = thinFrames(frames, 80)
+    expect(thin[0]).toBe(0)
+    expect(thin.at(-1)).toBe(344)
+  })
+
+  it('leaves a sweep already under the cap alone', () => {
+    expect(thinFrames([1, 2, 3], 80)).toEqual([1, 2, 3])
+  })
+
+  it('handles no frames', () => {
+    expect(thinFrames([], 80)).toEqual([])
   })
 })

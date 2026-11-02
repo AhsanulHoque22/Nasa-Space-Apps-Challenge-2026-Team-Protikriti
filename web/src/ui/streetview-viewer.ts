@@ -3,6 +3,7 @@
  * seamless 360° sphere (core/stitch) and drawn with WebGL, plus walk arrows to the neighbouring
  * stops on a CSS-3D layer that shares the camera.
  */
+import { thinFrames } from '../core/streetview'
 import { FOV_RANGE, pinchFov, wheelFov } from '../core/look'
 import { type PosedFrames, fillGaps, selectPanorama } from '../core/panorama'
 import { distanceKm } from '../core/site-report'
@@ -29,6 +30,8 @@ const FOV = { ...FOV_RANGE, start: 70 }
 const DRAG_DEG_PER_PX = 0.15
 const KEY_STEP_DEG = 8
 const SEARCH_RADIUS = 6 // stops to check each way when a stop has no usable panorama
+// With no ready-made panorama (the laptop CDN is off), stitch from this many frames at most.
+const MAX_LIVE_FRAMES = 80
 // Gap filling: borrow frames from stops this close. Farther away, parallax shifts the foreground
 // too much for the frames to line up; the horizon still matches. Stops are ~20 m apart (median).
 const FILL_MAX_DISTANCE_M = 60
@@ -336,7 +339,8 @@ export function openStreetView(
   }
 
   const show = async (stop: Stop, found: Frame[], id: number, borrowedStops = 0) => {
-    const pano = selectPanorama(found, stop)
+    const selected = selectPanorama(found, stop)
+    const pano = { ...selected, frames: thinFrames(selected.frames, MAX_LIVE_FRAMES) }
     const first = pano.frames[0]
     if (!first) return
     const yawDeg = stop.yawDeg ?? 0 // mast azimuths are rover-frame; yaw makes them compass

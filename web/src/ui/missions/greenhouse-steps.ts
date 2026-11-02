@@ -360,7 +360,7 @@ export function greenhouseSteps(
       slider.addEventListener('input', () => setDay(Number(slider.value)))
       const play = el('button', {
         type: 'button',
-        className: 'gate-secondary',
+        className: 'gate-secondary action action-play',
         textContent: 'Grow',
       })
       play.addEventListener('click', () => {

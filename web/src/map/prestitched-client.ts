@@ -42,6 +42,11 @@ export async function prestitched(rover: Rover, stop: Stop): Promise<Prestitched
     index = fetchFirst(...urls)
       .then((r) => (r ? (r.json() as Promise<PrestitchedIndex>) : null))
       .catch(() => null)
+      .then((found) => {
+        // Not found is not remembered: the next stop tries again, in case the CDN has come back.
+        if (!found) indexes.delete(rover)
+        return found
+      })
     indexes.set(rover, index)
   }
   const pano = prestitchedFor(await index, stop)

@@ -431,7 +431,7 @@ export function failureSteps(
       })
       const play = el('button', {
         type: 'button',
-        className: 'gate-secondary',
+        className: 'gate-secondary action action-play',
         textContent: 'Play the outage',
       })
       play.addEventListener('click', () => {

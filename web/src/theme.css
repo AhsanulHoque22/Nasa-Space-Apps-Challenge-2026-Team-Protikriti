@@ -1,5 +1,5 @@
 /*
- * ATLAS's two looks. The root is the retro terminal: every astronaut tool and map panel. Story surfaces
+ * ATLAS's two looks. The root is the Space Age Console: every astronaut tool and map panel. Story surfaces
  * (.episodes) override it with Mission Episodes. Contrast figures are measured; see the design spec.
  */
 @font-face {
@@ -20,29 +20,30 @@
   font-display: swap;
 }
 @font-face {
-  font-family: 'DotGothic16';
-  src: url('/fonts/dotgothic16-latin-400.woff2') format('woff2');
+  font-family: 'Michroma';
+  src: url('/fonts/michroma-latin-400.woff2') format('woff2');
   font-display: swap;
 }
 
 :root {
-  /* Retro tools: text 16.6:1, values 10.64:1 on the ground */
-  --surface: #07072b;
-  --surface-raised: #14144a;
-  --text: #f4ecd8;
-  --text-muted: #cfc8e0;
-  --rule: #f0ddb0;
-  --line: #f0ddb0;
-  --accent: #58d0d8;
-  --accent-fill: #e0467c;
-  --on-accent: #07072b;
-  --caution: #ffd86b;
-  --good: #8fd19e;
-  --hazard: #ff8a78;
+  /* Space Age Console: cream instrument panels. Contrast is measured; see the design spec. */
+  --surface: #efe4cc;
+  --surface-raised: #e3d3b0;
+  --text: #1d1a15;
+  --text-muted: #4f4738;
+  --rule: color-mix(in srgb, #1d1a15 28%, transparent);
+  --line: color-mix(in srgb, #1d1a15 28%, transparent);
+  --accent: #0f5f62;
+  --accent-fill: #c8481a;
+  --on-accent: #ffffff;
+  --caution: #7a4e00;
+  --good: #1a6137;
+  --hazard: #9e2f1b;
   --hazard-deep: #6e1407;
-  --radius: 0;
+  --radius: 18px;
   --shadow: none;
-  --font: 'DotGothic16', 'Atkinson', system-ui, sans-serif;
+  --font: 'Atkinson', system-ui, sans-serif;
+  --font-tool: 'Michroma', 'Atkinson', system-ui, sans-serif;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -73,7 +74,10 @@
   --accent: #e0a82a;
   --accent-fill: #e0a82a;
   --on-accent: #0e0e0e;
-  --font: 'Atkinson', system-ui, sans-serif;
+  --caution: #ffd86b;
+  --good: #8fd19e;
+  --hazard: #ff8a78;
+  --radius: 0;
   accent-color: var(--accent);
   font-family: var(--font);
 }
@@ -99,7 +103,7 @@
   --field: var(--teal);
   --on-field: var(--cream);
   --field-2: var(--brick);
-  --bar: var(--mustard);
+  --bar: var(--brick);
   --visor: var(--teal);
   --accent-title: var(--mustard);
 }
@@ -259,6 +263,69 @@
 
 @media (prefers-reduced-motion: reduce) {
   .card-go {
+    transition: none;
+  }
+}
+
+/* The home screen: both ways in, one tap each. */
+.mode-buttons {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+
+.mode-button {
+  display: grid;
+  gap: 2px;
+  min-height: 84px;
+  padding: 12px 18px;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out);
+}
+
+.mode-button b {
+  font: 400 clamp(32px, 4.4vw, 48px) / 1 var(--font-title);
+  text-transform: uppercase;
+}
+
+.mode-button span {
+  font: 400 16px/1.3 var(--font);
+}
+
+.mode-button[data-mode='mission'] {
+  background: var(--ink);
+  color: var(--mustard);
+}
+
+.mode-button[data-mode='mission'] span {
+  color: var(--cream);
+}
+
+.mode-button[data-mode='map'] {
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.mode-button:hover {
+  transform: translateY(-2px);
+}
+
+.mode-button:focus-visible {
+  outline: 3px solid var(--on-field);
+  outline-offset: 3px;
+}
+
+@media (min-width: 900px) {
+  .mode-buttons {
+    grid-template-columns: 1fr 1fr;
+    max-width: 960px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-button {
     transition: none;
   }
 }

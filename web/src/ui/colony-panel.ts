@@ -55,7 +55,7 @@ export function renderColonyPanel(parent: HTMLElement): ColonyPanel {
       el('polygon', {
         points: pts,
         fill: 'none',
-        stroke: 'var(--border)',
+        stroke: 'var(--rule)',
         'stroke-width': '0.5',
         opacity: '0.4',
       }),
@@ -71,7 +71,7 @@ export function renderColonyPanel(parent: HTMLElement): ColonyPanel {
         y1: String(CY),
         x2: String(x),
         y2: String(y),
-        stroke: 'var(--border)',
+        stroke: 'var(--rule)',
         'stroke-width': '0.5',
         opacity: '0.4',
       }),
@@ -96,7 +96,7 @@ export function renderColonyPanel(parent: HTMLElement): ColonyPanel {
       'text-anchor': 'middle',
       'dominant-baseline': 'middle',
       'font-size': '8',
-      fill: 'var(--fg)',
+      fill: 'var(--text)',
     })
     t.textContent = `${ICONS[i]}`
     svg.append(t)

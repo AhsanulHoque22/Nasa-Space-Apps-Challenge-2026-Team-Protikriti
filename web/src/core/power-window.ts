@@ -1,5 +1,5 @@
 /**
- * The retro power window: the same greenhouse calculation mission 1.6 judged the crew by, opened up so a
+ * The power window: the same greenhouse calculation mission 1.6 judged the crew by, opened up so a
  * player can change the reactors or the planting and watch the result. Nothing here is scripted.
  */
 import { KILOPOWER_DELIVERED_KWE } from './mission-constants'

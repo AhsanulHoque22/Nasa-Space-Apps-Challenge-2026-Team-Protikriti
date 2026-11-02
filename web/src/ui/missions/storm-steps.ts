@@ -487,7 +487,7 @@ export function stormSteps(
       slider.addEventListener('input', () => set(Number(slider.value)))
       const play = el('button', {
         type: 'button',
-        className: 'gate-secondary',
+        className: 'gate-secondary action action-play',
         textContent: 'Play the storm',
       })
       play.addEventListener('click', () => {

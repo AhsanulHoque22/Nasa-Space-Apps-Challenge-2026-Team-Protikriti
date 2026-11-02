@@ -51,7 +51,7 @@ export function scienceCards(c: CardsInput): HTMLElement {
     const i = order(s)
     const b = el('button', {
       type: 'button',
-      className: i >= 0 ? 'gate-primary science-add' : 'gate-secondary science-add',
+      className: `gate-secondary action science-add ${i >= 0 ? 'action-remove' : 'action-add'}`,
       textContent: i >= 0 ? `Stop ${i + 1} · Remove` : 'Add to the walk',
     })
     b.setAttribute('aria-pressed', String(i >= 0))

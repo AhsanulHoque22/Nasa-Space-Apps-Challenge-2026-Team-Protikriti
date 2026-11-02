@@ -12,7 +12,7 @@ body {
 
 ::selection {
   background: var(--accent-fill);
-  color: var(--text);
+  color: var(--on-accent);
 }
 
 :focus-visible {
@@ -45,8 +45,7 @@ body {
 
 .panel {
   pointer-events: auto;
-  background: var(--surface);
-  backdrop-filter: blur(10px) saturate(1.2); /* legibility over high-texture imagery */
+  background: var(--surface); /* legibility over high-texture imagery */
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
@@ -142,7 +141,7 @@ body {
 
 .view-switch button[aria-pressed='true'] {
   background: var(--accent-fill);
-  color: var(--text);
+  color: var(--on-accent);
 }
 
 .story-link {
@@ -508,6 +507,7 @@ body[data-panel-open] .side {
 }
 [data-verdict='GO'] .eva-bar-used {
   background: var(--accent-fill);
+  color: var(--on-accent);
 }
 .eva-bar-margin {
   height: 100%;
@@ -650,7 +650,7 @@ body[data-panel-open] .side {
 
 .route-actions button {
   font: 600 12px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
@@ -662,6 +662,7 @@ body[data-panel-open] .side {
 
 .route-actions button:hover {
   background: var(--accent-fill);
+  color: var(--on-accent);
 }
 
 .route-actions button.quiet {
@@ -691,7 +692,7 @@ body[data-panel-open] .side {
 
 .wx-launch button {
   font: 600 12px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
@@ -912,6 +913,7 @@ body[data-panel-open] .side {
 .sv-arrow:hover,
 .sv-arrow:focus-visible {
   background: var(--accent-fill);
+  color: var(--on-accent);
   outline: 3px solid var(--text);
 }
 
@@ -933,7 +935,7 @@ body[data-panel-open] .side {
 .sv-retry {
   margin-left: var(--space-2);
   font: 600 13px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
@@ -973,7 +975,7 @@ body[data-panel-open] .side {
 
 .sv-nav button {
   font: 600 13px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
@@ -1121,7 +1123,7 @@ body[data-panel-open] .side {
 .tl-play,
 .tl-close {
   font: 600 12px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
@@ -1291,7 +1293,7 @@ body.exploring #ui {
   width: min(440px, calc(100vw - 360px - 3 * var(--space-4)));
   height: min(320px, 40vh);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: 12px;
   overflow: hidden;
   z-index: 6;
@@ -1307,7 +1309,7 @@ body.exploring #ui {
   font-size: 13px;
   font-weight: 600;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rule);
 }
 .xh-sf-close {
   background: none;
@@ -1365,7 +1367,7 @@ body.exploring #ui {
   margin-top: var(--space-2);
   width: 100%;
   font: 600 12px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
@@ -1456,7 +1458,7 @@ body.exploring #ui {
 
 .clock-controls button[aria-pressed='true'] {
   background: var(--accent-fill);
-  color: var(--text);
+  color: var(--on-accent);
 }
 
 /* Readout */
@@ -1698,7 +1700,7 @@ body.exploring #ui {
 
 .link button {
   font: 600 12px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 8px;
@@ -2643,7 +2645,7 @@ body.eva-mode #ui {
   width: 100%;
   padding: var(--space-2) var(--space-3);
   background: var(--accent-fill);
-  color: var(--text);
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -2651,7 +2653,7 @@ body.eva-mode #ui {
 }
 
 .walk-start:hover {
-  background: #0d4fba;
+  background: var(--accent-fill);
 }
 
 .walk-start[hidden] {
@@ -2674,7 +2676,6 @@ body.eva-mode #ui {
   border: 1px solid var(--rule);
   border-top: 3px solid var(--mode-accent, var(--accent-fill));
   border-radius: 10px;
-  backdrop-filter: blur(10px) saturate(1.2);
   pointer-events: auto;
   box-shadow: 0 4px 20px rgb(0 0 0 / 0.5);
   transition: border-color 250ms var(--ease-out);
@@ -2783,12 +2784,10 @@ body.eva-mode #ui {
 button[aria-pressed='true'],
 button[aria-checked='true'],
 [role='tab'][aria-selected='true'] {
-  color: var(--text) !important;
+  color: var(--on-accent) !important;
   font-weight: 700;
-  background: linear-gradient(180deg, #2468e0, var(--accent-fill)) !important;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--text) 32%, transparent),
-    0 2px 8px rgb(11 61 145 / 0.6) !important;
+  background: var(--accent-fill) !important;
+  box-shadow: none !important;
 }
 
 button[aria-pressed='true']:not(.view-switch button, .clock-controls button)::before,
@@ -2979,7 +2978,7 @@ body[data-mode='plan'] {
 }
 body[data-mode='explore'] {
   --mode-accent: #b84a10;
-  --mode-accent-lift: #e86030;
+  --mode-accent-lift: #a23f0c;
 }
 body[data-mode='science'] {
   --mode-accent: #156b5e;
@@ -3164,7 +3163,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 .gate-primary {
   justify-self: start;
   font: 600 14px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
@@ -3176,6 +3175,7 @@ body[data-mode='science'] .layer-list > li[data-mode-group~='science'] {
 
 .gate-primary:hover {
   background: var(--accent-fill);
+  color: var(--on-accent);
 }
 
 .gate-modes {
@@ -3821,7 +3821,7 @@ body[data-story='mission'] .line-legend {
 
 .drive-controls [aria-pressed='true'] {
   background: var(--accent-fill);
-  color: var(--text);
+  color: var(--on-accent);
 }
 
 .drive-speed {
@@ -4411,6 +4411,7 @@ button.journey-label {
 
 button.journey-label:hover {
   background: var(--accent-fill);
+  color: var(--on-accent);
 }
 
 button.journey-label:focus-visible {
@@ -4859,6 +4860,7 @@ button.journey-label:focus-visible {
 
 .base-place[aria-pressed='true'] {
   background: var(--accent-fill);
+  color: var(--on-accent);
 }
 
 .base-place:focus-visible {
@@ -5089,6 +5091,7 @@ button.journey-label:focus-visible {
 .eva-seg.out,
 .eva-seg.back {
   background: var(--accent-fill);
+  color: var(--on-accent);
 }
 
 .eva-seg.stay {
@@ -6045,7 +6048,7 @@ button.journey-label:focus-visible {
   min-height: 62px; /* the height of the workbench bar beside it */
   padding: 0 var(--space-4);
   font: 600 14px var(--font);
-  color: var(--text);
+  color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
@@ -6056,6 +6059,7 @@ button.journey-label:focus-visible {
 .ask-atlas-trigger:hover,
 .ask-atlas-trigger[aria-expanded='true'] {
   background: var(--accent-fill);
+  color: var(--on-accent);
 }
 
 .ask-atlas {
@@ -6267,7 +6271,7 @@ button.journey-label:focus-visible {
   margin: var(--space-3) 0;
   padding: var(--space-3);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: 8px;
 }
 
@@ -6414,7 +6418,7 @@ button.journey-label:focus-visible {
   margin: var(--space-3) 0;
   padding: var(--space-3);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: 8px;
 }
 
@@ -6502,7 +6506,7 @@ button.journey-label:focus-visible {
   gap: var(--space-3);
   padding: var(--space-3);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: 8px;
 }
 
@@ -6535,7 +6539,7 @@ button.journey-label:focus-visible {
 }
 
 .action-btn.primary {
-  background: var(--nasa-blue-lift, #3b82f6);
+  background: var(--accent);
   color: var(--text);
 }
 
@@ -6558,7 +6562,7 @@ button.journey-label:focus-visible {
 .anomaly-card {
   padding: var(--space-3);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: 8px;
 }
 
@@ -6618,7 +6622,7 @@ button.journey-label:focus-visible {
   margin: var(--space-3) 0;
   padding: var(--space-3);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: 8px;
 }
 
@@ -6681,7 +6685,7 @@ button.journey-label:focus-visible {
   padding: 4px 10px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--text) 8%, transparent);
-  color: var(--text-main);
+  color: var(--text);
 }
 
 .gl-lost {

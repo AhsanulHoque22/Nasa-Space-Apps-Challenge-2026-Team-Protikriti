@@ -516,7 +516,7 @@ export function traverseSteps(
         const { headingDeg, ...at } = positionAt(route, km)
         map.rover(at, `Rover · sol ${solAt(km)} of ${Math.ceil(p.sols)}`, headingDeg)
       }
-      const play = el('button', { type: 'button', className: 'gate-secondary' })
+      const play = el('button', { type: 'button', className: 'gate-secondary action action-play' })
       const setRunning = (on: boolean) => {
         running = on
         play.textContent = on
@@ -581,7 +581,7 @@ export function traverseSteps(
 
       const follow = el('button', {
         type: 'button',
-        className: 'gate-secondary',
+        className: 'gate-secondary action action-follow',
         textContent: 'Follow the rover',
       })
       follow.setAttribute('aria-pressed', 'false')

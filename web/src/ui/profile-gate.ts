@@ -152,8 +152,8 @@ export function openProfileGate(
     input.focus()
   }
 
-  /** The first screen was tapped: go where the run says. */
-  const act = () => {
+  /** Mission mode: go where the run says. */
+  const goMission = () => {
     const run = loadRun()
     const action = firstScreenAction(run.progress.completed)
     if (action.kind === 'play') play(action.id, run.progress)
@@ -174,24 +174,30 @@ export function openProfileGate(
   }
 
   const screen = firstScreen()
-  const start = screen?.querySelector<HTMLButtonElement>('.card-go')
-  if (!screen || !start) {
+  if (!screen) {
     document.body.append(root)
     showTrail(loadRun())
     return
   }
   if (note) screen.querySelector('small')?.append(` ${note}`)
-  const wanted = start.dataset.wanted === 'true'
-  start.dataset.ready = 'true'
-  start.textContent = firstScreenAction(loadRun().progress.completed).label
-  start.addEventListener('click', act)
-  screen.querySelector('[data-action="saved"]')?.addEventListener('click', () => {
-    close()
-    showSavedFailedRun(() => openProfileGate(store, behind, onMap, services, 'story'))
+  const act = (mode: string | undefined) => {
+    if (mode === 'mission') goMission()
+    else if (mode === 'map') {
+      close()
+      onMap()
+    } else if (mode === 'saved') {
+      close()
+      showSavedFailedRun(() => openProfileGate(store, behind, onMap, services, 'story'))
+    }
+  }
+  const missionNote = screen.querySelector('.mode-note')
+  if (missionNote && loadRun().progress.completed.length) {
+    missionNote.textContent = firstScreenAction(loadRun().progress.completed).label
+  }
+  const wanted = screen.dataset.wanted
+  screen.dataset.ready = 'true'
+  screen.addEventListener('click', (event) => {
+    act((event.target as Element).closest<HTMLElement>('[data-mode]')?.dataset.mode)
   })
-  screen.querySelector('[data-action="explore"]')?.addEventListener('click', () => {
-    close()
-    onMap()
-  })
-  if (wanted) act()
+  if (wanted) act(wanted)
 }

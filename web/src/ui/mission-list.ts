@@ -30,7 +30,7 @@ function trailStop(m: Mission, status: MissionStatus, onStart: (id: string) => v
     head.append(el('span', { className: 'trail-state', textContent: 'Done' }))
     const again = el('button', {
       type: 'button',
-      className: 'gate-link mission-start',
+      className: 'gate-secondary action action-replay mission-start',
       textContent: 'Play again',
     })
     again.addEventListener('click', () => onStart(m.id))

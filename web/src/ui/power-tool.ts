@@ -1,10 +1,11 @@
 /**
- * The retro power window: the real calculation from the failed run, with both honest fixes in reach.
+ * The power window: the real calculation from the failed run, with both honest fixes in reach.
  * Change the reactors or the planting and the shortfall recomputes.
  */
 import type { Areas } from '../core/greenhouse'
 import { KILOPOWER_DELIVERED_KWE } from '../core/mission-constants'
 import { powerWindow, scaleAreas } from '../core/power-window'
+import { dial } from './dial'
 import { el } from './dom'
 
 const MAX_REACTORS = 5 // CARGO_ITEMS kilopower max (Rucker 2016 Table 5)
@@ -21,9 +22,9 @@ export function openPowerTool(areas: Areas, startKilopower: number, onClose: () 
 
   const reactorsValue = el('output', { className: 'tool-value' })
   const areaValue = el('output', { className: 'tool-value' })
-  const needed = el('dd')
-  const spare = el('dd')
-  const short = el('dd')
+  const FULL_SCALE_KW = 25
+  const neededDial = dial({ label: 'Lights need', share: 0, reading: '' })
+  const spareDial = dial({ label: 'Spare power', share: 0, reading: '', tone: 'var(--accent)' })
   const verdict = el('p', { className: 'tool-verdict', role: 'status' })
 
   const step = (label: string, change: () => void) => {
@@ -47,9 +48,8 @@ export function openPowerTool(areas: Areas, startKilopower: number, onClose: () 
     const w = powerWindow(scaleAreas(areas, scale), kilopower)
     reactorsValue.textContent = `${kilopower} reactors`
     areaValue.textContent = `${(totalM2 * scale).toFixed(1)} m² planted`
-    needed.textContent = kw(w.neededKw)
-    spare.textContent = kw(w.availableKw)
-    short.textContent = kw(w.shortKw)
+    neededDial.update(w.neededKw / FULL_SCALE_KW, kw(w.neededKw))
+    spareDial.update(w.availableKw / FULL_SCALE_KW, kw(w.availableKw))
     verdict.dataset.ok = String(w.ok)
     verdict.textContent = w.ok
       ? 'GO. The lights fit the spare power.'
@@ -70,15 +70,9 @@ export function openPowerTool(areas: Areas, startKilopower: number, onClose: () 
       { className: 'tool-window' },
       heading,
       el('p', { className: 'tool-claim', textContent: 'Now the real tool. Real NASA data.' }),
+      el('div', { className: 'tool-dials' }, neededDial, spareDial),
       el('div', { className: 'tool-row' }, lessReactors, reactorsValue, moreReactors),
       el('div', { className: 'tool-row' }, lessArea, areaValue, moreArea),
-      el(
-        'dl',
-        { className: 'tool-read' },
-        el('div', {}, el('dt', { textContent: 'Lights need' }), needed),
-        el('div', {}, el('dt', { textContent: 'Spare power' }), spare),
-        el('div', {}, el('dt', { textContent: 'Short by' }), short),
-      ),
       verdict,
       el(
         'details',

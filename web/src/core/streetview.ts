@@ -78,6 +78,16 @@ export function neighbours(
   }
 }
 
+/**
+ * At most `max` frames, evenly spread and keeping both ends so the sweep keeps its width. A stop can
+ * hold hundreds of raw frames; a viewer must not download them all to see one panorama.
+ */
+export function thinFrames<T>(frames: readonly T[], max: number): T[] {
+  if (frames.length <= max) return [...frames]
+  const last = frames.length - 1
+  return Array.from({ length: max }, (_, i) => frames[Math.round((i * last) / (max - 1))] as T)
+}
+
 /** The rover stop closest to a point on the ground, whichever rover it belongs to. */
 export function nearestRoverStop(
   stops: Readonly<Record<Rover, readonly Pick<Stop, 'lon' | 'lat'>[]>>,

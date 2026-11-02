@@ -443,7 +443,11 @@ export function waterSteps(
         paint()
       }
       slider.addEventListener('input', () => setSol(Number(slider.value)))
-      const play = el('button', { type: 'button', className: 'gate-secondary', textContent: 'Dig' })
+      const play = el('button', {
+        type: 'button',
+        className: 'gate-secondary action action-play',
+        textContent: 'Dig',
+      })
       play.addEventListener('click', () => {
         cancelAnimationFrame(playing)
         const start = performance.now()

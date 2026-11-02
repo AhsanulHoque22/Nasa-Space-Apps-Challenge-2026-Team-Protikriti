@@ -30,10 +30,17 @@
         <span class="card-title-2">Mars.</span>
       </h1>
       <p class="card-line">Keep them alive.</p>
-      <button type="button" class="card-go">Pack the lander</button>
+      <div class="mode-buttons">
+        <button type="button" class="mode-button" data-mode="mission">
+          <b>Mission mode</b
+          ><span class="mode-note">Keep the crew alive, one decision at a time.</span>
+        </button>
+        <button type="button" class="mode-button" data-mode="map">
+          <b>Map mode</b><span>Explore Mars with real NASA data and astronaut tools.</span>
+        </button>
+      </div>
       <div class="card-links">
-        <button type="button" class="card-link" data-action="saved">See a run that failed</button>
-        <button type="button" class="card-link" data-action="explore">Explore Mars</button>
+        <button type="button" class="card-link" data-mode="saved">See a run that failed</button>
         <small>Independent student project. Not endorsed by NASA.</small>
       </div>
     </section>

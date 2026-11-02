@@ -234,7 +234,7 @@ export function startLiveWalk(
   })
   const send = el('button', {
     type: 'button',
-    className: 'gate-secondary',
+    className: 'gate-secondary action action-alert',
     textContent: 'Send storm warning to the walkers',
   })
   send.addEventListener('click', () => {
