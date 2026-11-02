@@ -18,6 +18,7 @@ import type { KeyValueStore } from '../core/streetview'
 import { el } from './dom'
 import { playMission } from './mission-play'
 import { type StoryServices, showStory } from './story'
+import { showSavedFailedRun } from './saved-run'
 import { showTitleCard } from './title-card'
 
 const NO_SAVE_NOTE = 'This browser is not saving data, so progress lasts for this visit only.'
@@ -184,6 +185,10 @@ export function openProfileGate(
   start.dataset.ready = 'true'
   start.textContent = firstScreenAction(loadRun().progress.completed).label
   start.addEventListener('click', act)
+  screen.querySelector('[data-action="saved"]')?.addEventListener('click', () => {
+    close()
+    showSavedFailedRun(() => openProfileGate(store, behind, onMap, services, 'story'))
+  })
   screen.querySelector('[data-action="explore"]')?.addEventListener('click', () => {
     close()
     onMap()

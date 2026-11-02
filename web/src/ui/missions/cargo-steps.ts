@@ -1,4 +1,7 @@
 /** Mission 1.1 as guided steps: the journey, the stay, power, oxygen plant, supplies, review. */
+import { engineerLine } from '../../core/power-window'
+import { crewLine } from '../crew-line'
+import { loadStamp } from '../load-stamp'
 import {
   CARGO_ITEMS,
   type CargoItem,
@@ -173,24 +176,25 @@ export function cargoSteps(
     )
   // The sol the next ship lands: what the packed supplies must reach (0 until it is worked out).
   const target = () => chosenStay(journey)?.nextShipSol ?? 0
+  const unfold = (summary: string, ...inside: HTMLElement[]) =>
+    el('details', { className: 'step-more' }, el('summary', { textContent: summary }), ...inside)
+  const engineer = () => view((p) => crewLine('Engineer', engineerLine(p.kilopower)))
   return [
-    briefingStep(),
-    journeyStep(journey),
-    stayStep(journey),
     {
-      title: 'Power',
+      title: 'How much power?',
       onShow: showBay,
       onHide: hideBay,
-      why: 'The habitat needs 12.1 kW, and the oxygen plant needs 19.7 kW more. Reactors run day and night; solar arrays only by day.',
+      why: 'Cargo lands about two years before the crew. What you pack is all they have.',
       render: () =>
         el(
           'div',
           {},
           repeated(),
-          cards('kilopower', 'solar', 'battery'),
-          view(powerView),
-          view(laterView),
-          solExplainer(staySols(journey.stayDays)),
+          engineer(),
+          cards('kilopower'),
+          unfold('Other power options', cards('solar', 'battery')),
+          unfold('Show the numbers', view(powerView), solExplainer(staySols(journey.stayDays))),
+          unfold('Read the full briefing', briefingStep().render()),
         ),
     },
     {
@@ -200,6 +204,8 @@ export function cargoSteps(
       why: 'It splits carbon dioxide from the air into oxygen for the trip home. NASA’s plan carries two, so one can fail.',
       render: () => el('div', {}, cards('isru'), view(oxygenView)),
     },
+    journeyStep(journey),
+    stayStep(journey),
     {
       title: 'Supplies',
       onShow: showBay,
@@ -215,17 +221,17 @@ export function cargoSteps(
         ),
     },
     {
-      title: 'Review and load',
+      title: 'Go or no-go',
       onShow: showBay,
       onHide: hideBay,
-      why: 'Check the lander before it leaves. Anything here can still be changed.',
+      why: 'You can launch short. Later missions will find out.',
       nextLabel: 'Load the lander',
       onNext: () => {
         if (!chosenStay(journey) || checkCargo(plan, target()).blocking.length) {
           issues.focus()
           return false
         }
-        onLoad()
+        loadStamp(onLoad)
         return false // the mission ends; the dock is removed by the caller
       },
       render: () => {
@@ -263,34 +269,39 @@ export function cargoSteps(
         return el(
           'div',
           {},
-          el(
-            'ul',
-            { className: 'review-list' },
-            row('Crew route', route ? `${route.days} days` : 'not chosen', 1),
-            row(
-              'Stay',
-              stay
-                ? `${stay.days.toLocaleString('en-US')} days (${stay.sols.toLocaleString('en-US')} sols)`
-                : 'not chosen',
-              2,
-            ),
-            row(
-              'Next ship lands',
-              stay ? `sol ${stay.nextShipSol} (${stay.nextShipRouteDays}-day route)` : 'not chosen',
-              2,
-            ),
-            row('Kilopower reactors', String(plan.kilopower), 3),
-            row('Solar array sets', String(plan.solar), 3),
-            row('Battery banks', String(plan.battery), 3),
-            row('Oxygen plants', String(plan.isru), 4),
-            row('Food', `${plan.foodSols} sols`, 5),
-            row('Water reserve', kg(plan.waterKg), 5),
-            row('Water recyclers', String(plan.recycler), 5),
-            row('Greenhouse hardware', `${plan.greenhouseM2} m²`, 5),
-          ),
           view(laterView),
           repeated(),
           issues,
+          unfold(
+            'Everything on board',
+            el(
+              'ul',
+              { className: 'review-list' },
+              row('Crew route', route ? `${route.days} days` : 'not chosen', 2),
+              row(
+                'Stay',
+                stay
+                  ? `${stay.days.toLocaleString('en-US')} days (${stay.sols.toLocaleString('en-US')} sols)`
+                  : 'not chosen',
+                3,
+              ),
+              row(
+                'Next ship lands',
+                stay
+                  ? `sol ${stay.nextShipSol} (${stay.nextShipRouteDays}-day route)`
+                  : 'not chosen',
+                3,
+              ),
+              row('Kilopower reactors', String(plan.kilopower), 0),
+              row('Solar array sets', String(plan.solar), 0),
+              row('Battery banks', String(plan.battery), 0),
+              row('Oxygen plants', String(plan.isru), 1),
+              row('Food', `${plan.foodSols} sols`, 4),
+              row('Water reserve', kg(plan.waterKg), 4),
+              row('Water recyclers', String(plan.recycler), 4),
+              row('Greenhouse hardware', `${plan.greenhouseM2} m²`, 4),
+            ),
+          ),
         )
       },
     },

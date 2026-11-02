@@ -18,6 +18,8 @@ export type MissionReport = {
   cause: string
   lessons: Lesson[]
   summary?: RunSummary
+  /** The player's own words on the tombstone. */
+  epitaph?: string
 }
 type Stored = { owner: string; reports: MissionReport[] }
 
@@ -59,6 +61,20 @@ export function appendReport(
   const next = [...reports, report]
   if (!writeStored(store, REPORTS_KEY, { owner, reports: next })) memory.set(owner, next)
   return report
+}
+
+export const EPITAPH_MAX_CHARS = 80
+
+/** Keep the player's words for the tombstone. These are the only jokes allowed in the app. */
+export function saveEpitaph(
+  store: KeyValueStore | undefined,
+  owner: string,
+  version: number,
+  text: string,
+): void {
+  const epitaph = text.trim().slice(0, EPITAPH_MAX_CHARS)
+  const next = loadReports(store, owner).map((r) => (r.version === version ? { ...r, epitaph } : r))
+  if (!writeStored(store, REPORTS_KEY, { owner, reports: next })) memory.set(owner, next)
 }
 
 /** Lessons for this mission whose choice is being repeated: the newest report per choice. */

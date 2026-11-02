@@ -210,3 +210,359 @@
   font: 400 22px/1 var(--font-title);
   text-transform: uppercase;
 }
+
+.step-more {
+  margin-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+.step-more summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.crew-line {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 12px;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.crew-line b {
+  display: block;
+  font: 400 22px/1.1 var(--font-title);
+  color: var(--mustard);
+}
+
+.crew-line-figure {
+  color: var(--cream);
+  --visor: var(--ink);
+}
+
+.load-stamp {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  background: var(--mustard);
+  color: var(--ink);
+  font: 400 clamp(90px, 28vw, 300px) / 1 var(--font-title);
+  text-transform: uppercase;
+  animation: stamp 260ms var(--ease-out) both;
+}
+
+@keyframes stamp {
+  from {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* The consequence moment */
+.consequence {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px 32px;
+  background: var(--brick);
+  color: var(--cream);
+  --surface: var(--brick);
+  --text: var(--cream);
+  --text-muted: var(--cream);
+  animation: cons-in 180ms steps(2) both;
+}
+
+@keyframes cons-in {
+  from {
+    transform: translateX(-8px);
+  }
+}
+
+.cons-title {
+  margin: 0 0 12px;
+  font: 400 clamp(72px, 19vw, 200px) / 0.9 var(--font-title);
+  text-transform: uppercase;
+}
+
+.cons-title:focus {
+  outline: none;
+}
+
+.cons-cause {
+  max-width: 44em;
+  margin: 0 0 16px;
+  font: 700 19px/1.3 var(--font);
+}
+
+.cons-chain {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.cons-chain p {
+  margin: 0;
+  padding: 12px;
+  background: var(--ink);
+  font-size: 15px;
+}
+
+.cons-chain span {
+  display: block;
+}
+
+.cons-chain b {
+  font: 400 clamp(28px, 7vw, 48px) / 1.1 var(--font-title);
+  color: var(--mustard);
+}
+
+.cons-tool {
+  width: 100%;
+  min-height: 72px;
+  margin-bottom: 16px;
+  border: 0;
+  background: var(--tool-ground, #07072b);
+  color: #ffd86b;
+  font:
+    400 26px 'DotGothic16',
+    monospace;
+  cursor: pointer;
+}
+
+.tomb {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.tomb-where {
+  margin: 0 0 8px;
+  font: 400 26px/1.1 var(--font-title);
+}
+
+.tomb label {
+  display: block;
+  font-weight: 700;
+}
+
+.tomb input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 0 10px;
+  border: 2px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  font: 400 17px var(--font);
+}
+
+.consequence .gate-primary {
+  width: 100%;
+  background: var(--ink);
+  color: var(--mustard);
+}
+
+/* The retro tool: regions that never move, bitmap type, a locked palette. */
+.tool-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 170;
+  overflow-y: auto;
+  padding: max(8px, env(safe-area-inset-top)) 8px 16px;
+  background: #07072b;
+  color: #f4ecd8;
+  font-family: 'DotGothic16', 'Atkinson', monospace;
+}
+
+.tool-window {
+  max-width: 640px;
+  margin: 0 auto;
+  border: 2px solid #f0ddb0;
+  outline: 2px solid #07072b;
+  padding: 0 12px 12px;
+}
+
+.tool-title {
+  margin: 0 -12px 12px;
+  padding: 8px 12px;
+  background: #f0ddb0;
+  color: #07072b;
+  font: 400 24px/1.1 inherit;
+  font-family: inherit;
+}
+
+.tool-title:focus {
+  outline: none;
+}
+
+.tool-claim {
+  margin: 0 0 14px;
+  font-size: 18px;
+  color: #ffd86b;
+}
+
+.tool-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tool-step {
+  height: 56px;
+  border: 2px solid #f0ddb0;
+  background: #14144a;
+  color: #f4ecd8;
+  font: 400 28px inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.tool-step:focus-visible,
+.tool-command:focus-visible {
+  outline: 3px solid #58d0d8;
+  outline-offset: 2px;
+}
+
+.tool-value {
+  text-align: center;
+  font-size: 20px;
+}
+
+.tool-read {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+}
+
+.tool-read div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 18px;
+}
+
+.tool-read dd {
+  margin: 0;
+  color: #58d0d8;
+}
+
+.tool-verdict {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 2px solid currentcolor;
+  font-size: 20px;
+  color: #ff8a78;
+}
+
+.tool-verdict[data-ok='true'] {
+  color: #8fd19e;
+}
+
+.tool-limits {
+  margin-bottom: 12px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.tool-limits summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.tool-command {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  background: #e0467c;
+  color: #07072b;
+  font: 400 20px inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* The map's instruments on a phone: one drawer, closed by default. */
+.drawer-toggle {
+  display: none;
+}
+
+@media (max-width: 719px) {
+  .drawer-toggle {
+    display: block;
+    position: fixed;
+    left: var(--space-2);
+    bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    z-index: 65;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 2px solid var(--line);
+    background: var(--surface);
+    color: var(--text);
+    font: 400 17px var(--font);
+  }
+
+  /* The workbench side panel stays: it opens from the Plan, Explore and Science tabs. */
+  #ui > :not(.masthead, .side) {
+    display: none;
+  }
+
+  body[data-instruments='open'] #ui {
+    display: block;
+    overflow-y: auto;
+    padding-bottom: 72px;
+    background: var(--surface);
+    pointer-events: auto;
+  }
+
+  body[data-instruments='open'] #ui > :not(.masthead) {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: var(--space-3);
+  }
+}
+
+body[data-story='mission'] .drawer-toggle {
+  display: none;
+}
+
+.card-wordmark {
+  font: 400 34px/1 var(--font-title);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .load-stamp,
+  .consequence {
+    animation: none;
+  }
+}
+
+@media (max-width: 719px) {
+  /* A workbench tab fills the phone, in front of the map, until it is closed. */
+  body:not([data-panel-open]) .side {
+    display: none;
+  }
+
+  body[data-panel-open] .side {
+    position: fixed;
+    inset: 72px var(--space-2) 64px;
+    z-index: 55;
+    max-height: none;
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+}

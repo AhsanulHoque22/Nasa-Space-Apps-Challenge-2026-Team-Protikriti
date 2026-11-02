@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { REPORTS_KEY, activeWarnings, appendReport, loadReports } from './mission-reports'
+import {
+  EPITAPH_MAX_CHARS,
+  REPORTS_KEY,
+  activeWarnings,
+  appendReport,
+  loadReports,
+  saveEpitaph,
+} from './mission-reports'
 import type { Lesson } from './run-report'
 import type { KeyValueStore } from './streetview'
 
@@ -63,5 +70,27 @@ describe('mission reports', () => {
 
   it('stores under its own key', () => {
     expect(REPORTS_KEY).toBe('atlas.reports')
+  })
+})
+
+describe('saveEpitaph', () => {
+  const fail = { store: 'power', sol: 6, missionId: '1.6', why: 'The lights failed' } as const
+
+  it('keeps the player’s words on the report, trimmed', () => {
+    const s = store()
+    const r = appendReport(s, 'crew', fail, [])
+    saveEpitaph(s, 'crew', r.version, '  They planted too much.  ')
+    expect(loadReports(s, 'crew')[0]?.epitaph).toBe('They planted too much.')
+  })
+
+  it('caps the length and leaves other reports alone', () => {
+    const s = store()
+    const a = appendReport(s, 'crew', fail, [])
+    const b = appendReport(s, 'crew', fail, [])
+    saveEpitaph(s, 'crew', b.version, 'x'.repeat(200))
+    const [first, second] = loadReports(s, 'crew')
+    expect(first?.version).toBe(a.version)
+    expect(first?.epitaph).toBeUndefined()
+    expect(second?.epitaph).toHaveLength(EPITAPH_MAX_CHARS)
   })
 })

@@ -205,17 +205,26 @@ async function afterMission(
     solsEarned: run?.solsEarned ?? 0,
   }
   const report = appendReport(ctx.store, next.owner, failure, lessons, summary || undefined)
-  showMissionOver(report, () => {
-    const fresh: Progress = { version: 1, owner: next.owner, completed: [] }
-    ctx.onDone(
-      fresh,
-      saved(
-        ctx,
+  const greenhouse = next.greenhouse
+  const live =
+    failure.missionId === '1.6' && next.cargo && greenhouse
+      ? { areas: greenhouse.areas as Areas, kilopower: next.cargo.kilopower }
+      : undefined
+  showMissionOver(
+    report,
+    { live, siteName: next.site?.zone, store: ctx.store, owner: next.owner },
+    () => {
+      const fresh: Progress = { version: 1, owner: next.owner, completed: [] }
+      ctx.onDone(
         fresh,
-        `Expedition 1 starts again. Mission report v${report.version} is waiting in each mission's lessons.`,
-      ),
-    )
-  })
+        saved(
+          ctx,
+          fresh,
+          `Expedition 1 starts again. Mission report v${report.version} is waiting in each mission's lessons.`,
+        ),
+      )
+    },
+  )
 }
 
 /** Saves the result and says so, or says it lasts only until the page closes. */

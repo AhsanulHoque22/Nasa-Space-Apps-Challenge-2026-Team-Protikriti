@@ -45,6 +45,7 @@ import { renderClock } from './ui/clock'
 import { renderConnectionBadge } from './ui/connection-badge'
 import { openExplore } from './ui/explore-hud'
 import { renderDock } from './ui/dock'
+import { renderInstrumentDrawer } from './ui/instrument-drawer'
 import { renderHeader } from './ui/header'
 import { dismissFirstScreen, openProfileGate } from './ui/profile-gate'
 import { renderLayerPanel } from './ui/layer-panel'
@@ -628,6 +629,7 @@ async function main() {
     },
   )
   renderDock(side)
+  renderInstrumentDrawer()
 
   // Colony: score grid and placement layer (modules live in explore mode, not the map)
   const colonyScorePromise = loadColonyScore().catch(() => null)

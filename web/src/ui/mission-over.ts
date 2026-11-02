@@ -3,7 +3,11 @@
  * lessons mission by mission, and starts Expedition 1 again from mission 1.1. Also opens an old
  * report to read, from the Story screen or a mission's lessons button.
  */
-import type { MissionReport } from '../core/mission-reports'
+import { type Areas, reactorsNeeded } from '../core/greenhouse'
+import { EPITAPH_MAX_CHARS, type MissionReport, saveEpitaph } from '../core/mission-reports'
+import { consequenceHeadline } from '../core/power-window'
+import type { KeyValueStore } from '../core/streetview'
+import { openPowerTool } from './power-tool'
 import { MISSIONS } from '../core/missions'
 import { el } from './dom'
 
@@ -72,28 +76,103 @@ function overlay(title: string, ...children: (Node | string)[]): HTMLElement {
   return box
 }
 
-export function showMissionOver(r: MissionReport, onRestart: () => void): void {
+export type ConsequenceContext = {
+  /** The run's greenhouse and reactors, when the failure can be reopened in the power window. */
+  live?: { areas: Areas; kilopower: number } | undefined
+  siteName?: string | undefined
+  store?: KeyValueStore | undefined
+  owner?: string
+  restartLabel?: string
+}
+
+/** The consequence moment: what failed, by how much, which choice caused it, and the real tool. */
+export function showMissionOver(
+  r: MissionReport,
+  c: ConsequenceContext,
+  onRestart: () => void,
+): void {
   const restart = el('button', {
     type: 'button',
     className: 'gate-primary',
-    textContent: 'Start Expedition 1 again',
+    textContent: c.restartLabel ?? 'Start again from packing the lander',
   })
-  const box = overlay(
-    'Mission over',
-    el('p', { className: 'dock-mission', textContent: `Mission report v${r.version}` }),
-    el('h2', { className: 'gate-heading', textContent: 'Mission over', tabIndex: -1 }),
-    el('p', {
-      className: 'mission-over-cause',
-      textContent: `${r.cause} (mission ${missionName(r.missionId)}, sol ${r.endedSol})`,
-    }),
-    el('p', {
-      textContent:
-        'The crew cannot wait for the next ship. Expedition 1 starts again from mission 1.1. This report stays with your crew: each mission shows its lessons, and warns you if you make the same choice again.',
-    }),
-    reportBody(r),
+  const need = c.live && reactorsNeeded(c.live.areas)
+  const chain = c.live
+    ? el(
+        'div',
+        { className: 'cons-chain' },
+        el(
+          'p',
+          {},
+          el('span', { textContent: 'You packed' }),
+          el('b', { textContent: `${c.live.kilopower} reactors` }),
+        ),
+        el(
+          'p',
+          {},
+          el('span', { textContent: 'This planting needed' }),
+          el('b', {
+            textContent:
+              need === null || need === undefined ? 'more than can fit' : `${need} reactors`,
+          }),
+        ),
+      )
+    : ''
+  const epitaph = el('input', {
+    id: 'cons-epitaph',
+    type: 'text',
+    maxLength: EPITAPH_MAX_CHARS,
+    placeholder: 'Write something for the crew',
+  })
+  epitaph.addEventListener('change', () => {
+    if (c.store && c.owner) saveEpitaph(c.store, c.owner, r.version, epitaph.value)
+  })
+  const heading = el('h2', {
+    className: 'cons-title',
+    textContent: consequenceHeadline(r.missionId),
+    tabIndex: -1,
+  })
+  const tool = c.live
+    ? el('button', { type: 'button', className: 'cons-tool', textContent: 'Open the real tool' })
+    : ''
+  const box = el(
+    'section',
+    {
+      className: 'consequence episodes',
+      role: 'dialog',
+      ariaModal: 'true',
+      ariaLabel: 'Mission over',
+    },
+    heading,
+    el('p', { className: 'cons-cause', textContent: `${r.cause}.` }),
+    chain,
+    tool,
+    el(
+      'div',
+      { className: 'tomb' },
+      el('p', {
+        className: 'tomb-where',
+        textContent: `${c.siteName ?? 'Mars'}, sol ${r.endedSol}`,
+      }),
+      el('label', { htmlFor: 'cons-epitaph', textContent: 'On the marker' }),
+      epitaph,
+    ),
+    el(
+      'details',
+      { className: 'step-more' },
+      el('summary', { textContent: 'What to do next time' }),
+      reportBody(r),
+    ),
     el('div', { className: 'gate-actions' }, restart),
   )
+  document.body.append(box)
+  heading.focus()
+  if (tool && c.live) {
+    const { areas, kilopower } = c.live
+    tool.addEventListener('click', () => openPowerTool(areas, kilopower, () => tool.focus()))
+  }
   restart.addEventListener('click', () => {
+    if (c.store && c.owner) saveEpitaph(c.store, c.owner, r.version, epitaph.value)
     box.remove()
     onRestart()
   })
