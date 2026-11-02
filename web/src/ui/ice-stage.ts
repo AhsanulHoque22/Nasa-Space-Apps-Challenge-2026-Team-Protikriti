@@ -4,6 +4,7 @@
  * excavator and a person for scale. The pit follows M-WIP (2016): 16 t of water from 90% ice takes
  * an 8.5 m × 1 m × 2 m slot (17.4 m³). Shapes are drawn, not models: an illustration of the numbers.
  */
+import { holdStage } from './stage-loop'
 import { type FeedstockId, MWIP_WATER_KG } from '../core/ice-water'
 import { applyRegion, freeRegion } from './stage-region'
 
@@ -35,6 +36,7 @@ export async function openIceStage(): Promise<IceStage> {
   const host = document.createElement('div')
   host.className = 'cargo-bay greenhouse-stage'
   const renderer = new THREE.WebGLRenderer({ antialias: true })
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.setClearColor(0x0b0d16, 1)
   renderer.domElement.setAttribute('aria-hidden', 'true') // the dock says what is shown
@@ -254,7 +256,7 @@ export async function openIceStage(): Promise<IceStage> {
       window.removeEventListener('resize', resize)
       watchDock.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }

@@ -4,6 +4,7 @@
  * rear suitports, a person for scale and, with the power-cart plan, a Kilopower unit on a trailer.
  * Shapes are drawn from those dimensions, not a model of the real vehicle.
  */
+import { holdStage } from './stage-loop'
 import {
   KILOPOWER_COLUMN_DIAMETER_M,
   KILOPOWER_HEIGHT_M,
@@ -31,6 +32,7 @@ export async function openRoverStage(): Promise<RoverStage> {
   const host = document.createElement('div')
   host.className = 'cargo-bay greenhouse-stage'
   const renderer = new THREE.WebGLRenderer({ antialias: true })
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.setClearColor(0x0b0d16, 1)
   renderer.domElement.setAttribute('aria-hidden', 'true') // the dock says what is shown
@@ -169,7 +171,7 @@ export async function openRoverStage(): Promise<RoverStage> {
       window.removeEventListener('resize', resize)
       watchDock.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }

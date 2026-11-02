@@ -59,7 +59,9 @@ import type { Place } from './core/search'
 import { renderLinkPanel } from './ui/link-panel'
 import { renderQuestPanel } from './ui/quest-panel'
 import { renderRoutePanel } from './ui/route-panel'
-import { rememberVisit } from './core/streetview'
+import { nearestRoverStop, rememberVisit } from './core/streetview'
+import { setGlobePause } from './ui/stage-loop'
+import { watchContextLoss } from './ui/context-loss'
 import { openStreetView } from './ui/streetview-viewer'
 import { createLineLegend } from './ui/line-legend'
 import { openWalkPlayer, updateWalkPlayer } from './ui/walk-player'
@@ -252,6 +254,10 @@ async function main() {
     )
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
+  setGlobePause((paused) => {
+    viewer.useDefaultRenderLoop = !paused
+  })
+  watchContextLoss(viewer.scene.canvas)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
   const [sites, mola] = await Promise.all([loadSites(), loadMola()])
   resolveSites(sites)
@@ -587,19 +593,8 @@ async function main() {
   showStops()
   placeRovers(hardware, streetView.stops)
   walkStreetView = (lon, lat) => {
-    const stops = streetView.stops.m20
-    let bestI = 0,
-      bestDSq = Infinity
-    for (let i = 0; i < stops.length; i++) {
-      const s = stops[i]
-      if (s === undefined) continue
-      const dSq = (lon - s.lon) ** 2 + (lat - s.lat) ** 2
-      if (dSq < bestDSq) {
-        bestDSq = dSq
-        bestI = i
-      }
-    }
-    showStreetView('m20', bestI)
+    const near = nearestRoverStop(streetView.stops, lon, lat)
+    if (near) showStreetView(near.rover, near.index)
   }
   const openActivity = (activity: Activity) => {
     const card = renderActivityCard(side, activity, {

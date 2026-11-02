@@ -5,6 +5,7 @@
  * cargo-lander model exists in our library, so the credit says the layout is a stand-in. Clicking
  * the habitat opens a full-screen, interactive habitat view. three.js loads only when the bay opens.
  */
+import { holdStage } from './stage-loop'
 import { CARGO_ITEMS, type CargoPlan } from '../core/cargo'
 import { openHabitatViewer } from './habitat-viewer'
 import { applyRegion, freeRegion } from './stage-region'
@@ -40,6 +41,7 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
   host.append(credit)
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }) // the globe shows through
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.setClearColor(0x000000, 0)
   renderer.domElement.setAttribute('aria-hidden', 'true') // the dock lists every packed item in text
@@ -210,7 +212,7 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
       window.removeEventListener('resize', resize)
       watchDock.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }

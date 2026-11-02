@@ -423,7 +423,7 @@ body {
   top: 68px;
   right: var(--space-4);
   width: 300px;
-  max-height: calc(100vh - 88px);
+  max-height: calc(100svh - 88px);
   display: grid;
   gap: var(--space-3);
   overflow-y: auto;
@@ -1217,7 +1217,7 @@ body.exploring #ui {
   top: var(--space-4);
   left: var(--space-4);
   width: min(calc(100vw - 2 * var(--space-4)), 340px);
-  max-height: calc(100vh - 2 * var(--space-4));
+  max-height: calc(100svh - 2 * var(--space-4));
   overflow-y: auto;
   box-sizing: border-box;
   padding: var(--space-3);
@@ -2876,7 +2876,7 @@ button[aria-checked='true']::before {
   bottom: var(--space-4);
   z-index: 30;
   width: min(1040px, calc(100vw - 2 * var(--space-4)));
-  max-height: calc(100vh - 2 * var(--space-4));
+  max-height: calc(100svh - 2 * var(--space-4));
   overflow-y: auto;
   transform: translateX(-50%);
   padding: var(--space-3) var(--space-4);
@@ -6684,4 +6684,15 @@ button.journey-label:focus-visible {
   border-radius: 12px;
   background: rgb(255 255 255 / 0.08);
   color: var(--text-main);
+}
+
+.gl-lost {
+  position: fixed;
+  inset: auto var(--space-4) var(--space-4);
+  z-index: 100;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raised);
+  color: var(--text);
+  border-radius: var(--radius);
 }

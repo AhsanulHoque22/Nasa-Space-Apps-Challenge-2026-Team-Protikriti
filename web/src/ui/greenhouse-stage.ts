@@ -4,6 +4,7 @@
  * each bed, and a person for scale. The plant shapes are drawn, not models: an illustration of the
  * numbers. three.js loads only when the stage first opens, as in the other mission stages.
  */
+import { holdStage } from './stage-loop'
 import {
   AISLE_M,
   type Areas,
@@ -45,6 +46,7 @@ export async function openGreenhouseStage(): Promise<GreenhouseStage> {
   const host = document.createElement('div')
   host.className = 'cargo-bay greenhouse-stage'
   const renderer = new THREE.WebGLRenderer({ antialias: true })
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.setClearColor(0x0b0d16, 1)
   renderer.domElement.setAttribute('aria-hidden', 'true') // the dock says what is shown
@@ -279,7 +281,7 @@ export async function openGreenhouseStage(): Promise<GreenhouseStage> {
       window.removeEventListener('resize', resize)
       watchDock.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }

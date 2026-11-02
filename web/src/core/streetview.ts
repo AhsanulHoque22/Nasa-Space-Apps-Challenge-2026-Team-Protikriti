@@ -1,6 +1,8 @@
 /** Rover Street View geometry: which frames belong to a stop and where each sits on the sphere. */
 
 /** A localized rover position (NASA/JPL MMGIS waypoint). */
+import type { Rover } from './ai4mars'
+
 export type Stop = {
   site: number
   drive: number
@@ -74,6 +76,27 @@ export function neighbours(
     previous: index > 0 ? index - 1 : null,
     next: index < stops.length - 1 ? index + 1 : null,
   }
+}
+
+/** The rover stop closest to a point on the ground, whichever rover it belongs to. */
+export function nearestRoverStop(
+  stops: Readonly<Record<Rover, readonly Pick<Stop, 'lon' | 'lat'>[]>>,
+  lon: number,
+  lat: number,
+): { rover: Rover; index: number } | null {
+  let best: { rover: Rover; index: number } | null = null
+  let bestDSq = Infinity
+  const lonScale = Math.cos((lat * Math.PI) / 180)
+  for (const rover of ['m20', 'msl'] as const) {
+    stops[rover].forEach((s, index) => {
+      const dSq = ((lon - s.lon) * lonScale) ** 2 + (lat - s.lat) ** 2
+      if (dSq < bestDSq) {
+        bestDSq = dSq
+        best = { rover, index }
+      }
+    })
+  }
+  return best
 }
 
 /** Index of the closest stop (by position in the traverse) with at least one frame. */

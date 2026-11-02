@@ -4,6 +4,7 @@
  * planets move to their positions on each date. Sizes of bodies are exaggerated to be visible.
  * three.js loads only when this scene opens, so the map's start-up is not slowed.
  */
+import { holdStage } from './stage-loop'
 import { type Vec3, planetPosition } from '../core/ephemeris'
 import type { Journey } from '../core/journey'
 import type { Journeys } from './journey-client'
@@ -70,6 +71,7 @@ export async function openJourneyScene(
   view.className = 'journey-view'
   host.prepend(view)
   const renderer = new THREE.WebGLRenderer({ antialias: true })
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   view.append(renderer.domElement)
   const labelLayer = new CSS2DRenderer()
@@ -230,7 +232,7 @@ export async function openJourneyScene(
       window.removeEventListener('resize', resize)
       watchDock.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }

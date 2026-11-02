@@ -3,6 +3,7 @@ import {
   type Frame,
   type Stop,
   bearingDeg,
+  nearestRoverStop,
   exposureId,
   isRightNavcam,
   compassPoint,
@@ -184,5 +185,30 @@ describe('last visited stop', () => {
     }
     expect(() => rememberVisit(blocked, 'm20', stops[0] as Stop)).not.toThrow()
     expect(recallVisit(blocked, 'm20', stops)).toBe(-1)
+  })
+})
+
+describe('nearestRoverStop', () => {
+  const at = (lon: number, lat: number): Stop => ({
+    site: 1,
+    drive: 1,
+    sol: 1,
+    lon,
+    lat,
+    elevM: null,
+    yawDeg: null,
+  })
+  const stops = { m20: [at(77.45, 18.44)], msl: [at(137.44, -4.59), at(137.38, -4.8)] }
+
+  it('opens Curiosity at Gale, not the nearest Perseverance stop', () => {
+    expect(nearestRoverStop(stops, 137.39, -4.79)).toEqual({ rover: 'msl', index: 1 })
+  })
+
+  it('opens Perseverance at Jezero', () => {
+    expect(nearestRoverStop(stops, 77.4, 18.4)).toEqual({ rover: 'm20', index: 0 })
+  })
+
+  it('returns null when there are no stops', () => {
+    expect(nearestRoverStop({ m20: [], msl: [] }, 0, 0)).toBeNull()
   })
 })

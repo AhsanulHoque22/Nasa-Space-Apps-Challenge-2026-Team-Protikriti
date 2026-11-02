@@ -3,6 +3,7 @@
  * row 25 m apart (3.4 m tall, umbrella radiators about 9 m across, as on the map), the failed one
  * dark with a warning, the others glowing as they run, and a person for scale. Drawn shapes.
  */
+import { holdStage } from './stage-loop'
 import {
   KILOPOWER_COLUMN_DIAMETER_M,
   KILOPOWER_HEIGHT_M,
@@ -25,6 +26,7 @@ export async function openReactorStage(units: number, failed: number): Promise<R
   const host = document.createElement('div')
   host.className = 'cargo-bay greenhouse-stage'
   const renderer = new THREE.WebGLRenderer({ antialias: true })
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.setClearColor(0x0b0d16, 1)
   renderer.domElement.setAttribute('aria-hidden', 'true') // the dock says what is shown
@@ -159,7 +161,7 @@ export async function openReactorStage(units: number, failed: number): Promise<R
       window.removeEventListener('resize', resize)
       watchDock.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }

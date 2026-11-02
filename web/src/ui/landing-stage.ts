@@ -4,6 +4,7 @@
  * Both are stand-ins, drawn at their own size in metres and credited on screen. three.js loads
  * only when the stage first opens (the same approach as the mission 1.1 cargo bay).
  */
+import { holdStage } from './stage-loop'
 import { applyRegion, freeRegion } from './stage-region'
 
 export type LandingStage = { remove: () => void; rocket: boolean }
@@ -32,6 +33,7 @@ export async function openLandingStage(): Promise<LandingStage> {
   const host = document.createElement('div')
   host.className = 'cargo-bay landing-stage'
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }) // the map shows through
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.setClearColor(0x000000, 0)
   renderer.domElement.setAttribute('aria-hidden', 'true') // the dock says what is shown
@@ -151,7 +153,7 @@ export async function openLandingStage(): Promise<LandingStage> {
       window.removeEventListener('resize', resize)
       watchDock.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }

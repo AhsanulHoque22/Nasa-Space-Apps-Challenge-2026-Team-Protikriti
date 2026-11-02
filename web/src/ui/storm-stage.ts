@@ -4,6 +4,7 @@
  * the optical depth rises. The direct sunlight falls as e^(−τ / cos z) (Beer–Lambert); the haze and
  * blowing dust are drawn, not measured. Parts stand closer together than on the map.
  */
+import { holdStage } from './stage-loop'
 import {
   HARDWARE,
   KILOPOWER_HEIGHT_M,
@@ -36,6 +37,7 @@ export async function openStormStage(o: {
   const host = document.createElement('div')
   host.className = 'cargo-bay storm-stage'
   const renderer = new THREE.WebGLRenderer({ antialias: true })
+  const releaseStage = holdStage(renderer)
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio))
   renderer.domElement.setAttribute('aria-hidden', 'true') // the dock says what is shown
   host.append(renderer.domElement)
@@ -237,7 +239,7 @@ export async function openStormStage(o: {
       window.removeEventListener('resize', resize)
       watch.disconnect()
       controls.dispose()
-      renderer.dispose()
+      releaseStage()
       host.remove()
     },
   }
