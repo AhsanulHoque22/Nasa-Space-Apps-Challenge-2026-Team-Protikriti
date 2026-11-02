@@ -618,3 +618,11 @@ body[data-story='mission'] .drawer-toggle {
     display: none;
   }
 }
+
+/* Mission 2.1's lander gauge uses the same bar as 1.1. */
+.mission-dock.episodes .gauge-bar {
+  height: 10px;
+  margin-top: var(--space-1);
+  background: color-mix(in srgb, var(--cream) 30%, transparent);
+  overflow: hidden;
+}
