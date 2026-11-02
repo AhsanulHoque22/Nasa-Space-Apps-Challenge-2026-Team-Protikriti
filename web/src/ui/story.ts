@@ -1,5 +1,5 @@
 /** Story mode inside the start screen: the mission list, opening a mission, saving the result. */
-import { type Progress, loadProgress } from '../core/mission-progress'
+import { type Progress, loadProgress, missionStatus } from '../core/mission-progress'
 import type { WalkMap } from '../map/marswalk-map'
 import { MISSIONS } from '../core/missions'
 import type { Profile } from '../core/profile'
@@ -101,10 +101,14 @@ export function showStory(ctx: StoryContext): void {
           const open = el('button', {
             type: 'button',
             className: 'gate-link',
-            textContent: `Mission report v${r.version}`,
+            textContent: `Report ${r.version}`,
           })
-          open.addEventListener('click', () => showReport(r))
-          return el('li', {}, open, ` · ${r.cause}, sol ${r.endedSol}`)
+          const playable = missionStatus(MISSIONS, progress.completed, r.missionId).kind
+          const canRetry = playable === 'open' || playable === 'done'
+          open.addEventListener('click', () =>
+            showReport(r, canRetry ? () => showMission(r.missionId) : undefined),
+          )
+          return el('li', {}, open, ` · mission ${r.missionId}: ${r.cause}, sol ${r.endedSol}`)
         }),
       ),
     )

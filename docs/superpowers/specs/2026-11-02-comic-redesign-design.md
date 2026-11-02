@@ -1,4 +1,4 @@
-# ATLAS redesign: Mission Episodes and retro tools
+# ATLAS redesign: Mission Episodes and the Space Age Console
 
 Date: 2026-11-02. Status: draft for the owner's review. The story and new additions await the winners research and the council.
 
@@ -26,7 +26,7 @@ The problem is timing more than colour: numbers arrive before anything depends o
 ## 2. Decisions
 
 **Settled**
-- Visual world: Mission Episodes for the story and Retro Sixteen-Colour for the astronaut tools, chosen by the owner on 2 Nov.
+- Visual world: Mission Episodes for the story and the Space Age Console for the astronaut tools, chosen by the owner on 2 Nov. The retro sixteen-colour look was tried and rejected.
 - Depth: every screen changes. Missions 1.1, 1.5 and 1.6 also get new step-by-step play.
 - Core fun: an early choice comes back later, with the exact shortfall and its source.
 - No new science, simulation or data. This work is only design, ease of use and copy.
@@ -41,13 +41,13 @@ The problem is timing more than colour: numbers arrive before anything depends o
 
 Two looks with one job each, chosen by the owner on 2 Nov:
 - **Story: Mission Episodes.** Mars survival told as a series. Every mission opens like a jazz-era anime episode.
-- **Astronaut tools: Retro Sixteen-Colour.** When a player uses a real tool, the screen cuts to an old adventure-game terminal: fixed windows, bitmap lettering, a locked palette.
+- **Astronaut tools: Space Age Console.** When a player uses a real tool, the screen cuts to a 1970s-style instrument panel: needle dials, rounded cream panels, wide lettering for titles.
 
-The cut between them means something: colour and big type are the story, and the terminal is where real data and real calculations live.
+The cut between them means something: colour fields and big type are the story, and the console is where real data and real calculations live.
 
 ### Where each look applies
 
-| Episodes | Retro tools |
+| Episodes | Space Age Console |
 |---|---|
 | First screen, trail, title cards | Route planner and GO/NO-GO |
 | Crew lines, decisions in a mission | Wrist console and on-foot readouts |
@@ -67,33 +67,32 @@ The cut between them means something: colour and big type are the story, and the
 
 Each mission floods a different field behind its title, so the 18 missions stop looking identical. Print grain sits over colour fields, and never over small text or numbers. Ink on brick measures 2.92, so it's never used for text.
 
-### Retro tool tokens
+### Space Age Console tokens
 
-A fixed set of up to 16 colours, used only in tools:
-
-| Token | Hex | Use | Measured contrast on ground |
+| Token | Hex | Use | Measured contrast |
 |---|---|---|---|
-| `--crt-ground` | `#07072B` | Window ground | Reference |
-| `--crt-text` | `#F4ECD8` | Body text | 16.6 |
-| `--crt-line` | `#F0DDB0` | Window borders | 14.59 |
-| `--crt-hi` | `#FFD86B` | Who is speaking, key values | 14.23 |
-| `--crt-data` | `#58D0D8` | Live values | 10.64 |
-| `--crt-select` | `#E0467C` | Selected row, ground-colour text on it | 4.97 |
+| `--surface` | `#EFE4CC` | Panel ground | Text on it 13.74 |
+| `--surface-raised` | `#E3D3B0` | Raised panels, dial plates | Text on it 11.74 |
+| `--text` | `#1D1A15` | Text and dial marks | |
+| `--text-muted` | `#4F4738` | Secondary text | 7.26 on surface, 6.20 on raised |
+| `--accent` | `#0F5F62` | Values and links | 5.87 on surface, 5.02 on raised |
+| `--accent-fill` | `#C8481A` | Primary buttons, white text on it | 4.78 |
+| `--hazard` | `#9E2F1B` | Hazards | Darkened to pass on raised panels; re-measure in the theme task |
 
-The remaining slots are filled only as tools need them, each measured first. GO and NO-GO always use icon, word and shape together, never colour alone.
+GO and NO-GO always use icon, word and shape together, never colour alone.
 
 ### Type
 
 All self-hosted and licensed under the SIL Open Font License:
 - **Anton:** episode titles and big story numbers. Oversized, tight, allowed to collide.
 - **Atkinson Hyperlegible Next:** everything people read in the story.
-- **DotGothic16:** tool lettering. It must stay readable at 16 px or larger and follow the user's text size.
+- **Michroma:** tool titles and dial labels only, because wide lettering tires quickly. Reading text stays in Atkinson.
 
 Check that all three have the characters the app uses (`²`, `°`, `µ`, `≥`), and fall back to Atkinson where they don't.
 
 ### Components
 
-| Today | Episodes | Retro tools |
+| Today | Episodes | Space Age Console |
 |---|---|---|
 | Navy rounded panel | Flat colour field sliced by hard diagonal bars | Fixed bordered window |
 | Heading | Colliding title with episode number | Window title bar |
@@ -111,16 +110,16 @@ Four original, faceless suited figures, one per role: Commander, Engineer, Scien
 
 Episodes: no glass, gradients, drop shadows, emoji, card grids or hairline rules. Hard flat fields only.
 
-Tools: the retro form is a known style, so it must be strict: regions that never move, whole-pixel scaling for art, dither instead of blends, no glow or scanline effects, and no neon-on-black. Add real team sketches where they help, which also counts as evidence of the team's own work.
+Tools: real instruments, not a costume: dials read real values, flat panels, no glow, no gradients and no neon-on-black. Add real team sketches where they help, which also counts as evidence of the team's own work.
 
 Big colliding type never carries a safety number or a limit. Those are always set plainly.
 
 ### Imagery
 
 - Each mission's trail card is built from one real, credited NASA image cropped hard, with print grain and its colour field, using one script. Script and output are committed, with source and credit per image.
-- Every card opens to the original unfiltered photo, credit and link. **Real NASA photos are never dithered** when they're shown as evidence.
+- Every card opens to the original unfiltered photo, credit and link. **Real NASA photos are never altered** when they're shown as evidence.
 - No images showing identifiable people as panel art. JPL posters are shown unmodified or not at all.
-- **The 3D scene** stays in real colour in story steps. Dithering it inside tools is optional, done within three.js, and tested on a real phone on 3 Nov. **If it costs too much, it stays in full colour,** with no further debate.
+- **The 3D scene** stays in real colour.
 - The Martian Map keeps real colour, because its imagery is the data. Tool windows sit around it, and text never sits directly on terrain.
 
 ### Legal
@@ -284,11 +283,9 @@ Expedition 3 missions; new simulation or data; deep rewrites of the 15 lighter m
 
 | Risk | What protects against it |
 |---|---|
-| Anime styling feels childish to judges | The science stays straight in the retro tools, with sources one tap away. Owner reviews on 3 Nov |
+| Anime styling feels childish to judges | The science stays straight in the console tools, with sources one tap away. Owner reviews on 3 Nov |
 | Either look reads as a stock retro or AI template | Strict rules in section 3, real NASA images, real sketches. Show it to outsiders |
-| Bitmap lettering tires readers or fails on small phones | Tools keep text short, 16 px minimum, follows text size. Test on a phone |
 | Two looks feel like two apps | The cut is deliberate and repeated, with the same crew voice and numbers in both |
-| Dithered scene too slow on phones | Tested 3 Nov, with a set fallback to full colour |
 | A number goes wrong in new copy | Numbers come from code, and the deep missions are checked against sources |
 | Themed lighter missions feel unfinished | Shared panel, gauges and printed art reach all 18, and the script checks them |
 | Real-phone behaviour is unknown | First task. No performance gain here has been measured on a device yet |

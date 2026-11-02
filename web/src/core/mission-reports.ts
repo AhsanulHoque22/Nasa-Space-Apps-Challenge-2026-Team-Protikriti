@@ -4,6 +4,7 @@
  */
 import { readStored, writeStored } from './local-store'
 import { type GuardValues, type Lesson, type RunFailure, guardHit } from './run-report'
+import type { Progress } from './mission-progress'
 import type { KeyValueStore } from './streetview'
 
 export const REPORTS_KEY = 'atlas.reports'
@@ -20,7 +21,12 @@ export type MissionReport = {
   summary?: RunSummary
   /** The player's own words on the tombstone. */
   epitaph?: string
+  /** Older failure reports have no outcome. */
+  outcome?: 'completed' | 'failed'
+  /** What the player chose, read from what the mission saved. */
+  decisions?: Decision[]
 }
+export type Decision = { label: string; value: string }
 type Stored = { owner: string; reports: MissionReport[] }
 
 const isStored = (v: unknown): v is Stored => {
@@ -61,6 +67,72 @@ export function appendReport(
   const next = [...reports, report]
   if (!writeStored(store, REPORTS_KEY, { owner, reports: next })) memory.set(owner, next)
   return report
+}
+
+/** A mission played to its end: a report the player can read later, then try another way. */
+export function appendPlayReport(
+  store: KeyValueStore | undefined,
+  owner: string,
+  play: { missionId: string; sol: number; decisions: Decision[] },
+): MissionReport {
+  const reports = loadReports(store, owner)
+  const report: MissionReport = {
+    version: (reports.at(-1)?.version ?? 0) + 1,
+    endedSol: play.sol,
+    missionId: play.missionId,
+    cause: 'Mission completed',
+    lessons: [],
+    outcome: 'completed',
+    decisions: play.decisions,
+  }
+  const next = [...reports, report]
+  if (!writeStored(store, REPORTS_KEY, { owner, reports: next })) memory.set(owner, next)
+  return report
+}
+
+/** Which saved fields hold each mission's choices. */
+const MISSION_FIELDS: Readonly<Record<string, readonly (keyof Progress)[]>> = {
+  '1.1': ['cargo', 'crewRouteDays', 'stay'],
+  '1.2': ['site'],
+  '1.4': ['base'],
+  '1.5': ['walk'],
+  '1.6': ['greenhouse'],
+  '1.7': ['storm'],
+  '1.8': ['water'],
+  '1.9': ['traverse'],
+  '1.10': ['outage'],
+  '1.11': ['home'],
+  '2.1': ['cargo2'],
+  '2.2': ['wake2'],
+  '2.3': ['greenhouse2'],
+  '2.4': ['water2'],
+  '2.5': ['cave2'],
+  '2.6': ['sample2'],
+  '2.7': ['return2'],
+}
+const MAX_DECISIONS = 12
+
+const words = (key: string) => {
+  const spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase()
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+const shown = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2))
+
+function collect(key: string, value: unknown, into: Decision[]): void {
+  if (typeof value === 'number' && Number.isFinite(value))
+    into.push({ label: words(key), value: shown(value) })
+  else if (typeof value === 'string') into.push({ label: words(key), value })
+  else if (typeof value === 'boolean') into.push({ label: words(key), value: value ? 'yes' : 'no' })
+  else if (value && typeof value === 'object' && !Array.isArray(value))
+    for (const [k, v] of Object.entries(value)) collect(k, v, into)
+}
+
+/** The choices a mission saved, in plain words, from the record itself so nothing is retyped. */
+export function decisionsOf(missionId: string, progress: Progress): Decision[] {
+  const into: Decision[] = []
+  for (const field of MISSION_FIELDS[missionId] ?? []) collect(field, progress[field], into)
+  return into.slice(0, MAX_DECISIONS)
 }
 
 export const EPITAPH_MAX_CHARS = 80

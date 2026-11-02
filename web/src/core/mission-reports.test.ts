@@ -3,7 +3,9 @@ import {
   EPITAPH_MAX_CHARS,
   REPORTS_KEY,
   activeWarnings,
+  appendPlayReport,
   appendReport,
+  decisionsOf,
   loadReports,
   saveEpitaph,
 } from './mission-reports'
@@ -92,5 +94,65 @@ describe('saveEpitaph', () => {
     expect(first?.version).toBe(a.version)
     expect(first?.epitaph).toBeUndefined()
     expect(second?.epitaph).toHaveLength(EPITAPH_MAX_CHARS)
+  })
+})
+
+describe('reports for every play', () => {
+  it('records a finished mission with the choices made', () => {
+    const s = store()
+    const r = appendPlayReport(s, 'crew', {
+      missionId: '1.1',
+      sol: 0,
+      decisions: [{ label: 'Kilopower', value: '4' }],
+    })
+    expect(r.outcome).toBe('completed')
+    expect(r.decisions).toEqual([{ label: 'Kilopower', value: '4' }])
+    expect(loadReports(s, 'crew')).toHaveLength(1)
+  })
+
+  it('numbers plays and failures in one sequence', () => {
+    const s = store()
+    appendPlayReport(s, 'crew', { missionId: '1.1', sol: 0, decisions: [] })
+    expect(appendReport(s, 'crew', failure, []).version).toBe(2)
+  })
+
+  it('does not turn a completed play into a warning', () => {
+    const s = store()
+    appendPlayReport(s, 'crew', { missionId: '1.1', sol: 0, decisions: [] })
+    expect(activeWarnings(loadReports(s, 'crew'), '1.1', {})).toEqual([])
+  })
+})
+
+describe('decisionsOf', () => {
+  it('reads what a mission saved, in plain words', () => {
+    const lines = decisionsOf('1.1', {
+      version: 1,
+      owner: 'o',
+      completed: ['1.1'],
+      cargo: {
+        kilopower: 4,
+        solar: 0,
+        battery: 1,
+        isru: 2,
+        foodSols: 885,
+        waterKg: 750,
+        recycler: 1,
+        greenhouseM2: 10,
+      },
+      crewRouteDays: 178,
+    })
+    expect(lines).toContainEqual({ label: 'Kilopower', value: '4' })
+    expect(lines).toContainEqual({ label: 'Food sols', value: '885' })
+    expect(lines).toContainEqual({ label: 'Crew route days', value: '178' })
+  })
+
+  it('returns nothing for a mission that saved nothing', () => {
+    expect(decisionsOf('1.3', { version: 1, owner: 'o', completed: [] })).toEqual([])
+  })
+
+  it('caps long records so a report stays readable', () => {
+    const big = Object.fromEntries(Array.from({ length: 50 }, (_, i) => [`f${i}`, i]))
+    const lines = decisionsOf('1.5', { version: 1, owner: 'o', completed: [], walk: big } as never)
+    expect(lines.length).toBeLessThanOrEqual(12)
   })
 })

@@ -96,7 +96,13 @@ import type { StoryServices } from './story'
 import { runStores } from '../core/base-stores'
 import { STORM_SOLS, type StormBase, type StormLoads, stormRun } from '../core/dust-storm'
 import { type Areas, greenhouseBudget } from '../core/greenhouse'
-import { type MissionReport, appendReport, loadReports } from '../core/mission-reports'
+import {
+  type MissionReport,
+  appendPlayReport,
+  appendReport,
+  decisionsOf,
+  loadReports,
+} from '../core/mission-reports'
 import { MISSION_SOL, ledgerInput, solReached } from '../core/run-ledger'
 import { type RunFailure, runReport } from '../core/run-report'
 import { lessonsButton } from './lessons'
@@ -144,6 +150,12 @@ export function playMission(id: string, ctx: PlayContext): void {
     reports: loadReports(ctx.store, ctx.progress.owner),
     fail: (d) => (direct = d),
     onDone: (progress, note) => {
+      if (!direct && progress !== ctx.progress && progress.completed.includes(id))
+        appendPlayReport(ctx.store, progress.owner, {
+          missionId: id,
+          sol: solReached(progress),
+          decisions: decisionsOf(id, progress),
+        })
       // Leaving a mission, or a mission before the crew lands, changes nothing on Mars.
       if (!direct && (progress === ctx.progress || !progress.completed.includes('1.3')))
         ctx.onDone(progress, note)

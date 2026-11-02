@@ -2,6 +2,7 @@
  * Mission 1.5 on the map: the walking route and its router for a site's grid, overlays for the
  * base crew's tools, and the walking crew, with a camera that can follow them.
  */
+import { clampFollowRange, zoomedRange } from '../core/follow-camera'
 import {
   BoundingSphere,
   Cartesian2,
@@ -31,6 +32,8 @@ export type WalkMap = {
   overlay: (grid: Grid, kind: OverlayKind) => RangeLayer
   /** Put the crew at a place facing `headingDeg`; with `follow` the camera rides behind them. */
   crew: (lon: number, lat: number, headingDeg: number, follow: boolean) => void
+  /** Move the camera closer (below 1) or farther. */
+  zoom: (factor: number) => void
   /** Hand the camera back to the user. */
   release: () => void
   /** Frame these points ([lon, lat]) from above at an angle. */
@@ -61,6 +64,7 @@ export function createWalkMap(
   void viewer.dataSources.add(crewSource)
   const crewAt = new ConstantPositionProperty()
   let following = false
+  let followRangeM = FOLLOW_RANGE_M
 
   const at = ([lon, lat]: [number, number]) =>
     Cartesian3.fromDegrees(lon, lat, surfaceM(lon, lat) + MARKER_LIFT_M, MARS_SPHERE)
@@ -141,13 +145,15 @@ export function createWalkMap(
           },
         })
       if (follow) {
+        // Read the range back each frame, so wheel, pinch and the zoom buttons are not undone.
+        if (following) followRangeM = clampFollowRange(viewer.camera.getMagnitude())
         following = true
         viewer.camera.lookAt(
           where,
           new HeadingPitchRange(
             CesiumMath.toRadians(headingDeg),
             CesiumMath.toRadians(FOLLOW_PITCH_DEG),
-            FOLLOW_RANGE_M,
+            followRangeM,
           ),
         )
         // Tilt the view down so the crew sit higher on screen than its centre.
@@ -155,6 +161,12 @@ export function createWalkMap(
         if (frustum instanceof PerspectiveFrustum && frustum.fovy !== undefined)
           viewer.camera.lookDown(Math.atan(Math.tan(frustum.fovy / 2) * (1 - 2 * FOLLOW_SCREEN_Y)))
       } else release()
+    },
+    zoom: (factor) => {
+      if (following) {
+        const range = viewer.camera.getMagnitude()
+        viewer.camera.zoomIn(range - zoomedRange(range, factor))
+      } else viewer.camera.zoomIn(viewer.camera.positionCartographic.height * (1 - factor))
     },
     release,
     view: frameRoute,

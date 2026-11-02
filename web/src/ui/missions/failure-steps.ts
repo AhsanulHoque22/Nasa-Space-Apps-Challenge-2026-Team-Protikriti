@@ -3,6 +3,8 @@
  * test), what power the base still has, what the crew switch off until the replacement from the
  * next ship is running, then the outage played sol by sol through the stores ledger.
  */
+import { type ImpactLoads, impactRows } from '../../core/impact-board'
+import { impactBoard } from '../impact-board'
 import { runStores, type StoresRun } from '../../core/base-stores'
 import { HABITAT_KEEP_ALIVE_KW } from '../../core/dust-storm'
 import { greenhouseBudget, type Areas } from '../../core/greenhouse'
@@ -424,11 +426,48 @@ export function failureSteps(
     render: () => {
       const r = run(choice)
       const days = r?.days.filter((d) => d.sol >= start) ?? []
+      const ideal = baseline?.days.filter((d) => d.sol >= start) ?? []
+      const loads: ImpactLoads = {
+        supplyKw,
+        idealSupplyKw: units * KILOPOWER_DELIVERED_KWE + solarKw,
+        habitatKw: choice.habitatKw,
+        idealHabitatKw: HABITAT_EXTERNAL_KWE,
+        greenhouseKw: choice.greenhouseKw,
+        idealGreenhouseKw: fullLights,
+        waterPlantKw: choice.waterOn ? plantKw : 0,
+        idealWaterPlantKw: plantKw,
+      }
       const status = el('p', {
         className: 'dock-note',
         role: 'status',
         textContent: `Sol ${start}.`,
       })
+      const board = impactBoard()
+      board.show(impactRows(days, ideal, start, loads))
+      const idealAt = (key: 'foodSols' | 'batteryKwh') =>
+        days.map((d) => ideal.find((x) => x.sol === d.sol)?.[key] ?? 0)
+      const batteryChart = lineChart(
+        days.map((d) => d.sol),
+        days.map((d) => d.batteryKwh),
+        {
+          title: 'Battery',
+          xLabel: 'sol',
+          yLabel: 'kWh',
+          compare: idealAt('batteryKwh'),
+          compareLabel: 'nothing failed',
+        },
+      )
+      const foodChart = lineChart(
+        days.map((d) => d.sol),
+        days.map((d) => d.foodSols),
+        {
+          title: 'Food left',
+          xLabel: 'sol',
+          yLabel: 'sols of food',
+          compare: idealAt('foodSols'),
+          compareLabel: 'nothing failed',
+        },
+      )
       const play = el('button', {
         type: 'button',
         className: 'gate-secondary action action-play',
@@ -439,9 +478,14 @@ export function failureSteps(
         const t0 = performance.now()
         const step = (now: number) => {
           const f = Math.min(1, (now - t0) / 12_000)
-          const d = days[Math.min(days.length - 1, Math.floor(f * days.length))]
-          if (d)
+          const i = Math.min(days.length - 1, Math.floor(f * days.length))
+          const d = days[i]
+          if (d) {
             status.textContent = `Sol ${d.sol}: battery ${Math.round(d.batteryKwh)} kWh, food ${d.foodSols.toFixed(0)} sols, water ${Math.round(d.waterKg).toLocaleString('en-US')} kg.`
+            board.show(impactRows(days, ideal, d.sol, loads))
+            batteryChart.setCursor(i)
+            foodChart.setCursor(i)
+          }
           if (f >= 1)
             status.textContent = r?.failure
               ? r.failure.why
@@ -450,24 +494,7 @@ export function failureSteps(
         }
         playing = requestAnimationFrame(step)
       })
-      return el(
-        'div',
-        { className: 'site-step' },
-        el(
-          'dl',
-          { className: 'zone-facts' },
-          fact('Habitat', choice.habitatKw <= HABITAT_KEEP_ALIVE_KW ? 'keep-alive' : 'in use'),
-          fact('Greenhouse lights', choice.greenhouseKw === 0 ? 'off' : kw(choice.greenhouseKw)),
-          fact('Water plant', plantKw > 0 ? (choice.waterOn ? 'on' : 'off') : 'none'),
-        ),
-        play,
-        status,
-        lineChart(
-          days.map((d) => d.sol),
-          days.map((d) => d.foodSols),
-          { title: 'Food left', xLabel: 'sol', yLabel: 'sols of food' },
-        ),
-      )
+      return el('div', { className: 'site-step' }, play, status, board, batteryChart, foodChart)
     },
     onHide: () => cancelAnimationFrame(playing),
     onNext: () => {

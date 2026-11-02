@@ -3,6 +3,7 @@
  * it), the planned route through them and back, and the rover in 3D as the drive plays, with a
  * camera that can follow it.
  */
+import { clampFollowRange, smoothHeadingDeg, zoomedRange } from '../core/follow-camera'
 import {
   BoundingSphere,
   Cartesian2,
@@ -44,6 +45,8 @@ export type TraverseMap = {
   rover: (p: LonLat | null, label?: string, headingDeg?: number) => void
   /** Keep the camera on the rover (zoom and turn stay free), or let it go. */
   follow: (on: boolean) => void
+  /** Move the camera closer (below 1) or farther. */
+  zoom: (factor: number) => void
   /** Fit the camera to these places. */
   view: (points: readonly LonLat[]) => void
   clear: () => void
@@ -55,8 +58,8 @@ const ROVER = Color.fromCssColorString('#ffb000')
 const DARK = Color.fromCssColorString('#05070C')
 const LIFT_M = 60 // above the drawn ground, so the route is not lost in it
 const ROVER_MIN_PX = 48 // true size up close; zoomed out it never shrinks below this, so it can be found
-const FOLLOW_RANGE_M = 90 // close enough to see the rover at its true size
-const FOLLOW_PITCH_DEG = -25
+const FOLLOW_RANGE_M = 34 // third person: close behind the rover, which stands at its true size
+const FOLLOW_PITCH_DEG = -13
 const STEP_KM = 1
 
 /** Points every STEP_KM along the great circle from a to b (for a route that follows the ground). */
@@ -85,6 +88,9 @@ export function createTraverseMap(
   let rover: ReturnType<typeof source.entities.add> | null = null
   let roverAt: LonLat | null = null
   let following = false
+  let roverHeadingDeg = 0
+  let chaseHeadingDeg = 0
+  let lastChaseMs = 0
   const camera = viewer.camera
   const frameAt = (p: LonLat) => Transforms.eastNorthUpToFixedFrame(at(p, 0), MARS_SPHERE)
   const release = () => {
@@ -209,17 +215,42 @@ export function createTraverseMap(
       rover.position = new ConstantPositionProperty(ground)
       rover.orientation = new ConstantProperty(facing(p, headingDeg))
       if (rover.label) rover.label.text = new ConstantProperty(text)
-      // camera.position is relative to the rover here, so the user's zoom and turn carry over.
-      if (following) camera.lookAtTransform(frameAt(p), Cartesian3.clone(camera.position))
+      if (following) {
+        // Third person: swing round behind the rover as it turns, keeping the user's zoom.
+        const now = performance.now()
+        chaseHeadingDeg = smoothHeadingDeg(chaseHeadingDeg, headingDeg, (now - lastChaseMs) / 1000)
+        lastChaseMs = now
+        camera.lookAtTransform(
+          frameAt(p),
+          new HeadingPitchRange(
+            CesiumMath.toRadians(chaseHeadingDeg),
+            CesiumMath.toRadians(FOLLOW_PITCH_DEG),
+            clampFollowRange(camera.getMagnitude()),
+          ),
+        )
+      }
+      roverHeadingDeg = headingDeg
     },
     follow: (on) => {
       if (!on || !roverAt) return release()
       camera.cancelFlight()
       following = true
+      chaseHeadingDeg = roverHeadingDeg
+      lastChaseMs = performance.now()
       camera.lookAtTransform(
         frameAt(roverAt),
-        new HeadingPitchRange(0, CesiumMath.toRadians(FOLLOW_PITCH_DEG), FOLLOW_RANGE_M),
+        new HeadingPitchRange(
+          CesiumMath.toRadians(chaseHeadingDeg),
+          CesiumMath.toRadians(FOLLOW_PITCH_DEG),
+          FOLLOW_RANGE_M,
+        ),
       )
+    },
+    zoom: (factor) => {
+      if (following) {
+        const range = camera.getMagnitude()
+        camera.zoomIn(range - zoomedRange(range, factor))
+      } else camera.zoomIn(camera.positionCartographic.height * (1 - factor))
     },
     view: (points) => {
       if (!points.length) return

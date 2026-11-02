@@ -816,3 +816,454 @@ body:has(.sv)
 .episodes .mission-start {
   margin-left: 0;
 }
+
+/* Knobs: a real dial with a pointer, on either look. */
+.knob {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 132px;
+  text-align: center;
+}
+
+.knob-label {
+  font: 700 14px/1.2 var(--font);
+}
+
+.knob-dial {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 3px var(--text);
+  cursor: grab;
+  touch-action: none;
+}
+
+.knob-dial:active {
+  cursor: grabbing;
+}
+
+.knob-dial:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.knob-cap {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 120ms var(--ease-out);
+}
+
+.knob-cap::after {
+  content: '';
+  position: absolute;
+  left: calc(50% - 3px);
+  top: 4px;
+  width: 6px;
+  height: 18px;
+  background: var(--accent);
+}
+
+.knob-value {
+  font-size: 14px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.walk-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.zoom-buttons {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 4px;
+  margin: 8px 8px 8px 0;
+}
+
+.zoom-button {
+  width: 52px;
+  height: 52px;
+  border: 2px solid var(--text);
+  background: none;
+  color: var(--text);
+  font: 700 26px/1 var(--font);
+  cursor: pointer;
+}
+
+.zoom-button:hover {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.sw-open-full {
+  min-height: 44px;
+  cursor: pointer;
+}
+
+/* The wrist console at full size */
+.console-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  overflow-y: auto;
+  padding: max(12px, env(safe-area-inset-top)) 14px 20px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+.console-screen > * {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 980px;
+  margin-inline: auto;
+}
+
+.console-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 20px;
+  background: var(--text);
+  color: var(--surface);
+}
+
+.console-title {
+  flex: 1;
+  margin: 0;
+  font: 400 clamp(15px, 3vw, 22px) / 1.2 var(--font-tool);
+}
+
+.console-title:focus {
+  outline: none;
+}
+
+.console-clock {
+  margin: 0;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.console-close {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--text);
+  font: 700 15px var(--font);
+  cursor: pointer;
+}
+
+.console-phase {
+  margin: 0;
+  font: 700 19px/1.25 var(--font);
+}
+
+.console-stage {
+  display: grid;
+  grid-template-columns: 1fr minmax(80px, 150px) 1fr;
+  align-items: center;
+  justify-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border-radius: 28px;
+  background: var(--surface-raised);
+}
+
+.console-figure {
+  width: 100%;
+  color: var(--text);
+  --visor: var(--mustard);
+}
+
+.console-alert {
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: var(--good);
+  color: #fff;
+  font: 700 16px/1.3 var(--font);
+}
+
+.console-alert[data-level='warn'] {
+  background: var(--caution);
+}
+
+.console-alert[data-level='danger'],
+.console-alert[data-level='bad'],
+.console-alert[data-level='critical'] {
+  background: var(--hazard);
+}
+
+.console-bars {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 24px;
+  background: var(--surface-raised);
+}
+
+.console-bar {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.console-bar-track {
+  height: 16px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.console-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 8px;
+  background: var(--accent);
+  transition: width 240ms var(--ease-out);
+}
+
+.console-bar-fill[data-tone='warn'] {
+  background: var(--caution);
+}
+
+.console-bar-fill[data-tone='bad'] {
+  background: var(--hazard);
+}
+
+.console-slope-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.console-graph-box {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 24px;
+  background: var(--surface-raised);
+}
+
+.console-graph-box figcaption {
+  display: flex;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.console-key-o2 {
+  color: var(--hazard);
+}
+
+.console-key-power {
+  color: var(--accent);
+}
+
+.console-graph {
+  display: block;
+  width: 100%;
+  height: 90px;
+  margin-top: 6px;
+}
+
+.console-graph polyline {
+  fill: none;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.console-o2 {
+  stroke: var(--hazard);
+}
+
+.console-power {
+  stroke: var(--accent);
+  stroke-dasharray: 8 5;
+}
+
+.console-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.console-button {
+  min-height: 56px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 28px;
+  background: var(--text);
+  color: var(--surface);
+  font: 700 17px var(--font);
+  cursor: pointer;
+}
+
+.console-button-turn {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+
+.console-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* What a decision did to each part of the base */
+.impact {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.impact-key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.impact-key-now,
+.impact-key-ideal {
+  display: inline-block;
+  width: 18px;
+  height: 12px;
+  background: var(--accent);
+}
+
+.impact-key-ideal {
+  width: 4px;
+  height: 18px;
+  margin-left: 10px;
+  background: var(--text);
+}
+
+.impact-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.impact-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+}
+
+.impact-label {
+  font-weight: 700;
+}
+
+.impact-delta {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.impact-row[data-state='down'] .impact-delta {
+  color: var(--hazard);
+}
+
+.impact-row[data-state='up'] .impact-delta {
+  color: var(--good);
+}
+
+.impact-track {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 16px;
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+.impact-now {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+
+.impact-row[data-state='down'] .impact-now {
+  background: var(--hazard);
+}
+
+.impact-ideal {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 4px;
+  margin-left: -2px;
+  background: var(--text);
+}
+
+/* Countdown */
+.count-player {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.count-box {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-size: 17px;
+}
+
+.count-number {
+  font: 400 clamp(60px, 14vw, 110px) / 1 var(--font-title);
+  color: var(--mustard);
+  font-variant-numeric: tabular-nums;
+}
+
+.count-reads {
+  margin: 0;
+  font-size: 16px;
+}
+
+.report-decisions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.report-decisions dt {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.report-decisions dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .knob-cap,
+  .console-bar-fill,
+  .impact-now {
+    transition: none;
+  }
+}

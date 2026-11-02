@@ -179,8 +179,15 @@ export function showMissionOver(
 }
 
 /** An old report to read; closes back to where it was opened. */
-export function showReport(r: MissionReport): void {
+export function showReport(r: MissionReport, onTryAgain?: () => void): void {
   const close = el('button', { type: 'button', className: 'gate-primary', textContent: 'Close' })
+  const again = onTryAgain
+    ? el('button', {
+        type: 'button',
+        className: 'gate-link',
+        textContent: 'Try a different approach',
+      })
+    : ''
   const box = overlay(
     `Mission report v${r.version}`,
     el('h2', {
@@ -192,8 +199,17 @@ export function showReport(r: MissionReport): void {
       className: 'mission-over-cause',
       textContent: `${r.cause} (mission ${missionName(r.missionId)}, sol ${r.endedSol})`,
     }),
+    r.decisions?.length
+      ? el(
+          'dl',
+          { className: 'report-decisions' },
+          ...r.decisions.map((d) =>
+            el('div', {}, el('dt', { textContent: d.label }), el('dd', { textContent: d.value })),
+          ),
+        )
+      : '',
     reportBody(r),
-    el('div', { className: 'gate-actions' }, close),
+    el('div', { className: 'gate-actions' }, again, close),
   )
   const shut = () => {
     box.remove()
@@ -203,5 +219,10 @@ export function showReport(r: MissionReport): void {
     if (e.key === 'Escape') shut()
   }
   close.addEventListener('click', shut)
+  if (again && onTryAgain)
+    again.addEventListener('click', () => {
+      shut()
+      onTryAgain()
+    })
   document.addEventListener('keydown', onKey)
 }

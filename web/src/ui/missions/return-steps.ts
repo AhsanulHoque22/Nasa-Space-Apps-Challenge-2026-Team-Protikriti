@@ -3,6 +3,7 @@
  * food), check the ascent vehicle is ready, fly home on a real Mars-to-Earth transfer in 3D, and
  * read the expedition debrief: radiation dose against NASA's limit, and what nearly failed.
  */
+import type { StoresDay } from '../../core/base-stores'
 import { runStores, type StoresRun } from '../../core/base-stores'
 import {
   CAREER_LIMIT_MSV,
@@ -21,6 +22,8 @@ import { type JourneyScene, openJourneyScene } from '../journey-scene'
 import { lineChart } from '../line-chart'
 import type { DockStep } from '../mission-dock'
 import type { SunFn } from '../run-check'
+
+const COUNTDOWN_PLAY_MS = 10_000
 
 type Photo = { src: string; alt: string; caption: string; credit: string; page: string }
 const EARTH_FROM_MARS: Photo = {
@@ -104,11 +107,61 @@ export function returnSteps(
   // --- Step 1 -------------------------------------------------------------------------------------
   let anyway = false
   const note = el('p', { className: 'gate-note', role: 'status' })
+  /** Sols running to the window: the stores fall on their charts and the count runs down. */
+  let countdownFrame = 0
+  const countdownPlayer = (days: StoresDay[], windowSol: number): HTMLElement => {
+    const food = lineChart(
+      days.map((d) => d.sol),
+      days.map((d) => d.foodSols),
+      { title: 'Food left to the window home', xLabel: 'sol', yLabel: 'sols of food' },
+    )
+    const water = lineChart(
+      days.map((d) => d.sol),
+      days.map((d) => d.waterKg),
+      { title: 'Water left', xLabel: 'sol', yLabel: 'kg' },
+    )
+    const count = el('b', { className: 'count-number' })
+    const reads = el('p', { className: 'count-reads', role: 'status' })
+    const show = (i: number) => {
+      const d = days[i]
+      if (!d) return
+      count.textContent = `${n0(Math.max(0, windowSol - d.sol))}`
+      reads.textContent = `Sol ${n0(d.sol)}: food ${n0(d.foodSols)} sols, water ${n0(d.waterKg)} kg, battery ${n0(d.batteryKwh)} kWh.`
+      food.setCursor(i)
+      water.setCursor(i)
+    }
+    const play = el('button', {
+      type: 'button',
+      className: 'gate-secondary action action-play',
+      textContent: 'Run to the window',
+    })
+    play.addEventListener('click', () => {
+      cancelAnimationFrame(countdownFrame)
+      const t0 = performance.now()
+      const step = (now: number) => {
+        const f = Math.min(1, (now - t0) / COUNTDOWN_PLAY_MS)
+        show(Math.min(days.length - 1, Math.floor(f * days.length)))
+        if (f < 1) countdownFrame = requestAnimationFrame(step)
+      }
+      countdownFrame = requestAnimationFrame(step)
+    })
+    show(0)
+    return el(
+      'div',
+      { className: 'count-player' },
+      el('p', { className: 'count-box' }, count, el('span', { textContent: 'sols to the window' })),
+      play,
+      reads,
+      food,
+      water,
+    )
+  }
   const countdown: DockStep = {
     title: 'Countdown to the window',
     why: `Planets line up for the trip home on set dates. Yours is sol ${n0(staySols)}: the base must keep four people alive until then.`,
     layout: 'map',
     nextLabel: 'Ready the ascent vehicle',
+    onHide: () => cancelAnimationFrame(countdownFrame),
     render: () => {
       const days = run?.days.filter((d) => d.sol >= now) ?? []
       return el(
@@ -136,16 +189,7 @@ export function returnSteps(
             : []),
           fact('Window home', `sol ${n0(staySols)}, ${date(departMs)}`),
         ),
-        lineChart(
-          days.map((d) => d.sol),
-          days.map((d) => d.foodSols),
-          { title: 'Food left to the window home', xLabel: 'sol', yLabel: 'sols of food' },
-        ),
-        lineChart(
-          days.map((d) => d.sol),
-          days.map((d) => d.waterKg),
-          { title: 'Water left', xLabel: 'sol', yLabel: 'kg' },
-        ),
+        countdownPlayer(days, staySols),
         note,
         el(
           'p',

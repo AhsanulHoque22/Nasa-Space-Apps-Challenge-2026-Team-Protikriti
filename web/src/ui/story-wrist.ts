@@ -7,6 +7,8 @@
 import type { Cell } from '../core/grid'
 import type { WalkAlert } from '../core/walk-alerts'
 import { el } from './dom'
+import { type Knob, knob } from './knob'
+import { type ConsoleReading, type WristConsole, openWristConsole } from './wrist-console'
 import { type Minimap, type Tile, minimapSvg, mountWrist } from './eva-dashboard'
 import { type Task, taskList } from './missions/walk-briefing'
 
@@ -23,6 +25,8 @@ export type WristFeed = {
   messages: string[]
   /** True while the crew are working at a stop: a longer stay is possible. */
   atStop: boolean
+  /** The numbers behind the full-screen console's dials, bars and graph. */
+  reading: Omit<ConsoleReading, 'phase' | 'clock' | 'alert' | 'alertLevel'>
 }
 
 export type WristControls = {
@@ -31,6 +35,11 @@ export type WristControls = {
   onStayLonger: () => void
   onTurnBack: () => void
   onExit: () => void
+  /** How fast the walk plays, as a knob position. */
+  speedCount: number
+  speedIndex: () => number
+  speedLabel: (index: number) => string
+  onSpeed: (index: number) => void
 }
 
 export const PACES: readonly [number, string][] = [
@@ -65,7 +74,7 @@ const STORY_SINK_FRAC = 0.01
 export function openStoryWrist(
   tasks: Task[],
   controls: WristControls,
-): { update: (f: WristFeed) => void; close: () => void } {
+): { update: (f: WristFeed) => void; openFull: () => void; close: () => void } {
   // On the left of the map, beside the base crew's panel, and higher than in the Martian Map.
   const wrist = mountWrist(document.body, () => {
     const map = document.getElementById('globe')?.getBoundingClientRect()
@@ -111,10 +120,49 @@ export function openStoryWrist(
     back.textContent = 'Heading home'
     controls.onTurnBack()
   })
+  // The full-screen console drives these same controls, so the two can never disagree.
+  const proxy = (source: HTMLButtonElement, extra = '') => {
+    const b = el('button', { type: 'button', className: `console-button ${extra}` })
+    b.addEventListener('click', () => source.click())
+    return {
+      b,
+      sync: () => {
+        b.textContent = source.textContent
+        b.disabled = source.disabled
+      },
+    }
+  }
+  let fullScreen: WristConsole | null = null
+  let fullSync: (() => void)[] = []
+  let speedKnob: Knob | null = null
+  const openFull = () => {
+    if (fullScreen) return
+    const proxies = [proxy(pause), proxy(stay), proxy(back, 'console-button-turn')]
+    fullSync = proxies.map((p) => p.sync)
+    speedKnob = knob({
+      label: 'Walk speed',
+      count: controls.speedCount,
+      index: controls.speedIndex(),
+      format: controls.speedLabel,
+      onChange: controls.onSpeed,
+    })
+    fullScreen = openWristConsole([speedKnob, ...proxies.map((p) => p.b)], () => {
+      fullScreen = null
+      speedKnob = null
+      openButton.focus()
+    })
+  }
+  const openButton = el('button', {
+    type: 'button',
+    className: 'sw-open-full',
+    textContent: 'Full screen',
+  })
+  openButton.addEventListener('click', openFull)
   const top = el(
     'header',
     { className: 'sw-top' },
     el('div', { className: 'sw-now' }, phase, clock),
+    openButton,
     pause,
     pace,
     stay,
@@ -189,6 +237,17 @@ export function openStoryWrist(
       stay.disabled = !f.atStop
       tiles(critical, f.critical)
       const worst = f.alerts[0]
+      if (fullScreen) {
+        for (const sync of fullSync) sync()
+        speedKnob?.set(controls.speedIndex())
+        fullScreen.update({
+          ...f.reading,
+          phase: f.phase,
+          clock: f.clock,
+          alert: worst?.text ?? 'All within the plan.',
+          alertLevel: worst?.level ?? 'ok',
+        })
+      }
       alert.dataset.level = worst?.level ?? 'ok'
       alert.textContent = worst
         ? f.alerts.length > 1
@@ -224,7 +283,9 @@ export function openStoryWrist(
         messages.replaceChildren(...f.messages.map((m) => el('li', { textContent: m })))
       }
     },
+    openFull,
     close: () => {
+      fullScreen?.close()
       resized.disconnect()
       wrist.dismiss(() => wrist.destroy())
     },

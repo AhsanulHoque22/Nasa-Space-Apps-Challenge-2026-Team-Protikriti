@@ -3,6 +3,8 @@
  * within 100 km to visit (IAU nomenclature), plan how the rover is powered (NASA's three ways,
  * Chappell et al. 2022), then drive the route on the map while two crew keep the base running.
  */
+import { knob } from '../knob'
+import { zoomButtons } from '../zoom-buttons'
 import type { LonLat } from '../../core/base-layout'
 import { sampleGrid } from '../../core/elevation'
 import { greenhouseBudget, spareReactorKw, type Areas } from '../../core/greenhouse'
@@ -579,6 +581,7 @@ export function traverseSteps(
       setRunning(false)
       showRover = show
 
+      const zoom = zoomButtons(map.zoom)
       const follow = el('button', {
         type: 'button',
         className: 'gate-secondary action action-follow',
@@ -592,25 +595,16 @@ export function traverseSteps(
         if (!on) map.view(path(p))
       })
 
-      const speedText = el('output', { className: 'drive-speed-value' })
-      const speed = el('input', {
-        type: 'range',
-        min: '0',
-        max: String(SPEEDS.length - 1),
-        step: '1',
-        value: String(speedIndex),
-        id: 'drive-speed',
+      const speedKnob = knob({
+        label: 'Traverse speed',
+        count: SPEEDS.length,
+        index: speedIndex,
+        format: (i) => {
+          const x = SPEEDS[i] as number
+          return `${n0(x)}x, ${kmPerSecond(x).toFixed(1)} km each second`
+        },
+        onChange: (i) => (speedIndex = i),
       })
-      const paintSpeed = () => {
-        const x = SPEEDS[speedIndex] as number
-        speedText.textContent = `${n0(x)}× real speed · ${kmPerSecond(x).toFixed(1)} km each second`
-        speed.setAttribute('aria-valuetext', `${n0(x)} times real speed`)
-      }
-      speed.addEventListener('input', () => {
-        speedIndex = Number(speed.value)
-        paintSpeed()
-      })
-      paintSpeed()
       return el(
         'div',
         { className: 'site-step' },
@@ -623,14 +617,7 @@ export function traverseSteps(
             }),
           ),
         ),
-        el('div', { className: 'drive-controls' }, play, follow),
-        el(
-          'div',
-          { className: 'drive-speed' },
-          el('label', { htmlFor: 'drive-speed', textContent: 'Speed' }),
-          speed,
-          speedText,
-        ),
+        el('div', { className: 'drive-controls' }, play, follow, zoom, speedKnob),
         status,
         el('p', {
           className: 'dock-note',

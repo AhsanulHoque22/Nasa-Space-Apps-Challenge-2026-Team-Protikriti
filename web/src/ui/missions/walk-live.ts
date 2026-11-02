@@ -3,6 +3,8 @@
  * stay in the habitat as the base crew, whose panel (the dock) has the map tools of Plan mode,
  * the weather, and two ways to reach the walkers: a storm warning and a marked hazard.
  */
+import { knob } from '../knob'
+import { zoomButtons } from '../zoom-buttons'
 import type { Site } from '../../core/elevation'
 import { EVA_LIMITS } from '../../core/eva-card'
 import { slopeDegAt } from '../../core/eva-telemetry'
@@ -60,6 +62,10 @@ const hm = (min: number) => formatDuration(Math.max(0, min))
 const pct = (share: number) => `${Math.round(share * 100)}%`
 const toneOf = (share: number) => (share < 0.25 ? 'bad' : share < 0.4 ? 'warn' : 'ok')
 
+/** How fast the walk plays: time on screen, not how fast the crew walk. */
+const WALK_SPEEDS: readonly number[] = [0.5, 1, 2, 4, 8]
+const walkSpeedLabel = (i: number) => `${WALK_SPEEDS[i] ?? 1}x speed`
+
 export function startLiveWalk(
   w: LiveWalk,
   map: LiveMap,
@@ -97,6 +103,7 @@ export function startLiveWalk(
 
   let sim = startSim()
   let pace = 1
+  let speedIndex = WALK_SPEEDS.indexOf(1)
   let paused = false
   let follow = true
   let storm: { warningMin: number; issuedAtMin: number } | null = null
@@ -104,6 +111,17 @@ export function startLiveWalk(
   const messages: string[] = [
     'Base crew: radio check good. We are watching your suits and the weather.',
   ]
+  const setSpeed = (i: number) => {
+    speedIndex = i
+    speedKnob.set(i)
+  }
+  const speedKnob = knob({
+    label: 'Walk speed',
+    count: WALK_SPEEDS.length,
+    index: speedIndex,
+    format: walkSpeedLabel,
+    onChange: (i) => (speedIndex = i),
+  })
   let walkStartUtc: number | null = null
   void w.sol1Utc.then((t) => (walkStartUtc = nextLocalHourMs(t, w.home.lon, WALK_START_LOCAL_H)))
   const say = (m: string) => {
@@ -114,6 +132,10 @@ export function startLiveWalk(
   const wrist = openStoryWrist(w.tasks, {
     onPause: (p) => (paused = p),
     onPace: (p) => (pace = p),
+    speedCount: WALK_SPEEDS.length,
+    speedIndex: () => speedIndex,
+    speedLabel: walkSpeedLabel,
+    onSpeed: (i) => setSpeed(i),
     onStayLonger: () => {
       sim = extendStay(sim, EXTRA_STAY_MIN)
       say(`copy, you are staying ${EXTRA_STAY_MIN} min longer. Watch your spare time.`)
@@ -232,6 +254,12 @@ export function startLiveWalk(
     value: String(DEFAULT_WARNING_MIN),
     id: 'drill-min',
   })
+  const openConsole = el('button', {
+    type: 'button',
+    className: 'gate-secondary action action-follow',
+    textContent: 'Open wrist console',
+  })
+  openConsole.addEventListener('click', () => wrist.openFull())
   const send = el('button', {
     type: 'button',
     className: 'gate-secondary action action-alert',
@@ -279,6 +307,7 @@ export function startLiveWalk(
       followBox,
       el('label', { htmlFor: 'walk-follow', textContent: ' Camera follows the walkers' }),
     ),
+    el('div', { className: 'walk-controls' }, speedKnob, zoomButtons(map.walk.zoom), openConsole),
   )
 
   // --- The loop ----------------------------------------------------------------------------------
@@ -301,7 +330,10 @@ export function startLiveWalk(
   const tick = (now: number) => {
     const dt = Math.min((now - last) / 1000, 1) // a background tab must not jump the walk
     last = now
-    if (!paused && !sim.done) sim = advance(sim, dt * simMinPerS, simPlan, pace)
+    if (!paused && !sim.done) {
+      const speed = WALK_SPEEDS[speedIndex] ?? 1
+      sim = advance(sim, dt * simMinPerS * speed, simPlan, pace)
+    }
     const i = Math.min(sim.index, path.length - 1)
     const a = path[i] as Cell
     const b = path[Math.min(i + 1, path.length - 1)] as Cell
@@ -455,6 +487,16 @@ export function startLiveWalk(
       conditions,
       messages,
       atStop: sim.stayLeftMin > 0,
+      reading: {
+        o2Share: o2,
+        powerShare: power,
+        elapsedMin: sim.elapsedMin,
+        budgetMin: budget,
+        spareMin,
+        homeMin: homeMin * (1 + EVA_LIMITS.walkbackPad),
+        slopeDeg: slope,
+        limitDeg: grid.maxSafeSlopeDeg,
+      },
     })
     tiles(suits, [...critical.slice(0, 4), { label: 'Doing', value: phase }])
     tiles(weather, conditions)
