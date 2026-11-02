@@ -2,6 +2,7 @@
  * The mission dock: a stepped panel along the bottom of the screen while a mission plays over the
  * map. One decision per step; Back and Next move between steps; the last step finishes.
  */
+import { parseCount } from '../core/cargo'
 import { el } from './dom'
 
 export type DockStep = {
@@ -115,23 +116,39 @@ export function openDock(opts: DockOptions): Dock {
   }
 }
 
-/** A − value + control with a visible label and spoken button names. */
+/** A − value + control with a visible label and spoken button names; `typed` makes the value a field. */
 export function stepper(o: {
   label: string
   unit: string
   value: number
   max: number
   step: number
+  typed?: boolean
   onChange: (value: number) => void
 }): HTMLElement {
   let value = o.value
+  const unitName = () => (value === 1 ? o.unit.replace(/s$/, '') : o.unit)
   const out = el('output', { className: 'stepper-value' })
+  const input = el('input', {
+    className: 'stepper-input',
+    type: 'number',
+    inputMode: 'numeric',
+    autocomplete: 'off',
+    min: '0',
+    max: String(o.max),
+    step: '1',
+    ariaLabel: `${o.label} in ${o.unit}`,
+  })
+  const unit = el('span', { className: 'stepper-unit' })
   const minus = el('button', { type: 'button', className: 'stepper-btn', textContent: '−' })
   const plus = el('button', { type: 'button', className: 'stepper-btn', textContent: '+' })
   minus.setAttribute('aria-label', `Less ${o.label.toLowerCase()}`)
   plus.setAttribute('aria-label', `More ${o.label.toLowerCase()}`)
   const paint = () => {
-    out.textContent = `${value.toLocaleString('en-US')} ${value === 1 ? o.unit.replace(/s$/, '') : o.unit}`
+    out.textContent = `${value.toLocaleString('en-US')} ${unitName()}`
+    unit.textContent = unitName()
+    // Leave what the player is typing alone: "1500" must not jump to the limit mid-word.
+    if (document.activeElement !== input) input.value = String(value)
     minus.disabled = value <= 0
     plus.disabled = value >= o.max
   }
@@ -142,6 +159,15 @@ export function stepper(o: {
   }
   minus.addEventListener('click', () => set(value - o.step))
   plus.addEventListener('click', () => set(value + o.step))
+  input.addEventListener('input', () => {
+    const typed = parseCount(input.value, o.max)
+    if (typed !== null) set(typed)
+  })
+  // On Enter or leaving the field, show the value actually kept (blank returns to it).
+  input.addEventListener('change', () => {
+    input.value = String(value)
+  })
   paint()
-  return el('div', { className: 'stepper', role: 'group', ariaLabel: o.label }, minus, out, plus)
+  const shown = o.typed ? el('label', { className: 'stepper-field' }, input, unit) : out
+  return el('div', { className: 'stepper', role: 'group', ariaLabel: o.label }, minus, shown, plus)
 }

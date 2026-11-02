@@ -3777,6 +3777,107 @@ body[data-story='mission'] .line-legend {
   font-variant-numeric: tabular-nums;
 }
 
+.stepper-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.stepper-input {
+  width: 5ch;
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--space-1);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--text);
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  appearance: textfield;
+}
+
+.stepper-input::-webkit-inner-spin-button,
+.stepper-input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.drive-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.drive-controls [aria-pressed='true'] {
+  background: var(--nasa-blue);
+  color: #fff;
+}
+
+.drive-speed {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr);
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin-block: var(--space-3);
+}
+
+.drive-speed input {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--nasa-blue-lift);
+}
+
+.drive-speed-value {
+  grid-column: 2;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.place-cards {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+}
+
+.place-entry {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.place-entry > summary {
+  min-height: 32px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.place-card {
+  display: grid;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+}
+
+.place-orbit {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.3);
+}
+
+.place-ring {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  paint-order: stroke;
+}
+
 /* Review step */
 .review-list {
   margin: 0 0 var(--space-3);

@@ -542,7 +542,7 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 | "Low" under 60 sols of a store | Stores bar | **Team choice** |
 
 | Lander A ≤ 18,430 kg, lander B ≤ 40,400 kg of surface payload | Two mass limits in mission 1.1 | DRA 5.0 (Drake 2009) Table 5-1 |
-| Reactors, oxygen plants and solar on lander A; habitat, battery, water, recycler and greenhouse on lander B; food 75% / 25% | Which lander each item weighs on | DRA 5.0 Table 5-1 split, as summarised in `reports/NASA Mars surface logistics planning.md` |
+| Reactors, oxygen plants and solar on lander A; habitat, battery, water, recycler and greenhouse on lander B; food 20% / 80% | Which lander each item weighs on | DRA 5.0 Table 5-1 split, as summarised in `reports/NASA Mars surface logistics planning.md`, except the food: DRA 5.0 splits it 75% / 25%, and 20% / 80% is a team choice |
 | Cargo phase 26.355 kW (oxygen plants 19.7 + return-rocket cooling 6.655) | Blocks 3 reactors with no solar | Rucker et al. 2016, Table 3 |
 | Stored food to the next ship plus 10% | Blocks loading below it; the greenhouse never counts toward it | DRA 5.0 surface margin; "plan for crop failure" is the council's rule (`docs/superpowers/specs/2026-10-28-mission-logistics-logic.md` L5) |
 | Next ship as late as sol 804 | The briefing's worst case | Latest landing among the app's 2035 routes |

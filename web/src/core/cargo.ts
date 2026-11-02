@@ -117,7 +117,7 @@ export const CARGO_ITEMS: readonly CargoItem[] = [
     detail: 'Packed meals for four, 2.39 kg per person per day including packaging.',
     unitKg: foodKg(1),
     max: 1000,
-    step: 25,
+    step: 1,
     unit: 'sols',
     source: 'NASA Life Support Baseline Values and Assumptions Document (BVAD) Rev2, 2022, §3.3.',
     url: 'https://ntrs.nasa.gov/citations/20210024855',
@@ -129,7 +129,7 @@ export const CARGO_ITEMS: readonly CargoItem[] = [
     detail: 'Spare drinking water, used up only when recycling falls short.',
     unitKg: 1,
     max: 5000,
-    step: 250,
+    step: 1,
     unit: 'kg',
     source: 'BVAD Rev2, 2022, Table 3-31: 3.217 kg of drinking water per person per day.',
     url: 'https://ntrs.nasa.gov/citations/20210024855',
@@ -179,8 +179,8 @@ export const LANDER_OF: Record<Exclude<keyof CargoPlan, 'foodSols'>, Lander> = {
   recycler: 'B',
   greenhouseM2: 'B',
 }
-/** Share of the stored food on lander A; the rest comes with the crew (DRA 5.0 Table 5-1). */
-export const FOOD_SHARE_A = 0.75
+/** Share of the stored food on lander A, the rest with the crew: our change, as DRA 5.0 pre-lands 75%. */
+export const FOOD_SHARE_A = 0.2
 export const LANDER_LIMIT_KG: Record<Lander, number> = {
   A: LANDER_A_LIMIT_KG,
   B: LANDER_B_LIMIT_KG,
@@ -288,6 +288,12 @@ export function laterNeeds(plan: CargoPlan): LaterNeed[] {
       ok: (plan.kilopower - 1) * KILOPOWER_DELIVERED_KWE >= CREW_PHASE_KW,
     },
   ]
+}
+
+/** A count typed by the player, whole and within 0 to `max`; null while the field holds no number. */
+export function parseCount(text: string, max: number): number | null {
+  const n = text.trim() === '' ? NaN : Number(text)
+  return Number.isFinite(n) ? Math.min(max, Math.max(0, Math.round(n))) : null
 }
 
 /** Validate a saved plan at the storage boundary. */

@@ -68,6 +68,7 @@ function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElem
       value: plan[i.id],
       max: i.max,
       step: i.step,
+      typed: i.id === 'foodSols' || i.id === 'waterKg',
       onChange: (v) => {
         plan[i.id] = v
         onChange()
@@ -76,7 +77,7 @@ function itemCard(i: CargoItem, plan: CargoPlan, onChange: () => void): HTMLElem
     el(
       'p',
       { className: 'item-meta' },
-      i.id === 'foodSols' ? '75% on lander A, 25% on lander B · ' : `Lander ${LANDER_OF[i.id]} · `,
+      i.id === 'foodSols' ? '20% on lander A, 80% on lander B · ' : `Lander ${LANDER_OF[i.id]} · `,
       i.unitKg === 1 ? '' : `${perUnit(i)} · `,
       i.confidence === 'medium' ? 'derived value · ' : '',
       i.confidence === 'assumption' ? 'mass is a team assumption · ' : '',

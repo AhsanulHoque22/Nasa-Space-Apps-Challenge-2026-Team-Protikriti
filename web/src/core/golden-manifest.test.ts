@@ -1,6 +1,7 @@
 /**
  * NASA's own plan must be valid and winnable in the game (spec 2026-10-28, "First step"): the
- * DRA 5.0 split over two landers, food to the next ship plus 10%, and a 10 m² greenhouse.
+ * DRA 5.0 split over two landers (80% of the food on lander B, our change), food to the next ship plus
+ * 10%, and a 10 m² greenhouse.
  */
 import { describe, expect, it } from 'vitest'
 import { runStores } from './base-stores'
@@ -34,11 +35,11 @@ const run = (grows: boolean) =>
   })
 
 describe('the DRA 5.0 manifest', () => {
-  it('fits both landers, as NASA packed them', () => {
+  it('fits both landers', () => {
     expect(landerMassKg(dra, 'A')).toBeLessThanOrEqual(LANDER_A_LIMIT_KG)
     expect(landerMassKg(dra, 'B')).toBeLessThanOrEqual(LANDER_B_LIMIT_KG)
-    expect(landerMassKg(dra, 'A')).toBeCloseTo(17_300, -3)
-    expect(landerMassKg(dra, 'B')).toBeCloseTo(29_800, -3)
+    expect(landerMassKg(dra, 'A')).toBeCloseTo(12_500, -3)
+    expect(landerMassKg(dra, 'B')).toBeCloseTo(34_600, -3)
   })
 
   it('passes the cargo check with nothing blocking', () => {

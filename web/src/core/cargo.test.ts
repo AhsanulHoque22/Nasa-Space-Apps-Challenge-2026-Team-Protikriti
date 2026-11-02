@@ -9,6 +9,7 @@ import {
   isCargoPlan,
   landerMassKg,
   laterNeeds,
+  parseCount,
 } from './cargo'
 import { HABITAT_KG } from './mission-constants'
 
@@ -55,7 +56,7 @@ describe('checkCargo', () => {
   })
 
   it('blocks a lander over its own limit and says by how much', () => {
-    const heavy = { ...fission, kilopower: 5 }
+    const heavy = { ...fission, kilopower: 5, solar: 3 }
     const over = landerMassKg(heavy, 'A') - 18_430
     expect(over).toBeGreaterThan(0)
     expect(checkCargo(heavy, 760).blocking).toContain(
@@ -150,15 +151,15 @@ describe('regrowth cargo', () => {
 })
 
 describe('two landers', () => {
-  it('puts the reactors, oxygen plants and 75% of the food on lander A', () => {
+  it('puts the reactors, oxygen plants, solar and 20% of the food on lander A', () => {
     const p = { ...empty, kilopower: 1, isru: 1, solar: 1, foodSols: 100 }
-    expect(landerMassKg(p, 'A')).toBeCloseTo(1754 + 385 + 1678 + 2034 + 0.75 * foodKg(100), 6)
+    expect(landerMassKg(p, 'A')).toBeCloseTo(1754 + 385 + 1678 + 2034 + 0.2 * foodKg(100), 6)
   })
 
-  it('puts the habitat, battery, water, recycler, greenhouse and 25% of the food on lander B', () => {
+  it('puts the habitat, battery, water, recycler, greenhouse and 80% of the food on lander B', () => {
     const p = { ...empty, battery: 1, waterKg: 500, recycler: 1, greenhouseM2: 10, foodSols: 100 }
     expect(landerMassKg(p, 'B')).toBeCloseTo(
-      HABITAT_KG + 3168 + 500 + 1400 + 815 + 0.25 * foodKg(100),
+      HABITAT_KG + 3168 + 500 + 1400 + 815 + 0.8 * foodKg(100),
       6,
     )
   })
@@ -183,5 +184,31 @@ describe('laterNeeds', () => {
 
   it('fails a reactor loss with 3 reactors: 2 give 17.5 kW, less than 18.76 kW', () => {
     expect(laterNeeds({ ...fission, kilopower: 3, solar: 1 }).at(-1)?.ok).toBe(false)
+  })
+})
+
+describe('food and water controls', () => {
+  it('move one sol or one kilogram a press', () => {
+    const step = (id: string) => CARGO_ITEMS.find((i) => i.id === id)?.step
+    expect([step('foodSols'), step('waterKg')]).toEqual([1, 1])
+  })
+})
+
+describe('parseCount', () => {
+  it('reads a typed count', () => {
+    expect(parseCount('885', 1000)).toBe(885)
+    expect(parseCount('0', 1000)).toBe(0)
+  })
+
+  it('keeps it a whole number inside the limits, as a saved plan must be', () => {
+    expect(parseCount('885.6', 1000)).toBe(886)
+    expect(parseCount('1500', 1000)).toBe(1000)
+    expect(parseCount('-5', 1000)).toBe(0)
+  })
+
+  it('ignores a field that holds no number yet', () => {
+    expect(parseCount('', 1000)).toBeNull()
+    expect(parseCount('  ', 1000)).toBeNull()
+    expect(parseCount('abc', 1000)).toBeNull()
   })
 })

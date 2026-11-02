@@ -54,7 +54,7 @@ describe('powerOptions', () => {
   })
 
   it('says how much must come off elsewhere when a change breaks a lander’s limit', () => {
-    const p = plan({ kilopower: 1, isru: 2, solar: 2, foodSols: 1000 })
+    const p = plan({ kilopower: 1, isru: 2, solar: 2, foodSols: 1900 })
     const r = powerOptions(p, sunny)
     for (const o of r.options) {
       const after = { ...p }

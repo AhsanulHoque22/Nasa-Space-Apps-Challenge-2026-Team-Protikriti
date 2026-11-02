@@ -32,7 +32,7 @@ const LATEST_SHIP_SOL = 804
 const t = (kg: number) => `${(kg / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })} t`
 const n = (x: number) => Math.round(x).toLocaleString('en-US')
 
-/** NASA's DRA 5.0 manifest, as the game packs it. */
+/** NASA's DRA 5.0 manifest, as the game packs it: 80% of the food on lander B. */
 const DRA: CargoPlan = {
   kilopower: 4,
   solar: 0,
@@ -49,7 +49,7 @@ const LOAD: Record<Lander, Array<[string, number]>> = {
   A: [
     ['Reactors and cabling', DRA.kilopower * unit('kilopower') + FISSION_CABLING_KG],
     ['Oxygen plants', DRA.isru * unit('isru')],
-    ['Food, 75%', food * FOOD_SHARE_A],
+    ['Food, 20%', food * FOOD_SHARE_A],
   ],
   B: [
     ['Habitat', HABITAT_KG],
@@ -57,11 +57,11 @@ const LOAD: Record<Lander, Array<[string, number]>> = {
     ['Recycler', unit('recycler')],
     ['Water', DRA.waterKg],
     ['Greenhouse 10 m²', DRA.greenhouseM2 * unit('greenhouseM2')],
-    ['Food, 25%', food * (1 - FOOD_SHARE_A)],
+    ['Food, 80%', food * (1 - FOOD_SHARE_A)],
   ],
 }
 
-/** Both landers as bars to the same scale, each split into what NASA packs on it. */
+/** Both landers as bars to the same scale, each split into what the game packs on it. */
 function landersFigure(): HTMLElement {
   const W = 640
   const scale = (W - 24) / LANDER_LIMIT_KG.B
@@ -110,7 +110,10 @@ function landersFigure(): HTMLElement {
   return el(
     'figure',
     { className: 'chart' },
-    el('p', { className: 'chart-title', textContent: 'NASA’s packing, to scale' }),
+    el('p', {
+      className: 'chart-title',
+      textContent: 'NASA’s packing with 80% of the food on lander B, to scale',
+    }),
     root,
     legend('A'),
     legend('B'),
@@ -176,7 +179,7 @@ export function briefingStep(): DockStep {
           ),
           point(
             'Where to save weight.',
-            `A water recycler (${t(unit('recycler'))}) replaces about ${t(waterOnceKg)} of water used once. Solar sets (${t(unit('solar'))} each) go on lander A with the food, where room is tight; the battery goes on lander B, which has room.`,
+            `A water recycler (${t(unit('recycler'))}) replaces about ${t(waterOnceKg)} of water used once. Solar sets (${t(unit('solar'))} each) go on lander A; the battery goes on lander B with most of the food.`,
           ),
         ),
         el(
@@ -210,7 +213,7 @@ export function briefingStep(): DockStep {
             rel: 'noopener',
             textContent: 'BVAD Rev2 (food, crops)',
           }),
-          ' · The 75/25 food split and the 10% margin follow DRA 5.0; “sols earned” is the team’s measure.',
+          ' · The 10% food margin follows DRA 5.0. The 20/80 food split is the team’s change: DRA 5.0 pre-lands 75% on lander A. “Sols earned” is the team’s measure.',
         ),
       ),
   }
