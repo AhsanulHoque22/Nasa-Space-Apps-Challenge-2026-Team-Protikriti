@@ -182,6 +182,51 @@
   color: var(--on-field);
 }
 
+/*
+ * The status strip holds gauges and readouts built for a dark ground, in every mission. Give it that
+ * ground, so none of them can match the episode's colour field and vanish.
+ */
+.mission-dock.episodes .dock-header {
+  grid-template-columns: 1fr auto;
+  row-gap: 10px;
+}
+
+.mission-dock.episodes .dock-status {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0 -14px -10px;
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--text);
+}
+
+.mission-dock.episodes .dock-status:empty {
+  display: none;
+}
+
+.mission-dock.episodes .gauges {
+  justify-self: stretch;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.mission-dock.episodes .gauges .gauge {
+  width: 100%;
+  justify-self: stretch;
+}
+
+.mission-dock.episodes .gauge-label {
+  text-align: left;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.mission-dock.episodes .gauge-track {
+  height: 10px;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--cream) 30%, transparent);
+}
+
 .mission-dock.episodes .dock-title {
   margin: 12px 14px 4px;
   font: 400 clamp(36px, 7vw, 56px) / 1 var(--font-title);
