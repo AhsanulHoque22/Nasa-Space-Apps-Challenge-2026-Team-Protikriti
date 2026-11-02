@@ -12,6 +12,7 @@ KML = """<?xml version="1.0" encoding="utf-8" ?>
 <kml xmlns="http://www.opengis.net/kml/2.2"><Document><Folder>
   <Placemark><name>Jezero</name><ExtendedData><SchemaData>
     <SimpleData name="clean_name">Jezero</SimpleData>
+    <SimpleData name="origin">Town in Bosnia and Herzegovina.</SimpleData>
     <SimpleData name="diameter">45.43</SimpleData>
     <SimpleData name="type">Crater, craters</SimpleData>
     <SimpleData name="link">http://planetarynames.wr.usgs.gov/Feature/2885</SimpleData>
@@ -33,6 +34,7 @@ def test_parse_nomenclature_builds_point_features() -> None:
         "type": "Crater",
         "diameter_km": 45.43,
         "link": "https://planetarynames.wr.usgs.gov/Feature/2885",
+        "origin": "Town in Bosnia and Herzegovina.",
     }
 
 

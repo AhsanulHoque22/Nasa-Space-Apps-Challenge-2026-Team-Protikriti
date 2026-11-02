@@ -50,6 +50,11 @@ export async function loadPlaces(): Promise<Place[]> {
         .filter(Boolean)
         .join(' · '),
       sizeKm: Number(f.properties.diameter_km) || 0,
+      feature: {
+        type: String(f.properties.type),
+        origin: String(f.properties.origin ?? ''),
+        link: String(f.properties.link ?? ''),
+      },
     })),
     ...landing.features.map((f): Place => ({
       ...point(f),

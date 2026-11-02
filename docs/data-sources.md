@@ -577,6 +577,13 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 | Driving 0.43 kWh/km | Battery drain while driving | **Derived** from Chappell 2022 totals (3 × 200 kWh, 279 h at 1.85 kW, 194 km); rough |
 | 30% margin applied as a battery reserve; driving only in the first hours of each sol; cart carries one Kilopower (8.75 kW) and the base loses it while away; traverse starts the sol after the water plant | Planner and ledger | **Team assumptions** |
 | Places within 100 km of the base | Traverse stops | IAU Gazetteer of Planetary Nomenclature (USGS), the map's names layer |
+| Each place's type, size and name origin, and its Gazetteer page | Mission 1.9 place cards | IAU Gazetteer (USGS), `MARS_nomenclature_center_pts.kmz`, fields `type`, `diameter`, `origin`, `link` |
+| Meaning of each feature type | Mission 1.9 place cards | IAU descriptor terms, https://planetarynames.wr.usgs.gov/DescriptorTerms (`web/src/core/place-facts.ts`) |
+| Land around a place, about 208 km wide | Mission 1.9 place cards | Viking MDIM 2.1 colour mosaic, 232 m/px, NASA Mars Trek, loaded live |
+| Close view of a place, about 3.3 km wide, where one exists | Mission 1.9 place cards | MRO HiRISE global layer (NASA/JPL-Caltech/University of Arizona, via Esri OnMars), loaded live; the card leaves it out where HiRISE has no image |
+| Photographs that name a place | Mission 1.9 place cards | NASA Image and Video Library, https://images-api.nasa.gov, searched live; kept only if the text names the place and Mars. Each links to its NASA page |
+| Rover on the map: SEV shape at true size, 4.5 m long; drawn at no less than 48 px when zoomed out so it can be found (team choice) | Mission 1.9 drive | SEV fact sheet (2011), same body as the mission's 3D rover stage (`web/src/ui/rover-body.ts`); the shape is drawn from the dimensions, not a model of the real vehicle |
+| Drive speed control: 100× to 10,000× the rover's 10 km/h | Mission 1.9 drive | SEV fact sheet speed; the multiples are a team choice for playback |
 | Elevation along the route | Profile and climbing | MGS MOLA MEGDR, 4 px/deg |
 | Photos jsc2008e138809 and jsc2008e138993 (Lunar Electric Rover, Desert RATS 2008) | Mission 1.9 | NASA/JSC |
 

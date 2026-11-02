@@ -7,6 +7,8 @@ export type Place = {
   lat: number
   detail: string
   sizeKm?: number
+  /** For IAU named features: the type ("Crater"), what the name honours, and its Gazetteer page. */
+  feature?: { type: string; origin: string; link: string }
   /** Map object id this place opens (e.g. "activity:3"), when it has a panel of its own. */
   ref?: string
 }

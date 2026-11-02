@@ -28,6 +28,7 @@ def parse_nomenclature(kml: str) -> list[Feature]:
                     "type": data.get("type", "").split(",")[0],
                     "diameter_km": float(data.get("diameter") or 0.0),
                     "link": data.get("link", "").replace("http://", "https://"),
+                    "origin": data.get("origin", ""),
                 },
             }
         )

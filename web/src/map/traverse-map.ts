@@ -1,6 +1,7 @@
 /**
  * Mission 1.9 on the map: the named places within reach of the base (click one to add or drop
- * it), the planned route through them and back, and the rover's marker as the drive plays.
+ * it), the planned route through them and back, and the rover in 3D as the drive plays, with a
+ * camera that can follow it.
  */
 import {
   BoundingSphere,
@@ -12,14 +13,21 @@ import {
   ConstantProperty,
   CustomDataSource,
   HeadingPitchRange,
+  HeadingPitchRoll,
+  HeightReference,
   LabelStyle,
   Math as CesiumMath,
+  Matrix4,
+  ModelGraphics,
+  PointGraphics,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  Transforms,
   VerticalOrigin,
   type Viewer,
 } from 'cesium'
 import { MARS_SPHERE } from './mars'
+import { roverModelUrl } from './rover-model'
 
 type LonLat = { lon: number; lat: number }
 export type TraverseStopMark = LonLat & { name: string; chosen: boolean; note: string }
@@ -32,8 +40,10 @@ export type TraverseMap = {
     route: readonly LonLat[],
     onPick: (name: string) => void,
   ) => void
-  /** The rover's marker, or null to hide it. */
-  rover: (p: LonLat | null, label?: string) => void
+  /** The rover, facing a compass heading, or null to hide it. */
+  rover: (p: LonLat | null, label?: string, headingDeg?: number) => void
+  /** Keep the camera on the rover (zoom and turn stay free), or let it go. */
+  follow: (on: boolean) => void
   /** Fit the camera to these places. */
   view: (points: readonly LonLat[]) => void
   clear: () => void
@@ -44,6 +54,9 @@ const OTHER = Color.fromCssColorString('#c9d2e3')
 const ROVER = Color.fromCssColorString('#ffb000')
 const DARK = Color.fromCssColorString('#05070C')
 const LIFT_M = 60 // above the drawn ground, so the route is not lost in it
+const ROVER_MIN_PX = 48 // true size up close; zoomed out it never shrinks below this, so it can be found
+const FOLLOW_RANGE_M = 90 // close enough to see the rover at its true size
+const FOLLOW_PITCH_DEG = -25
 const STEP_KM = 1
 
 /** Points every STEP_KM along the great circle from a to b (for a route that follows the ground). */
@@ -70,6 +83,22 @@ export function createTraverseMap(
     Cartesian3.fromDegrees(p.lon, p.lat, surfaceM(p.lon, p.lat) + lift, MARS_SPHERE)
   let onPick: ((name: string) => void) | null = null
   let rover: ReturnType<typeof source.entities.add> | null = null
+  let roverAt: LonLat | null = null
+  let following = false
+  const camera = viewer.camera
+  const frameAt = (p: LonLat) => Transforms.eastNorthUpToFixedFrame(at(p, 0), MARS_SPHERE)
+  const release = () => {
+    // Back to the identity frame: any other transform reads as "following" to the camera guards.
+    if (following) camera.lookAtTransform(Matrix4.IDENTITY)
+    following = false
+  }
+  /** Compass heading to the model's orientation: Cesium's heading 0 faces the model's +x east. */
+  const facing = (p: LonLat, headingDeg: number) =>
+    Transforms.headingPitchRollQuaternion(
+      Cartesian3.fromDegrees(p.lon, p.lat, 0, MARS_SPHERE),
+      new HeadingPitchRoll(CesiumMath.toRadians(headingDeg - 90), 0, 0),
+      MARS_SPHERE,
+    )
 
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
@@ -98,6 +127,7 @@ export function createTraverseMap(
       onPick = pick
       source.entities.removeAll()
       rover = null
+      roverAt = null
       if (route.length > 1) {
         const line = route
           .slice(1)
@@ -134,29 +164,66 @@ export function createTraverseMap(
         })
       }
     },
-    rover: (p, text = 'Rover') => {
+    rover: (p, text = 'Rover', headingDeg = 0) => {
       if (!p) {
+        release()
         if (rover) source.entities.remove(rover)
         rover = null
+        roverAt = null
         return
       }
-      if (!rover)
-        rover = source.entities.add({
-          position: at(p, LIFT_M * 2),
-          point: {
-            pixelSize: 16,
-            color: ROVER,
-            outlineColor: DARK,
-            outlineWidth: 3,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      roverAt = p
+      const ground = Cartesian3.fromDegrees(p.lon, p.lat, 0, MARS_SPHERE)
+      if (!rover) {
+        const added = source.entities.add({
+          position: ground,
+          label: {
+            ...label(text, ROVER, 14),
+            heightReference: HeightReference.RELATIVE_TO_GROUND,
+            pixelOffset: new Cartesian2(0, -ROVER_MIN_PX / 2 - 6),
           },
-          label: label(text, ROVER, 14),
         })
-      rover.position = new ConstantPositionProperty(at(p, LIFT_M * 2))
+        rover = added
+        roverModelUrl().then(
+          (uri) => {
+            added.model = new ModelGraphics({
+              uri,
+              minimumPixelSize: ROVER_MIN_PX,
+              heightReference: HeightReference.RELATIVE_TO_GROUND,
+              enableVerticalExaggeration: false, // it stands on the drawn ground, at its true height
+            })
+          },
+          (error: unknown) => {
+            console.warn('Rover model failed, showing a marker instead:', error)
+            added.point = new PointGraphics({
+              pixelSize: 16,
+              color: ROVER,
+              outlineColor: DARK,
+              outlineWidth: 3,
+              heightReference: HeightReference.RELATIVE_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            })
+          },
+        )
+      }
+      rover.position = new ConstantPositionProperty(ground)
+      rover.orientation = new ConstantProperty(facing(p, headingDeg))
       if (rover.label) rover.label.text = new ConstantProperty(text)
+      // camera.position is relative to the rover here, so the user's zoom and turn carry over.
+      if (following) camera.lookAtTransform(frameAt(p), Cartesian3.clone(camera.position))
+    },
+    follow: (on) => {
+      if (!on || !roverAt) return release()
+      camera.cancelFlight()
+      following = true
+      camera.lookAtTransform(
+        frameAt(roverAt),
+        new HeadingPitchRange(0, CesiumMath.toRadians(FOLLOW_PITCH_DEG), FOLLOW_RANGE_M),
+      )
     },
     view: (points) => {
       if (!points.length) return
+      release()
       const sphere = BoundingSphere.fromPoints(points.map((p) => at(p, 0)))
       viewer.camera.cancelFlight()
       viewer.camera.flyToBoundingSphere(sphere, {
@@ -166,7 +233,9 @@ export function createTraverseMap(
     },
     clear: () => {
       onPick = null
+      release()
       rover = null
+      roverAt = null
       source.entities.removeAll()
     },
   }

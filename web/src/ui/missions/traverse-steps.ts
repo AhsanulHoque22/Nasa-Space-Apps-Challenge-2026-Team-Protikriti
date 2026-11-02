@@ -22,12 +22,20 @@ import {
   planTraverse,
   routeProfile,
 } from '../../core/traverse'
+import {
+  SPEEDS,
+  crossedStop,
+  kmPerSecond,
+  playbackRoute,
+  positionAt,
+} from '../../core/traverse-playback'
 import type { TraverseMap } from '../../map/traverse-map'
 import { el } from '../dom'
 import { warningsFor } from '../lessons'
 import { type DockStep, stepper } from '../mission-dock'
 import { type RoverStage, openRoverStage } from '../rover-stage'
 import { lineChart } from '../line-chart'
+import { placeCard } from '../place-card'
 
 /** Two weeks and about 100 km, as the mission briefing sets it. */
 const GOAL_KM = 100
@@ -35,6 +43,8 @@ const GOAL_KM = 100
 const REACH_KM = 100
 const MAX_CANDIDATES = 14
 const SOL_H = DAYS_PER_SOL * 24
+const DEFAULT_SPEED = 5000 // the whole of a 250 km traverse in about 18 s, as it was
+const MAX_FRAME_S = 0.1 // a stalled frame must not jump the rover past a place
 
 type Photo = { src: string; alt: string; caption: string; credit: string; page: string }
 const SEV_FRONT: Photo = {
@@ -480,6 +490,7 @@ export function traverseSteps(
 
   // --- Step 4 -------------------------------------------------------------------------------------
   let playing = 0
+  let showRover: () => void = () => undefined
   const drive: DockStep = {
     title: 'Drive',
     why: 'Play the traverse. Two crew drive; the other two stay at the base and keep it running.',
@@ -487,50 +498,119 @@ export function traverseSteps(
     nextLabel: 'Finish: the crew are home',
     render: () => {
       const p = plan()
-      const route = path(p)
-      const legs = route
-        .slice(1)
-        .map((b, i) => distanceKm((route[i] as LonLat).lon, (route[i] as LonLat).lat, b.lon, b.lat))
-      const total = legs.reduce((s, d) => s + d, 0)
+      const route = playbackRoute(
+        path(p).map((q) => ({ ...q, name: 'name' in q ? (q.name as string) : undefined })),
+      )
+      const total = route.totalKm
       const status = el('p', {
         className: 'dock-note',
         role: 'status',
         textContent: 'Ready at the base.',
       })
-      const at = (f: number): LonLat => {
-        let left = f * total
-        for (let i = 0; i < legs.length; i++) {
-          const d = legs[i] ?? 0
-          const a = route[i] as LonLat
-          const b = route[i + 1] as LonLat
-          if (left <= d || i === legs.length - 1) {
-            const t = d > 0 ? Math.min(1, left / d) : 1
-            return { lon: a.lon + (b.lon - a.lon) * t, lat: a.lat + (b.lat - a.lat) * t }
-          }
-          left -= d
-        }
-        return home
+      const solAt = (km: number) => Math.max(1, Math.ceil((km / total) * p.sols))
+      let km = 0
+      let last = 0
+      let running = false
+      let speedIndex = SPEEDS.indexOf(DEFAULT_SPEED)
+      const show = () => {
+        const { headingDeg, ...at } = positionAt(route, km)
+        map.rover(at, `Rover · sol ${solAt(km)} of ${Math.ceil(p.sols)}`, headingDeg)
       }
-      const play = el('button', {
+      const play = el('button', { type: 'button', className: 'gate-secondary' })
+      const setRunning = (on: boolean) => {
+        running = on
+        play.textContent = on
+          ? 'Pause'
+          : km > 0 && km < total
+            ? 'Keep driving'
+            : 'Play the traverse'
+        cancelAnimationFrame(playing)
+        if (on) {
+          last = performance.now()
+          playing = requestAnimationFrame(step)
+        }
+      }
+      const cards = el('div', { className: 'place-cards' })
+      const arrive = (name: string) => {
+        const place = places.find((x) => x.name === name)
+        if (!place) return
+        const card = placeCard(
+          place,
+          solAt(km),
+          distanceKm(home.lon, home.lat, place.lon, place.lat),
+        )
+        // Newest open on top; earlier places stay one click away.
+        for (const old of cards.querySelectorAll('details')) old.open = false
+        const entry = el(
+          'details',
+          { className: 'place-entry', open: true },
+          el('summary', { textContent: name }),
+          card,
+        )
+        cards.prepend(entry)
+        status.textContent = `Sol ${solAt(km)}: the crew reach ${name}. Press Keep driving when you are ready.`
+        entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+      function step(now: number) {
+        if (!running) return
+        const from = km
+        const dt = Math.min(MAX_FRAME_S, (now - last) / 1000)
+        last = now
+        const to = Math.min(total, km + dt * kmPerSecond(SPEEDS[speedIndex] as number))
+        const stop = crossedStop(route, from, to)
+        km = stop ? stop.km : to
+        show()
+        status.textContent = `Sol ${solAt(km)}: ${n0(km)} of ${n0(total)} km.`
+        if (stop) {
+          setRunning(false)
+          arrive(stop.name)
+        } else if (km >= total) {
+          setRunning(false)
+          status.textContent = `Home after ${p.sols.toFixed(1)} sols and ${n0(total)} km.`
+        } else playing = requestAnimationFrame(step)
+      }
+      play.addEventListener('click', () => {
+        if (!running && km >= total) {
+          km = 0
+          cards.replaceChildren()
+        }
+        setRunning(!running)
+      })
+      setRunning(false)
+      showRover = show
+
+      const follow = el('button', {
         type: 'button',
         className: 'gate-secondary',
-        textContent: 'Play the traverse',
+        textContent: 'Follow the rover',
       })
-      play.addEventListener('click', () => {
-        cancelAnimationFrame(playing)
-        const start = performance.now()
-        const step = (now: number) => {
-          const f = Math.min(1, (now - start) / 15_000) // the whole traverse in 15 s
-          const sol = Math.max(1, Math.ceil(f * p.sols))
-          map.rover(at(f), `Rover · sol ${sol} of ${Math.ceil(p.sols)}`)
-          status.textContent =
-            f < 1
-              ? `Sol ${sol}: ${n0(f * total)} of ${n0(total)} km.`
-              : `Home after ${p.sols.toFixed(1)} sols and ${n0(total)} km.`
-          if (f < 1) playing = requestAnimationFrame(step)
-        }
-        playing = requestAnimationFrame(step)
+      follow.setAttribute('aria-pressed', 'false')
+      follow.addEventListener('click', () => {
+        const on = follow.getAttribute('aria-pressed') !== 'true'
+        follow.setAttribute('aria-pressed', String(on))
+        map.follow(on)
+        if (!on) map.view(path(p))
       })
+
+      const speedText = el('output', { className: 'drive-speed-value' })
+      const speed = el('input', {
+        type: 'range',
+        min: '0',
+        max: String(SPEEDS.length - 1),
+        step: '1',
+        value: String(speedIndex),
+        id: 'drive-speed',
+      })
+      const paintSpeed = () => {
+        const x = SPEEDS[speedIndex] as number
+        speedText.textContent = `${n0(x)}× real speed · ${kmPerSecond(x).toFixed(1)} km each second`
+        speed.setAttribute('aria-valuetext', `${n0(x)} times real speed`)
+      }
+      speed.addEventListener('input', () => {
+        speedIndex = Number(speed.value)
+        paintSpeed()
+      })
+      paintSpeed()
       return el(
         'div',
         { className: 'site-step' },
@@ -543,14 +623,27 @@ export function traverseSteps(
             }),
           ),
         ),
-        play,
+        el('div', { className: 'drive-controls' }, play, follow),
+        el(
+          'div',
+          { className: 'drive-speed' },
+          el('label', { htmlFor: 'drive-speed', textContent: 'Speed' }),
+          speed,
+          speedText,
+        ),
         status,
+        el('p', {
+          className: 'dock-note',
+          textContent: `The rover is at its true size up close (${ROVER.lengthM.toFixed(1)} m long); zoomed out, it is drawn larger so you can find it. While following, zoom and turn as you like.`,
+        }),
+        cards,
         checks(p),
       )
     },
     onShow: () => {
       redraw(() => undefined)
       map.view(path(plan()))
+      showRover()
     },
     onHide: () => {
       cancelAnimationFrame(playing)
