@@ -20,7 +20,7 @@ describe('heroKPIs', () => {
 
   it('initialises science with static constants', () => {
     const k = heroKPIs()
-    expect(k.science.radiation).toBe('0.67 mSv/d')
+    expect(k.science.radiation).toBe('0.64 mSv/d')
     expect(k.science.unit).toBe('ETi · Jezero')
   })
 
@@ -49,7 +49,7 @@ describe('heroKPIs', () => {
     onHeroChange(fn)
     pushScienceKPIs({ ice: 'abundant' })
     expect(heroKPIs().science.ice).toBe('abundant')
-    expect(heroKPIs().science.radiation).toBe('0.67 mSv/d') // untouched
+    expect(heroKPIs().science.radiation).toBe('0.64 mSv/d') // untouched
     expect(fn).toHaveBeenCalledOnce()
   })
 })

@@ -90,7 +90,7 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Row | Source |
 |---|---|
 | Shallow water ice | **SWIM 2.0** combined ice consistency, 0–1 m depth (Morgan et al. 2021, *Nature Astronomy*), https://swim.psi.edu/. Reduced to 1/4°; covers ±60° latitude. Positive values are consistent with ice. CI builds from an unmodified copy on the repo's `data-mirror` release, because the PSI server is too slow for CI. |
-| Surface radiation | MSL RAD mean surface dose-equivalent rate at Gale ≈ 0.67 mSv/sol (Hassler et al. 2014, *Science* 343). Labelled as the Gale measurement; it varies with altitude and the solar cycle. |
+| Surface radiation | MSL RAD mean surface dose-equivalent rate at Gale 0.64 ± 0.12 mSv/day (Hassler et al. 2014, *Science* 343). Labelled as the Gale measurement; it varies with altitude and the solar cycle. |
 | Daylight, season | Mars24 sun model for the chosen point and sol |
 | Nearest places | IAU gazetteer, landing sites and exploration zones, great-circle distance on the Mars sphere |
 
@@ -391,7 +391,7 @@ Every pin's position comes from data, never placed by eye; the text and its sour
 | Spirit (Gusev, Columbia Hills) | PDS interpolated, science-team-corrected traverse, at the event's sol; equirectangular about 175.5°E, 0°N on the 3,396,190 m sphere. Landing point comes out within ~200 m of the published coordinates; Home Plate at 14.600°S matches 14°36′S | `MERA_traverse.csv`, PDS Geosciences Node / Washington University (traverse by T. Parker), https://an.rsl.wustl.edu/mera/AN/pages/mer/mer_traverse.htm |
 | Opportunity (Victoria crater) | lowest and highest points of the site's terrain model (floor to rim 76 m; published depth ~70 m). The Opportunity traverse (`MERB_traverse_5130.csv`) is relative to the landing point; anchored on published landing coordinates it put Duck Bay ~370 m off the rim, so rover positions are not pinned here | site DEM (this table, Terrain); PDS Geosciences Node |
 | Distances in the text | measured between these positions on the 3,396,190 m sphere (Jezero landing to Three Forks 2.5 km; Bradbury to Pahrump Hills 5.8 km; Spirit landing to Home Plate 3.5 km) | ATLAS |
-| Surface radiation (Gale) | 0.67 mSv/day from cosmic rays, Aug 2012 to Jun 2013 | Hassler et al. 2014, *Science* 343, doi:10.1126/science.1244797, via SwRI press release |
+| Surface radiation (Gale) | 0.64 ± 0.12 mSv/day from cosmic rays, Aug 2012 to Jun 2013 | Hassler et al. 2014, *Science* 343, doi:10.1126/science.1244797, via SwRI press release |
 
 ### Mission 1.2 photos and zone chart
 | Item | Detail | Source |
@@ -606,7 +606,7 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 | Return date: landing + the chosen stay (539 days, then every 780) | Departure date | DRA 5.0; NASA Mars Fact Sheet (as in mission 1.1) |
 | Mars→Earth transfer at that date, lowest C3 over 120–420 days | The flight home, 3D arc | Solved in ATLAS (Lambert) on JPL approximate planet positions |
 | Mars GM 42,828.37 km³/s², radius 3,396.19 km; parking orbit 250 × 33,793 km | Departure burn | NASA Mars Fact Sheet; DRA 5.0 |
-| Cruise 1.8 mSv/day; surface 0.67 mSv/day; career limit 600 mSv | Debrief dose | Zeitlin et al. 2013; Hassler et al. 2014; NASA-STD-3001 Vol. 1 (NASA radiation protection technical brief, https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf) |
+| Cruise 1.8 mSv/day; surface 0.64 mSv/day; career limit 600 mSv | Debrief dose | Zeitlin et al. 2013; Hassler et al. 2014; NASA-STD-3001 Vol. 1 (NASA radiation protection technical brief, https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf) |
 | Habitat shielding not counted | Debrief dose | **Team simplification**, stated on screen |
 | Photos PIA17936 (Earth from Gale, 2014), KSC-314D-0556_0010 (Orion splashdown, 2014), PIA24176 (MOXIE) | Mission 1.11 | NASA/JPL-Caltech/MSSS/TAMU; NASA/KSC; NASA/JPL-Caltech |
 

@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { StoresRun } from './base-stores'
-import { CAREER_LIMIT_MSV, expeditionDose, lowestPoints } from './debrief'
+import { CAREER_LIMIT_MSV, SURFACE_MSV_PER_DAY, expeditionDose, lowestPoints } from './debrief'
+import { DOSE_RATES } from './dose'
 import { DAYS_PER_SOL } from './mission-constants'
 
 describe('expeditionDose', () => {
   it('adds the cruise both ways and the surface stay, against NASA’s 600 mSv career limit', () => {
     const d = expeditionDose({ outboundDays: 200, staySols: 1284, returnDays: 250 })
     expect(d.outboundMsv).toBeCloseTo(200 * 1.8, 6)
-    expect(d.surfaceMsv).toBeCloseTo(1284 * DAYS_PER_SOL * 0.67, 6)
+    expect(d.surfaceMsv).toBeCloseTo(1284 * DAYS_PER_SOL * 0.64, 6)
     expect(d.returnMsv).toBeCloseTo(250 * 1.8, 6)
     expect(d.totalMsv).toBeCloseTo(d.outboundMsv + d.surfaceMsv + d.returnMsv, 6)
     expect(d.shareOfLimit).toBeCloseTo(d.totalMsv / CAREER_LIMIT_MSV, 6)
@@ -30,5 +31,11 @@ describe('lowestPoints', () => {
       water: { sol: 3, value: 300 },
       battery: { sol: 2, value: 100 },
     })
+  })
+})
+
+describe('surface dose', () => {
+  it('matches the RAD figure in the dose table', () => {
+    expect(SURFACE_MSV_PER_DAY).toBe(DOSE_RATES.find((d) => d.id === 'surface')?.msvPerDay)
   })
 })

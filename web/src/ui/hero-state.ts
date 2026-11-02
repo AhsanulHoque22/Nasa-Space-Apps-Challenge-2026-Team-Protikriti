@@ -11,7 +11,7 @@ const state = {
   explore: { temp: DASH, pressure: DASH, sky: DASH, sol: DASH } as ExploreKPIs,
   science: {
     unit: 'ETi · Jezero',
-    radiation: '0.67 mSv/d',
+    radiation: '0.64 mSv/d',
     ice: 'trace',
     firmness: 'medium',
   } as ScienceKPIs,
