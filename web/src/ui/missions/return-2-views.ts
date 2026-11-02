@@ -290,7 +290,7 @@ export function twoExpeditionRadiationView(debrief: Return2Debrief): HTMLElement
     el(
       'p',
       { className: 'item-detail' },
-      `Surface dose: ${Math.round(SURFACE_MSV_PER_YEAR)} mSv/year (RAD at Gale) · Arsia Mons basalt lava tube interior: ${Math.round(SURFACE_MSV_PER_YEAR - debrief.caveShieldingAdvantageMsvYear)} mSv/year. Expedition 2 has scouted and certified a subterranean haven that reduces cosmic radiation by ${debrief.caveShieldingAdvantageMsvYear} mSv/year (97% shielding), enabling indefinite multi-year stays in Expedition 3: Toward Permanence.`,
+      `Surface dose: ${Math.round(SURFACE_MSV_PER_YEAR)} mSv/year (RAD at Gale) · Arsia Mons lava tube interior (team model): ${Math.round(SURFACE_MSV_PER_YEAR - debrief.caveShieldingAdvantageMsvYear)} mSv/year. Expedition 2 has scouted and certified a subterranean haven that reduces cosmic radiation by ${debrief.caveShieldingAdvantageMsvYear} mSv/year (97% shielding), enabling indefinite multi-year stays in Expedition 3: Toward Permanence.`,
     ),
   )
   sanctuaryCard.style.marginTop = '0.75rem'
@@ -373,7 +373,7 @@ export function expedition2CertificateDeck(debrief: Return2Debrief): HTMLElement
       item(
         'Permanent Sanctuary Handover for Expedition 3',
         debrief.caveRelayConnected,
-        'Arsia Mons Lava Tube certified (110m skylight, 97% radiation shielding, 16° ramp)',
+        'Arsia Mons lava tube scouted as a candidate shelter (team model; no cave dose has been measured)',
       ),
       item(
         'Trans-Earth Injection Cruise Readiness',

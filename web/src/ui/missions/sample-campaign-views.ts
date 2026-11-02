@@ -89,7 +89,7 @@ export function sampleMassDashboard(yieldRes: SampleCampaignYield): HTMLElement 
       ),
       bar(
         'Science Breakthrough Score',
-        `${yieldRes.totalScienceScore} pts (Threshold: ≥ ${TARGET_SAMPLE.minScienceScore})`,
+        `${yieldRes.totalScienceScore} (team rating, needs ≥ ${TARGET_SAMPLE.minScienceScore})`,
         scorePct,
         scoreStatus,
       ),
@@ -318,7 +318,7 @@ export function sampleCommissionDeck(yieldRes: SampleCampaignYield): HTMLElement
       item(
         'Scientific Return Threshold (≥ 350 pts)',
         yieldRes.totalScienceScore >= TARGET_SAMPLE.minScienceScore,
-        `${yieldRes.totalScienceScore} pts accumulated`,
+        `${yieldRes.totalScienceScore} (team rating)`,
       ),
       item(
         'Interdisciplinary Balance (≥ 3 Fields)',

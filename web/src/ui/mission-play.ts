@@ -57,6 +57,7 @@ import {
 } from '../core/ice-mining'
 import { caveScoutingSteps } from './missions/cave-scouting-steps'
 import {
+  caveFinishNote,
   computeCaveScoutYield,
   DEFAULT_CAVE_SCOUT_CONFIG,
   type CaveScoutConfig,
@@ -64,6 +65,7 @@ import {
 import { sampleCampaignSteps } from './missions/sample-campaign-steps'
 import {
   computeSampleCampaignYield,
+  sampleFinishNote,
   DEFAULT_SAMPLE_SELECTION,
   type SampleCampaignSelection,
 } from '../core/sample-campaign'
@@ -925,14 +927,7 @@ function playCave2(title: string, ctx: Play): void {
         config: { ...config },
         yield: { ...y },
       })
-      end(
-        next,
-        saved(
-          ctx,
-          next,
-          'Subterranean lava tube certified as permanent sanctuary. 97% cosmic radiation reduction confirmed. Mission 2.5 is done.',
-        ),
-      )
+      end(next, saved(ctx, next, caveFinishNote(y)))
     },
     ctx.progress.cargo2,
   )
@@ -979,14 +974,7 @@ function playSample2(title: string, ctx: Play): void {
         selection: { ...selection },
         yield: { ...y },
       })
-      end(
-        next,
-        saved(
-          ctx,
-          next,
-          `Sample return campaign commissioned: ${y.totalMassKg.toFixed(1)} kg of pristine Martian specimens (${y.totalScienceScore} science points across ${y.disciplinesCovered.length} disciplines) stowed in MAV. Category V planetary protection secured. Expedition 2 is complete!`,
-        ),
-      )
+      end(next, saved(ctx, next, sampleFinishNote(y)))
     },
     ctx.progress.cargo2,
   )
@@ -1062,7 +1050,7 @@ function playReturn2(title: string, ctx: Play): void {
         saved(
           ctx,
           next,
-          `Expedition 2 is over. Outpost safely hibernating, 5,000 kg water secured, Arsia Mons lava tube certified, and 15 kg of Martian samples en route to Earth. Base handed over to Expedition 3: Toward Permanence!`,
+          `Expedition 2 is over. Outpost safely hibernating, 5,000 kg water secured, Arsia Mons lava tube scouted, and 15 kg of Martian samples en route to Earth. Base handed over to Expedition 3: Toward Permanence!`,
         ),
       )
     },

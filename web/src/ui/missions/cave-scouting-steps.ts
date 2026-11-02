@@ -47,9 +47,9 @@ export function caveScoutingSteps(
             'dl',
             { className: 'zone-facts' },
             ...[
-              ['Skylight diameter', '110 m circular collapse rim'],
-              ['Shaft drop depth', '48 m vertical drop to cave floor'],
-              ['Basalt roof thickness', '14.5 m solid columnar basalt'],
+              ['Skylight diameter (team assumption)', '110 m circular collapse rim'],
+              ['Shaft drop depth (team assumption)', '48 m vertical drop to cave floor'],
+              ['Basalt roof thickness (team assumption)', '14.5 m solid columnar basalt'],
               [
                 'Surface radiation dose',
                 `${Math.round(SURFACE_MSV_PER_YEAR)} mSv/year (RAD at Gale)`,
@@ -135,7 +135,7 @@ export function caveScoutingSteps(
     // --- Step 4: Subsurface radiation dosimetry & thermal buffering -----------------------------
     {
       title: 'Subsurface radiation dosimetry',
-      why: 'The 14.5 m basalt roof absorbs 97% of cosmic rays, while eliminating the violent 120°C surface diurnal temperature cycle.',
+      why: 'A team model of an assumed 14.5 m roof, with an assumed coefficient. No cave dose has been measured, so treat the figure as a hope to test.',
       render: () =>
         el(
           'div',

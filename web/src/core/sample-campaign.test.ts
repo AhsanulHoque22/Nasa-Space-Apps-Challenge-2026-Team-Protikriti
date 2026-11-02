@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   computeSampleCampaignYield,
+  sampleFinishNote,
   DEFAULT_SAMPLE_SELECTION,
   type SampleCampaignSelection,
   TARGET_SAMPLE,
@@ -75,5 +76,14 @@ describe('Mission 2.6: Sample campaign core model', () => {
     const yieldRes = computeSampleCampaignYield(DEFAULT_SAMPLE_SELECTION, planNoDrill)
     expect(yieldRes.readyToSeal).toBe(false)
     expect(yieldRes.reasons.some((r) => r.includes('did not pack the Deep Drill Kit'))).toBe(true)
+  })
+})
+
+describe('sample campaign finish note', () => {
+  it('awards no points and leaves Expedition 2 open until the return mission', () => {
+    const note = sampleFinishNote(computeSampleCampaignYield(DEFAULT_SAMPLE_SELECTION))
+    expect(note).not.toMatch(/points|pts/i)
+    expect(note).not.toMatch(/Expedition 2 is complete/i)
+    expect(note).toContain('Mission 2.6 is done')
   })
 })

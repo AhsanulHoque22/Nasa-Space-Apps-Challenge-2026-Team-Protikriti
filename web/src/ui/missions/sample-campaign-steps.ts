@@ -58,7 +58,7 @@ export function sampleCampaignSteps(
                 'MAV return mass ceiling',
                 `${TARGET_SAMPLE.maxReturnMassKg.toFixed(1)} kg strict payload limit`,
               ],
-              ['Science threshold', `≥ ${TARGET_SAMPLE.minScienceScore} composite points`],
+              ['Science value needed (team rating)', `≥ ${TARGET_SAMPLE.minScienceScore}`],
               ['Discipline diversity', `≥ ${TARGET_SAMPLE.minDisciplinesCount} independent fields`],
               ['Containment classification', 'COSPAR Category V (Restricted Earth Return)'],
             ].map(([t, v]) =>

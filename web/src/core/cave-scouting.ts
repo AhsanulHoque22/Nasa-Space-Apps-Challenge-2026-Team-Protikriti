@@ -56,7 +56,7 @@ export function computeCaveScoutYield(
   // Check if rover has shape memory alloy treads from Mission 2.1 (improved slope grip)
   const hasSmaTreads = (cargo2?.roverTreads ?? 1) >= 1
 
-  // Fixed geological measurements of the Arsia Mons volcanic skylight target
+  // Team assumptions for the Arsia Mons skylight target, not measurements: no cave has been surveyed.
   const baseRoofThicknessM = 14.5 // 14.5 m of dense columnar basalt
   const tubeWidthM = 68.0 // 68 m wide underground highway
   const ceilingHeightM = 22.0 // 22 m cathedral ceiling
@@ -64,7 +64,7 @@ export function computeCaveScoutYield(
   const surfaceRadiationMsvYear = SURFACE_MSV_PER_YEAR
 
   // Basalt radiation attenuation: I = I_0 * exp(-rho * mass_attenuation * thickness)
-  // Basalt density ~ 2.9 g/cm^3. At 14.5 m, GCR and secondary neutrons are 97% absorbed.
+  // Team model with an assumed coefficient. No cave dose has been measured (see core/dose.ts).
   const attenuationFactor = Math.exp(-0.24 * baseRoofThicknessM)
   const caveRadiationMsvYear = Math.max(8.5, surfaceRadiationMsvYear * attenuationFactor)
   const radiationReductionPct =
@@ -126,4 +126,9 @@ export function computeCaveScoutYield(
     isCertifiedShelter,
     reasons,
   }
+}
+
+/** What the crew may say at the end of 2.5: the shielding is a model, because nobody has measured it. */
+export function caveFinishNote(y: CaveScoutYield): string {
+  return `Lava tube scouted for Expedition 3. A team model puts its shielding near ${Math.round(y.radiationReductionPct)}%, but no cave dose has been measured. Mission 2.5 is done.`
 }

@@ -188,7 +188,7 @@ export function computeSampleCampaignYield(
 
   if (totalScienceScore < TARGET_SAMPLE.minScienceScore) {
     reasons.push(
-      `Science breakthrough score (${totalScienceScore} pts) below minimum threshold (${TARGET_SAMPLE.minScienceScore} pts). Select higher-value targets.`,
+      `Science value (${totalScienceScore}, a team rating) below the minimum (${TARGET_SAMPLE.minScienceScore}). Select higher-value targets.`,
     )
   }
 
@@ -216,4 +216,9 @@ export function computeSampleCampaignYield(
     readyToSeal,
     reasons,
   }
+}
+
+/** The end of 2.6. Expedition 2 still has its return mission, and a team rating is not a score to win. */
+export function sampleFinishNote(y: SampleCampaignYield): string {
+  return `Samples packed: ${y.totalMassKg.toFixed(1)} kg across ${y.disciplinesCovered.length} fields, stowed for the flight home. Mission 2.6 is done.`
 }
