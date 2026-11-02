@@ -2221,7 +2221,11 @@ body.eva-mode #ui {
   inset: 0;
   content: '';
   pointer-events: none;
-  background: linear-gradient(115deg, color-mix(in srgb, var(--text) 8%, transparent), transparent 36%);
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--text) 8%, transparent),
+    transparent 36%
+  );
   box-shadow: inset 0 0 26px rgb(0 0 0 / 0.65);
 }
 
@@ -3022,7 +3026,11 @@ body[data-mode='science'] {
 
 /* Active tab uses mode accent fill */
 .dock-tabs [role='tab'][aria-selected='true'] {
-  background: color-mix(in srgb, var(--mode-accent, var(--accent-fill)) 85%, transparent) !important;
+  background: color-mix(
+    in srgb,
+    var(--mode-accent, var(--accent-fill)) 85%,
+    transparent
+  ) !important;
   color: var(--text) !important;
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--text) 25%, transparent),
@@ -4148,7 +4156,11 @@ body[data-story='mission'] .line-legend {
   aspect-ratio: 21 / 9; /* a strip: the controls stay in view under it */
   object-fit: cover;
   border-radius: 8px 8px 0 0;
-  background: color-mix(in srgb, var(--text) 6%, transparent); /* holds the space while the photo loads */
+  background: color-mix(
+    in srgb,
+    var(--text) 6%,
+    transparent
+  ); /* holds the space while the photo loads */
 }
 
 .item-photo-caption {
@@ -5832,7 +5844,12 @@ button.journey-label:focus-visible {
   position: relative;
   height: 12px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #8a5532, color-mix(in srgb, var(--text) 12%, transparent) 50%, #9fd3f2);
+  background: linear-gradient(
+    90deg,
+    #8a5532,
+    color-mix(in srgb, var(--text) 12%, transparent) 50%,
+    #9fd3f2
+  );
 }
 
 .swim-zero {
@@ -6053,7 +6070,9 @@ button.journey-label:focus-visible {
   width: min(400px, calc(100vw - 2 * var(--space-4)));
   padding: var(--space-4);
   color: var(--text);
-  background: var(--surface-raised); /* opaque, like the mission dock: no map labels behind the text */
+  background: var(
+    --surface-raised
+  ); /* opaque, like the mission dock: no map labels behind the text */
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }

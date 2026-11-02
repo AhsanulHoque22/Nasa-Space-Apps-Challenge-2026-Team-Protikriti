@@ -566,3 +566,10 @@ body[data-story='mission'] .drawer-toggle {
     pointer-events: auto;
   }
 }
+
+@media (max-width: 719px) {
+  /* Sites stay one tap away in the Plan tab and the search; the top bar keeps only the way back. */
+  .masthead .view-switch {
+    display: none;
+  }
+}

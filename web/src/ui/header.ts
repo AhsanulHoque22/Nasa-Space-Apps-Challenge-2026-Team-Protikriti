@@ -20,14 +20,13 @@ export function renderHeader(
   header.className = 'panel masthead'
   header.innerHTML = `
     <h1 class="brand-heading"><button type="button" class="brand" aria-label="ATLAS: back to start">
-      <svg class="brand-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#0B3D91"/><path d="M4 15c5-4 11-6 17-6" stroke="#FC3D21" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="16" cy="8" r="1.4" fill="#fff"/></svg>
       <span><span class="brand-name">ATLAS</span><span class="brand-sub">Back to start</span></span>
     </button></h1>
     <div class="view-switch" role="group" aria-label="Camera view">
       <button type="button" data-view="mars" aria-pressed="${initialView === 'mars'}">Mars</button>
       ${sites.map((s) => `<button type="button" data-view="${s.id}" aria-pressed="${s.id === initialView}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`).join('')}
     </div>
-    <button type="button" class="story-link">Story mode</button>`
+    <button type="button" class="story-link">The story</button>`
   header.querySelector('.brand')?.addEventListener('click', onStart)
   header.querySelector('.story-link')?.addEventListener('click', onStory)
   const buttons = header.querySelectorAll<HTMLButtonElement>('button[data-view]')
