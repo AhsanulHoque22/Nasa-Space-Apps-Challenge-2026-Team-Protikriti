@@ -4,6 +4,7 @@ How we build ATLAS Story mode, so everyone works the same way. Read this before 
 anything under `web/src/ui/missions/`, `web/src/core/` mission files, or the mission data.
 
 Related documents:
+
 - Design spec (the why and the full mission list): `docs/superpowers/specs/2026-10-25-mission-journey-design.md`
 - Phobos and farming spec (Spec B): `docs/superpowers/specs/2026-10-25-phobos-farming-design.md`
 - Every number and dataset with its source: `docs/data-sources.md`
@@ -25,24 +26,24 @@ Protikriti. ATLAS has two modes, chosen on the start screen:
   until the return window. Missions unlock one after another. A wrong plan fails, and the user
   retries from the failing mission.
 
-**It is not a game.** No points, no invented events, no made-up numbers. It is a guided,
+**No invented numbers or events. No points or streaks. Stakes are real.** It is a guided,
 problem-solving mission built on real NASA plans, real data and real maths.
 
 ### Decisions already taken (do not re-open without the team)
 
-| Topic | Decision |
-|---|---|
-| Login | Local profile in the browser (name only), no backend |
-| Baseline | NASA Design Reference Architecture 5.0, with numbers updated from Rucker et al. 2016 |
-| Crew | 4 people, roles as hats |
-| Finish | Survive 525 sols (539 days) to the return window |
-| Failure | Retry from the failing mission; earlier choices stay as the starting point |
-| Structure | Expeditions made of missions; about 8 playable by the freeze, the rest shown locked with briefings |
-| Spacecraft | DRA 5.0 only. The crew's trajectory is a decision; the vehicle is not |
-| Spec B (Phobos, farming) | Built by us. Greenhouse = mission 1.6, water from ice = locked 1.9, Phobos = event in 1.4 plus locked 3.4 |
-| Look | Hybrid: 3D stage plus charts, guided steps (one decision per step) |
-| Before landing | The rotating globe stays in the background (no flying to a site before we have landed) |
-| Lander visual | No real lander model exists, so the cargo bay shows a habitat plus cargo crates, labelled as a stand-in. The user-supplied `3D models/habitat_lander_pod.glb` is reserved for when a lander is needed (e.g. 1.3 Landing) |
+| Topic                    | Decision                                                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Login                    | Local profile in the browser (name only), no backend                                                                                                                                                                     |
+| Baseline                 | NASA Design Reference Architecture 5.0, with numbers updated from Rucker et al. 2016                                                                                                                                     |
+| Crew                     | 4 people, roles as hats                                                                                                                                                                                                  |
+| Finish                   | Survive 525 sols (539 days) to the return window                                                                                                                                                                         |
+| Failure                  | Retry from the failing mission; earlier choices stay as the starting point                                                                                                                                               |
+| Structure                | Expeditions made of missions; about 8 playable by the freeze, the rest shown locked with briefings                                                                                                                       |
+| Spacecraft               | DRA 5.0 only. The crew's trajectory is a decision; the vehicle is not                                                                                                                                                    |
+| Spec B (Phobos, farming) | Built by us. Greenhouse = mission 1.6, water from ice = locked 1.9, Phobos = event in 1.4 plus locked 3.4                                                                                                                |
+| Look                     | Hybrid: 3D stage plus charts, guided steps (one decision per step)                                                                                                                                                       |
+| Before landing           | The rotating globe stays in the background (no flying to a site before we have landed)                                                                                                                                   |
+| Lander visual            | No real lander model exists, so the cargo bay shows a habitat plus cargo crates, labelled as a stand-in. The user-supplied `3D models/habitat_lander_pod.glb` is reserved for when a lander is needed (e.g. 1.3 Landing) |
 
 ---
 
@@ -83,33 +84,33 @@ pipeline/              Python: builds every derived data file from raw sources
 
 ### 3.1 Core modules (Story mode)
 
-| File | Job |
-|---|---|
-| `core/missions.ts` | `EXPEDITIONS`, `MISSIONS` (id, title, briefing, hats, `built`) |
-| `core/mission-progress.ts` | Progress record, `missionStatus`, `completeMission`, `recordCargo`, `recordSite`, `retryFrom`, load/save with per-mission validators |
-| `core/profile.ts`, `core/local-store.ts` | Profile and safe localStorage (damaged values are backed up, never lost) |
-| `core/mission-constants.ts` | Every DRA 5.0 / Rucker 2016 constant, named with units and a source comment |
-| `core/cargo.ts` | Cargo items, mass, checks |
-| `core/cargo-phase.ts` | Does the oxygen plant fill the return tanks in the worst 420 days? |
-| `core/surface-solar.ts`, `core/power-profile.ts` | Sunlight per sol (Appelbaum & Flood), power through a sol |
-| `core/ephemeris.ts`, `core/lambert.ts`, `core/journey.ts` | Earth–Mars trajectories (JPL elements, Lambert solver) |
-| `core/landing-sites.ts` | ±50° / +2 km limits, which zones have detailed terrain |
-| `core/site-features.ts` | Mission 1.2 points of interest: text, position, source, photo |
+| File                                                      | Job                                                                                                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `core/missions.ts`                                        | `EXPEDITIONS`, `MISSIONS` (id, title, briefing, hats, `built`)                                                                       |
+| `core/mission-progress.ts`                                | Progress record, `missionStatus`, `completeMission`, `recordCargo`, `recordSite`, `retryFrom`, load/save with per-mission validators |
+| `core/profile.ts`, `core/local-store.ts`                  | Profile and safe localStorage (damaged values are backed up, never lost)                                                             |
+| `core/mission-constants.ts`                               | Every DRA 5.0 / Rucker 2016 constant, named with units and a source comment                                                          |
+| `core/cargo.ts`                                           | Cargo items, mass, checks                                                                                                            |
+| `core/cargo-phase.ts`                                     | Does the oxygen plant fill the return tanks in the worst 420 days?                                                                   |
+| `core/surface-solar.ts`, `core/power-profile.ts`          | Sunlight per sol (Appelbaum & Flood), power through a sol                                                                            |
+| `core/ephemeris.ts`, `core/lambert.ts`, `core/journey.ts` | Earth–Mars trajectories (JPL elements, Lambert solver)                                                                               |
+| `core/landing-sites.ts`                                   | ±50° / +2 km limits, which zones have detailed terrain                                                                               |
+| `core/site-features.ts`                                   | Mission 1.2 points of interest: text, position, source, photo                                                                        |
 
 ### 3.2 UI modules
 
-| File | Job |
-|---|---|
-| `ui/profile-gate.ts` | Start screen: profile, mode choice, opens Story mode |
-| `ui/story.ts` | Mission list; hands a mission to the player |
-| `ui/mission-list.ts` | Expeditions and missions; Start / Play again |
-| `ui/mission-play.ts` | Runs a mission on the map (`playCargo`, `playSite`), saves the result |
-| `ui/mission-dock.ts` | The dock: steps, Back/Next, header status, layouts |
-| `ui/missions/cargo-steps.ts`, `journey-step.ts`, `cargo-views.ts` | Mission 1.1 |
-| `ui/missions/site-steps.ts` | Mission 1.2 |
-| `ui/charts.ts` | All SVG charts (power, oxygen, zones) |
-| `ui/journey-scene.ts`, `ui/cargo-bay.ts`, `ui/habitat-viewer.ts` | 3D scenes and the full-screen habitat view |
-| `map/feature-pins.ts` | Numbered pins on the terrain for mission 1.2 |
+| File                                                              | Job                                                                   |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `ui/profile-gate.ts`                                              | Start screen: profile, mode choice, opens Story mode                  |
+| `ui/story.ts`                                                     | Mission list; hands a mission to the player                           |
+| `ui/mission-list.ts`                                              | Expeditions and missions; Start / Play again                          |
+| `ui/mission-play.ts`                                              | Runs a mission on the map (`playCargo`, `playSite`), saves the result |
+| `ui/mission-dock.ts`                                              | The dock: steps, Back/Next, header status, layouts                    |
+| `ui/missions/cargo-steps.ts`, `journey-step.ts`, `cargo-views.ts` | Mission 1.1                                                           |
+| `ui/missions/site-steps.ts`                                       | Mission 1.2                                                           |
+| `ui/charts.ts`                                                    | All SVG charts (power, oxygen, zones)                                 |
+| `ui/journey-scene.ts`, `ui/cargo-bay.ts`, `ui/habitat-viewer.ts`  | 3D scenes and the full-screen habitat view                            |
+| `map/feature-pins.ts`                                             | Numbered pins on the terrain for mission 1.2                          |
 
 ### 3.3 How the pieces talk
 
@@ -132,18 +133,19 @@ A mission is a list of `DockStep`s (`ui/mission-dock.ts`):
 
 ```ts
 type DockStep = {
-  title: string
-  why: string                 // one line: why this decision matters
-  render: () => HTMLElement   // called every time the step is shown
-  nextLabel?: string          // main button text ("Next" by default)
-  onNext?: () => boolean      // return false to stay on the step
-  layout?: 'scene' | 'map'    // wide screens: 'scene' = 3D left, dock right; 'map' = dock left, map right
-  onShow?: () => void         // e.g. fly the camera, open a 3D scene, show pins
-  onHide?: () => void         // undo whatever onShow did
-}
+  title: string;
+  why: string; // one line: why this decision matters
+  render: () => HTMLElement; // called every time the step is shown
+  nextLabel?: string; // main button text ("Next" by default)
+  onNext?: () => boolean; // return false to stay on the step
+  layout?: "scene" | "map"; // wide screens: 'scene' = 3D left, dock right; 'map' = dock left, map right
+  onShow?: () => void; // e.g. fly the camera, open a 3D scene, show pins
+  onHide?: () => void; // undo whatever onShow did
+};
 ```
 
 Rules for steps:
+
 - **One decision per step.** A final step reviews or confirms.
 - **Show, don't tell.** Every step has a visual: a photo card, a live chart, a 3D scene or the map.
 - **"Show the maths"** (a `<details>`) under every chart, filled with the user's own numbers.
@@ -198,11 +200,11 @@ problem (Curtis, algorithm 5.2), the rocket equation. All are cited in
 
 ### 5.3 Placing map pins (mission 1.2 method)
 
-| Source | Use it for | How |
-|---|---|---|
-| `web/public/data/stops/m20.json`, `msl.json` (NASA raw-image metadata) | Perseverance, Curiosity events | The rover's position at the stop nearest the event's sol; say which sol in `located` |
-| PDS Geosciences Node corrected traverse (`MERA_traverse.csv`) | Spirit events | Equirectangular about 175.5°E, 0°N, R = 3,396,190 m, at the event's sol |
-| Site terrain model (`web/public/data/sites/<id>/grid.bin`) | Features measurable from terrain (crater floor, rim) | Lowest/highest cell; check against published sizes |
+| Source                                                                 | Use it for                                           | How                                                                                  |
+| ---------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `web/public/data/stops/m20.json`, `msl.json` (NASA raw-image metadata) | Perseverance, Curiosity events                       | The rover's position at the stop nearest the event's sol; say which sol in `located` |
+| PDS Geosciences Node corrected traverse (`MERA_traverse.csv`)          | Spirit events                                        | Equirectangular about 175.5°E, 0°N, R = 3,396,190 m, at the event's sol              |
+| Site terrain model (`web/public/data/sites/<id>/grid.bin`)             | Features measurable from terrain (crater floor, rim) | Lowest/highest cell; check against published sizes                                   |
 
 Opportunity's traverse (`MERB_traverse_5130.csv`) is relative to the landing point; anchored on
 published landing coordinates it came out ~370 m off Victoria's rim in our terrain, so we do not
@@ -265,7 +267,7 @@ the oxygen preview (mission 1.1). Rules, agreed with the team:
 - **The user tries first.** Nothing shows until there is a NO-GO, and nothing opens until the user
   asks. Verdict text gives no hints of its own.
 - **Options, never a plan.** It names the problem (night cooling or seasonal energy), how far short
-  the tanks are, and up to three *changes* (e.g. "+1 Solar array set") with the mass each adds and
+  the tanks are, and up to three _changes_ (e.g. "+1 Solar array set") with the mass each adds and
   how much must come off other cargo to stay under 40 t. There is no "apply" button: the user makes
   the change.
 - **Computed, not generated.** It tries every addition of up to three power units (reactors, solar
@@ -320,35 +322,35 @@ the oxygen preview (mission 1.1). Rules, agreed with the team:
 
 ## 11. Known traps (each cost us time)
 
-| Trap | What happens | Do this |
-|---|---|---|
-| CSS class names collide | `.zone-name` (zone panel, `all: unset`) wiped chart label styles; `.timeline` had clashed too | Grep `style.css` before naming a class; prefix by feature (`zone-chart-label`, `plan-timeline`) |
-| SVG attributes vs CSS | Any CSS rule beats an SVG presentation attribute such as `text-anchor` | Check computed style in the browser when an SVG looks wrong |
-| Cesium `CLAMP_TO_GROUND` | Points stay at the datum, km above the exaggerated terrain, and drift in tilted views | Place points at `surfaceM(lon, lat)` (rendered ground height), as stops and pins do |
-| Standard site camera | `viewAoi` misses small tiles (Victoria) | Frame a step on its own content (`flyToBoundingSphere` of the pins) |
-| three.js `position` | `object.position = …` throws (read-only) | `object.position.set(x, y, z)` |
-| three.js labels | `CSS2DObject` elements stay in the page after `group.clear()` | Remove label elements first |
-| Map clicks during a mission | Hidden tools reacted to terrain clicks | Keep `body.dataset.story = 'mission'`; new map click handlers must check `isExploring()` |
-| Model materials | Exported glass/metal flags render black or see-through | Inspect and fix the GLB material |
-| HiRISE zeros | 0.0 means failed stereo, not ground at datum | `zero_is_nodata` (section 5.4) |
+| Trap                          | What happens                                                                                                                                                                                 | Do this                                                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| CSS class names collide       | `.zone-name` (zone panel, `all: unset`) wiped chart label styles; `.timeline` had clashed too                                                                                                | Grep `style.css` before naming a class; prefix by feature (`zone-chart-label`, `plan-timeline`)                 |
+| SVG attributes vs CSS         | Any CSS rule beats an SVG presentation attribute such as `text-anchor`                                                                                                                       | Check computed style in the browser when an SVG looks wrong                                                     |
+| Cesium `CLAMP_TO_GROUND`      | Points stay at the datum, km above the exaggerated terrain, and drift in tilted views                                                                                                        | Place points at `surfaceM(lon, lat)` (rendered ground height), as stops and pins do                             |
+| Standard site camera          | `viewAoi` misses small tiles (Victoria)                                                                                                                                                      | Frame a step on its own content (`flyToBoundingSphere` of the pins)                                             |
+| three.js `position`           | `object.position = …` throws (read-only)                                                                                                                                                     | `object.position.set(x, y, z)`                                                                                  |
+| three.js labels               | `CSS2DObject` elements stay in the page after `group.clear()`                                                                                                                                | Remove label elements first                                                                                     |
+| Map clicks during a mission   | Hidden tools reacted to terrain clicks                                                                                                                                                       | Keep `body.dataset.story = 'mission'`; new map click handlers must check `isExploring()`                        |
+| Model materials               | Exported glass/metal flags render black or see-through                                                                                                                                       | Inspect and fix the GLB material                                                                                |
+| HiRISE zeros                  | 0.0 means failed stereo, not ground at datum                                                                                                                                                 | `zero_is_nodata` (section 5.4)                                                                                  |
 | Cesium models on the live map | At close range the drawn terrain keeps refining (hundreds of metres at Gale), so models at the DEM height get buried, clamping jumps between tiles, and in headless Chrome they never showed | Show 3D hardware on a three.js stage in front of the map (cargo bay, landing stage) and only fly the map camera |
-| Prettier reformatting | Exact-text edits fail after Prettier rewraps lines | Re-read the file before editing |
+| Prettier reformatting         | Exact-text edits fail after Prettier rewraps lines                                                                                                                                           | Re-read the file before editing                                                                                 |
 
 ---
 
 ## 12. Status (2026-10-26)
 
-| Mission | Status |
-|---|---|
-| Start screen, profile, mission list, Play again | Done |
-| 1.1 Briefing and cargo | Done: journey (3D trajectories, routes with resources), power, oxygen plant, supplies, review; live charts with Show the maths; 3D cargo bay (NASA habitat, crates, Jezero terrain); full-screen habitat viewer |
-| Flight Director (help after a NO-GO) | Done in 1.1 and 1.2 |
-| 1.2 Choose the landing site | Done: limits chart of all 30 zones; visit to 4 certified sites with zone numbers and 15 sourced, pinned points of interest with NASA photos; oxygen verdict at the chosen site |
-| 1.3 Landing | Done: Perseverance's landing explained with NASA photos; the real onboard footage (offline, captioned); air pressure against elevation for the four sites; touchdown with the lander pod in 3D in front of the real site. The Starship cargo rocket appears once its model file is added (section 6.2) |
-| 1.4 Build the base | Done: place habitat, reactors, arrays and oxygen plant on the real terrain; slope (15°, team assumption), reactor ≥ 1 km (Rucker 2016), array shadow on the darkest sol (10%, team assumption); Flight Director hints on request; sol 1 starting supplies. The Phobos transit event comes later (needs Spec B transit data) |
-| 1.5–1.8 | Planned (see the spec, section 4). 1.6 Greenhouse is blocked until its parameters are sourced |
-| Spec B cores (farming score, greenhouse budget, Phobos transits) | Planned |
-| Everything else | Locked, briefings shown |
+| Mission                                                          | Status                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start screen, profile, mission list, Play again                  | Done                                                                                                                                                                                                                                                                                                                        |
+| 1.1 Briefing and cargo                                           | Done: journey (3D trajectories, routes with resources), power, oxygen plant, supplies, review; live charts with Show the maths; 3D cargo bay (NASA habitat, crates, Jezero terrain); full-screen habitat viewer                                                                                                             |
+| Flight Director (help after a NO-GO)                             | Done in 1.1 and 1.2                                                                                                                                                                                                                                                                                                         |
+| 1.2 Choose the landing site                                      | Done: limits chart of all 30 zones; visit to 4 certified sites with zone numbers and 15 sourced, pinned points of interest with NASA photos; oxygen verdict at the chosen site                                                                                                                                              |
+| 1.3 Landing                                                      | Done: Perseverance's landing explained with NASA photos; the real onboard footage (offline, captioned); air pressure against elevation for the four sites; touchdown with the lander pod in 3D in front of the real site. The Starship cargo rocket appears once its model file is added (section 6.2)                      |
+| 1.4 Build the base                                               | Done: place habitat, reactors, arrays and oxygen plant on the real terrain; slope (15°, team assumption), reactor ≥ 1 km (Rucker 2016), array shadow on the darkest sol (10%, team assumption); Flight Director hints on request; sol 1 starting supplies. The Phobos transit event comes later (needs Spec B transit data) |
+| 1.5–1.8                                                          | Planned (see the spec, section 4). 1.6 Greenhouse is blocked until its parameters are sourced                                                                                                                                                                                                                               |
+| Spec B cores (farming score, greenhouse budget, Phobos transits) | Planned                                                                                                                                                                                                                                                                                                                     |
+| Everything else                                                  | Locked, briefings shown                                                                                                                                                                                                                                                                                                     |
 
 Schedule: missions 1.4–1.8 by 9 Nov; polish, accessibility and offline rehearsal 10–12 Nov;
 feature freeze 14 Nov 12:00. Cut order if behind: 1.6 → locked, 1.5 → locked, landing video →
