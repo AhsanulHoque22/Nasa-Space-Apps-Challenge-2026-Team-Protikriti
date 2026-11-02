@@ -5,6 +5,8 @@ export type HeaderOptions = {
   onView: (view: ViewId) => void
   /** Reopens the start screen (profile and mode choice). */
   onStart: () => void
+  /** Opens Story mode's mission list. */
+  onStory: () => void
   /** The tab shown as selected on first paint; the first site when omitted. */
   initialView?: ViewId
 }
@@ -12,7 +14,7 @@ export type HeaderOptions = {
 export function renderHeader(
   parent: HTMLElement,
   sites: ReadonlyArray<{ id: string; name: string }>,
-  { onView, onStart, initialView = sites[0]?.id }: HeaderOptions,
+  { onView, onStart, onStory, initialView = sites[0]?.id }: HeaderOptions,
 ): void {
   const header = document.createElement('header')
   header.className = 'panel masthead'
@@ -24,8 +26,10 @@ export function renderHeader(
     <div class="view-switch" role="group" aria-label="Camera view">
       <button type="button" data-view="mars" aria-pressed="${initialView === 'mars'}">Mars</button>
       ${sites.map((s) => `<button type="button" data-view="${s.id}" aria-pressed="${s.id === initialView}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`).join('')}
-    </div>`
+    </div>
+    <button type="button" class="story-link">Story mode</button>`
   header.querySelector('.brand')?.addEventListener('click', onStart)
+  header.querySelector('.story-link')?.addEventListener('click', onStory)
   const buttons = header.querySelectorAll<HTMLButtonElement>('button[data-view]')
   for (const button of buttons) {
     button.addEventListener('click', () => {

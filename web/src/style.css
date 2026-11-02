@@ -166,6 +166,24 @@ body {
   color: #fff;
 }
 
+.story-link {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 6px 12px;
+  font: 600 13px var(--font);
+  white-space: nowrap;
+  color: var(--text);
+  background: rgb(91 141 239 / 0.28);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.story-link:hover {
+  background: rgb(91 141 239 / 0.45);
+}
+
 /* Search */
 .visually-hidden {
   position: absolute;

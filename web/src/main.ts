@@ -199,49 +199,57 @@ async function main() {
     return siteView.walk
   }
   const showSite = (id: string) => (siteView.show ? siteView.show(id) : (siteView.pending = id))
-  const openStart = () =>
-    openProfileGate(browserStorage(), [globe, ui], () => {}, {
-      loadZones: () => zonesReady,
-      showSite,
-      showImagery: () => (siteView.imagery ? siteView.imagery() : (siteView.imageryWanted = true)),
-      // Before the viewer exists the opening view is already the turning globe.
-      showGlobe: () => siteView.globe?.(),
-      pins: {
-        show: (features, onPick) => siteView.pins?.show(features, onPick),
-        select: (index) => siteView.pins?.select(index),
+  const openStart = (resume?: 'story') =>
+    openProfileGate(
+      browserStorage(),
+      [globe, ui],
+      () => {},
+      {
+        loadZones: () => zonesReady,
+        showSite,
+        showImagery: () =>
+          siteView.imagery ? siteView.imagery() : (siteView.imageryWanted = true),
+        // Before the viewer exists the opening view is already the turning globe.
+        showGlobe: () => siteView.globe?.(),
+        pins: {
+          show: (features, onPick) => siteView.pins?.show(features, onPick),
+          select: (index) => siteView.pins?.select(index),
+        },
+        landing: {
+          show: (t) => siteView.landing?.show(t),
+          clear: () => siteView.landing?.clear(),
+        },
+        base: {
+          pick: (cb) => siteView.base?.pick(cb),
+          draw: (layout, failing) => siteView.base?.draw(layout, failing),
+          view: (c, r) => siteView.base?.view(c, r),
+          clear: () => siteView.base?.clear(),
+        },
+        declutter: (on) => siteView.declutter?.(on),
+        walk: {
+          layer: (g) => walkMap().layer(g),
+          client: (g) => walkMap().client(g),
+          overlay: (g, kind) => walkMap().overlay(g, kind),
+          crew: (lon, lat, heading, follow) => siteView.walk?.crew(lon, lat, heading, follow),
+          release: () => siteView.walk?.release(),
+          view: (points) => siteView.walk?.view(points),
+          clear: () => siteView.walk?.clear(),
+        },
+        siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
+        swim: getSwim,
+        mola: () => molaReady,
+        places: () => placesOnce,
+        traverse: {
+          draw: (b, s, r, p) => siteView.traverse?.draw(b, s, r, p),
+          rover: (p, t, h) => siteView.traverse?.rover(p, t, h),
+          follow: (on) => siteView.traverse?.follow(on),
+          view: (pts) => siteView.traverse?.view(pts),
+          clear: () => siteView.traverse?.clear(),
+        },
+        showBase: (progress) => siteView.hardware && placeBase(siteView.hardware, progress),
       },
-      landing: {
-        show: (t) => siteView.landing?.show(t),
-        clear: () => siteView.landing?.clear(),
-      },
-      base: {
-        pick: (cb) => siteView.base?.pick(cb),
-        draw: (layout, failing) => siteView.base?.draw(layout, failing),
-        view: (c, r) => siteView.base?.view(c, r),
-        clear: () => siteView.base?.clear(),
-      },
-      declutter: (on) => siteView.declutter?.(on),
-      walk: {
-        layer: (g) => walkMap().layer(g),
-        client: (g) => walkMap().client(g),
-        overlay: (g, kind) => walkMap().overlay(g, kind),
-        crew: (lon, lat, heading, follow) => siteView.walk?.crew(lon, lat, heading, follow),
-        release: () => siteView.walk?.release(),
-        view: (points) => siteView.walk?.view(points),
-        clear: () => siteView.walk?.clear(),
-      },
-      siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
-      swim: getSwim,
-      mola: () => molaReady,
-      places: () => placesOnce,
-      traverse: {
-        draw: (b, s, r, p) => siteView.traverse?.draw(b, s, r, p),
-        rover: (p, t) => siteView.traverse?.rover(p, t),
-        view: (pts) => siteView.traverse?.view(pts),
-        clear: () => siteView.traverse?.clear(),
-      },
-      showBase: (progress) => siteView.hardware && placeBase(siteView.hardware, progress),
-    })
+      resume,
+    )
   if (!decodeView(window.location.search)) openStart()
   const { viewer, hirise, offFoot } = createMarsViewer(globe)
   if (import.meta.env.DEV) Object.assign(window, { viewer }) // console debugging only
@@ -284,7 +292,8 @@ async function main() {
           (home.grid.south + home.grid.north) / 2,
         )
     },
-    onStart: openStart,
+    onStart: () => openStart(),
+    onStory: () => openStart('story'),
     initialView: shared ? undefined : 'mars',
   })
   const ground = createWalkGround(viewer, sites, mola)

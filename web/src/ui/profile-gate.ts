@@ -17,8 +17,8 @@ export function openProfileGate(
   behind: readonly HTMLElement[],
   onMap: () => void,
   services: StoryServices,
-  /** Reopen straight on the mission list, after a mission ends. */
-  resume?: { progress: Progress; note: string | null },
+  /** Reopen straight on the mission list: after a mission ends, or 'story' from the map. */
+  resume?: { progress: Progress; note: string | null } | 'story',
 ): void {
   if (document.querySelector('.gate')) return // already showing
   const loaded = loadProfile(store)
@@ -174,7 +174,7 @@ export function openProfileGate(
     })
   }
 
-  if (profile && resume) openStory(profile, resume)
+  if (profile && resume) openStory(profile, resume === 'story' ? undefined : resume)
   else if (profile) showModes(profile)
   else showCreate()
 }
