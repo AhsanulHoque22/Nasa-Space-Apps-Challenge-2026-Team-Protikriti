@@ -5,6 +5,7 @@
  * Governed by NASA DRA 5.0 §6.3, NASA STD-3001 (Habitable Atmosphere), and TM-20205008027 (Kilopower).
  */
 import type { Cargo2Plan } from './cargo-2'
+import { KILOPOWER_DELIVERED_KWE } from './mission-constants'
 
 export type WakeBaseState = {
   powerConnected: boolean
@@ -41,28 +42,39 @@ export const TARGET_TELEMETRY = {
   minCabinTempC: 18.0,
   cabinPressureKpa: 56.5, // 8.2 psi Exploration standard
   minO2PartialPressureKpa: 18.0, // Nominally 19.2 kPa (34% O2)
-  minPowerKw: 35.0, // Kilopower rated 4-unit output
   minRadiatorEfficiencyPct: 90,
   maxContaminantsPpm: 0.01,
   minWaterFlowLpm: 2.0,
 }
 
+/** The farm of DRA 5.0's plan, for a run with no saved mission 1.1. */
+const DEFAULT_KILOPOWER_UNITS = 4
+/** Team assumption: the base may wake on 90% of the farm's delivered power. */
+const MIN_POWER_SHARE = 0.9
+export const minPowerKw = (units = DEFAULT_KILOPOWER_UNITS) =>
+  units * KILOPOWER_DELIVERED_KWE * MIN_POWER_SHARE
+
 /**
- * Computes live telemetry based on player actions taken so far.
+ * Computes live telemetry based on player actions taken so far. `units`: the Kilopower reactors the
+ * first crew packed in mission 1.1; each delivers what it did for them.
  */
-export function computeWakeTelemetry(state: WakeBaseState, cargo2?: Cargo2Plan): WakeBaseTelemetry {
+export function computeWakeTelemetry(
+  state: WakeBaseState,
+  cargo2?: Cargo2Plan,
+  units = DEFAULT_KILOPOWER_UNITS,
+): WakeBaseTelemetry {
   // Baseline dormancy conditions (Sol ~800 cold soak)
   let cabinTempC = -25.0
   let cabinPressureKpa = 15.0
   let o2PartialPressureKpa = 3.0
-  let fissionPowerKw = 18.5
+  let fissionPowerKw = Math.max(0, units - 2) * KILOPOWER_DELIVERED_KWE // two units idle
   let radiatorEfficiencyPct = 65
   let traceContaminantsPpm = 0.45
   let waterLoopFlowLpm = 0.0
 
   // 1. Trace heaters and power connection
   if (state.powerConnected) {
-    fissionPowerKw += 8.5 // Baseline reactor spin-up from idle
+    fissionPowerKw += KILOPOWER_DELIVERED_KWE // Baseline reactor spin-up from idle
     cabinTempC += 10.0 // Avionics warm up
   }
 
@@ -70,9 +82,9 @@ export function computeWakeTelemetry(state: WakeBaseState, cargo2?: Cargo2Plan):
   const hasStirlingSpare = (cargo2?.stirlingSpare ?? 1) >= 1
   if (state.stirlingInstalled) {
     if (hasStirlingSpare) {
-      fissionPowerKw += 11.5 // Unit #4 back online -> ~38.5 kWe
+      fissionPowerKw += KILOPOWER_DELIVERED_KWE // The failed unit back online: the whole farm
     } else {
-      fissionPowerKw += 3.0 // Emergency degraded bypass -> ~30 kWe
+      fissionPowerKw += 3.0 // Emergency degraded bypass
     }
   }
 
@@ -139,14 +151,15 @@ export type CertificationVerdict = {
 export function checkHabitatCertification(
   state: WakeBaseState,
   cargo2?: Cargo2Plan,
+  units = DEFAULT_KILOPOWER_UNITS,
 ): CertificationVerdict {
-  const t = computeWakeTelemetry(state, cargo2)
+  const t = computeWakeTelemetry(state, cargo2, units)
   const warnings: string[] = []
 
   const hasStirlingSpare = (cargo2?.stirlingSpare ?? 1) >= 1
   if (state.stirlingInstalled && !hasStirlingSpare) {
     warnings.push(
-      'Unit #4 is operating on degraded bypass mode: player did not pack a Stirling spare in Mission 2.1.',
+      'The failed unit is on degraded bypass mode: no Stirling spare was packed in mission 2.1.',
     )
   }
 
@@ -171,8 +184,8 @@ export function checkHabitatCertification(
     power: {
       label: 'Fission Farm Grid Output',
       current: `${t.fissionPowerKw.toFixed(1)} kWe`,
-      target: `≥ ${TARGET_TELEMETRY.minPowerKw.toFixed(1)} kWe`,
-      pass: t.fissionPowerKw >= TARGET_TELEMETRY.minPowerKw,
+      target: `≥ ${minPowerKw(units).toFixed(1)} kWe`,
+      pass: t.fissionPowerKw >= minPowerKw(units),
     },
     cabinTemp: {
       label: 'Habitat Internal Temperature',

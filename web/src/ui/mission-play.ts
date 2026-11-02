@@ -741,7 +741,6 @@ function playWakeBase(title: string, ctx: Play): void {
     () => {
       const next = recordWake2(MISSIONS, ctx.progress, {
         state: { ...state },
-        certifiedAtSol: 540,
       })
       end(
         next,
@@ -753,13 +752,14 @@ function playWakeBase(title: string, ctx: Play): void {
       )
     },
     ctx.progress.cargo2,
+    ctx.progress.cargo?.kilopower,
   )
 
   const dock = openDock({
     missionTitle: title,
     steps,
     status: () => {
-      const telem = computeWakeTelemetry(state, ctx.progress.cargo2)
+      const telem = computeWakeTelemetry(state, ctx.progress.cargo2, ctx.progress.cargo?.kilopower)
       return el(
         'div',
         { className: 'dock-wake-status' },
@@ -777,6 +777,10 @@ function playWakeBase(title: string, ctx: Play): void {
 function playGreenhouse2(title: string, ctx: Play): void {
   document.body.dataset.story = 'mission'
   ctx.services.showGlobe()
+  const firstBase = ctx.progress.cargo && {
+    greenhouseM2: ctx.progress.cargo.greenhouseM2,
+    kilopower: ctx.progress.cargo.kilopower,
+  }
 
   const end = (progress: Progress, note: string | null) => {
     dock.remove()
@@ -796,7 +800,7 @@ function playGreenhouse2(title: string, ctx: Play): void {
     config,
     () => dock.refresh(),
     () => {
-      const y = computeGreenhouse2Yield(config, ctx.progress.cargo2)
+      const y = computeGreenhouse2Yield(config, ctx.progress.cargo2, firstBase)
       const next = recordGreenhouse2(MISSIONS, ctx.progress, {
         config: { ...config, areas: { ...config.areas } },
         yield: { ...y },
@@ -811,13 +815,14 @@ function playGreenhouse2(title: string, ctx: Play): void {
       )
     },
     ctx.progress.cargo2,
+    firstBase,
   )
 
   const dock = openDock({
     missionTitle: title,
     steps,
     status: () => {
-      const y = computeGreenhouse2Yield(config, ctx.progress.cargo2)
+      const y = computeGreenhouse2Yield(config, ctx.progress.cargo2, firstBase)
       return el(
         'div',
         { className: 'dock-wake-status' },
@@ -979,7 +984,7 @@ function playSample2(title: string, ctx: Play): void {
         saved(
           ctx,
           next,
-          `Sample return campaign commissioned! ${y.totalMassKg.toFixed(1)} kg of pristine Martian specimens (${y.totalScienceScore} science points across ${y.disciplinesCovered.length} disciplines) stowed in MAV. Category V planetary protection secured. Expedition 2 is complete!`,
+          `Sample return campaign commissioned: ${y.totalMassKg.toFixed(1)} kg of pristine Martian specimens (${y.totalScienceScore} science points across ${y.disciplinesCovered.length} disciplines) stowed in MAV. Category V planetary protection secured. Expedition 2 is complete!`,
         ),
       )
     },
@@ -1057,7 +1062,7 @@ function playReturn2(title: string, ctx: Play): void {
         saved(
           ctx,
           next,
-          `Expedition 2 concluded successfully! Outpost safely hibernating, 5,000 kg water secured, Arsia Mons lava tube certified, and 15 kg of Martian samples en route to Earth. Base handed over to Expedition 3: Toward Permanence!`,
+          `Expedition 2 is over. Outpost safely hibernating, 5,000 kg water secured, Arsia Mons lava tube certified, and 15 kg of Martian samples en route to Earth. Base handed over to Expedition 3: Toward Permanence!`,
         ),
       )
     },

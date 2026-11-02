@@ -83,10 +83,10 @@ export function baseWearView(): HTMLElement {
       { className: 'base-wear-card view' },
       el('h3', { textContent: 'Subsystem Diagnostic Telemetry' }),
       item(
-        'Fission Farm Unit #4 (Kilopower)',
+        'Fission farm: one Kilopower unit',
         '75% Health · Converter Fault',
         75,
-        'Stirling power conversion unit #4 suffered heat exchanger thermal fatigue. 3 units running (27 kWe); 1 spare converter required on site.',
+        'Stirling power conversion on one unit suffered heat exchanger thermal fatigue. The rest of the farm is running; 1 spare converter required on site.',
         'warn',
       ),
       item(

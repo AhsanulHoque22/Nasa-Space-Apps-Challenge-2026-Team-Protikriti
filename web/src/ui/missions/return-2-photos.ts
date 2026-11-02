@@ -41,7 +41,7 @@ export const RETURN_2_PHOTOS = {
     src: 'media/cargo/iss072e143163.webp',
     alt: 'Expedition crew members collaborating in high-tech orbital flight module.',
     caption:
-      'Interplanetary transit module: Expedition 2 crew completing the 195-day coast back to Earth following trans-Earth injection.',
+      'Interplanetary transit module: Expedition 2 crew on the coast back to Earth following trans-Earth injection.',
     credit: 'NASA/JSC',
     page: `${NASA_IMAGE_BASE}iss072e143163`,
   },

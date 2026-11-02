@@ -26,6 +26,8 @@ export function wakeBaseSteps(
   onStateChange: () => void,
   onCertify: () => void,
   cargo2?: Cargo2Plan,
+  /** Kilopower reactors the first crew packed in mission 1.1. */
+  units?: number,
 ): DockStep[] {
   // Helper for toggle action cards
   const actionCard = (
@@ -76,7 +78,7 @@ export function wakeBaseSteps(
               ['Dormancy duration', '~800 sols (~2.2 Earth years)'],
               ['Cabin temperature', '-25.0 °C (Deep cold soak)'],
               ['Internal pressure', '15.0 kPa (Dry N2 safety blanket)'],
-              ['Fission farm state', '18.5 kWe (Idle baseline, Unit #4 offline)'],
+              ['Fission farm state', 'Two reactors idle, and one with a failed Stirling converter'],
             ].map(([t, v]) =>
               el('div', {}, el('dt', { textContent: t }), el('dd', { textContent: v })),
             ),
@@ -90,17 +92,17 @@ export function wakeBaseSteps(
               'https://www.nasa.gov/reference/human-exploration-of-mars-design-reference-architecture-5-0/',
             ),
           ),
-          wakeTelemetryDashboard(state, cargo2),
+          wakeTelemetryDashboard(state, cargo2, units),
         ),
     },
 
     // --- Step 2: Power grid & Stirling hot-swap --------------------------------------------------
     {
       title: 'Power grid restoration',
-      why: 'Warm the sodium cooling loops to prevent thermal shock, then install the replacement Stirling converter on Unit #4.',
+      why: 'Warm the sodium cooling loops to prevent thermal shock, then install the replacement Stirling converter on the failed unit.',
       render: () => {
         const live = el('div')
-        const refresh = () => live.replaceChildren(wakeTelemetryDashboard(state, cargo2))
+        const refresh = () => live.replaceChildren(wakeTelemetryDashboard(state, cargo2, units))
         refresh()
 
         return el(
@@ -127,7 +129,7 @@ export function wakeBaseSteps(
             ),
             actionCard(
               'Hot-Swap Stirling Converter #4',
-              'Installs the 10 kW Stirling power converter spare packed in Mission 2.1 onto reactor Unit #4.',
+              'Installs the Stirling power converter spare packed in mission 2.1 on the failed reactor, which then delivers its 8.75 kW again.',
               'Install Stirling Unit',
               state.stirlingInstalled,
               () => {
@@ -146,7 +148,7 @@ export function wakeBaseSteps(
       why: 'Pressurize the habitat to NASA exploration standards (56.5 kPa, 34% O2) and install fresh catalytic oxidizer sorbent beds.',
       render: () => {
         const live = el('div')
-        const refresh = () => live.replaceChildren(wakeTelemetryDashboard(state, cargo2))
+        const refresh = () => live.replaceChildren(wakeTelemetryDashboard(state, cargo2, units))
         refresh()
 
         return el(
@@ -183,10 +185,10 @@ export function wakeBaseSteps(
     // --- Step 4: Hibernation anomaly triage -----------------------------------------------------
     {
       title: 'Hibernation anomaly triage',
-      why: 'Resolve two physical anomalies that occurred during the 800-sol uncrewed hibernation: radiator dust coating and a frozen graywater valve.',
+      why: 'Resolve two physical anomalies that occurred while the base slept between crews: radiator dust coating and a frozen graywater valve.',
       render: () => {
         const live = el('div')
-        const refresh = () => live.replaceChildren(wakeTelemetryDashboard(state, cargo2))
+        const refresh = () => live.replaceChildren(wakeTelemetryDashboard(state, cargo2, units))
         refresh()
 
         return el(
@@ -208,7 +210,7 @@ export function wakeBaseSteps(
       why: 'Verify all seven NASA environmental and power flight rules before opening the outer airlock for crew habitation.',
       nextLabel: 'Certify habitat & enter base',
       onNext: () => {
-        const cert = checkHabitatCertification(state, cargo2)
+        const cert = checkHabitatCertification(state, cargo2, units)
         if (!cert.readyForIngress) {
           alert(
             'Flight safety rule violation: all seven subsystem parameters must meet nominal thresholds before crew ingress.',
@@ -223,7 +225,7 @@ export function wakeBaseSteps(
           'div',
           { className: 'site-step' },
           wakeFigure(WAKE_PHOTOS.roverArrival),
-          certificationDeckView(state, cargo2),
+          certificationDeckView(state, cargo2, units),
         ),
     },
   ]

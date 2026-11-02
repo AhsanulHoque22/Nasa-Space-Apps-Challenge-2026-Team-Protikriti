@@ -8,7 +8,12 @@
  */
 import type { Cargo2Plan } from '../../core/cargo-2'
 import { CROPS, type Crop } from '../../core/greenhouse'
-import { computeGreenhouse2Yield, type Greenhouse2Config } from '../../core/greenhouse-2'
+import {
+  computeGreenhouse2Yield,
+  CREW_MEMBER_KCAL_DAY,
+  type FirstBase,
+  type Greenhouse2Config,
+} from '../../core/greenhouse-2'
 import { el } from '../dom'
 import { type DockStep, stepper } from '../mission-dock'
 import { CROP_2_PHOTOS, FACILITY_PHOTOS } from './greenhouse-2-photos'
@@ -28,8 +33,9 @@ export function greenhouse2Steps(
   onConfigChange: () => void,
   onCommission: () => void,
   cargo2?: Cargo2Plan,
+  firstBase?: FirstBase,
 ): DockStep[] {
-  const yieldRes = () => computeGreenhouse2Yield(config, cargo2)
+  const yieldRes = () => computeGreenhouse2Yield(config, cargo2, firstBase)
 
   const cropCard = (c: Crop, onChange: () => void) => {
     const photo = CROP_2_PHOTOS[c.id]
@@ -109,9 +115,18 @@ export function greenhouse2Steps(
             'dl',
             { className: 'zone-facts' },
             ...[
-              ['Hardware capacity', `${(cargo2?.greenhouseExtM2 ?? 50) + 10} m² available`],
-              ['Target autonomy', '≥ 3,000 kcal/day (100% of 1 astronaut)'],
-              ['Power limit', '≤ 25.0 kWe peak lighting allocation'],
+              [
+                'Hardware capacity',
+                `${(cargo2?.greenhouseExtM2 ?? 40) + (firstBase?.greenhouseM2 ?? 10)} m² available`,
+              ],
+              [
+                'Target autonomy',
+                `≥ ${Math.round(CREW_MEMBER_KCAL_DAY).toLocaleString('en-US')} kcal/day (100% of one crew member)`,
+              ],
+              [
+                'Power limit',
+                `≤ ${yieldRes().peakLimitKw.toFixed(1)} kWe: the reactor power the base has to spare`,
+              ],
               ['Water recycling', '≥ 95% closed-loop condensation recovery'],
             ].map(([t, v]) =>
               el('div', {}, el('dt', { textContent: t }), el('dd', { textContent: v })),
@@ -154,7 +169,7 @@ export function greenhouse2Steps(
     // --- Step 3: Photoperiod & power staggering -------------------------------------------------
     {
       title: 'Photoperiod & power staggering',
-      why: 'Lighting all 50 m² at once creates a 33 kWe power spike. Offset Bay A and Bay B day/night cycles to keep peak draw within reactor limits.',
+      why: 'Lighting every bay at once creates a power spike. Offset Bay A and Bay B day/night cycles to keep peak draw within reactor limits.',
       render: () => {
         const live = el('div')
         const refresh = () => live.replaceChildren(nutritionLiveDashboard(yieldRes()))

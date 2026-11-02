@@ -53,6 +53,7 @@ function itemCard(i: Cargo2Item, plan: Cargo2Plan, onChange: () => void): HTMLEl
       value: plan[i.id],
       max: i.max,
       step: i.step,
+      typed: i.id === 'foodBufferSols',
       onChange: (v) => {
         plan[i.id] = v
         onChange()
@@ -62,6 +63,7 @@ function itemCard(i: Cargo2Item, plan: Cargo2Plan, onChange: () => void): HTMLEl
       'p',
       { className: 'item-meta' },
       `${i.unitKg.toLocaleString('en-US')} kg per ${i.unit === 'm²' ? 'm²' : 'unit'} · `,
+      i.massAssumed ? 'mass is a team assumption · ' : '',
       el('a', {
         href: i.url,
         target: '_blank',

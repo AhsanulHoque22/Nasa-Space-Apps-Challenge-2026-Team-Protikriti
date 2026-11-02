@@ -39,15 +39,18 @@ export type Cargo2Item = {
   unit: string
   source: string
   url: string
+  /** True where the mass is not from the cited source: shown to the player, as in mission 1.1. */
+  massAssumed?: boolean
 }
 
 export const CARGO_2_ITEMS: readonly Cargo2Item[] = [
   {
     id: 'stirlingSpare',
-    label: 'Stirling Engine Spare',
+    label: 'Stirling engine spare',
     category: 'spares',
     detail: 'Modular power conversion replacement unit for the Kilopower fission farm.',
     unitKg: 450,
+    massAssumed: true,
     max: 2,
     step: 1,
     unit: 'units',
@@ -56,11 +59,12 @@ export const CARGO_2_ITEMS: readonly Cargo2Item[] = [
   },
   {
     id: 'eclssRefurb',
-    label: 'ECLSS Filter & Membrane Kit',
+    label: 'ECLSS filter and membrane kit',
     category: 'spares',
     detail:
       'Full replacement sorbent beds and catalytic oxidation filters for closed-loop air and water recovery.',
     unitKg: 620,
+    massAssumed: true,
     max: 2,
     step: 1,
     unit: 'kits',
@@ -69,11 +73,12 @@ export const CARGO_2_ITEMS: readonly Cargo2Item[] = [
   },
   {
     id: 'roverTreads',
-    label: 'High-Durability Rover Wheel Set',
+    label: 'High-durability rover wheel set',
     category: 'spares',
     detail:
       'Reinforced nickel-titanium shape memory alloy wheels to replace punctured aluminum treads.',
     unitKg: 380,
+    massAssumed: true,
     max: 2,
     step: 1,
     unit: 'sets',
@@ -82,7 +87,7 @@ export const CARGO_2_ITEMS: readonly Cargo2Item[] = [
   },
   {
     id: 'greenhouseExtM2',
-    label: 'Greenhouse Expansion Hardware',
+    label: 'Greenhouse expansion hardware',
     category: 'upgrades',
     detail:
       'Lightweight truss, LED arrays, root growth chambers, and nutrient distribution to scale up to 50 m².',
@@ -95,11 +100,12 @@ export const CARGO_2_ITEMS: readonly Cargo2Item[] = [
   },
   {
     id: 'rassorMiner',
-    label: 'RASSOR Automated Ice Excavator',
+    label: 'RASSOR automated ice excavator',
     category: 'upgrades',
     detail:
       'Regolith Advanced Surface Systems Operations Robot for shallow ground excavation and ice mining.',
     unitKg: 1150,
+    massAssumed: true,
     max: 1,
     step: 1,
     unit: 'units',
@@ -108,10 +114,11 @@ export const CARGO_2_ITEMS: readonly Cargo2Item[] = [
   },
   {
     id: 'deepDrillKit',
-    label: 'Deep Regolith Drill Core Assembly',
+    label: 'Deep regolith drill core assembly',
     category: 'upgrades',
     detail: '10-meter rotary percussive drill assembly for sub-surface geological strata sampling.',
     unitKg: 480,
+    massAssumed: true,
     max: 1,
     step: 1,
     unit: 'units',
@@ -120,23 +127,24 @@ export const CARGO_2_ITEMS: readonly Cargo2Item[] = [
   },
   {
     id: 'foodBufferSols',
-    label: 'Shelf-Stable Food Reserve',
+    label: 'Shelf-stable food reserve',
     category: 'supplies',
     detail: 'Nutritionally complete shelf-stable meals packed for four crew members.',
     unitKg: DAYS_PER_SOL * CREW_SIZE * FOOD_PACKED_KG_PER_CM_DAY, // ~9.82 kg/sol for 4 crew
     max: 600,
-    step: 50,
+    step: 1,
     unit: 'sols',
     source: 'NASA BVAD Rev2 (2022) §3.3: 2.39 kg/person-day with packaging',
     url: 'https://ntrs.nasa.gov/citations/20210024855',
   },
   {
     id: 'freshFoodPack',
-    label: 'Fresh Produce & Seed Supply',
+    label: 'Fresh produce and seed supply',
     category: 'supplies',
     detail:
       'Vacuum-sealed fresh Earth food items, specialty seed banks, and culinary spices to sustain crew morale.',
     unitKg: 180,
+    massAssumed: true,
     max: 3,
     step: 1,
     unit: 'packs',
@@ -254,8 +262,8 @@ export function readinessChecks2(plan: Cargo2Plan): Expedition2Readiness {
 export function isCargo2Plan(val: unknown): val is Cargo2Plan {
   if (!val || typeof val !== 'object') return false
   const p = val as Record<string, unknown>
-  for (const item of CARGO_2_ITEMS) {
-    if (typeof p[item.id] !== 'number') return false
-  }
-  return true
+  return CARGO_2_ITEMS.every((item) => {
+    const n = p[item.id]
+    return typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= item.max
+  })
 }

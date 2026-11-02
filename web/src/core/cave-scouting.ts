@@ -8,6 +8,11 @@
  * - Permanent subterranean habitat sanctuary certification for Expedition 3.
  */
 import type { Cargo2Plan } from './cargo-2'
+import { SURFACE_MSV_PER_DAY } from './debrief'
+
+const DAYS_PER_YEAR = 365.25
+/** The surface dose mission 1.11 counts (RAD at Gale, Hassler et al. 2014), per year. */
+export const SURFACE_MSV_PER_YEAR = SURFACE_MSV_PER_DAY * DAYS_PER_YEAR
 
 export type EntranceVector = 'north-talus' | 'east-cliff' | 'south-overhang'
 
@@ -49,15 +54,14 @@ export function computeCaveScoutYield(
   cargo2?: Cargo2Plan,
 ): CaveScoutYield {
   // Check if rover has shape memory alloy treads from Mission 2.1 (improved slope grip)
-  const hasSmaTreads = (cargo2?.roverTreads ?? 4) >= 4
+  const hasSmaTreads = (cargo2?.roverTreads ?? 1) >= 1
 
   // Fixed geological measurements of the Arsia Mons volcanic skylight target
   const baseRoofThicknessM = 14.5 // 14.5 m of dense columnar basalt
   const tubeWidthM = 68.0 // 68 m wide underground highway
   const ceilingHeightM = 22.0 // 22 m cathedral ceiling
 
-  // Surface radiation baseline: ~335 mSv/year (Curiosity RAD long-term mean)
-  const surfaceRadiationMsvYear = 335.0
+  const surfaceRadiationMsvYear = SURFACE_MSV_PER_YEAR
 
   // Basalt radiation attenuation: I = I_0 * exp(-rho * mass_attenuation * thickness)
   // Basalt density ~ 2.9 g/cm^3. At 14.5 m, GCR and secondary neutrons are 97% absorbed.
@@ -82,7 +86,7 @@ export function computeCaveScoutYield(
   }
 
   // Scan depth penalty if probe was not deployed deep enough
-  let reasons: string[] = []
+  const reasons: string[] = []
 
   if (config.droneDescentDepthM < 30) {
     reasons.push(

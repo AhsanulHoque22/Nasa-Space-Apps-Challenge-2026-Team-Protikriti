@@ -89,6 +89,13 @@ const RECORDS: ReadonlyArray<readonly [keyof Progress, string, string]> = [
   ['traverse', 'Traverse', 'Mission 1.9 (NASA 2022 surface power study)'],
   ['outage', 'Reactor outage', 'Mission 1.10'],
   ['home', 'Flight home', 'Mission 1.11'],
+  ['cargo2', 'Second lander', 'Mission 2.1'],
+  ['wake2', 'Waking the base', 'Mission 2.2'],
+  ['greenhouse2', 'Larger greenhouse', 'Mission 2.3 (BVAD Rev2 crop yields)'],
+  ['water2', 'Ice mining', 'Mission 2.4'],
+  ['cave2', 'Cave scouting', 'Mission 2.5'],
+  ['sample2', 'Sample campaign', 'Mission 2.6'],
+  ['return2', 'Second flight home', 'Mission 2.7'],
 ]
 
 export type StoryScreen = {

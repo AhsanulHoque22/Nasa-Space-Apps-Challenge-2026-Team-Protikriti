@@ -138,12 +138,11 @@ const isGreenhouse2Record = (v: unknown): v is Greenhouse2Record => {
 
 export type Wake2Record = {
   state: WakeBaseState
-  certifiedAtSol: number
 }
 
 const isWake2Record = (v: unknown): v is Wake2Record => {
   const w = v as Partial<Wake2Record> | null
-  return !!w && typeof w.certifiedAtSol === 'number' && typeof w.state === 'object' && !!w.state
+  return !!w && typeof w.state === 'object' && !!w.state
 }
 
 export type HomeRecord = { returnDays: number }
@@ -293,6 +292,13 @@ const SAVED_RESULT: Readonly<Record<string, (p: Progress) => boolean>> = {
   '1.9': (p) => isTraverseRecord(p.traverse),
   '1.10': (p) => isOutageRecord(p.outage),
   '1.11': (p) => isHomeRecord(p.home),
+  '2.1': (p) => isCargo2Plan(p.cargo2),
+  '2.2': (p) => isWake2Record(p.wake2),
+  '2.3': (p) => isGreenhouse2Record(p.greenhouse2),
+  '2.4': (p) => isWater2Record(p.water2),
+  '2.5': (p) => isCave2Record(p.cave2),
+  '2.6': (p) => isSample2Record(p.sample2),
+  '2.7': (p) => isReturn2Record(p.return2),
 }
 
 export type MissionStatus =
@@ -544,14 +550,7 @@ function isProgress(v: unknown): v is Progress {
     p.version === 1 &&
     typeof p.owner === 'string' &&
     Array.isArray(p.completed) &&
-    p.completed.every((id) => typeof id === 'string') &&
-    (!p.cargo2 || isCargo2Plan(p.cargo2)) &&
-    (!p.wake2 || isWake2Record(p.wake2)) &&
-    (!p.greenhouse2 || isGreenhouse2Record(p.greenhouse2)) &&
-    (!p.water2 || isWater2Record(p.water2)) &&
-    (!p.cave2 || isCave2Record(p.cave2)) &&
-    (!p.sample2 || isSample2Record(p.sample2)) &&
-    (!p.return2 || isReturn2Record(p.return2))
+    p.completed.every((id) => typeof id === 'string')
   )
 }
 

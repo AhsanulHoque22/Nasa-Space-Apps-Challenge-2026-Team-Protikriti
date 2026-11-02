@@ -70,7 +70,7 @@ export const FACILITY_PHOTOS = {
     src: 'media/kilopower/kilopower-mars-base.webp',
     alt: 'Kilopower fission surface power farm deployed on Martian terrain.',
     caption:
-      'Fission surface power farm: the 38.5 kWe grid restored in Mission 2.2 supplies energy for the 50 m² LED canopy. Staggered photoperiods prevent grid blackout.',
+      'Fission surface power farm: the grid restored in mission 2.2 supplies energy for the 50 m² LED canopy. Staggered photoperiods prevent grid blackout.',
     credit: 'NASA/Langley',
     page: 'https://www.nasa.gov/directorates/stmd/game-changing-development-program/kilopower/',
   },

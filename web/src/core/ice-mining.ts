@@ -58,8 +58,8 @@ export function computeIceMiningYield(
   // Check if player packed the RASSOR robot in Mission 2.1
   const hasRassorRobot = (cargo2?.rassorMiner ?? 1) >= 1
 
-  let dailyGrossMeltKg = 0
-  let powerConsumptionKw = 0
+  let dailyGrossMeltKg: number
+  let powerConsumptionKw: number
 
   if (config.architecture === 'rassor-hopper') {
     // RASSOR bucket drums haul 30 kg/hr of extracted ice equivalent at nominal duty

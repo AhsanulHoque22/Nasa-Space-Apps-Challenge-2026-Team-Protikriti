@@ -8,8 +8,9 @@
  * - Trans-Earth Injection (TEI) orbital mechanics and cumulative crew radiation dosimetry.
  * - Formal handover certification to Expedition 3 ("Toward Permanence").
  */
+import { SURFACE_MSV_PER_YEAR } from './cave-scouting'
+import { CAREER_LIMIT_MSV, expeditionDose } from './debrief'
 import type { Progress } from './mission-progress'
-import { CAREER_LIMIT_MSV } from './debrief'
 
 export type PowerGridMode = 'standby-trickle' | 'deep-shutdown' | 'overdrive'
 export type GreenhousePreservation = 'cryo-seed-bank' | 'unattended-growth' | 'vent-to-vacuum'
@@ -63,7 +64,11 @@ export const TARGET_RETURN_2 = {
   minStandbyPowerKw: 10.0,
   maxStandbyPowerKw: 18.0,
   waterBufferKg: 5000,
+  /** Flight home when no run is saved (the fallback the return step's trajectory also uses). */
   nominalReturnDays: 195,
+  /** Outbound flight and stay when no run is saved: DRA 5.0's conjunction-class stay. */
+  nominalOutboundDays: 195,
+  nominalStaySols: 525,
   careerLimitMsv: CAREER_LIMIT_MSV, // 600 mSv
 }
 
@@ -75,7 +80,7 @@ export function computeReturn2Debrief(
   const reasons: string[] = []
 
   // 1. Power grid standby evaluation
-  let powerStandbyKw = 0
+  let powerStandbyKw: number
   let powerGridSafed = false
   if (config.powerGridMode === 'standby-trickle') {
     powerStandbyKw = 13.5 // Steady baseline to keep trace heaters & telemetry online
@@ -83,7 +88,7 @@ export function computeReturn2Debrief(
   } else if (config.powerGridMode === 'deep-shutdown') {
     powerStandbyKw = 0.5
     reasons.push(
-      'Deep shutdown will cause cold-soak freezing of radiators, pumps, and electronics during the 780-sol dormancy.',
+      'Deep shutdown will cause cold-soak freezing of radiators, pumps, and electronics while the base sleeps between crews.',
     )
   } else {
     powerStandbyKw = 38.0
@@ -149,12 +154,20 @@ export function computeReturn2Debrief(
   const expedition2TotalScience = sampleScore + waterScore + caveScore + ghScore
 
   // 7. Radiation dosimetry
-  const outboundDoseMsv = 105 // TMI transit cruise
-  const surfaceDoseMsv = 110 // Surface habitat stay with partial regolith banking
-  const returnDoseMsv = 95 // TEI transit cruise
-  const radiationTotalMsv = outboundDoseMsv + surfaceDoseMsv + returnDoseMsv
-  const careerDosePercent = Math.round((radiationTotalMsv / TARGET_RETURN_2.careerLimitMsv) * 100)
-  const caveShieldingAdvantageMsvYear = 335 - 10 // 325 mSv/yr reduction in lava tube
+  // Same rates and the same trip as mission 1.11's debrief: the second crew flew the same way.
+  const earthReturnDays = progress?.home?.returnDays ?? TARGET_RETURN_2.nominalReturnDays
+  const dose = expeditionDose({
+    outboundDays: progress?.crewRouteDays ?? TARGET_RETURN_2.nominalOutboundDays,
+    staySols: progress?.stay?.sols ?? TARGET_RETURN_2.nominalStaySols,
+    returnDays: earthReturnDays,
+  })
+  const outboundDoseMsv = dose.outboundMsv
+  const surfaceDoseMsv = dose.surfaceMsv
+  const returnDoseMsv = dose.returnMsv
+  const radiationTotalMsv = dose.totalMsv
+  const careerDosePercent = Math.round(dose.shareOfLimit * 100)
+  const caveShieldingAdvantageMsvYear =
+    SURFACE_MSV_PER_YEAR - (progress?.cave2?.yield.caveRadiationMsvYear ?? 0)
 
   const success = hibernationSafe && mavLaunchAuthorized && reasons.length === 0
 
@@ -165,7 +178,7 @@ export function computeReturn2Debrief(
     greenhouseDormancyReady,
     caveRelayConnected,
     mavLaunchAuthorized,
-    earthReturnDays: TARGET_RETURN_2.nominalReturnDays,
+    earthReturnDays,
     expedition2TotalScience,
     outboundDoseMsv,
     surfaceDoseMsv,

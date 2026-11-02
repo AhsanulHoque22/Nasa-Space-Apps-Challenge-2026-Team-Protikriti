@@ -2,7 +2,11 @@
  * Visual dashboards, nutrition meters, 24h power chart, and closed-loop water views
  * for Mission 2.3: "Greenhouse scale-up".
  */
-import { type Greenhouse2Config, type Greenhouse2Yield } from '../../core/greenhouse-2'
+import {
+  CREW_MEMBER_KCAL_DAY,
+  type Greenhouse2Config,
+  type Greenhouse2Yield,
+} from '../../core/greenhouse-2'
 import { el } from '../dom'
 import type { Greenhouse2Photo } from './greenhouse-2-photos'
 
@@ -44,8 +48,8 @@ export function nutritionLiveDashboard(yieldRes: Greenhouse2Yield): HTMLElement 
     )
   }
 
-  const calPct = (yieldRes.kcalPerDay / 3000) * 100
-  const calStatus = yieldRes.kcalPerDay >= 3000 ? 'nominal' : 'alert'
+  const calPct = (yieldRes.kcalPerDay / CREW_MEMBER_KCAL_DAY) * 100
+  const calStatus = yieldRes.kcalPerDay >= CREW_MEMBER_KCAL_DAY ? 'nominal' : 'alert'
 
   const proteinPct = Math.min(100, (yieldRes.proteinGramsPerDay / 60) * 100)
   const proteinStatus = yieldRes.proteinGramsPerDay >= 50 ? 'nominal' : 'warning'
@@ -53,8 +57,8 @@ export function nutritionLiveDashboard(yieldRes: Greenhouse2Yield): HTMLElement 
   const areaPct = Math.min(100, (yieldRes.totalAreaM2 / 60) * 100)
   const areaStatus = yieldRes.totalAreaM2 >= 40 ? 'nominal' : 'warning'
 
-  const powerStatus = yieldRes.peakPowerKw <= 25.0 ? 'nominal' : 'alert'
-  const powerPct = Math.min(100, (yieldRes.peakPowerKw / 35.0) * 100)
+  const powerStatus = yieldRes.peakPowerKw <= yieldRes.peakLimitKw ? 'nominal' : 'alert'
+  const powerPct = Math.min(100, (yieldRes.peakPowerKw / (yieldRes.peakLimitKw * 1.4)) * 100)
 
   return el(
     'div',
@@ -78,7 +82,7 @@ export function nutritionLiveDashboard(yieldRes: Greenhouse2Yield): HTMLElement 
       bar('Planted Crop Canopy', `${yieldRes.totalAreaM2} m² of 60 m²`, areaPct, areaStatus),
       bar(
         'Peak Lighting Power',
-        `${yieldRes.peakPowerKw.toFixed(1)} kWe (Limit: 25 kWe)`,
+        `${yieldRes.peakPowerKw.toFixed(1)} kWe (Limit: ${yieldRes.peakLimitKw.toFixed(1)} kWe)`,
         powerPct,
         powerStatus,
       ),
@@ -117,14 +121,14 @@ export function staggeredPowerView(
     el('p', {
       className: 'anomaly-desc',
       textContent:
-        'Crops require 12 to 20 hours of daily photon flux. Lighting all bays simultaneously creates a 33 kWe power spike, threatening the Kilopower reactor farm. Staggering Bay A and Bay B shaves peak load by 45%.',
+        'Crops require 12 to 20 hours of daily photon flux. Lighting all bays at once creates a power spike the Kilopower farm cannot spare. Staggering Bay A and Bay B shaves peak load by 45%.',
     }),
     el(
       'div',
       { className: 'anomaly-choices' },
       btn(
         'Staggered Dual-Bay Day/Night (Recommended)',
-        `Bay A runs 06:00–18:00; Bay B runs 18:00–06:00. Peak power: ${yieldRes.peakPowerKw.toFixed(1)} kWe. Fits safely within the 25 kWe reactor lighting allocation.`,
+        `Bay A runs 06:00–18:00; Bay B runs 18:00–06:00. Peak power: ${yieldRes.peakPowerKw.toFixed(1)} kWe. The reactors have ${yieldRes.peakLimitKw.toFixed(1)} kWe to spare.`,
         config.lightingMode === 'staggered',
         () => {
           config.lightingMode = 'staggered'
@@ -226,8 +230,8 @@ export function greenhouseCommissionDeck(yieldRes: Greenhouse2Yield): HTMLElemen
       'div',
       { className: 'cert-list' },
       item(
-        '1-Crew Food Autonomy (≥ 3,000 kcal/day)',
-        yieldRes.kcalPerDay >= 3000,
+        `1-Crew Food Autonomy (≥ ${Math.round(CREW_MEMBER_KCAL_DAY).toLocaleString('en-US')} kcal/day)`,
+        yieldRes.kcalPerDay >= CREW_MEMBER_KCAL_DAY,
         `${Math.round(yieldRes.kcalPerDay).toLocaleString('en-US')} kcal/day (${(yieldRes.foodShareCrew * 100).toFixed(0)}% of 1 crew member)`,
       ),
       item(
@@ -236,8 +240,8 @@ export function greenhouseCommissionDeck(yieldRes: Greenhouse2Yield): HTMLElemen
         `${yieldRes.totalAreaM2} m² planted`,
       ),
       item(
-        'Kilopower Safe Lighting Margin (≤ 25.0 kWe)',
-        yieldRes.peakPowerKw <= 25.0,
+        `Reactor power to spare (≤ ${yieldRes.peakLimitKw.toFixed(1)} kWe)`,
+        yieldRes.peakPowerKw <= yieldRes.peakLimitKw,
         `${yieldRes.peakPowerKw.toFixed(1)} kWe peak load`,
       ),
       item(

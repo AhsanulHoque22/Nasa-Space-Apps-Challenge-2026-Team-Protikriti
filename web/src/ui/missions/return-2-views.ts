@@ -2,6 +2,7 @@
  * Visual dashboards, dormancy configuration decks, MAV preflight cards,
  * and Expedition 3 handover certification for Mission 2.7: "Return".
  */
+import { SURFACE_MSV_PER_YEAR } from '../../core/cave-scouting'
 import {
   TARGET_RETURN_2,
   type BaseHibernationConfig,
@@ -117,7 +118,7 @@ export function hibernationConfigView(
     el('p', {
       className: 'anomaly-desc',
       textContent:
-        'Between crewed expeditions (~780 sols), the surface base must operate in an autonomous low-power standby mode to protect water stockpiles, fluid loops, and communications.',
+        'Between crewed expeditions, the surface base must operate in an autonomous low-power standby mode to protect water stockpiles, fluid loops, and communications.',
     }),
     el('h5', { textContent: '1. Kilopower Grid Standby Baseline' }),
     el(
@@ -289,7 +290,7 @@ export function twoExpeditionRadiationView(debrief: Return2Debrief): HTMLElement
     el(
       'p',
       { className: 'item-detail' },
-      `Surface unshielded GCR/SPE dose: 335 mSv/year · Arsia Mons basalt lava tube interior: 10 mSv/year. Expedition 2 has scouted and certified a subterranean haven that reduces cosmic radiation by ${debrief.caveShieldingAdvantageMsvYear} mSv/year (97% shielding), enabling indefinite multi-year stays in Expedition 3: Toward Permanence.`,
+      `Surface dose: ${Math.round(SURFACE_MSV_PER_YEAR)} mSv/year (RAD at Gale) · Arsia Mons basalt lava tube interior: ${Math.round(SURFACE_MSV_PER_YEAR - debrief.caveShieldingAdvantageMsvYear)} mSv/year. Expedition 2 has scouted and certified a subterranean haven that reduces cosmic radiation by ${debrief.caveShieldingAdvantageMsvYear} mSv/year (97% shielding), enabling indefinite multi-year stays in Expedition 3: Toward Permanence.`,
     ),
   )
   sanctuaryCard.style.marginTop = '0.75rem'
@@ -301,14 +302,26 @@ export function twoExpeditionRadiationView(debrief: Return2Debrief): HTMLElement
     el(
       'div',
       { className: 'wake-grid' },
-      bar('Outbound Cruise (TMI)', debrief.outboundDoseMsv, 200),
-      bar('Mars Surface Stay', debrief.surfaceDoseMsv, 200),
-      bar('Earth Return Cruise (TEI)', debrief.returnDoseMsv, 200),
-      bar('Total Expedition 2 Dose', debrief.radiationTotalMsv, TARGET_RETURN_2.careerLimitMsv),
+      bar(
+        'Outbound Cruise (TMI)',
+        Math.round(debrief.outboundDoseMsv),
+        TARGET_RETURN_2.careerLimitMsv,
+      ),
+      bar('Mars Surface Stay', Math.round(debrief.surfaceDoseMsv), TARGET_RETURN_2.careerLimitMsv),
+      bar(
+        'Earth Return Cruise (TEI)',
+        Math.round(debrief.returnDoseMsv),
+        TARGET_RETURN_2.careerLimitMsv,
+      ),
+      bar(
+        'Total Expedition 2 Dose',
+        Math.round(debrief.radiationTotalMsv),
+        TARGET_RETURN_2.careerLimitMsv,
+      ),
     ),
     el('p', {
       className: 'dock-note',
-      textContent: `Total cumulative mission dose: ${debrief.radiationTotalMsv} mSv (${debrief.careerDosePercent}% of NASA STD-3001 ${TARGET_RETURN_2.careerLimitMsv} mSv career limit). Nominal health status.`,
+      textContent: `Total cumulative mission dose: ${Math.round(debrief.radiationTotalMsv)} mSv (${debrief.careerDosePercent}% of NASA STD-3001 ${TARGET_RETURN_2.careerLimitMsv} mSv career limit). ${debrief.careerDosePercent > 100 ? 'Over the limit, as a long stay at these rates is.' : 'Within the limit.'}`,
     }),
     sanctuaryCard,
   )

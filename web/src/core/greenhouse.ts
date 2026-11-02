@@ -113,8 +113,8 @@ export const CROPS: readonly Crop[] = [
   },
 ]
 
-const LED_UMOL_PER_J = 1.66
-const LIGHT_DELIVERY = 0.8
+export const LED_UMOL_PER_J = 1.66
+export const LIGHT_DELIVERY = 0.8
 const CREW_MJ_PER_DAY = 12.707
 const KJ_PER_KCAL = 4.184
 /** Oxygen a crew member breathes, kg a day (BVAD Rev2 Table 3-31). */

@@ -100,8 +100,8 @@ describe('progress storage', () => {
 
   it('saves and restores completed missions', () => {
     const s = store()
-    expect(saveProgress(s, { version: 1, owner, completed: ['2.1'] })).toBe(true)
-    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['2.1'])
+    expect(saveProgress(s, { version: 1, owner, completed: ['1.3'] })).toBe(true)
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.3'])
   })
 
   it('starts fresh, without a warning, when the saved progress belongs to another profile', () => {
@@ -116,9 +116,9 @@ describe('progress storage', () => {
 
   it('drops mission ids that no longer exist instead of failing', () => {
     const s = store({
-      [PROGRESS_KEY]: JSON.stringify({ version: 1, owner, completed: ['2.1', '9.9'] }),
+      [PROGRESS_KEY]: JSON.stringify({ version: 1, owner, completed: ['1.3', '9.9'] }),
     })
-    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['2.1'])
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual(['1.3'])
   })
 
   it('keeps damaged progress aside and says so', () => {
@@ -628,5 +628,23 @@ describe('recordReturn2', () => {
     saveProgress(s, p)
     const loaded = loadProgress(s, owner, ['2.6', '2.7'])
     expect(loaded.progress.return2).toEqual(returnData)
+  })
+})
+
+describe('a damaged Expedition 2 record', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const ids = ['1.1', '2.1']
+  const saved = (extra: Record<string, unknown>) =>
+    store({ 'atlas.progress': JSON.stringify({ version: 1, owner, completed: [], ...extra }) })
+
+  it('does not throw away the rest of the crew’s progress', () => {
+    const s = saved({ completed: ['2.1'], cargo2: { junk: true } })
+    expect(loadProgress(s, owner, ids).progress.owner).toBe(owner)
+    expect(loadProgress(s, owner, ids).note).toBeNull()
+  })
+
+  it('reopens only the mission whose result is unusable', () => {
+    const s = saved({ completed: ['2.1'], cargo2: { junk: true } })
+    expect(loadProgress(s, owner, ids).progress.completed).toEqual([])
   })
 })

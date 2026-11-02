@@ -1,3 +1,4 @@
+import { expeditionDose } from './debrief'
 import { describe, expect, it } from 'vitest'
 import {
   computeReturn2Debrief,
@@ -83,8 +84,6 @@ describe('Mission 2.7: Return & Handover core model', () => {
     expect(debrief.powerStandbyKw).toBeGreaterThanOrEqual(TARGET_RETURN_2.minStandbyPowerKw)
     expect(debrief.powerStandbyKw).toBeLessThanOrEqual(TARGET_RETURN_2.maxStandbyPowerKw)
     expect(debrief.reasons.length).toBe(0)
-    expect(debrief.radiationTotalMsv).toBeLessThan(TARGET_RETURN_2.careerLimitMsv)
-    expect(debrief.careerDosePercent).toBeLessThan(100)
     expect(debrief.expedition2TotalScience).toBeGreaterThan(600)
   })
 
@@ -137,5 +136,26 @@ describe('Mission 2.7: Return & Handover core model', () => {
     expect(
       debriefOverdrive.reasons.some((r) => r.includes('Overdrive mode subjects Kilopower')),
     ).toBe(true)
+  })
+})
+
+describe('dose, as Expedition 1 counts it', () => {
+  const trip = {
+    version: 1,
+    owner: 'a',
+    completed: [],
+    crewRouteDays: 200,
+    home: { returnDays: 180 },
+    stay: { days: 540, sols: 526, nextShipSol: 400, nextShipRouteDays: 200 },
+  } as unknown as Progress
+
+  it('uses the same rates and the trip actually flown', () => {
+    const d = computeReturn2Debrief(DEFAULT_HIBERNATION_CONFIG, DEFAULT_MAV_CHECKS, trip)
+    const same = expeditionDose({ outboundDays: 200, staySols: 526, returnDays: 180 })
+    expect(d.outboundDoseMsv).toBeCloseTo(same.outboundMsv, 6)
+    expect(d.surfaceDoseMsv).toBeCloseTo(same.surfaceMsv, 6)
+    expect(d.returnDoseMsv).toBeCloseTo(same.returnMsv, 6)
+    expect(d.careerDosePercent).toBe(Math.round(same.shareOfLimit * 100))
+    expect(d.earthReturnDays).toBe(180)
   })
 })

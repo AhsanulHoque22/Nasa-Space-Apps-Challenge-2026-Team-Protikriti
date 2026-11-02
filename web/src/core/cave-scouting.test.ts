@@ -1,3 +1,4 @@
+import { DEFAULT_CARGO_2_PLAN } from './cargo-2'
 import { describe, expect, it } from 'vitest'
 import {
   computeCaveScoutYield,
@@ -11,7 +12,7 @@ describe('Mission 2.5: Cave scouting core model', () => {
   const plan: Cargo2Plan = {
     stirlingSpare: 1,
     eclssRefurb: 1,
-    roverTreads: 4,
+    roverTreads: 1,
     greenhouseExtM2: 50,
     rassorMiner: 1,
     deepDrillKit: 1,
@@ -65,5 +66,19 @@ describe('Mission 2.5: Cave scouting core model', () => {
     expect(yieldRes.reasons.some((r) => r.includes('insufficient to clear skylight rim'))).toBe(
       true,
     )
+  })
+})
+
+describe('shared with Expedition 1', () => {
+  it('takes the surface dose from the rate the first crew used (RAD, 0.67 mSv a day)', () => {
+    const y = computeCaveScoutYield(DEFAULT_CAVE_SCOUT_CONFIG)
+    expect(y.surfaceRadiationMsvYear).toBeCloseTo(0.67 * 365.25, 6)
+  })
+
+  it('counts the one wheel set mission 2.1 can pack as having the new wheels', () => {
+    const plan = { ...DEFAULT_CARGO_2_PLAN, roverTreads: 1 }
+    const north = { ...DEFAULT_CAVE_SCOUT_CONFIG, entranceVector: 'north-talus' as const }
+    expect(computeCaveScoutYield(north, plan).entranceSlopeDeg).toBe(16)
+    expect(computeCaveScoutYield(north, { ...plan, roverTreads: 0 }).entranceSlopeDeg).toBe(18)
   })
 })

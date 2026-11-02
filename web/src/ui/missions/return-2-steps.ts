@@ -11,9 +11,10 @@ import {
   type BaseHibernationConfig,
   type MavPreflightChecks,
   type Return2Debrief,
+  TARGET_RETURN_2,
 } from '../../core/return-2'
 import type { Progress } from '../../core/mission-progress'
-import { returnJourney, type Journey } from '../../core/journey'
+import { CRUISE_MSV_PER_DAY, returnJourney, type Journey } from '../../core/journey'
 import { el } from '../dom'
 import { type JourneyScene, openJourneyScene } from '../journey-scene'
 import type { DockStep } from '../mission-dock'
@@ -55,12 +56,12 @@ export function return2Steps(
   } catch {
     homeFlight = {
       departMs,
-      arriveMs: departMs + 195 * 86_400_000,
-      days: 195,
+      arriveMs: departMs + TARGET_RETURN_2.nominalReturnDays * 86_400_000,
+      days: TARGET_RETURN_2.nominalReturnDays,
       c3: 14.8,
       departureDvKms: 1.38,
       propellantShare: 0.16,
-      doseMsv: 195 * 1.8,
+      doseMsv: TARGET_RETURN_2.nominalReturnDays * CRUISE_MSV_PER_DAY,
       foodKg: 0,
       waterKg: 0,
       oxygenKg: 0,
@@ -72,7 +73,7 @@ export function return2Steps(
     // --- Step 1: Outpost Hibernation & Subsystem Safing ------------------------------------------
     {
       title: 'Outpost hibernation & safing',
-      why: 'Configure surface reactors, 5,000 kg water heating, and seed bank stasis to ensure base survival over the 780-sol inter-expedition dormancy.',
+      why: 'Configure surface reactors, 5,000 kg water heating, and seed bank stasis to ensure base survival over the gap between expeditions dormancy.',
       render: () => {
         const live = el('div')
         const refresh = () => live.replaceChildren(twoExpeditionRadiationView(debrief()))

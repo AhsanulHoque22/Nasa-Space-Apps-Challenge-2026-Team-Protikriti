@@ -3,6 +3,7 @@ import {
   type Cargo2Plan,
   cargo2MassKg,
   checkCargo2,
+  CARGO_2_ITEMS,
   DEFAULT_CARGO_2_PLAN,
   EXPEDITION_2_LANDER_LIMIT_KG,
   isCargo2Plan,
@@ -95,5 +96,18 @@ describe('cargo-2 core calculations', () => {
     expect(isCargo2Plan(DEFAULT_CARGO_2_PLAN)).toBe(true)
     expect(isCargo2Plan(null)).toBe(false)
     expect(isCargo2Plan({ stirlingSpare: 1 })).toBe(false)
+  })
+})
+
+describe('shared rules with mission 1.1', () => {
+  it('moves stored food by one sol a press, as mission 1.1 does', () => {
+    expect(CARGO_2_ITEMS.find((i) => i.id === 'foodBufferSols')?.step).toBe(1)
+  })
+
+  it('validates a saved plan as strictly as mission 1.1: whole numbers within each limit', () => {
+    expect(isCargo2Plan(DEFAULT_CARGO_2_PLAN)).toBe(true)
+    expect(isCargo2Plan({ ...DEFAULT_CARGO_2_PLAN, stirlingSpare: 1.5 })).toBe(false)
+    expect(isCargo2Plan({ ...DEFAULT_CARGO_2_PLAN, rassorMiner: 9 })).toBe(false)
+    expect(isCargo2Plan({ ...DEFAULT_CARGO_2_PLAN, foodBufferSols: -1 })).toBe(false)
   })
 })

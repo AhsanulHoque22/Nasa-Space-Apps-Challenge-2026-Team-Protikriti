@@ -14,7 +14,7 @@ describe('Mission 2.2: Wake the base logic', () => {
     expect(t.cabinTempC).toBe(-25.0)
     expect(t.cabinPressureKpa).toBe(15.0)
     expect(t.o2PartialPressureKpa).toBe(3.0)
-    expect(t.fissionPowerKw).toBe(18.5)
+    expect(t.fissionPowerKw).toBe(17.5) // 2 of 4 units idle
     expect(t.radiatorEfficiencyPct).toBe(65)
     expect(t.waterLoopFlowLpm).toBe(0.0)
 
@@ -29,11 +29,11 @@ describe('Mission 2.2: Wake the base logic', () => {
       traceHeatersActive: true,
     }
     const t = computeWakeTelemetry(state)
-    expect(t.fissionPowerKw).toBe(27.0) // 18.5 + 8.5
+    expect(t.fissionPowerKw).toBe(26.25) // 3 of 4 units
     expect(t.cabinTempC).toBe(6.0) // -25 + 10 + 21
   })
 
-  it('restores full 38.5 kWe when stirling converter from cargo2 is installed', () => {
+  it('restores the full 35 kWe of the farm (4 x 8.75, as in Expedition 1) when stirling converter from cargo2 is installed', () => {
     const plan: Cargo2Plan = {
       stirlingSpare: 1,
       eclssRefurb: 1,
@@ -52,7 +52,7 @@ describe('Mission 2.2: Wake the base logic', () => {
     }
 
     const t = computeWakeTelemetry(state, plan)
-    expect(t.fissionPowerKw).toBe(38.5) // 18.5 + 8.5 + 11.5
+    expect(t.fissionPowerKw).toBe(35)
   })
 
   it('gives lower degraded power if stirling spare was not brought in cargo2', () => {
@@ -74,7 +74,7 @@ describe('Mission 2.2: Wake the base logic', () => {
     }
 
     const t = computeWakeTelemetry(state, planWithoutSpare)
-    expect(t.fissionPowerKw).toBe(30.0) // 18.5 + 8.5 + 3.0
+    expect(t.fissionPowerKw).toBe(29.25) // 3 units + 3 kW bypass
   })
 
   it('pressurizes cabin to NASA exploration standards (56.5 kPa, 19.2 kPa ppO2)', () => {
@@ -100,7 +100,7 @@ describe('Mission 2.2: Wake the base logic', () => {
       radiatorCleaningChoice: 'overdrive-pump',
     })
     expect(overdrive.radiatorEfficiencyPct).toBe(85)
-    expect(overdrive.fissionPowerKw).toBe(24.5) // 18.5 + 8.5 - 2.5
+    expect(overdrive.fissionPowerKw).toBe(23.75) // 3 units - 2.5 kW pump
   })
 
   it('handles water loop thawing properly', () => {
@@ -145,5 +145,23 @@ describe('Mission 2.2: Wake the base logic', () => {
     for (const check of Object.values(cert.checks)) {
       expect(check.pass).toBe(true)
     }
+  })
+})
+
+describe('the farm the first crew packed', () => {
+  const all = {
+    ...INITIAL_WAKE_BASE_STATE,
+    powerConnected: true,
+    stirlingInstalled: true,
+  }
+
+  it('scales with the reactors packed in mission 1.1', () => {
+    expect(computeWakeTelemetry(all, undefined, 5).fissionPowerKw).toBe(43.75)
+    expect(computeWakeTelemetry(all, undefined, 4).fissionPowerKw).toBe(35)
+  })
+
+  it('judges power against that farm, not a fixed figure', () => {
+    expect(checkHabitatCertification(all, undefined, 5).checks.power?.target).toBe('≥ 39.4 kWe')
+    expect(checkHabitatCertification(all, undefined, 5).checks.power?.pass).toBe(true)
   })
 })

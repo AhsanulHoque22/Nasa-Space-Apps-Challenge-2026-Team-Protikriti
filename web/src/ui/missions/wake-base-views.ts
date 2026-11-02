@@ -5,6 +5,7 @@ import type { Cargo2Plan } from '../../core/cargo-2'
 import {
   checkHabitatCertification,
   computeWakeTelemetry,
+  minPowerKw,
   TARGET_TELEMETRY,
   type WakeBaseState,
 } from '../../core/wake-base'
@@ -25,8 +26,12 @@ export const wakeFigure = (p: WakePhoto): HTMLElement =>
 /**
  * Live telemetry dashboard showing environmental and power metrics.
  */
-export function wakeTelemetryDashboard(state: WakeBaseState, cargo2?: Cargo2Plan): HTMLElement {
-  const t = computeWakeTelemetry(state, cargo2)
+export function wakeTelemetryDashboard(
+  state: WakeBaseState,
+  cargo2?: Cargo2Plan,
+  units?: number,
+): HTMLElement {
+  const t = computeWakeTelemetry(state, cargo2, units)
 
   const meter = (
     label: string,
@@ -53,7 +58,7 @@ export function wakeTelemetryDashboard(state: WakeBaseState, cargo2?: Cargo2Plan
 
   // Calculate percentage and status for each gauge
   const powerPct = (t.fissionPowerKw / 40.0) * 100
-  const powerStatus = t.fissionPowerKw >= TARGET_TELEMETRY.minPowerKw ? 'nominal' : 'warning'
+  const powerStatus = t.fissionPowerKw >= minPowerKw(units) ? 'nominal' : 'warning'
 
   const tempNorm = ((t.cabinTempC - -30) / (25 - -30)) * 100
   const tempStatus = t.cabinTempC >= TARGET_TELEMETRY.minCabinTempC ? 'nominal' : 'alert'
@@ -188,8 +193,12 @@ export function anomalyTriageView(state: WakeBaseState, onChange: () => void): H
 /**
  * Flight rule certification checklist panel.
  */
-export function certificationDeckView(state: WakeBaseState, cargo2?: Cargo2Plan): HTMLElement {
-  const cert = checkHabitatCertification(state, cargo2)
+export function certificationDeckView(
+  state: WakeBaseState,
+  cargo2?: Cargo2Plan,
+  units?: number,
+): HTMLElement {
+  const cert = checkHabitatCertification(state, cargo2, units)
 
   const item = (label: string, current: string, target: string, pass: boolean) =>
     el(

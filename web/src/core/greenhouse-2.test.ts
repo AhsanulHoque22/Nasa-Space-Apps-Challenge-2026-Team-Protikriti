@@ -1,5 +1,9 @@
+import { crewKcalPerDay, spareReactorKw } from './greenhouse'
+import { CREW_SIZE } from './mission-constants'
+import { DEFAULT_CARGO_2_PLAN } from './cargo-2'
 import { describe, expect, it } from 'vitest'
 import {
+  CREW_MEMBER_KCAL_DAY,
   computeGreenhouse2Yield,
   DEFAULT_GREENHOUSE_2_CONFIG,
   type Greenhouse2Config,
@@ -80,5 +84,49 @@ describe('Mission 2.3: Greenhouse scale-up scientific model', () => {
   it('detects earliest harvest sol accurately (e.g. lettuce at 28 days)', () => {
     const yieldRes = computeGreenhouse2Yield(DEFAULT_GREENHOUSE_2_CONFIG, plan)
     expect(yieldRes.firstHarvestSol).toBe(28)
+  })
+})
+
+describe('the base Expedition 1 left', () => {
+  it('adds the hardware the first crew actually packed', () => {
+    const big = {
+      ...DEFAULT_GREENHOUSE_2_CONFIG,
+      areas: { potato: 30, wheat: 20, soybean: 5, lettuce: 0, tomato: 0 },
+    }
+    const plan = { ...DEFAULT_CARGO_2_PLAN, greenhouseExtM2: 40 }
+    const reason = (e1: number) =>
+      computeGreenhouse2Yield(big, plan, { greenhouseM2: e1, kilopower: 5 }).reasons.some((r) =>
+        r.includes('packed hardware'),
+      )
+    expect(reason(10)).toBe(true) // 55 m² on 50 m² of hardware
+    expect(reason(20)).toBe(false)
+  })
+
+  it('limits the lights to the reactor power the first crew’s base has spare', () => {
+    const y = (kilopower: number) =>
+      computeGreenhouse2Yield(DEFAULT_GREENHOUSE_2_CONFIG, undefined, {
+        greenhouseM2: 10,
+        kilopower,
+      })
+    expect(y(4).peakLimitKw).toBeCloseTo(spareReactorKw(4), 6)
+    expect(y(5).peakLimitKw).toBeCloseTo(spareReactorKw(5), 6)
+  })
+
+  it('the default plan commissions on the first crew’s 4 reactors', () => {
+    const y = computeGreenhouse2Yield(DEFAULT_GREENHOUSE_2_CONFIG, DEFAULT_CARGO_2_PLAN, {
+      greenhouseM2: 10,
+      kilopower: 4,
+    })
+    expect(y.reasons).toEqual([])
+  })
+
+  it('feeds a person at the rate Expedition 1 uses', () => {
+    expect(CREW_MEMBER_KCAL_DAY).toBeCloseTo(crewKcalPerDay() / CREW_SIZE, 6)
+  })
+
+  it('counts the chiller in the average power too', () => {
+    const on = computeGreenhouse2Yield(DEFAULT_GREENHOUSE_2_CONFIG)
+    const off = computeGreenhouse2Yield({ ...DEFAULT_GREENHOUSE_2_CONFIG, chillerMode: 'passive' })
+    expect(on.averagePowerKw - off.averagePowerKw).toBeCloseTo(1.2, 6)
   })
 })

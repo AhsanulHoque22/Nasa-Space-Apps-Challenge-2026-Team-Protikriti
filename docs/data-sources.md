@@ -619,3 +619,20 @@ Energy is balanced over each whole sol, as in the storm model: reactors first, t
 | Check | `web/src/core/explain-check.ts`: every number in an answer must equal one of those facts, the player's question, or a number in the source-note sections it was given (the server sends those numbers with the answer), allowing rounding; others are shown as "not from the app's data or sources". Years, document ids and table numbers are names, not measurements. |
 | Eval | `web/eval/ask-atlas/`: 133 questions over every mission and the map, with corner cases (arithmetic, full plan, off-screen, false premise, prompt injection, off-topic, Bangla, follow-ups), run through the real handler and graded by this check plus a Claude Sonnet 5.5 judge. 2026-10-31: 38% of answers passed every check at first, 80% after the rule fixes (no invented numbers 98.5%, correct 95%, no unsupported claims 90%). |
 | Limits | 500-character questions, about 20 questions per visitor per hour (per server instance), a monthly spend cap on the API key. |
+
+## Expedition 2 (missions 2.1 to 2.7)
+
+Shared with Expedition 1, from the same code: crop yields, LED efficiency and light delivery (`core/greenhouse.ts`), what a crew member eats, 8.75 kW per Kilopower and the power to spare (`spareReactorKw`), the player's reactors and greenhouse from mission 1.1, the trip's flight times, and the dose rates (cruise 1.8 mSv a day, surface 0.67 mSv a day, 600 mSv career limit, `core/debrief.ts`).
+
+| Value | Used for | Status |
+|---|---|---|
+| Second lander limit 18,430 kg | Mission 2.1 | DRA 5.0 Table 5-1, lander A |
+| Greenhouse hardware 81.5 kg/m²; food 2.39 kg per person per day | Mission 2.1 | BVAD Rev2, as mission 1.1 |
+| Masses: Stirling spare 450 kg, ECLSS kit 620 kg, wheel set 380 kg, RASSOR 1,150 kg, drill 480 kg, fresh food pack 180 kg | Mission 2.1 | **Team assumption, not verified against the cited pages**; labelled in the app |
+| Dormant base readings, repair effects, wake targets; 90% of farm power to wake | Mission 2.2 | **Team assumption**. Cabin 56.5 kPa and 34% O2: NASA exploration atmosphere, to be cited |
+| 40 m² minimum, staggered lights saving 45%, chiller 1.2 kW, recovery 96.5% or 80%, protein per 100 g | Mission 2.3 | **Team assumption**; protein cited to USDA FoodData Central, not yet checked |
+| Haul rates, power, purification factors, 150 kg/sol goal, 4.5 kW allowance, 5,000 kg buffer | Mission 2.4 | **Team assumption**. Perchlorate 0.45% matches Hecht et al. 2009; the 15 µg/L limit is to be cited |
+| Arsia Mons tube: roof 14.5 m, width 68 m, ceiling 22 m, attenuation, ramps and rockfall risk | Mission 2.5 | **Team assumption**: no survey of a tube's interior exists |
+| Specimen masses and science scores, 15.0 kg return limit | Mission 2.6 | **Team assumption**; the limit is to be cited |
+| Standby power, handover rules | Mission 2.7 | **Team assumption** |
+

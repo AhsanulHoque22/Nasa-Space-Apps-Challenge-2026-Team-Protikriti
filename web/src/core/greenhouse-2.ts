@@ -3,20 +3,29 @@
  *
  * Implements large-scale bioregenerative food production:
  * - Scaling to 50–60 m² (NASA BVAD Rev2 Tables 4-86 to 4-91).
- * - Nutritional tracking: Calories, Protein, and Vitamins for 1 full crew member (3,000 kcal/day).
+ * - Nutritional tracking: Calories, Protein, and Vitamins for 1 full crew member.
  * - Staggered lighting schedule to keep peak horticultural LED power within Kilopower limits.
  * - Closed-loop water condensation recovery (≥ 95%).
  */
-import { CROPS, type CropId } from './greenhouse'
+import {
+  CROPS,
+  type CropId,
+  LED_UMOL_PER_J,
+  LIGHT_DELIVERY,
+  crewKcalPerDay,
+  spareReactorKw,
+} from './greenhouse'
+import { CREW_SIZE } from './mission-constants'
 import type { Cargo2Plan } from './cargo-2'
 
 export type Greenhouse2Areas = Record<CropId, number>
 
 export const DEFAULT_GREENHOUSE_2_AREAS: Greenhouse2Areas = {
-  potato: 20,
-  wheat: 16,
-  soybean: 8,
-  lettuce: 4,
+  // 50 m² that feeds one crew member within the 4 reactors' spare power (mission 1.6's rule).
+  potato: 32,
+  wheat: 6,
+  soybean: 2,
+  lettuce: 8,
   tomato: 2,
 }
 
@@ -36,8 +45,10 @@ export type Greenhouse2Yield = {
   totalAreaM2: number
   kcalPerDay: number
   proteinGramsPerDay: number
-  foodShareCrew: number // 1.0 = 1 full astronaut (3,000 kcal/day)
+  foodShareCrew: number // 1.0 = 1 full crew member
   peakPowerKw: number
+  /** Reactor power the first crew's base has to spare for lights, kW. */
+  peakLimitKw: number
   averagePowerKw: number
   waterTranspiredKgDay: number
   waterRecoveredKgDay: number
@@ -47,9 +58,12 @@ export type Greenhouse2Yield = {
   reasons: string[]
 }
 
-const LED_EFFICIENCY = 1.66 // µmol/J (Nelson & Bugbee 2014)
-const DELIVERY_EFFICIENCY = 0.8 // BVAD Rev2 Table 4-86
-const DAILY_CREW_KCAL = 3000 // 1 astronaut daily requirement
+/** What one crew member eats a day, as mission 1.6 counts it. */
+export const CREW_MEMBER_KCAL_DAY = crewKcalPerDay() / CREW_SIZE
+const MIN_AREA_M2 = 40
+/** What the first crew left, from missions 1.1: DRA 5.0's plan when no run is saved. */
+export type FirstBase = { greenhouseM2: number; kilopower: number }
+const DRA_BASE: FirstBase = { greenhouseM2: 10, kilopower: 4 }
 
 // Protein content estimates per 100g fresh crop (USDA FoodData Central)
 const CROP_PROTEIN_PER_100G: Record<CropId, number> = {
@@ -63,6 +77,7 @@ const CROP_PROTEIN_PER_100G: Record<CropId, number> = {
 export function computeGreenhouse2Yield(
   config: Greenhouse2Config,
   cargo2?: Cargo2Plan,
+  firstBase: FirstBase = DRA_BASE,
 ): Greenhouse2Yield {
   let totalAreaM2 = 0
   let kcalPerDay = 0
@@ -95,9 +110,9 @@ export function computeGreenhouse2Yield(
     }
 
     // Photoperiod & Electrical Power:
-    // Joules needed per day = (area * lightMolM2d * 1e6) / (LED_EFFICIENCY * DELIVERY_EFFICIENCY)
+    // Joules needed per day = (area * lightMolM2d * 1e6) / (LED_UMOL_PER_J * LIGHT_DELIVERY)
     const energyJoulesDay =
-      (area * crop.lightMolM2d * 1_000_000) / (LED_EFFICIENCY * DELIVERY_EFFICIENCY)
+      (area * crop.lightMolM2d * 1_000_000) / (LED_UMOL_PER_J * LIGHT_DELIVERY)
     totalEnergyJoulesPerDay += energyJoulesDay
 
     const secondsOfLight = crop.photoperiodH * 3600
@@ -105,7 +120,7 @@ export function computeGreenhouse2Yield(
     unshiftedPeakPowerWatts += powerWatts
   }
 
-  const averagePowerKw = totalEnergyJoulesPerDay / (24 * 3600 * 1000)
+  let averagePowerKw = totalEnergyJoulesPerDay / (24 * 3600 * 1000)
 
   // Staggered photoperiod halves simultaneous peak demand across two 12h bays
   let peakPowerKw: number
@@ -116,20 +131,21 @@ export function computeGreenhouse2Yield(
   }
 
   // Water condensation recovery
-  let waterRecoveryPct = config.chillerMode === 'active-chiller' ? 96.5 : 80.0
-  let waterRecoveredKgDay = (waterTranspiredKgDay * waterRecoveryPct) / 100
+  const waterRecoveryPct = config.chillerMode === 'active-chiller' ? 96.5 : 80.0
+  const waterRecoveredKgDay = (waterTranspiredKgDay * waterRecoveryPct) / 100
 
   // Power penalty for active chiller
   if (config.chillerMode === 'active-chiller') {
     peakPowerKw += 1.2
-    averagePowerKw + 1.2
+    averagePowerKw += 1.2
   }
 
-  const foodShareCrew = kcalPerDay / DAILY_CREW_KCAL
+  const foodShareCrew = kcalPerDay / CREW_MEMBER_KCAL_DAY
+  const peakLimitKw = spareReactorKw(firstBase.kilopower)
 
   // Commissioning rules & constraints
   const reasons: string[] = []
-  const packedMaxArea = (cargo2?.greenhouseExtM2 ?? 50) + 10 // 10 m² from E1
+  const packedMaxArea = (cargo2?.greenhouseExtM2 ?? 40) + firstBase.greenhouseM2
 
   if (totalAreaM2 > packedMaxArea) {
     reasons.push(
@@ -137,19 +153,21 @@ export function computeGreenhouse2Yield(
     )
   }
 
-  if (totalAreaM2 < 40) {
-    reasons.push(`Scale-up requires at least 40 m² planted (currently ${totalAreaM2} m²).`)
-  }
-
-  if (kcalPerDay < DAILY_CREW_KCAL) {
+  if (totalAreaM2 < MIN_AREA_M2) {
     reasons.push(
-      `Daily calories (${Math.round(kcalPerDay)} kcal) below 1-crew target (3,000 kcal/day).`,
+      `Scale-up requires at least ${MIN_AREA_M2} m² planted (currently ${totalAreaM2} m²).`,
     )
   }
 
-  if (peakPowerKw > 25.0) {
+  if (kcalPerDay < CREW_MEMBER_KCAL_DAY) {
     reasons.push(
-      `Peak lighting power (${peakPowerKw.toFixed(1)} kWe) exceeds Kilopower safe allocation (25.0 kWe). Enable staggered photoperiods.`,
+      `Daily calories (${Math.round(kcalPerDay)} kcal) below what one crew member eats (${Math.round(CREW_MEMBER_KCAL_DAY)} kcal/day).`,
+    )
+  }
+
+  if (peakPowerKw > peakLimitKw) {
+    reasons.push(
+      `Peak lighting power (${peakPowerKw.toFixed(1)} kWe) exceeds the reactor power to spare (${peakLimitKw.toFixed(1)} kWe). Enable staggered photoperiods.`,
     )
   }
 
@@ -167,6 +185,7 @@ export function computeGreenhouse2Yield(
     proteinGramsPerDay,
     foodShareCrew,
     peakPowerKw,
+    peakLimitKw,
     averagePowerKw,
     waterTranspiredKgDay,
     waterRecoveredKgDay,

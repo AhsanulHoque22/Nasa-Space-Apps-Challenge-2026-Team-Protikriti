@@ -7,7 +7,11 @@
  * 5. Sanctuary certification for Expedition 3
  */
 import type { Cargo2Plan } from '../../core/cargo-2'
-import { computeCaveScoutYield, type CaveScoutConfig } from '../../core/cave-scouting'
+import {
+  computeCaveScoutYield,
+  type CaveScoutConfig,
+  SURFACE_MSV_PER_YEAR,
+} from '../../core/cave-scouting'
 import { el } from '../dom'
 import { type DockStep, stepper } from '../mission-dock'
 import { CAVE_PHOTOS } from './cave-scouting-photos'
@@ -46,7 +50,10 @@ export function caveScoutingSteps(
               ['Skylight diameter', '110 m circular collapse rim'],
               ['Shaft drop depth', '48 m vertical drop to cave floor'],
               ['Basalt roof thickness', '14.5 m solid columnar basalt'],
-              ['Surface radiation dose', '335 mSv/year (Dangerous GCR/SPE)'],
+              [
+                'Surface radiation dose',
+                `${Math.round(SURFACE_MSV_PER_YEAR)} mSv/year (RAD at Gale)`,
+              ],
             ].map(([t, v]) =>
               el('div', {}, el('dt', { textContent: t }), el('dd', { textContent: v })),
             ),
