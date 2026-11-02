@@ -15,6 +15,8 @@ import {
   recordSite,
   retryFrom,
   loadProgress,
+  type Progress,
+  previewBase,
   missionStatus,
   saveProgress,
 } from './mission-progress'
@@ -560,5 +562,20 @@ describe('recordReturn', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.11']).progress.completed).toEqual([])
+  })
+})
+
+describe('previewBase', () => {
+  const progress = { version: 1, owner: 'a', completed: ['1.3'] } as Progress
+  const layout = { habitat: { lon: 77, lat: 18 } }
+
+  it('counts the base as placed, so the map draws it before the mission is finished', () => {
+    expect(previewBase(progress, layout)).toMatchObject({ completed: ['1.3', '1.4'], base: layout })
+  })
+
+  it('does not list mission 1.4 twice or change the saved progress', () => {
+    expect(previewBase({ ...progress, completed: ['1.4'] }, layout).completed).toEqual(['1.4'])
+    expect(progress.completed).toEqual(['1.3'])
+    expect(progress.base).toBeUndefined()
   })
 })

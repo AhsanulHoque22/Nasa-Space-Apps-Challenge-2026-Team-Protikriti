@@ -1,6 +1,6 @@
 /**
  * Mission 1.4 on the map: click the ground to place a base part, see each part as a labelled
- * marker (red while it breaks a rule), and the 1 km keep-out ring around the habitat.
+ * marker from afar (red while it breaks a rule), and the 1 km keep-out ring around the habitat.
  */
 import {
   BoundingSphere,
@@ -9,6 +9,7 @@ import {
   Color,
   ColorMaterialProperty,
   CustomDataSource,
+  DistanceDisplayCondition,
   HeadingPitchRange,
   LabelStyle,
   Math as CesiumMath,
@@ -43,6 +44,8 @@ const RING_POINTS = 96
 const RING_LIFT_M = 30 // above the drawn ground, so the ring is not lost in it
 const VIEW_RANGE_M = 4_500 // the whole 1 km ring and its surroundings
 const VIEW_PITCH_DEG = -55
+/** Nearer than this the hardware layer shows the part's model and its label, so the pin steps aside. */
+const PIN_MIN_M = 3_000
 
 /** The point `distanceM` from `p` along a compass bearing, on the Mars sphere. */
 function offset(p: LonLat, bearingDeg: number, distanceM: number): LonLat {
@@ -99,6 +102,7 @@ export function createBasePlacer(
         source.entities.add({
           position: at(p),
           point: {
+            distanceDisplayCondition: new DistanceDisplayCondition(PIN_MIN_M),
             pixelSize: 14,
             color: colour,
             outlineColor: DARK,
@@ -106,6 +110,7 @@ export function createBasePlacer(
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: {
+            distanceDisplayCondition: new DistanceDisplayCondition(PIN_MIN_M),
             text: PART_NAME[part],
             font: '600 14px system-ui, sans-serif',
             fillColor: colour,

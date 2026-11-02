@@ -295,6 +295,7 @@ function playBase(title: string, ctx: Play): void {
     const end = (progress: Progress, note: string | null) => {
       dock.remove()
       ctx.services.base.clear()
+      ctx.services.showBase(progress) // drop a preview that was not kept
       ctx.services.declutter(false)
       delete document.body.dataset.story
       ctx.onDone(progress, note)
@@ -311,7 +312,7 @@ function playBase(title: string, ctx: Play): void {
       site,
       cargo,
       stay,
-      ctx.progress.base,
+      ctx.progress,
       ctx.services,
       sol1Utc,
       (layout) => {

@@ -17,7 +17,7 @@ import {
 import type { CargoPlan } from '../../core/cargo'
 import { type Grid, lonLatToCell } from '../../core/grid'
 import { CREW_SIZE, DAYS_PER_SOL, POTABLE_WATER_KG_PER_CM_DAY } from '../../core/mission-constants'
-import type { LandingSite } from '../../core/mission-progress'
+import { type LandingSite, type Progress, previewBase } from '../../core/mission-progress'
 import { SITE_BRIEFS } from '../../core/site-features'
 import { distanceKm } from '../../core/site-report'
 import { localMeanSolarTimeHours } from '../../core/mars-time'
@@ -29,7 +29,14 @@ import { WATER_RECOVERY } from '../../core/base-stores'
 import { solDial, solTimeline } from '../sol-visuals'
 import type { DockStep } from '../mission-dock'
 
-export type BaseMap = { showSite: (siteId: string) => void; base: BasePlacer }
+export type BaseMap = {
+  showSite: (siteId: string) => void
+  base: BasePlacer
+  showBase: (progress: Progress) => void
+}
+
+/** Near enough to see the models at true size: a row of 4 reactors is 75 m long. */
+const CLOSE_VIEW_M = 150
 
 const PART_WHY: Record<BasePart, string> = {
   habitat: 'Where the crew lives for 525 sols.',
@@ -50,14 +57,14 @@ export function baseSteps(
   site: LandingSite,
   cargo: CargoPlan,
   stay: Stay,
-  start: Layout | undefined,
+  progress: Progress,
   map: BaseMap,
   /** When sol 1 starts: the crew's arrival on the route chosen in mission 1.1 (UTC ms). */
   sol1Utc: Promise<number>,
   onDone: (layout: Layout) => void,
 ): DockStep[] {
   const needs: Needs = { reactor: cargo.kilopower > 0, arrays: cargo.solar > 0 }
-  const layout: Layout = { ...start }
+  const layout: Layout = { ...progress.base }
   const touchdown = SITE_BRIEFS.find((b) => b.siteId === site.siteId)?.touchdown
   const landingOnMap = touchdown && lonLatToCell(grid, touchdown.lon, touchdown.lat) !== null
   const centre = landingOnMap && touchdown ? touchdown : gridCentre(grid)
@@ -94,9 +101,12 @@ export function baseSteps(
                   status.textContent = `${PART_NAME[part]} placed.`
                   help.replaceChildren()
                   paint()
+                  map.showBase(previewBase(progress, layout))
+                  map.base.view(p, CLOSE_VIEW_M)
                 }
               : null,
           )
+          if (picking) map.base.view(layout.habitat ?? centre)
           status.textContent = picking
             ? `Click the ground on the map to place the ${PART_NAME[part].toLowerCase()}.`
             : ''
@@ -206,6 +216,7 @@ export function baseSteps(
     },
     onShow: () => {
       map.showSite(site.siteId)
+      map.showBase(previewBase(progress, layout))
       map.base.view(layout.habitat ?? centre)
     },
     onNext: () => {

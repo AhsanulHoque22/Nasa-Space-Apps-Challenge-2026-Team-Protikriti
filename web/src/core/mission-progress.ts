@@ -251,6 +251,13 @@ export function recordSite(
 }
 
 /** Mission 1.3 done (the crew has landed). A replay reopens what came after. */
+/** Progress as the map should draw it while mission 1.4 places the base; never saved. */
+export const previewBase = (progress: Progress, layout: Layout): Progress => ({
+  ...progress,
+  completed: [...new Set([...progress.completed, '1.4'])],
+  base: layout,
+})
+
 export function recordLanding(missions: readonly Mission[], progress: Progress): Progress {
   return completeMission(missions, retryFrom(missions, progress, '1.3'), '1.3')
 }
