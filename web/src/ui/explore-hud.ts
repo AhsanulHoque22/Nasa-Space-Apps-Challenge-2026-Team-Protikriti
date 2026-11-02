@@ -1,4 +1,5 @@
 /** Explore-mode HUD: compass, position, local time and sky, weather, pace and safety warnings. */
+import { quakeDrillAlert, solarDrillAlert, solarDrillReadout } from '../core/walk-suit'
 import type { Viewer } from 'cesium'
 import { COORDINATE_FRAME, formatMarsPosition } from '../core/coords'
 import { type Site, sampleGrid } from '../core/elevation'
@@ -163,7 +164,7 @@ export function openExplore(
       // Radiation
       const radEl = field('rad')
       radEl.textContent = spe
-        ? `${radiationMsvPerHr.toFixed(2)} mSv/hr ⚠ SPE`
+        ? solarDrillReadout(radiationMsvPerHr)
         : `${radiationMsvPerHr.toFixed(4)} mSv/hr (GCR baseline)`
       radEl.className = spe ? 'critical' : ''
       field('dose').textContent = `${cumulativeMsv.toFixed(4)} mSv (career limit 600 mSv)`
@@ -172,12 +173,8 @@ export function openExplore(
       field('comms').textContent = `${commsDelayMin.toFixed(1)} min one-way to Earth`
 
       // Alerts (assertive — screen-reader + on-screen)
-      if (spe && radiationMsvPerHr > 1)
-        showAlert('⚠ SOLAR PARTICLE EVENT — seek shielded shelter immediately')
-      if (marsquake)
-        showAlert(
-          `🌋 Marsquake M${marsquake.mag.toFixed(1)} · ~${Math.round(marsquake.distKm)} km away`,
-        )
+      if (spe && radiationMsvPerHr > 1) showAlert(solarDrillAlert())
+      if (marsquake) showAlert(quakeDrillAlert(marsquake.mag, marsquake.distKm))
       if (suitO2Pct < 10) showAlert('🔴 CRITICAL: Suit O₂ below 10 % — return to habitat now')
       else if (suitO2Pct < 20) showAlert('⚠ Suit O₂ below 20 % — return to habitat')
 

@@ -1,4 +1,5 @@
 /** First-person explore mode: walk the real terrain of a site at 1:1 scale, in Mars conditions. */
+import { type Suit, suitAfter, walkResolution } from '../core/walk-suit'
 import {
   BillboardCollection,
   Cartesian2,
@@ -142,8 +143,9 @@ export function startExplore(
   // Fog culls and coarsens distant tiles; the atmosphere pass draws the Mars haze, not Cesium.
   scene.fog.enabled = true
   scene.fog.renderable = false
-  viewer.useBrowserRecommendedResolution = false
-  viewer.resolutionScale = Math.min(2, window.devicePixelRatio || 1)
+  const walkRes = walkResolution(window.devicePixelRatio || 1)
+  viewer.useBrowserRecommendedResolution = walkRes.useBrowserRecommendedResolution
+  viewer.resolutionScale = walkRes.resolutionScale
   // 4x MSAA makes the atmosphere pass resolve multisampled colour and depth every frame: 58 ms
   // vs 24 ms a frame measured on Iris Xe at 1808x873. FXAA smooths edges for a fraction of that.
   scene.msaaSamples = 1
@@ -204,13 +206,7 @@ export function startExplore(
   let ghostPos: { lon: number; lat: number; altM: number } | null = null
   if (colony?.colonyLayer) colony.colonyLayer.show = true
 
-  // Suit consumables — NASA xEMU PLSS baseline: 8-hour O2, 8-hour power (ESAS 2005)
-  // Depletion: base rate + activity factor proportional to walking speed
-  let suitO2Pct = 100
-  let suitPowerPct = 100
-  const O2_BASE_PCT_S = 100 / (8 * 3600) // 8 h full charge
-  const PWR_BASE_PCT_S = 100 / (8 * 3600) // 8 h full charge
-  const O2_WALK_PCT_S_PER_MS = O2_BASE_PCT_S * 2 // 2× base per 1 m/s of walking
+  let suit: Suit = { o2Pct: 100, powerPct: 100 }
 
   // Radiation tracking
   let cumulativeMsv = 0
@@ -385,12 +381,7 @@ export function startExplore(
     place(dtS)
 
     // Suit consumables
-    const walkRate = body.grounded ? body.speedMs : 0
-    suitO2Pct = Math.max(
-      0,
-      suitO2Pct - (O2_BASE_PCT_S + O2_WALK_PCT_S_PER_MS * walkRate) * dtS * 100,
-    )
-    suitPowerPct = Math.max(0, suitPowerPct - PWR_BASE_PCT_S * dtS * 100)
+    suit = suitAfter(suit, body.grounded ? body.speedMs : 0, dtS)
 
     // Radiation dose accumulation
     const activeDoseRate = spe ? SPE_DOSE_MSV_HR : GCR_SURFACE_MSV_HR
@@ -426,8 +417,8 @@ export function startExplore(
       body,
       pitchDeg,
       ...now,
-      suitO2Pct,
-      suitPowerPct,
+      suitO2Pct: suit.o2Pct,
+      suitPowerPct: suit.powerPct,
       radiationMsvPerHr: activeDoseRate,
       cumulativeMsv,
       spe,
