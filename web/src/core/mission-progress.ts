@@ -5,6 +5,13 @@
  */
 import type { Layout } from './base-layout'
 import { type CargoPlan, isCargoPlan } from './cargo'
+import { type Cargo2Plan, isCargo2Plan } from './cargo-2'
+import type { WakeBaseState } from './wake-base'
+import type { Greenhouse2Config, Greenhouse2Yield } from './greenhouse-2'
+import type { IceMiningConfig, IceMiningYield } from './ice-mining'
+import type { CaveScoutConfig, CaveScoutYield } from './cave-scouting'
+import type { SampleCampaignSelection, SampleCampaignYield } from './sample-campaign'
+import type { BaseHibernationConfig, MavPreflightChecks, Return2Debrief } from './return-2'
 import { FEEDSTOCKS, type FeedstockId } from './ice-water'
 import type { Concept, Stop } from './traverse'
 import { readStored, writeStored } from './local-store'
@@ -42,6 +49,101 @@ export type Progress = {
   outage?: OutageRecord
   /** Mission 1.11: the crew flew home; the flight's length in days. */
   home?: HomeRecord
+  /** What mission 2.1 packed for the second expedition. */
+  cargo2?: Cargo2Plan
+  /** Mission 2.2: dormancy revival and certification state. */
+  wake2?: Wake2Record
+  /** Mission 2.3: scaled greenhouse configuration and yield. */
+  greenhouse2?: Greenhouse2Record
+  /** Mission 2.4: industrial water mining and buffer storage. */
+  water2?: Water2Record
+  /** Mission 2.5: subterranean lava tube scouting and shelter certification. */
+  cave2?: Cave2Record
+  /** Mission 2.6: geological & astrobiological sample return portfolio. */
+  sample2?: Sample2Record
+  /** Mission 2.7: base hibernation handover, MAV flight & expedition 2 debrief. */
+  return2?: Return2Record
+}
+
+export type Return2Record = {
+  config: BaseHibernationConfig
+  mav: MavPreflightChecks
+  debrief: Return2Debrief
+}
+
+const isReturn2Record = (v: unknown): v is Return2Record => {
+  const r = v as Partial<Return2Record> | null
+  return (
+    !!r &&
+    typeof r.config === 'object' &&
+    !!r.config &&
+    typeof r.mav === 'object' &&
+    !!r.mav &&
+    typeof r.debrief === 'object' &&
+    !!r.debrief
+  )
+}
+
+export type Sample2Record = {
+  selection: SampleCampaignSelection
+  yield: SampleCampaignYield
+}
+
+const isSample2Record = (v: unknown): v is Sample2Record => {
+  const s = v as Partial<Sample2Record> | null
+  return (
+    !!s &&
+    typeof s.selection === 'object' &&
+    !!s.selection &&
+    typeof s.yield === 'object' &&
+    !!s.yield
+  )
+}
+
+export type Cave2Record = {
+  config: CaveScoutConfig
+  yield: CaveScoutYield
+}
+
+const isCave2Record = (v: unknown): v is Cave2Record => {
+  const c = v as Partial<Cave2Record> | null
+  return (
+    !!c && typeof c.config === 'object' && !!c.config && typeof c.yield === 'object' && !!c.yield
+  )
+}
+
+export type Water2Record = {
+  config: IceMiningConfig
+  yield: IceMiningYield
+}
+
+const isWater2Record = (v: unknown): v is Water2Record => {
+  const w = v as Partial<Water2Record> | null
+  return (
+    !!w && typeof w.config === 'object' && !!w.config && typeof w.yield === 'object' && !!w.yield
+  )
+}
+
+export type Greenhouse2Record = {
+  config: Greenhouse2Config
+  yield: Greenhouse2Yield
+}
+
+const isGreenhouse2Record = (v: unknown): v is Greenhouse2Record => {
+  const g = v as Partial<Greenhouse2Record> | null
+  return (
+    !!g && typeof g.config === 'object' && !!g.config && typeof g.yield === 'object' && !!g.yield
+  )
+}
+
+export type Wake2Record = {
+  state: WakeBaseState
+  certifiedAtSol: number
+}
+
+const isWake2Record = (v: unknown): v is Wake2Record => {
+  const w = v as Partial<Wake2Record> | null
+  return !!w && typeof w.certifiedAtSol === 'number' && typeof w.state === 'object' && !!w.state
 }
 
 export type HomeRecord = { returnDays: number }
@@ -350,6 +452,83 @@ export function recordReturn(
   return done === reopened ? progress : { ...done, home }
 }
 
+/** Mission 2.1 done: keep the second lander's cargo plan with it. */
+export function recordCargo2(
+  missions: readonly Mission[],
+  progress: Progress,
+  cargo2: Cargo2Plan,
+): Progress {
+  const reopened = retryFrom(missions, progress, '2.1')
+  const done = completeMission(missions, reopened, '2.1')
+  return done === reopened ? progress : { ...done, cargo2 }
+}
+
+/** Mission 2.2 done: keep the habitat revival and certification record. */
+export function recordWake2(
+  missions: readonly Mission[],
+  progress: Progress,
+  wake2: Wake2Record,
+): Progress {
+  const reopened = retryFrom(missions, progress, '2.2')
+  const done = completeMission(missions, reopened, '2.2')
+  return done === reopened ? progress : { ...done, wake2 }
+}
+
+/** Mission 2.3 done: keep the 50 m² greenhouse configuration and yield record. */
+export function recordGreenhouse2(
+  missions: readonly Mission[],
+  progress: Progress,
+  greenhouse2: Greenhouse2Record,
+): Progress {
+  const reopened = retryFrom(missions, progress, '2.3')
+  const done = completeMission(missions, reopened, '2.3')
+  return done === reopened ? progress : { ...done, greenhouse2 }
+}
+
+/** Mission 2.4 done: keep the industrial water mining and buffer storage record. */
+export function recordWater2(
+  missions: readonly Mission[],
+  progress: Progress,
+  water2: Water2Record,
+): Progress {
+  const reopened = retryFrom(missions, progress, '2.4')
+  const done = completeMission(missions, reopened, '2.4')
+  return done === reopened ? progress : { ...done, water2 }
+}
+
+/** Mission 2.5 done: keep the subterranean shelter certification record. */
+export function recordCave2(
+  missions: readonly Mission[],
+  progress: Progress,
+  cave2: Cave2Record,
+): Progress {
+  const reopened = retryFrom(missions, progress, '2.5')
+  const done = completeMission(missions, reopened, '2.5')
+  return done === reopened ? progress : { ...done, cave2 }
+}
+
+/** Mission 2.6 done: keep sample return portfolio and science yield. */
+export function recordSample2(
+  missions: readonly Mission[],
+  progress: Progress,
+  sample2: Sample2Record,
+): Progress {
+  const reopened = retryFrom(missions, progress, '2.6')
+  const done = completeMission(missions, reopened, '2.6')
+  return done === reopened ? progress : { ...done, sample2 }
+}
+
+/** Mission 2.7 done: keep hibernation handover, MAV launch & debrief. */
+export function recordReturn2(
+  missions: readonly Mission[],
+  progress: Progress,
+  return2: Return2Record,
+): Progress {
+  const reopened = retryFrom(missions, progress, '2.7')
+  const done = completeMission(missions, reopened, '2.7')
+  return done === reopened ? progress : { ...done, return2 }
+}
+
 /** Reopen `id` and every mission after it. Earlier choices stay as the starting point. */
 export function retryFrom(missions: readonly Mission[], progress: Progress, id: string): Progress {
   const index = missions.findIndex((x) => x.id === id)
@@ -365,7 +544,14 @@ function isProgress(v: unknown): v is Progress {
     p.version === 1 &&
     typeof p.owner === 'string' &&
     Array.isArray(p.completed) &&
-    p.completed.every((id) => typeof id === 'string')
+    p.completed.every((id) => typeof id === 'string') &&
+    (!p.cargo2 || isCargo2Plan(p.cargo2)) &&
+    (!p.wake2 || isWake2Record(p.wake2)) &&
+    (!p.greenhouse2 || isGreenhouse2Record(p.greenhouse2)) &&
+    (!p.water2 || isWater2Record(p.water2)) &&
+    (!p.cave2 || isCave2Record(p.cave2)) &&
+    (!p.sample2 || isSample2Record(p.sample2)) &&
+    (!p.return2 || isReturn2Record(p.return2))
   )
 }
 
@@ -392,6 +578,13 @@ export function loadProgress(
   if (isTraverseRecord(saved.traverse)) progress.traverse = saved.traverse
   if (isOutageRecord(saved.outage)) progress.outage = saved.outage
   if (isHomeRecord(saved.home)) progress.home = saved.home
+  if (isCargo2Plan(saved.cargo2)) progress.cargo2 = saved.cargo2
+  if (isWake2Record(saved.wake2)) progress.wake2 = saved.wake2
+  if (isGreenhouse2Record(saved.greenhouse2)) progress.greenhouse2 = saved.greenhouse2
+  if (isWater2Record(saved.water2)) progress.water2 = saved.water2
+  if (isCave2Record(saved.cave2)) progress.cave2 = saved.cave2
+  if (isSample2Record(saved.sample2)) progress.sample2 = saved.sample2
+  if (isReturn2Record(saved.return2)) progress.return2 = saved.return2
   // Unknown ids are dropped; a mission whose saved result is unusable has to be played again.
   progress.completed = saved.completed.filter(
     (id) => knownIds.includes(id) && (SAVED_RESULT[id]?.(progress) ?? true),

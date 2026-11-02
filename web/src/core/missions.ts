@@ -144,7 +144,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 2,
     title: 'Pack the second lander',
     hats: ['Commander', 'Engineer'],
-    built: false,
+    built: true,
     briefing: 'Pack for a base that already exists: replace what wore out, add what was missing.',
   },
   {
@@ -152,7 +152,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 2,
     title: 'Wake the base',
     hats: ['Engineer'],
-    built: false,
+    built: true,
     briefing: 'Find out what survived while the base slept between crews.',
   },
   {
@@ -160,7 +160,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 2,
     title: 'Greenhouse scale-up',
     hats: ['Scientist', 'Engineer'],
-    built: false,
+    built: true,
     briefing:
       'NASA studies put food for one person at about 50 m² of crops. Grow toward it and pay for it in power and water.',
   },
@@ -169,7 +169,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 2,
     title: 'Ice mining at scale',
     hats: ['Engineer'],
-    built: false,
+    built: true,
     briefing: 'Turn the first crew’s ice survey into a steady water supply.',
   },
   {
@@ -177,7 +177,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 2,
     title: 'Cave scouting',
     hats: ['Scientist', 'Medic'],
-    built: false,
+    built: true,
     briefing: 'Scout candidate caves and lava tubes as natural shelter from radiation.',
   },
   {
@@ -185,7 +185,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 2,
     title: 'Sample campaign',
     hats: ['Scientist'],
-    built: false,
+    built: true,
     briefing: 'Choose which rocks are worth carrying home, and why.',
   },
   {
@@ -193,7 +193,7 @@ export const MISSIONS: readonly Mission[] = [
     expedition: 2,
     title: 'Return',
     hats: ['Commander'],
-    built: false,
+    built: true,
     briefing: 'Bring the second crew home and leave the base ready for the third.',
   },
   {

@@ -15,6 +15,13 @@ import {
   recordTraverse,
   recordFailure,
   recordReturn,
+  recordCargo2,
+  recordWake2,
+  recordGreenhouse2,
+  recordWater2,
+  recordCave2,
+  recordSample2,
+  recordReturn2,
   recordMarswalk,
   recordSite,
   retryFrom,
@@ -25,7 +32,49 @@ import { MISSIONS } from '../core/missions'
 import { darkestSolStartUtc, daylightSun } from '../core/surface-solar'
 import type { KeyValueStore } from '../core/streetview'
 import { openDock } from './mission-dock'
+import { el } from './dom'
 import { cargoSteps, massGauge } from './missions/cargo-steps'
+import { cargo2Steps } from './missions/cargo-2-steps'
+import { massGauge2 } from './missions/cargo-2-views'
+import { type Cargo2Plan, DEFAULT_CARGO_2_PLAN } from '../core/cargo-2'
+import { wakeBaseSteps } from './missions/wake-base-steps'
+import {
+  computeWakeTelemetry,
+  INITIAL_WAKE_BASE_STATE,
+  type WakeBaseState,
+} from '../core/wake-base'
+import { greenhouse2Steps } from './missions/greenhouse-2-steps'
+import {
+  computeGreenhouse2Yield,
+  DEFAULT_GREENHOUSE_2_CONFIG,
+  type Greenhouse2Config,
+} from '../core/greenhouse-2'
+import { iceMiningSteps } from './missions/ice-mining-steps'
+import {
+  computeIceMiningYield,
+  DEFAULT_ICE_MINING_CONFIG,
+  type IceMiningConfig,
+} from '../core/ice-mining'
+import { caveScoutingSteps } from './missions/cave-scouting-steps'
+import {
+  computeCaveScoutYield,
+  DEFAULT_CAVE_SCOUT_CONFIG,
+  type CaveScoutConfig,
+} from '../core/cave-scouting'
+import { sampleCampaignSteps } from './missions/sample-campaign-steps'
+import {
+  computeSampleCampaignYield,
+  DEFAULT_SAMPLE_SELECTION,
+  type SampleCampaignSelection,
+} from '../core/sample-campaign'
+import { return2Steps } from './missions/return-2-steps'
+import {
+  computeReturn2Debrief,
+  DEFAULT_HIBERNATION_CONFIG,
+  DEFAULT_MAV_CHECKS,
+  type BaseHibernationConfig,
+  type MavPreflightChecks,
+} from '../core/return-2'
 import { chosenStay } from './missions/stay-step'
 import { STAY_DAYS } from '../core/stay'
 import type { JourneyChoice } from './missions/journey-step'
@@ -110,6 +159,13 @@ export function playMission(id: string, ctx: PlayContext): void {
   else if (id === '1.9') playTraverse(title, play)
   else if (id === '1.10') playFailure(title, play)
   else if (id === '1.11') playReturn(title, play)
+  else if (id === '2.1') playCargo2(title, play)
+  else if (id === '2.2') playWakeBase(title, play)
+  else if (id === '2.3') playGreenhouse2(title, play)
+  else if (id === '2.4') playWater2(title, play)
+  else if (id === '2.5') playCave2(title, play)
+  else if (id === '2.6') playSample2(title, play)
+  else if (id === '2.7') playReturn2(title, play)
   else throw new Error(`Mission ${id} cannot play on the map yet`)
 }
 
@@ -631,6 +687,399 @@ function playStorm(title: string, ctx: Play): void {
     status: () => storesBar(ctx.progress),
     steps,
     onFinish: () => undefined, // the last step's own button finishes the mission
+    onLeave: () => end(ctx.progress, null),
+  })
+}
+
+function playCargo2(title: string, ctx: Play): void {
+  document.body.dataset.story = 'mission'
+  ctx.services.showGlobe()
+
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+
+  const plan: Cargo2Plan = { ...(ctx.progress.cargo2 ?? DEFAULT_CARGO_2_PLAN) }
+  const steps = cargo2Steps(
+    plan,
+    () => dock.refresh(),
+    (step) => dock.goTo(step),
+    () => {
+      const next = recordCargo2(MISSIONS, ctx.progress, { ...plan })
+      end(next, saved(ctx, next, 'Expedition 2 lander packed and certified. Mission 2.1 is done.'))
+    },
+  )
+
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    status: () => massGauge2(plan),
+    onFinish: () => undefined,
+    onLeave: () => end(ctx.progress, null),
+  })
+}
+
+function playWakeBase(title: string, ctx: Play): void {
+  document.body.dataset.story = 'mission'
+  ctx.services.showGlobe()
+
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+
+  const state: WakeBaseState = {
+    ...(ctx.progress.wake2?.state ?? INITIAL_WAKE_BASE_STATE),
+  }
+
+  const steps = wakeBaseSteps(
+    state,
+    () => dock.refresh(),
+    () => {
+      const next = recordWake2(MISSIONS, ctx.progress, {
+        state: { ...state },
+        certifiedAtSol: 540,
+      })
+      end(
+        next,
+        saved(
+          ctx,
+          next,
+          'Base successfully revived from dormancy and certified nominal. Mission 2.2 is done.',
+        ),
+      )
+    },
+    ctx.progress.cargo2,
+  )
+
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    status: () => {
+      const telem = computeWakeTelemetry(state, ctx.progress.cargo2)
+      return el(
+        'div',
+        { className: 'dock-wake-status' },
+        el('span', {
+          className: 'wake-pill',
+          textContent: `${telem.fissionPowerKw.toFixed(1)} kW · ${telem.o2PartialPressureKpa.toFixed(1)} kPa · Hab ${telem.cabinTempC.toFixed(0)}°C`,
+        }),
+      )
+    },
+    onFinish: () => undefined,
+    onLeave: () => end(ctx.progress, null),
+  })
+}
+
+function playGreenhouse2(title: string, ctx: Play): void {
+  document.body.dataset.story = 'mission'
+  ctx.services.showGlobe()
+
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+
+  const config: Greenhouse2Config = {
+    areas: { ...(ctx.progress.greenhouse2?.config.areas ?? DEFAULT_GREENHOUSE_2_CONFIG.areas) },
+    lightingMode:
+      ctx.progress.greenhouse2?.config.lightingMode ?? DEFAULT_GREENHOUSE_2_CONFIG.lightingMode,
+    chillerMode:
+      ctx.progress.greenhouse2?.config.chillerMode ?? DEFAULT_GREENHOUSE_2_CONFIG.chillerMode,
+  }
+
+  const steps = greenhouse2Steps(
+    config,
+    () => dock.refresh(),
+    () => {
+      const y = computeGreenhouse2Yield(config, ctx.progress.cargo2)
+      const next = recordGreenhouse2(MISSIONS, ctx.progress, {
+        config: { ...config, areas: { ...config.areas } },
+        yield: { ...y },
+      })
+      end(
+        next,
+        saved(
+          ctx,
+          next,
+          `50 m² Greenhouse expansion commissioned: ${y.kcalPerDay.toLocaleString()} kcal/day (${(y.foodShareCrew * 100).toFixed(0)}% caloric closure). Mission 2.3 is done.`,
+        ),
+      )
+    },
+    ctx.progress.cargo2,
+  )
+
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    status: () => {
+      const y = computeGreenhouse2Yield(config, ctx.progress.cargo2)
+      return el(
+        'div',
+        { className: 'dock-wake-status' },
+        el('span', {
+          className: 'wake-pill',
+          textContent: `${y.kcalPerDay.toLocaleString()} kcal/day · ${(y.foodShareCrew * 100).toFixed(0)}% cal · ${y.waterRecoveryPct.toFixed(0)}% H2O rec`,
+        }),
+      )
+    },
+    onFinish: () => undefined,
+    onLeave: () => end(ctx.progress, null),
+  })
+}
+
+function playWater2(title: string, ctx: Play): void {
+  document.body.dataset.story = 'mission'
+  ctx.services.showGlobe()
+
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+
+  const config: IceMiningConfig = {
+    architecture:
+      ctx.progress.water2?.config.architecture ?? DEFAULT_ICE_MINING_CONFIG.architecture,
+    dailyDutyHours:
+      ctx.progress.water2?.config.dailyDutyHours ?? DEFAULT_ICE_MINING_CONFIG.dailyDutyHours,
+    purification: {
+      ...(ctx.progress.water2?.config.purification ?? DEFAULT_ICE_MINING_CONFIG.purification),
+    },
+  }
+
+  const steps = iceMiningSteps(
+    config,
+    () => dock.refresh(),
+    () => {
+      const y = computeIceMiningYield(config, ctx.progress.cargo2)
+      const next = recordWater2(MISSIONS, ctx.progress, {
+        config: { ...config, purification: { ...config.purification } },
+        yield: { ...y },
+      })
+      end(
+        next,
+        saved(
+          ctx,
+          next,
+          `Industrial ice mining commissioned: ${y.dailyPotableWaterKg.toFixed(0)} kg/sol, 5,000 kg buffer full at Sol ${y.daysToFill5tBuffer.toFixed(0)}. Mission 2.4 is done.`,
+        ),
+      )
+    },
+    ctx.progress.cargo2,
+  )
+
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    status: () => {
+      const y = computeIceMiningYield(config, ctx.progress.cargo2)
+      return el(
+        'div',
+        { className: 'dock-wake-status' },
+        el('span', {
+          className: 'wake-pill',
+          textContent: `${y.dailyPotableWaterKg.toFixed(0)} kg/sol · Sol ${y.daysToFill5tBuffer.toFixed(0)} buffer fill`,
+        }),
+      )
+    },
+    onFinish: () => undefined,
+    onLeave: () => end(ctx.progress, null),
+  })
+}
+
+function playCave2(title: string, ctx: Play): void {
+  document.body.dataset.story = 'mission'
+  ctx.services.showGlobe()
+
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+
+  const config: CaveScoutConfig = {
+    entranceVector:
+      ctx.progress.cave2?.config.entranceVector ?? DEFAULT_CAVE_SCOUT_CONFIG.entranceVector,
+    droneDescentDepthM:
+      ctx.progress.cave2?.config.droneDescentDepthM ?? DEFAULT_CAVE_SCOUT_CONFIG.droneDescentDepthM,
+    radarFrequencyMhz:
+      ctx.progress.cave2?.config.radarFrequencyMhz ?? DEFAULT_CAVE_SCOUT_CONFIG.radarFrequencyMhz,
+  }
+
+  const steps = caveScoutingSteps(
+    config,
+    () => dock.refresh(),
+    () => {
+      const y = computeCaveScoutYield(config, ctx.progress.cargo2)
+      const next = recordCave2(MISSIONS, ctx.progress, {
+        config: { ...config },
+        yield: { ...y },
+      })
+      end(
+        next,
+        saved(
+          ctx,
+          next,
+          'Subterranean lava tube certified as permanent sanctuary. 97% cosmic radiation reduction confirmed. Mission 2.5 is done.',
+        ),
+      )
+    },
+    ctx.progress.cargo2,
+  )
+
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    status: () => {
+      const y = computeCaveScoutYield(config, ctx.progress.cargo2)
+      return el(
+        'div',
+        { className: 'dock-wake-status' },
+        el('span', {
+          className: 'wake-pill',
+          textContent: `${y.tubeWidthM}m wide · ${y.roofThicknessM}m roof · ${y.radiationReductionPct.toFixed(0)}% shielded`,
+        }),
+      )
+    },
+    onFinish: () => undefined,
+    onLeave: () => end(ctx.progress, null),
+  })
+}
+
+function playSample2(title: string, ctx: Play): void {
+  document.body.dataset.story = 'mission'
+  ctx.services.showGlobe()
+
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+
+  const selection: SampleCampaignSelection = {
+    ...(ctx.progress.sample2?.selection ?? DEFAULT_SAMPLE_SELECTION),
+  }
+
+  const steps = sampleCampaignSteps(
+    selection,
+    () => dock.refresh(),
+    () => {
+      const y = computeSampleCampaignYield(selection, ctx.progress.cargo2)
+      const next = recordSample2(MISSIONS, ctx.progress, {
+        selection: { ...selection },
+        yield: { ...y },
+      })
+      end(
+        next,
+        saved(
+          ctx,
+          next,
+          `Sample return campaign commissioned! ${y.totalMassKg.toFixed(1)} kg of pristine Martian specimens (${y.totalScienceScore} science points across ${y.disciplinesCovered.length} disciplines) stowed in MAV. Category V planetary protection secured. Expedition 2 is complete!`,
+        ),
+      )
+    },
+    ctx.progress.cargo2,
+  )
+
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    status: () => {
+      const y = computeSampleCampaignYield(selection, ctx.progress.cargo2)
+      const statusPillClass = y.readyToSeal ? 'pass' : 'warning'
+      return el(
+        'div',
+        { className: 'dock-wake-status' },
+        el('span', {
+          className: `wake-pill ${statusPillClass}`,
+          textContent: `${y.totalMassKg.toFixed(1)}/15.0 kg · ${y.totalScienceScore} pts · ${y.disciplinesCovered.length} fields`,
+        }),
+      )
+    },
+    onFinish: () => undefined,
+    onLeave: () => end(ctx.progress, null),
+  })
+}
+
+function playReturn2(title: string, ctx: Play): void {
+  document.body.dataset.story = 'mission'
+  ctx.services.showGlobe()
+
+  const end = (progress: Progress, note: string | null) => {
+    dock.remove()
+    delete document.body.dataset.story
+    ctx.onDone(progress, note)
+  }
+
+  const config: BaseHibernationConfig = {
+    powerGridMode:
+      ctx.progress.return2?.config.powerGridMode ?? DEFAULT_HIBERNATION_CONFIG.powerGridMode,
+    waterTankHeatersActive:
+      ctx.progress.return2?.config.waterTankHeatersActive ??
+      DEFAULT_HIBERNATION_CONFIG.waterTankHeatersActive,
+    greenhousePreservation:
+      ctx.progress.return2?.config.greenhousePreservation ??
+      DEFAULT_HIBERNATION_CONFIG.greenhousePreservation,
+    caveRelayBeaconActive:
+      ctx.progress.return2?.config.caveRelayBeaconActive ??
+      DEFAULT_HIBERNATION_CONFIG.caveRelayBeaconActive,
+  }
+
+  const mav: MavPreflightChecks = {
+    sampleCanisterLocked:
+      ctx.progress.return2?.mav.sampleCanisterLocked ?? DEFAULT_MAV_CHECKS.sampleCanisterLocked,
+    isruPropellantPressurized:
+      ctx.progress.return2?.mav.isruPropellantPressurized ??
+      DEFAULT_MAV_CHECKS.isruPropellantPressurized,
+    flightComputerAligned:
+      ctx.progress.return2?.mav.flightComputerAligned ?? DEFAULT_MAV_CHECKS.flightComputerAligned,
+  }
+
+  const steps = return2Steps(
+    config,
+    mav,
+    () => dock.refresh(),
+    () => dock.refresh(),
+    () => {
+      const d = computeReturn2Debrief(config, mav, ctx.progress)
+      const next = recordReturn2(MISSIONS, ctx.progress, {
+        config: { ...config },
+        mav: { ...mav },
+        debrief: { ...d },
+      })
+      end(
+        next,
+        saved(
+          ctx,
+          next,
+          `Expedition 2 concluded successfully! Outpost safely hibernating, 5,000 kg water secured, Arsia Mons lava tube certified, and 15 kg of Martian samples en route to Earth. Base handed over to Expedition 3: Toward Permanence!`,
+        ),
+      )
+    },
+    ctx.progress,
+  )
+
+  const dock = openDock({
+    missionTitle: title,
+    steps,
+    status: () => {
+      const d = computeReturn2Debrief(config, mav, ctx.progress)
+      const statusPillClass = d.success ? 'pass' : 'warning'
+      return el(
+        'div',
+        { className: 'dock-wake-status' },
+        el('span', {
+          className: `wake-pill ${statusPillClass}`,
+          textContent: `${d.waterBufferSecuredKg} kg water · ${d.radiationTotalMsv} mSv · ${d.expedition2TotalScience} sci pts`,
+        }),
+      )
+    },
+    onFinish: () => undefined,
     onLeave: () => end(ctx.progress, null),
   })
 }
