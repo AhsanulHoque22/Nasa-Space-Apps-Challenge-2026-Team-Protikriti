@@ -23,9 +23,7 @@ import {
 } from '../../core/mission-constants'
 import type { Grid } from '../../core/grid'
 import type { Greenhouse, Progress } from '../../core/mission-progress'
-import type { SiteFeature } from '../../core/site-features'
 import type { BasePlacer } from '../../map/base-placer'
-import type { FeaturePins } from '../../map/feature-pins'
 import { el } from '../dom'
 import type { MissionReport } from '../../core/mission-reports'
 import { warningsFor } from '../lessons'
@@ -33,7 +31,6 @@ import { type GreenhouseStage, openGreenhouseStage } from '../greenhouse-stage'
 import { type DockStep, stepper } from '../mission-dock'
 
 export type GreenhouseMap = {
-  pins: FeaturePins
   base: BasePlacer
   showBase: (progress: Progress) => void
 }
@@ -105,22 +102,8 @@ const VEGGIE = photo(
   'Veg-03D on the ISS: mizuna mustard and two lettuces grown together in the Veggie chamber.',
 )
 
-/** Phoenix's landing site: the centre of the HiRISE mosaic of it that the map already carries. */
-const PHOENIX: SiteFeature = {
-  name: 'Phoenix lander, 2008',
-  lon: -125.775,
-  lat: 68.208,
-  finding:
-    'Phoenix scooped soil into its Wet Chemistry Laboratory in 2008 and found perchlorate, 0.4 to 0.6% of the soil by mass.',
-  forCrew:
-    'Perchlorate is a toxic salt. Soil like this cannot simply be used to grow food; the crew grow crops without soil instead.',
-  located: 'Centre of the HiRISE mosaic of the Phoenix landing site',
-  source: {
-    label: 'Hecht et al. 2009, Science 325',
-    url: 'https://doi.org/10.1126/science.1172466',
-  },
-  photo: { ...WCL, src: WCL.src },
-}
+/** Where the soil was tested: far from any base, so the step cites it and the map stays home. */
+const PERCHLORATE_PAPER_URL = 'https://doi.org/10.1126/science.1172466'
 
 const link = (label: string, href: string) =>
   el('a', { href, textContent: label, target: '_blank', rel: 'noopener' })
@@ -237,7 +220,7 @@ export function greenhouseSteps(
           ...[
             ['Found', 'Perchlorate, a toxic salt'],
             ['How much', '0.4 to 0.6% of the soil by mass'],
-            ['Where', 'Phoenix landing site, 68° N, on the map now'],
+            ['Where', 'Phoenix landing site, 68° N, in the Martian arctic'],
           ].map(([t, v]) =>
             el('div', {}, el('dt', { textContent: t }), el('dd', { textContent: v })),
           ),
@@ -249,7 +232,7 @@ export function greenhouseSteps(
             textContent:
               'Hecht et al. 2009, “Detection of Perchlorate and the Soluble Chemistry of Martian Soil at the Phoenix Lander Site”, Science 325. ',
           },
-          link('Read the paper', PHOENIX.source.url),
+          link('Read the paper', PERCHLORATE_PAPER_URL),
         ),
         el('h3', { className: 'feature-heading', textContent: 'So the crew grow without soil' }),
         el('p', {
@@ -258,8 +241,7 @@ export function greenhouseSteps(
         }),
         el('div', { className: 'gh-pair' }, figure(BPC), figure(VEGGIE)),
       ),
-    onShow: () => map.pins.show([PHOENIX], () => undefined),
-    onHide: () => map.pins.show([], () => undefined),
+    onShow: () => map.base.view(home),
   }
 
   // --- Step 2 -------------------------------------------------------------------------------------

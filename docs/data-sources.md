@@ -499,7 +499,6 @@ No real cargo-lander model was available (none in the team's model folder or NAS
 | Value | Source |
 |---|---|
 | Perchlorate 0.4–0.6% of the soil by mass at the Phoenix site | Hecht et al. 2009, Science 325, doi:10.1126/science.1172466 |
-| Phoenix pin: centre of the app's HiRISE mosaic of the landing site (68.21° N, 125.78° W) | `web/src/core/hirise.ts` (phoenix_hirise_mosaic) |
 | Edible yield (g fresh/m²/day), light (mol/m²/day), photoperiod, days to harvest, height at harvest | NASA BVAD Rev2 (NASA/TP-2015-218570/REV2, 2022), Tables 4-89 and 4-90, https://ntrs.nasa.gov/citations/20210024855 |
 | Water uptake (kg/m²/day) and oxygen made (g/m²/day) | BVAD Rev2 Table 4-91 |
 | LED 1.66 µmol/J; 0.8 light delivery | BVAD Rev2 §4 (Nelson & Bugbee 2014) and Table 4-86 |
