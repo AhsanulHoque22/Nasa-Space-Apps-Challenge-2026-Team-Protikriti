@@ -17,7 +17,11 @@ import {
   loadProgress,
   missionStatus,
   saveProgress,
+  recordSample2,
+  recordReturn2,
 } from './mission-progress'
+import { DEFAULT_SAMPLE_SELECTION, computeSampleCampaignYield } from './sample-campaign'
+import { DEFAULT_HIBERNATION_CONFIG, DEFAULT_MAV_CHECKS, computeReturn2Debrief } from './return-2'
 import { EXPEDITIONS, MISSIONS, type Mission } from './missions'
 
 function store(initial: Record<string, string> = {}) {
@@ -560,5 +564,52 @@ describe('recordReturn', () => {
       }),
     })
     expect(loadProgress(s, owner, ['1.11']).progress.completed).toEqual([])
+  })
+})
+
+describe('recordSample2', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list = ['2.5', '2.6'].map((id) => m(id, true))
+  const sampleData = {
+    selection: { ...DEFAULT_SAMPLE_SELECTION },
+    yield: computeSampleCampaignYield(DEFAULT_SAMPLE_SELECTION),
+  }
+
+  it('completes 2.6 and saves sample return record', () => {
+    const p = recordSample2(list, { version: 1, owner, completed: ['2.5'] }, sampleData)
+    expect(p.completed.at(-1)).toBe('2.6')
+    expect(p.sample2).toEqual(sampleData)
+  })
+
+  it('restores sample2 in loadProgress', () => {
+    const s = store()
+    const p = recordSample2(list, { version: 1, owner, completed: ['2.5'] }, sampleData)
+    saveProgress(s, p)
+    const loaded = loadProgress(s, owner, ['2.5', '2.6'])
+    expect(loaded.progress.sample2).toEqual(sampleData)
+  })
+})
+
+describe('recordReturn2', () => {
+  const owner = '2026-10-25T08:00:00.000Z'
+  const list = ['2.6', '2.7'].map((id) => m(id, true))
+  const returnData = {
+    config: { ...DEFAULT_HIBERNATION_CONFIG },
+    mav: { ...DEFAULT_MAV_CHECKS },
+    debrief: computeReturn2Debrief(DEFAULT_HIBERNATION_CONFIG, DEFAULT_MAV_CHECKS),
+  }
+
+  it('completes 2.7 and saves return & handover record', () => {
+    const p = recordReturn2(list, { version: 1, owner, completed: ['2.6'] }, returnData)
+    expect(p.completed.at(-1)).toBe('2.7')
+    expect(p.return2).toEqual(returnData)
+  })
+
+  it('restores return2 in loadProgress', () => {
+    const s = store()
+    const p = recordReturn2(list, { version: 1, owner, completed: ['2.6'] }, returnData)
+    saveProgress(s, p)
+    const loaded = loadProgress(s, owner, ['2.6', '2.7'])
+    expect(loaded.progress.return2).toEqual(returnData)
   })
 })

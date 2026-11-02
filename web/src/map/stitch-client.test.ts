@@ -3,7 +3,9 @@ import { beforeAll, describe, expect, it } from 'vitest'
 describe('proxied', () => {
   beforeAll(() => {
     Object.assign(globalThis, { document: { baseURI: 'https://martian-map.vercel.app/' } })
-    Object.assign(globalThis, { navigator: {} }) // read at import for the output size
+    if (typeof navigator === 'undefined') {
+      Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true })
+    }
   })
 
   it('routes Perseverance frames through the same-origin NASA proxy', async () => {

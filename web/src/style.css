@@ -6143,3 +6143,427 @@ button.journey-label:focus-visible {
     width: auto;
   }
 }
+
+/* Mission 2.1: Wear assessment & readiness panels */
+.base-wear-card,
+.readiness-card {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.base-wear-card h3,
+.readiness-card h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wear-item {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.wear-item:last-child {
+  border-bottom: none;
+}
+
+.wear-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-1);
+}
+
+.wear-head strong {
+  font-size: 13px;
+}
+
+.wear-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgb(255 195 90 / 0.15);
+  color: #ffc35a;
+}
+
+.wear-status.warn {
+  background: rgb(255 195 90 / 0.15);
+  color: #ffc35a;
+}
+
+.wear-status.bad {
+  background: rgb(244 67 54 / 0.2);
+  color: #e57373;
+}
+
+.wear-status.ok {
+  background: rgb(46 125 50 / 0.2);
+  color: #81c784;
+}
+
+.wear-item.ok .wear-status {
+  background: rgb(46 125 50 / 0.2);
+  color: #81c784;
+}
+
+.wear-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+  margin: var(--space-1) 0;
+}
+
+.wear-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #5fae4a;
+  transition: width 0.3s ease;
+}
+
+.wear-fill[data-tone='warn'] {
+  background: #ffc35a;
+}
+
+.wear-fill[data-tone='bad'] {
+  background: #ff7043;
+}
+
+.wear-detail {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.readiness-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.readiness-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-2);
+  row-gap: 2px;
+  padding: var(--space-2);
+  background: rgb(255 255 255 / 0.03);
+  border-radius: 6px;
+}
+
+.readiness-badge {
+  grid-row: 1 / 3;
+  align-self: start;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.readiness-item.ready .readiness-badge {
+  background: rgb(46 125 50 / 0.3);
+  color: #81c784;
+}
+
+.readiness-item.not-ready .readiness-badge {
+  background: rgb(244 67 54 / 0.2);
+  color: #e57373;
+}
+
+.readiness-item strong {
+  font-size: 13px;
+}
+
+.readiness-item p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gauge-over {
+  background: #f44336 !important;
+}
+
+/* Mission 2.2: Wake the base dashboard & anomaly triage */
+.wake-dashboard {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.wake-dashboard h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wake-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-2);
+}
+
+.wake-meter-card {
+  padding: var(--space-2);
+  background: rgb(255 255 255 / 0.03);
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+}
+
+.wake-meter-card.nominal {
+  border-left-color: #81c784;
+}
+
+.wake-meter-card.warning {
+  border-left-color: #ffc35a;
+}
+
+.wake-meter-card.alert {
+  border-left-color: #e57373;
+}
+
+.wake-meter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.wake-meter-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.wake-meter-val {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wake-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+
+.wake-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #81c784;
+  transition: width 0.3s ease;
+}
+
+.wake-fill[data-status='warning'] {
+  background: #ffc35a;
+}
+
+.wake-fill[data-status='alert'] {
+  background: #e57373;
+}
+
+.wake-actions-deck {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.wake-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.wake-action-card.completed {
+  border-color: rgb(46 125 50 / 0.4);
+  background: rgb(46 125 50 / 0.06);
+}
+
+.action-card-text strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.action-card-text p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.action-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.action-btn.primary {
+  background: var(--nasa-blue-lift, #3b82f6);
+  color: #fff;
+}
+
+.action-btn.primary:hover {
+  filter: brightness(1.1);
+}
+
+.action-btn.done {
+  background: rgb(46 125 50 / 0.25);
+  color: #81c784;
+  cursor: default;
+}
+
+.anomalies-deck {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+
+.anomaly-card {
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.anomaly-card h4 {
+  margin: 0 0 var(--space-1);
+  font-size: 14px;
+}
+
+.anomaly-desc {
+  margin: 0 0 var(--space-2);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.anomaly-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-2);
+}
+
+.triage-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.triage-btn strong {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.triage-btn span {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.triage-btn:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.triage-btn.active {
+  border-color: #81c784;
+  background: rgb(46 125 50 / 0.15);
+}
+
+.cert-deck {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.cert-deck h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cert-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.cert-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: rgb(255 255 255 / 0.03);
+  border-radius: 6px;
+}
+
+.cert-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.cert-row.pass .cert-badge {
+  background: rgb(46 125 50 / 0.3);
+  color: #81c784;
+}
+
+.cert-row.fail .cert-badge {
+  background: rgb(244 67 54 / 0.2);
+  color: #e57373;
+}
+
+.cert-info strong {
+  display: block;
+  font-size: 13px;
+}
+
+.cert-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dock-wake-status {
+  display: flex;
+  align-items: center;
+}
+
+.wake-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--text-main);
+}
+
