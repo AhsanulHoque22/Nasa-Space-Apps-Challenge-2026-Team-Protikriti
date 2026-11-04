@@ -5,7 +5,7 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 ## Tools
 - **Claude** (Anthropic) through **Claude Code**, in the terminal. Used for writing and refactoring code, tests, documentation and this repository's configuration.
 - **Claude Haiku 5.5** (Anthropic API, `claude-haiku-5-5`) inside the app, as the Ask ATLAS explainer only (below).
-- **Gemini** (Google), Flash model, used to create the ATLAS logo and the logo film that opens the site, including the film's sound. [Team: add the date.]
+- **Gemini** (Google), Flash model, used to create the ATLAS logo and the logo film that opens the site, including the film's sound, on 4 November 2026.
 - **ChatGPT** (OpenAI) image generation, used once for the artwork on pitch-video Slide 2 (the Mars puzzle image). [Team: add the model name and version shown in ChatGPT, and the date.]
 
 ## What the AI did
