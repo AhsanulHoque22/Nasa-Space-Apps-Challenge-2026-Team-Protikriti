@@ -20,6 +20,30 @@
     <link rel="stylesheet" href="/src/theme.css" />
   </head>
   <body>
+    <script>
+      // Decided here, before first paint, so the home screen never flashes ahead of the film.
+      try {
+        if (
+          !sessionStorage.getItem('atlas-intro-seen') &&
+          !location.search &&
+          !matchMedia('(prefers-reduced-motion: reduce)').matches
+        )
+          document.documentElement.classList.add('intro')
+      } catch {}
+    </script>
+    <section id="intro" aria-label="ATLAS logo film">
+      <video
+        src="/media/intro/atlas-intro.mp4"
+        preload="none"
+        muted
+        playsinline
+        aria-label="The ATLAS logo forms around Mars as a rocket flies past"
+      ></video>
+      <div class="intro-controls">
+        <button type="button" class="intro-sound">Sound on</button>
+        <button type="button" class="intro-skip">Skip</button>
+      </div>
+    </section>
     <main id="globe" aria-label="3D map of Mars"></main>
     <div id="ui"></div>
     <section id="first-screen" class="title-card episodes" data-field="mustard" aria-label="ATLAS">

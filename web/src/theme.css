@@ -267,6 +267,71 @@
   }
 }
 
+/* The logo film: above the home screen, which is already there underneath when it fades. */
+#intro {
+  display: none;
+}
+
+.intro #intro {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: block;
+  background: #060a10; /* the film's own darkness, for the bands on a tall phone */
+  transition: opacity 400ms var(--ease-out);
+}
+
+#intro.intro-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#intro video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Cropping a wide film to a tall phone would cut the logo's name. */
+@media (max-aspect-ratio: 1/1) {
+  #intro video {
+    object-fit: contain;
+  }
+}
+
+.intro-controls {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+}
+
+.intro-controls button {
+  min-height: 44px;
+  padding: 0 18px;
+  font: 600 15px var(--font);
+  color: var(--cream);
+  background: transparent;
+  border: 2px solid var(--cream);
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out);
+}
+
+.intro-controls .intro-skip {
+  color: var(--ink);
+  background: var(--cream);
+}
+
+.intro-controls button:hover {
+  transform: translateY(-2px);
+}
+
+.intro-controls button:focus-visible {
+  outline: 3px solid var(--mustard);
+  outline-offset: 3px;
+}
+
 /* The home screen: both ways in, one tap each. */
 .mode-buttons {
   position: relative;
