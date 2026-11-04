@@ -22,6 +22,13 @@ export function renderTimelineBar(
   bar.className = 'panel timeline'
   bar.setAttribute('aria-label', 'Mission replay')
   bar.innerHTML = `
+    <div class="tl-head">
+      <h2 class="tl-title">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 18c4 0 3-6 7-6s3-6 7-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 4"/><circle cx="19.5" cy="6" r="2.5" fill="currentColor"/></svg>
+        Mission replay
+      </h2>
+      <p class="tl-label" aria-live="off"></p>
+    </div>
     <div class="tl-row">
       <div class="view-switch" role="group" aria-label="Rover">
         <button type="button" data-rover="m20" aria-pressed="true">Perseverance</button>
@@ -35,8 +42,7 @@ export function renderTimelineBar(
       <button type="button" class="tl-close quiet">Hide</button>
     </div>
     <label class="tl-slider"><span class="visually-hidden">Mission sol</span>
-      <input type="range" step="1" /></label>
-    <p class="tl-label" aria-live="off"></p>`
+      <input type="range" step="1" /></label>`
   parent.append(bar)
   const slider = bar.querySelector('input[type="range"]') as HTMLInputElement
   const label = bar.querySelector('.tl-label') as HTMLElement
@@ -101,15 +107,16 @@ export function renderTimelineBar(
     follow.checked = false
     replay.follow(false)
   }
-  bar.querySelector('.tl-close')?.addEventListener('click', () => {
+  const close = bar.querySelector('.tl-close') as HTMLButtonElement
+  close.addEventListener('click', () => {
     stop()
     unfollow()
     replay.hide()
-    bar.classList.toggle('collapsed')
+    close.textContent = bar.classList.toggle('collapsed') ? 'Show' : 'Hide'
   })
   range()
   slider.value = slider.max
-  label.textContent = 'Mission replay: pick a rover and press Play, or drag the slider.'
+  label.textContent = 'Pick a rover and press Play, or drag the slider.'
   // Explore mode owns the camera: stop playback and release the follow camera.
   return {
     pauseForExplore: () => {

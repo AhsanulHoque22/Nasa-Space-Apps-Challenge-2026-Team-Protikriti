@@ -468,9 +468,16 @@ body[data-story='mission'] .drawer-toggle {
     display: none;
   }
 
+  /* The workbench bar gets its own row under the masthead, so it never covers The story. */
+  .dock-trigger {
+    top: 68px;
+    right: var(--space-2);
+  }
+
   body[data-panel-open] .side {
     position: fixed;
-    inset: 72px var(--space-2) 64px;
+    inset: 136px var(--space-2) 64px;
+    width: auto;
     z-index: 55;
     max-height: none;
     overflow-y: auto;
@@ -480,7 +487,7 @@ body[data-story='mission'] .drawer-toggle {
 
 @media (max-width: 719px) {
   /* Sites stay one tap away in the Plan tab and the search; the top bar keeps only the way back. */
-  .masthead .view-switch {
+  .masthead .view-select {
     display: none;
   }
 }

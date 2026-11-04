@@ -35,10 +35,10 @@ body {
   /* The layers row takes only the height that is left, so the bottom row never overflows. */
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   grid-template-areas:
-    'masthead . route'
-    'search . route'
-    'layers . route'
-    'clock timeline readout';
+    'masthead . clock'
+    'search . clock'
+    'layers . clock'
+    'readout timeline clock';
   gap: var(--space-3);
   padding: var(--space-4);
 }
@@ -142,6 +142,50 @@ body {
 .view-switch button[aria-pressed='true'] {
   background: var(--accent-fill);
   color: var(--on-accent);
+}
+
+.view-select {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.view-select::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  margin-top: -6px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.view-select select {
+  appearance: none;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 28px 0 10px;
+  font: 600 13px var(--font);
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border: 0;
+  border-radius: 8px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.view-select select:hover {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.view-select option {
+  color: var(--text);
+  background: var(--surface);
 }
 
 .story-link {
@@ -253,16 +297,19 @@ body {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--rule) transparent;
-  padding: var(--space-1) 0;
+  padding: 0 0 var(--space-1);
 }
 
+/* The header stays put while the list scrolls under it, so the panel can always be closed. */
 .layers summary {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
   list-style: none;
   cursor: pointer;
-  padding: var(--space-2) var(--space-3);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.02em;
+  padding: var(--space-3);
+  font: 400 18px/1.2 var(--font-tool);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -386,7 +433,51 @@ body {
 
 .layer-name {
   display: block;
+  font-size: 15px;
   font-weight: 600;
+}
+
+/* What a layer does: floats beside the panel, which clips its own scrolling content. */
+.layer-tip {
+  position: fixed;
+  z-index: 70;
+  display: grid;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  width: min(280px, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-3);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--surface-raised);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.layer-tip[hidden] {
+  display: none;
+}
+
+.layer-tip::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -6px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+.layer-tip strong {
+  font-size: 15px;
+}
+
+/* Touch screens have no hover: the same words are in the row's info drawer. */
+@media (hover: none) {
+  .layer-tip {
+    display: none;
+  }
 }
 
 .layer-detail {
@@ -401,7 +492,7 @@ body {
   top: 68px;
   right: var(--space-4);
   width: 300px;
-  max-height: calc(100svh - 88px);
+  max-height: calc(100svh - 144px); /* stops above the Ask ATLAS button */
   display: grid;
   gap: var(--space-3);
   overflow-y: auto;
@@ -1109,8 +1200,27 @@ body[data-panel-open] .side {
   justify-self: center;
   width: min(100%, 640px);
   box-sizing: border-box;
-  padding: var(--space-2) var(--space-3);
+  overflow: hidden;
   margin-bottom: 18px;
+}
+
+/* The band that says what this bar is. */
+.tl-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.tl-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font: 400 15px/1.2 var(--font-tool);
 }
 
 .tl-row {
@@ -1118,6 +1228,12 @@ body[data-panel-open] .side {
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+}
+
+.tl-slider {
+  display: block;
+  padding: 0 var(--space-3) var(--space-2);
 }
 
 .tl-play,
@@ -1164,28 +1280,40 @@ body[data-panel-open] .side {
   padding: 0 6px;
 }
 
-.tl-speed option {
-  background: #111;
-}
-
 .tl-slider input {
   width: 100%;
-  margin: var(--space-2) 0 0;
+  margin: 0;
 }
 
 .tl-label {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--text-muted);
+  margin: 0;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
+.timeline.collapsed .view-switch,
 .timeline.collapsed .tl-slider,
 .timeline.collapsed .tl-label,
 .timeline.collapsed .tl-follow,
 .timeline.collapsed .tl-speed,
 .timeline.collapsed .tl-play {
   display: none;
+}
+
+/* Collapsed, the bar is only its band, with Show sitting in it. */
+.timeline.collapsed {
+  position: relative;
+}
+
+.timeline.collapsed .tl-row {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px var(--space-2);
+}
+
+.timeline.collapsed .tl-close {
+  background: var(--surface);
 }
 
 /* Explore mode */
@@ -1382,7 +1510,8 @@ body.exploring #ui {
   padding: var(--space-3);
   width: min(100%, 300px);
   box-sizing: border-box;
-  margin-bottom: 18px; /* clear Cesium's credit line */
+  justify-self: end;
+  margin-bottom: calc(48px + var(--space-3)); /* clear the Ask ATLAS button below it */
 }
 
 .clock-time {
@@ -1464,10 +1593,10 @@ body.exploring #ui {
 /* Readout */
 .readout {
   grid-area: readout;
+  align-self: end;
   padding: var(--space-3);
-  justify-self: end;
-  width: min(100%, 300px);
   box-sizing: border-box;
+  margin-bottom: 18px; /* clear Cesium's credit line */
 }
 
 .readout-source {
@@ -1560,8 +1689,7 @@ body.exploring #ui {
   }
 
   .readout {
-    width: 100%;
-    justify-self: stretch;
+    margin-bottom: 0;
   }
 
   .readout-values {
@@ -6041,19 +6169,27 @@ button.journey-label:focus-visible {
    carry a shadow; surfaces are told apart by tone, not lines. */
 .ask-atlas-trigger {
   position: fixed;
-  top: var(--space-4);
+  bottom: var(--space-4);
   right: var(--space-4);
   z-index: 60;
-  width: 120px;
-  min-height: 62px; /* the height of the workbench bar beside it */
+  min-height: 48px;
   padding: 0 var(--space-4);
   font: 600 14px var(--font);
   color: var(--on-accent);
   background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
+  box-shadow: var(--shadow);
   cursor: pointer;
   transition: background-color 180ms var(--ease-out);
+}
+
+/* The mission dock fills the bottom of the screen during a mission, so the button goes above it. */
+@media (min-width: 641px) {
+  body[data-story='mission'] .ask-atlas-trigger {
+    top: var(--space-4);
+    bottom: auto;
+  }
 }
 
 .ask-atlas-trigger:hover,
@@ -6079,12 +6215,6 @@ button.journey-label:focus-visible {
   ); /* opaque, like the mission dock: no map labels behind the text */
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-}
-
-/* The workbench bar steps left so the Ask ATLAS button has the corner. */
-.ask-atlas-trigger ~ .dock-trigger,
-.dock-trigger:has(~ .ask-atlas-trigger) {
-  right: calc(var(--space-4) + 120px + var(--space-2));
 }
 
 .ask-atlas[hidden] {
@@ -6244,18 +6374,6 @@ button.journey-label:focus-visible {
 }
 
 @media (max-width: 640px) {
-  .ask-atlas-trigger {
-    top: auto;
-    bottom: var(--space-4);
-    width: auto;
-    min-height: 48px;
-  }
-
-  .ask-atlas-trigger ~ .dock-trigger,
-  .dock-trigger:has(~ .ask-atlas-trigger) {
-    right: var(--space-4);
-  }
-
   .ask-atlas {
     inset: max(var(--space-2), env(safe-area-inset-top))
       max(var(--space-2), env(safe-area-inset-right))
