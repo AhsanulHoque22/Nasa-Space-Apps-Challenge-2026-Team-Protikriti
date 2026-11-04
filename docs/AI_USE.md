@@ -34,7 +34,7 @@ Measured by training on 4 of every 5 stops and scoring the fifth (`classify-pano
 - Choose the challenge, the Jezero and Gale sites, the 15° slope limit, or the product direction. The team decided these.
 - Supply any data. Every dataset comes from NASA, USGS or the IAU and is cited in `docs/data-sources.md`.
 - Produce any image, video or audio shown in the app, apart from the opening logo film (below). The only generated image in the pitch video is the Slide 2 puzzle artwork from ChatGPT (see Tools and Prompts). It is illustration, not NASA data, and shows no real terrain, people or logos. [Team: confirm there is no other generated image, video or audio.]
-- The logo film that opens the site (`web/public/media/intro/atlas-intro.mp4`) is AI-generated (see Tools). It is a logo animation, not NASA data: its Mars and rocket are illustration, not real terrain or hardware. Claude Code only compressed it with ffmpeg and placed it in the page.
+- The logo film that opens the site (`web/public/media/intro/atlas-intro.mp4`) is AI-generated (see Tools). It is a logo animation, not NASA data: its Mars and rocket are illustration, not real terrain or hardware. Claude Code only upscaled, sharpened and re-encoded it with ffmpeg (no AI enhancement) and placed it in the page.
 - The astronaut-arm picture behind the EVA dashboard (`web/public/assets/wrist-console.webp`) was supplied by the team as `Sci-Fi Astronaut Wrist HUD Console.png`; the code only converts it to WebP and places the screens on it. [Team: state its source and licence.] Nothing on the screens is invented: no suit vitals, only the walk's own numbers.
 
 ## Prompts
