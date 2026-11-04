@@ -10,6 +10,8 @@ export function renderReadout(
   viewer: Viewer,
   sites: readonly Site[],
   mola: Grid,
+  /** Told each place the readout reads, with its label: 'Pointer' or 'View centre'. */
+  onPosition: (lon: number, lat: number, label: string) => void,
 ): void {
   const el = document.createElement('section')
   el.className = 'panel readout'
@@ -40,6 +42,7 @@ export function renderReadout(
     elevSource.textContent = `Elevation: ${elevation.source}`
     for (const f of fields) f.textContent = text[f.dataset.k as keyof typeof text]
     source.textContent = label
+    onPosition(lon, lat, label)
   }
 
   const centre = () => {

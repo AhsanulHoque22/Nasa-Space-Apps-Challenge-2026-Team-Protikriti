@@ -1590,6 +1590,171 @@ body.exploring #ui {
   color: var(--on-accent);
 }
 
+/* Colony panels */
+.colony-panel,
+.colony-summary {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.colony-panel h2,
+.colony-summary h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.colony-where,
+.colony-scale,
+.colony-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.colony-panel > svg {
+  display: block;
+  width: min(100%, 210px);
+  margin-inline: auto;
+}
+
+.colony-ring {
+  fill: none;
+  stroke: var(--rule);
+}
+
+.colony-shape {
+  fill: color-mix(in srgb, var(--accent) 28%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.colony-icon {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.colony-score-dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.colony-row {
+  display: grid;
+  grid-template-columns: minmax(0, 104px) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.colony-row dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.colony-row dt svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.colony-row dd {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.colony-meter {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.colony-meter i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.colony-row b {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.colony-sources,
+.colony-summary details {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.colony-sources[hidden],
+.colony-summary dl[hidden],
+.colony-empty[hidden] {
+  display: none;
+}
+
+.colony-sources summary,
+.colony-summary summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.colony-sources ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.colony-sources p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.colony-summary dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.colony-summary dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.colony-summary dt {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.colony-summary dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.colony-summary pre {
+  margin: var(--space-2) 0 0;
+  font: 12px/1.5 var(--font);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* Readout */
 .readout {
   grid-area: readout;
@@ -6179,9 +6344,19 @@ button.journey-label:focus-visible {
   background: var(--accent-fill);
   border: 0;
   border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: background-color 180ms var(--ease-out);
+}
+
+.ask-mark {
+  width: 34px;
+  height: 34px;
+  margin-left: calc(var(--space-2) - var(--space-4));
+  border-radius: 50%;
 }
 
 /* The mission dock fills the bottom of the screen during a mission, so the button goes above it. */

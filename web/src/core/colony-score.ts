@@ -9,6 +9,9 @@ export type ColonyScoreGrid = {
   south: number
   nodata: number
   channels: string[]
+  /** One source line per channel, in channel order. */
+  sources: string[]
+  caveat: string
   data: Uint8Array
 }
 
@@ -21,12 +24,40 @@ export type ColonyScore = {
   wind: number | null
 }
 
+/** The fields of data/colony_score.json, as `make colony-data` writes them. */
+type ColonyScoreMeta = {
+  rows: number
+  cols: number
+  channels: number
+  north: number
+  south: number
+  west: number
+  east: number
+  nodata: number
+  channel_names: string[]
+  channel_sources: string[]
+  caveat: string
+}
+
 export function parseColonyScore(meta: Record<string, unknown>, bin: ArrayBuffer): ColonyScoreGrid {
-  const { width, height, west, east, north, south, nodata, channels } = meta as ColonyScoreGrid
-  if (bin.byteLength !== width * height * (channels as string[]).length) {
-    throw new Error(`colony_score.bin: expected ${width * height * channels.length} bytes`)
+  const m = meta as ColonyScoreMeta
+  const expected = m.cols * m.rows * m.channels
+  if (bin.byteLength !== expected) {
+    throw new Error(`colony_score.bin: expected ${expected} bytes, got ${bin.byteLength}`)
   }
-  return { width, height, west, east, north, south, nodata, channels, data: new Uint8Array(bin) }
+  return {
+    width: m.cols,
+    height: m.rows,
+    west: m.west,
+    east: m.east,
+    north: m.north,
+    south: m.south,
+    nodata: m.nodata,
+    channels: m.channel_names,
+    sources: m.channel_sources,
+    caveat: m.caveat,
+    data: new Uint8Array(bin),
+  }
 }
 
 export function colonyScoreAt(grid: ColonyScoreGrid, lon: number, lat: number): ColonyScore {

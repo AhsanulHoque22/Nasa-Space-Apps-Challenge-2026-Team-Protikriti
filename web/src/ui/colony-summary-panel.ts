@@ -22,10 +22,15 @@ export function renderColonySummary(parent: HTMLElement): ColonySummary {
   aside.className = 'panel colony-summary'
 
   const h2 = document.createElement('h2')
-  h2.textContent = 'Colony Budget'
-  aside.append(h2)
+  h2.textContent = 'Colony budget'
+  const empty = document.createElement('p')
+  empty.className = 'colony-empty'
+  empty.textContent =
+    'Nothing built yet. Explore a site on foot and place modules, and this adds up what they make and use.'
+  aside.append(h2, empty)
 
   const dl = document.createElement('dl')
+  dl.hidden = true
   const fields: [string, string][] = [
     ['colony-power', 'Power'],
     ['colony-o2', 'O₂'],
@@ -34,12 +39,13 @@ export function renderColonySummary(parent: HTMLElement): ColonySummary {
     ['colony-autonomy', 'Dust storm autonomy'],
   ]
   for (const [id, label] of fields) {
+    const row = document.createElement('div')
     const dt = document.createElement('dt')
     dt.textContent = label
     const dd = document.createElement('dd')
     dd.id = id
-    dd.textContent = '—'
-    dl.append(dt, dd)
+    row.append(dt, dd)
+    dl.append(row)
   }
   aside.append(dl)
 
@@ -55,13 +61,15 @@ export function renderColonySummary(parent: HTMLElement): ColonySummary {
   parent.append(aside)
 
   function update(budget: ColonyBudget) {
+    empty.hidden = true
+    dl.hidden = false
     const { powerGenKwhSol, powerUseKwhSol, o2GramPerSol, waterLiterPerSol, crew, autonomyDays } =
       budget
     const g = (id: string) => document.getElementById(id)
 
     const power = g('colony-power')
     if (power)
-      power.textContent = `▲ ${powerGenKwhSol.toFixed(1)} kWh/sol gen / ▼ ${powerUseKwhSol.toFixed(1)} kWh/sol used`
+      power.textContent = `${powerGenKwhSol.toFixed(1)} kWh/sol made, ${powerUseKwhSol.toFixed(1)} kWh/sol used`
 
     const o2 = g('colony-o2')
     if (o2) o2.textContent = `${o2GramPerSol.toFixed(0)} g/sol`

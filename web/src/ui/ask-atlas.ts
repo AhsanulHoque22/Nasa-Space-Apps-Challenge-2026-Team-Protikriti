@@ -63,8 +63,9 @@ export function installAskAtlas(screen: () => Promise<AskScreen>): void {
   const trigger = el('button', {
     type: 'button',
     className: 'ask-atlas-trigger',
-    textContent: 'Ask ATLAS',
   })
+  const mark = el('img', { className: 'ask-mark', src: 'assets/atlas-mark.webp', alt: '' })
+  trigger.append(mark, 'Ask ATLAS')
   trigger.setAttribute('aria-expanded', 'false')
   trigger.setAttribute('aria-controls', 'ask-atlas')
 

@@ -91,7 +91,7 @@ import { createCaveLayer } from './map/caves-layer'
 import { createWalkGround } from './map/walk-ground'
 import { renderCaveCard } from './ui/cave-card'
 import { iceAt } from './core/site-report'
-import { loadColonyScore, colonyScoreAt } from './core/colony-score'
+import { type ColonyScoreGrid, loadColonyScore, colonyScoreAt } from './core/colony-score'
 import { computeBudget } from './core/colony-budget'
 
 import { createColonyLayer } from './map/colony-modules'
@@ -493,7 +493,13 @@ async function main() {
       offFoot.show = on ? false : offFootShown
     },
   ]
-  renderReadout(ui, viewer, sites, mola)
+  // The colony panel is built further down; it reads the same place as the readout.
+  let readPlace: { lon: number; lat: number; where: string } | null = null
+  let onReadPlace = () => {}
+  renderReadout(ui, viewer, sites, mola, (lon, lat, where) => {
+    readPlace = { lon, lat, where }
+    onReadPlace()
+  })
   installAskAtlas(
     askScreen({ viewer, sites, mola, plan: routePanel.currentBundle, progress: savedProgress }),
   )
@@ -634,13 +640,23 @@ async function main() {
   renderInstrumentDrawer()
 
   // Colony: score grid and placement layer (modules live in explore mode, not the map)
-  const colonyScorePromise = loadColonyScore().catch(() => null)
-  let colonyGrid: Awaited<typeof colonyScorePromise> = null
-  void colonyScorePromise.then((g) => {
-    colonyGrid = g
-  })
+  const colonyPanel = renderColonyPanel(side)
+  let colonyGrid: ColonyScoreGrid | null = null
+  onReadPlace = () => {
+    if (colonyGrid && readPlace)
+      colonyPanel.update(colonyScoreAt(colonyGrid, readPlace.lon, readPlace.lat), readPlace.where)
+  }
+  loadColonyScore()
+    .then((grid) => {
+      colonyGrid = grid
+      colonyPanel.showSources(grid.sources, grid.caveat)
+      onReadPlace()
+    })
+    .catch((error: unknown) => {
+      console.error('Colony scores failed to load:', error)
+      colonyPanel.fail()
+    })
   const colonyLayer = createColonyLayer(viewer)
-  renderColonyPanel(side)
   const colonySummaryCtrl = renderColonySummary(side)
 
   let thermalWasShown = false

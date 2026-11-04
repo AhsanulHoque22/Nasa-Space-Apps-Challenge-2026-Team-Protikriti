@@ -27,7 +27,7 @@ const TABS: { id: Tab; label: string; hint: string; icon: string }[] = [
 // First match wins. Panels that match nothing stay visible on every tab.
 const GROUPS: [Tab, string[]][] = [
   ['plan', ['quest', 'route', 'sync', 'link']],
-  ['explore', ['wx-panel', 'zones', 'delta']],
+  ['explore', ['wx-panel', 'zones', 'delta', 'colony-panel', 'colony-summary']],
   ['science', ['geology', 'compare', 'scenario', 'dust', 'dose', 'benchmark']],
 ]
 

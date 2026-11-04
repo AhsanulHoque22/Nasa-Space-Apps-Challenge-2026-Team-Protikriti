@@ -1,17 +1,25 @@
 import { describe, it, expect } from 'vitest'
+import shipped from '../../public/data/colony_score.json'
 import { colonyScoreAt, parseColonyScore } from './colony-score'
 
-const meta = {
-  width: 360,
-  height: 180,
-  west: -180,
-  east: 180,
-  north: 90,
-  south: -90,
-  channels: ['solar', 'ice', 'minerals', 'shelter', 'stability', 'wind'],
-  nodata: 255,
-  sources: {},
-}
+// The file the pipeline really writes, so a change to its fields fails here.
+const meta = shipped as Record<string, unknown>
+
+describe('parseColonyScore', () => {
+  it('reads the metadata the pipeline writes, sources and caveat included', () => {
+    const grid = parseColonyScore(meta, new ArrayBuffer(360 * 180 * 6))
+    expect(grid.width).toBe(360)
+    expect(grid.height).toBe(180)
+    expect(grid.channels).toEqual(['solar', 'ice', 'minerals', 'shelter', 'stability', 'wind'])
+    expect(grid.sources).toHaveLength(6)
+    expect(grid.sources[0]).toContain('Appelbaum')
+    expect(grid.caveat).toContain('planning aid')
+  })
+
+  it('refuses a data file of the wrong size', () => {
+    expect(() => parseColonyScore(meta, new ArrayBuffer(10))).toThrow(/colony_score\.bin/)
+  })
+})
 
 describe('colonyScoreAt', () => {
   it('returns correct scores for a 360x180 grid at equator/prime meridian', () => {
