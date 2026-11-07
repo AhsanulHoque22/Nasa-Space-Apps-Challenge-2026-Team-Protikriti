@@ -17,6 +17,11 @@ import { loadJourneys } from './journey-client'
 import { renderMissionList } from './mission-list'
 import { loadReports } from '../core/mission-reports'
 import { showReport } from './mission-over'
+import { MISSION_BACKDROPS } from '../core/mission-backdrops'
+
+const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>'
+const GLOBE =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
 
 /** What Story mode needs from the map app, which may still be loading. */
 export type StoryServices = {
@@ -117,20 +122,26 @@ export function showStory(ctx: StoryContext): void {
   function showList() {
     // Start the Earth–Mars transfer search now, so mission 1.1's routes are ready when it opens.
     void loadJourneys().catch(() => undefined)
-    const back = el('button', { type: 'button', className: 'gate-link', textContent: 'Back' })
+    const back = el('button', { type: 'button', className: 'trail-key trail-back' })
+    back.innerHTML = `${ARROW}<span>Back</span>`
     back.addEventListener('click', ctx.onBack)
-    const map = el('button', {
-      type: 'button',
-      className: 'gate-link',
-      textContent: 'Explore Mars',
-    })
+    const map = el('button', { type: 'button', className: 'trail-key trail-map' })
+    map.innerHTML = `${GLOBE}<span>Explore Mars</span>`
     map.addEventListener('click', ctx.onMap)
+    // The trail wears the art of the next mission to play, when the team has supplied one.
+    const next = MISSIONS.find(
+      (m) => missionStatus(MISSIONS, progress.completed, m.id).kind === 'open',
+    )
+    const art = next ? MISSION_BACKDROPS[next.id] : undefined
+    const gate = ctx.body.closest<HTMLElement>('.gate')
+    if (art) gate?.style.setProperty('--mission-backdrop', `url("${art}")`)
+    else gate?.style.removeProperty('--mission-backdrop')
     ctx.body.replaceChildren(
+      el('nav', { className: 'trail-nav', ariaLabel: 'Leave the story' }, back, map),
       el('h2', { className: 'trail-heading', textContent: 'The story so far', tabIndex: -1 }),
       note ? el('p', { className: 'gate-note', textContent: note }) : '',
       renderMissionList(MISSIONS, progress.completed, showMission),
       reportList(),
-      el('div', { className: 'gate-actions' }, back, map),
     )
     ctx.body.querySelector<HTMLElement>('h2')?.focus()
   }

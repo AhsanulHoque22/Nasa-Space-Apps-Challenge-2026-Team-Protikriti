@@ -98,25 +98,73 @@ export function renderDock(side: HTMLElement): void {
   }
 
   // ── Hero KPIs ─────────────────────────────────────────────────────────
-  type StatConfig = { val: () => string; label: string }
+  type StatConfig = { val: () => string; label: string; tip: string }
   const HERO: Record<Tab, StatConfig[]> = {
     plan: [
-      { val: () => heroKPIs().plan.verdict, label: 'Verdict' },
-      { val: () => heroKPIs().plan.dur, label: 'EVA time' },
-      { val: () => heroKPIs().plan.dist, label: 'Distance' },
-      { val: () => heroKPIs().plan.climb, label: 'Climb' },
+      {
+        val: () => heroKPIs().plan.verdict,
+        label: 'Verdict',
+        tip: 'GO if the planned walk stays inside the suit and slope limits.',
+      },
+      {
+        val: () => heroKPIs().plan.dur,
+        label: 'EVA time',
+        tip: 'Time outside, from Tobler walking pace on Mars slopes.',
+      },
+      {
+        val: () => heroKPIs().plan.dist,
+        label: 'Distance',
+        tip: 'Length of the planned Marswalk along the ground.',
+      },
+      {
+        val: () => heroKPIs().plan.climb,
+        label: 'Climb',
+        tip: 'Total uphill height gained on the route.',
+      },
     ],
     explore: [
-      { val: () => heroKPIs().explore.temp, label: 'Air temp' },
-      { val: () => heroKPIs().explore.pressure, label: 'Pressure' },
-      { val: () => heroKPIs().explore.sky, label: 'Sky' },
-      { val: () => heroKPIs().explore.sol, label: 'Sol' },
+      {
+        val: () => heroKPIs().explore.temp,
+        label: 'Air temp',
+        tip: 'Air temperature now at the view centre, from the nearer rover station (MEDA or REMS) climatology.',
+      },
+      {
+        val: () => heroKPIs().explore.pressure,
+        label: 'Pressure',
+        tip: 'Estimated air pressure from elevation: 636 Pa at the datum, scale height 11.1 km (NASA Mars Fact Sheet). Earth is about 101,000 Pa.',
+      },
+      {
+        val: () => heroKPIs().explore.sky,
+        label: 'Sky',
+        tip: 'Dust opacity τ for the season: about 0.4 is clear, above 1.5 is a dusty sky (Lemmon et al.).',
+      },
+      {
+        val: () => heroKPIs().explore.sol,
+        label: 'Local time',
+        tip: 'Local mean solar time at the view centre (Mars24).',
+      },
     ],
     science: [
-      { val: () => heroKPIs().science.unit, label: 'Geo unit' },
-      { val: () => heroKPIs().science.radiation, label: 'Radiation' },
-      { val: () => heroKPIs().science.ice, label: 'Ice' },
-      { val: () => heroKPIs().science.firmness, label: 'Firmness' },
+      {
+        val: () => heroKPIs().science.unit,
+        label: 'Dust',
+        tip: 'Column dust opacity τ: how much sunlight the dust blocks. Solar power drops as it rises.',
+      },
+      {
+        val: () => heroKPIs().science.radiation,
+        label: 'Radiation',
+        tip: 'Surface dose per sol measured by Curiosity RAD (Hassler et al. 2014).',
+      },
+      {
+        val: () => heroKPIs().science.ice,
+        label: 'Ice',
+        tip: 'Shallow water ice within 1 m, from the SWIM 2.0 map.',
+      },
+      {
+        val: () => heroKPIs().science.firmness,
+        label: 'Firmness',
+        tip: 'Ground firmness from THEMIS thermal inertia, ranked within this site.',
+      },
     ],
   }
   const renderHero = (tab: Tab) => {
@@ -124,6 +172,7 @@ export function renderDock(side: HTMLElement): void {
     for (const cfg of HERO[tab]) {
       const stat = document.createElement('div')
       stat.className = 'hero-stat'
+      stat.title = cfg.tip
       const val = document.createElement('span')
       val.className = 'hero-val'
       val.textContent = cfg.val()

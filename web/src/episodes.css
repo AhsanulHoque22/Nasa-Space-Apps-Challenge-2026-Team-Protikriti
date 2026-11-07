@@ -26,6 +26,81 @@
   color: var(--mustard);
 }
 
+/* The next mission's art, faint behind the trail so the type stays readable (cream on it ≥ 7:1). */
+.gate.episodes::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--mission-backdrop, none) center / cover no-repeat;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.gate.episodes {
+  isolation: isolate;
+}
+
+/* Leave the story: two keys at the top of the trail, mustard for the way onto the map. */
+.trail-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+
+.trail-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px 0 14px;
+  font: 400 18px var(--font-title);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 2px solid var(--cream);
+  cursor: pointer;
+  transition:
+    transform 90ms var(--ease-out),
+    box-shadow 90ms var(--ease-out),
+    background-color 180ms var(--ease-out);
+}
+
+.trail-key svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.trail-back {
+  color: var(--cream);
+  background: transparent;
+}
+
+.trail-back:hover {
+  background: rgb(241 230 207 / 0.12);
+}
+
+.trail-map {
+  color: var(--ink);
+  background: var(--mustard);
+  border-color: var(--mustard);
+  box-shadow: 0 4px 0 #9c7012;
+}
+
+.trail-map:hover {
+  background: #eab73f;
+}
+
+.trail-key:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
 .trail-heading {
   margin: 8px 0 24px;
   font: 400 clamp(52px, 12vw, 96px) / 0.95 var(--font-title);

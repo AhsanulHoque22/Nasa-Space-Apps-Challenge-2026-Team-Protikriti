@@ -9,12 +9,7 @@ const DASH = '—'
 const state = {
   plan: { verdict: DASH, dist: DASH, dur: DASH, climb: DASH } as PlanKPIs,
   explore: { temp: DASH, pressure: DASH, sky: DASH, sol: DASH } as ExploreKPIs,
-  science: {
-    unit: 'ETi · Jezero',
-    radiation: '0.64 mSv/d',
-    ice: 'trace',
-    firmness: 'medium',
-  } as ScienceKPIs,
+  science: { unit: DASH, radiation: DASH, ice: DASH, firmness: DASH } as ScienceKPIs,
 }
 
 const subs: Array<() => void> = []

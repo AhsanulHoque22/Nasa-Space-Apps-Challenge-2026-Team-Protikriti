@@ -10,7 +10,9 @@ import { type LandingScene, createLandingScene } from './map/landing-scene'
 import { type FeaturePins, createFeaturePins } from './map/feature-pins'
 import './style.css'
 import './episodes.css'
-import { type Site, elevationAt, parseMola } from './core/elevation'
+import { type Site, elevationAt, parseMola, siteAt } from './core/elevation'
+import { heroReadings } from './core/hero-readings'
+import { pushExploreKPIs, pushScienceKPIs } from './ui/hero-state'
 import { type Grid, lonLatToCell, parseGrid } from './core/grid'
 import { type LayerId, addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
@@ -53,6 +55,7 @@ import { renderReadout } from './ui/readout'
 import { installAskAtlas } from './ui/ask-atlas'
 import { askScreen } from './ui/ask-atlas-screen'
 import { renderSiteReport } from './ui/site-report'
+import { installCentreMarker, viewSnapshot } from './ui/centre-marker'
 import type { SwimGrid } from './core/site-report'
 import { ScreenSpaceEventHandler, ScreenSpaceEventType } from 'cesium'
 import { MARS_SPHERE } from './map/mars'
@@ -290,6 +293,7 @@ async function main() {
       (home.grid.west + home.grid.east) / 2,
       (home.grid.south + home.grid.north) / 2,
     )
+  const exploreRef: { current?: (siteId: string, b: HTMLButtonElement) => Promise<void> } = {}
   renderHeader(ui, sites, {
     onView: (view) => {
       const site = sites.find((s) => s.id === view)
@@ -303,8 +307,8 @@ async function main() {
           (home.grid.south + home.grid.north) / 2,
         )
     },
-    onStart: () => openStart(),
     onStory: () => openStart('story'),
+    onExploreOnFoot: (id, button) => void exploreRef.current?.(id, button),
     initialView: shared ? undefined : 'mars',
   })
   const ground = createWalkGround(viewer, sites, mola)
@@ -417,74 +421,63 @@ async function main() {
   side.prepend(launcher)
   const roverPositions = stationPositions()
   void roverPositions.then((positions) => addStationPins(viewer, positions, surfaceM, openWeather))
-  const explore = document.createElement('nav')
-  explore.className = 'panel wx-launch'
-  explore.setAttribute('aria-label', 'Explore a site on foot')
-  explore.innerHTML = `<span>Explore on foot</span>${sites
-    .map(
-      (s) =>
-        `<button type="button" data-site="${s.id}">${s.name.replace(/^Mars /, '').split(/[\s(]/)[0]}</button>`,
-    )
-    .join('')}`
-  for (const b of explore.querySelectorAll<HTMLButtonElement>('button')) {
-    b.addEventListener('click', async () => {
-      const site = sites.find((s) => s.id === b.dataset.site)
-      if (!site) return
-      const g = site.grid
-      b.disabled = true // the walk patch may take a moment to arrive
-      const patch = await ground.patch(site.id)
+  // Explore on foot: the header's button for the selected site.
+  exploreRef.current = async (siteId, b) => {
+    const site = sites.find((s) => s.id === siteId)
+    if (!site || b.disabled) return
+    const g = site.grid
+    b.disabled = true // the walk patch may take a moment to arrive
+    const patch = await ground.patch(site.id)
+    b.disabled = false
+    // Walk the high-resolution patch from its centre (a landing site) when there is one;
+    // otherwise the site model, from the rover if it is inside it, else the site centre.
+    let walkSite: Site = site
+    let from = { lon: (g.west + g.east) / 2, lat: (g.south + g.north) / 2 }
+    if (patch) {
+      // On foot, the walk area is 1 m ground when the laptop CDN has it; else the 2 m patch.
+      b.disabled = true
+      const fine = await ground.startFineWalk(patch)
       b.disabled = false
-      // Walk the high-resolution patch from its centre (a landing site) when there is one;
-      // otherwise the site model, from the rover if it is inside it, else the site centre.
-      let walkSite: Site = site
-      let from = { lon: (g.west + g.east) / 2, lat: (g.south + g.north) / 2 }
-      if (patch) {
-        // On foot, the walk area is 1 m ground when the laptop CDN has it; else the 2 m patch.
-        b.disabled = true
-        const fine = await ground.startFineWalk(patch)
-        b.disabled = false
-        walkSite = fine
-          ? { ...site, grid: fine, source: `${patch.source}; 1 m HiRISE DTM on foot` }
-          : { ...site, grid: patch.grid, source: patch.source }
-        from = patch.start
-      } else {
-        const positions = await roverPositions.catch(() => null)
-        const rover = site.rover === 'Curiosity' ? positions?.rems : positions?.meda
-        if (rover && lonLatToCell(g, rover[0], rover[1])) from = { lon: rover[0], lat: rover[1] }
-      }
-      // At night the whole view is black and nothing seems to open: arrive in the morning.
-      const arriveAt = from
-      const lmst = localMeanSolarTimeHours(sceneTimeMs(), arriveAt.lon)
-      if (lmst < EXPLORE_DAY_START_H || lmst >= EXPLORE_DAY_END_H)
-        clockRef.setTime(nextLocalHourMs(sceneTimeMs(), arriveAt.lon, EXPLORE_ARRIVAL_H))
-      const emptyScore = {
-        solar: null,
-        ice: null,
-        minerals: null,
-        shelter: null,
-        stability: null,
-        wind: null,
-      }
-      for (const hide of exploreHooks) hide(true)
-      openExplore(
-        viewer,
-        walkSite,
-        from,
-        () => {
-          ground.endFineWalk()
-          for (const hide of exploreHooks) hide(false)
-          viewAoi(viewer, g)
-          b.focus()
-        },
-        {
-          colonyLayer,
-          scoreAt: (lon, lat) => (colonyGrid ? colonyScoreAt(colonyGrid, lon, lat) : emptyScore),
-          onPlace: () => colonySummaryCtrl.update(computeBudget([...colonyLayer.modules])),
-        },
-      )
-    })
+      walkSite = fine
+        ? { ...site, grid: fine, source: `${patch.source}; 1 m HiRISE DTM on foot` }
+        : { ...site, grid: patch.grid, source: patch.source }
+      from = patch.start
+    } else {
+      const positions = await roverPositions.catch(() => null)
+      const rover = site.rover === 'Curiosity' ? positions?.rems : positions?.meda
+      if (rover && lonLatToCell(g, rover[0], rover[1])) from = { lon: rover[0], lat: rover[1] }
+    }
+    // At night the whole view is black and nothing seems to open: arrive in the morning.
+    const arriveAt = from
+    const lmst = localMeanSolarTimeHours(sceneTimeMs(), arriveAt.lon)
+    if (lmst < EXPLORE_DAY_START_H || lmst >= EXPLORE_DAY_END_H)
+      clockRef.setTime(nextLocalHourMs(sceneTimeMs(), arriveAt.lon, EXPLORE_ARRIVAL_H))
+    const emptyScore = {
+      solar: null,
+      ice: null,
+      minerals: null,
+      shelter: null,
+      stability: null,
+      wind: null,
+    }
+    for (const hide of exploreHooks) hide(true)
+    openExplore(
+      viewer,
+      walkSite,
+      from,
+      () => {
+        ground.endFineWalk()
+        for (const hide of exploreHooks) hide(false)
+        viewAoi(viewer, g)
+        b.focus()
+      },
+      {
+        colonyLayer,
+        scoreAt: (lon, lat) => (colonyGrid ? colonyScoreAt(colonyGrid, lon, lat) : emptyScore),
+        onPlace: () => colonySummaryCtrl.update(computeBudget([...colonyLayer.modules])),
+      },
+    )
   }
-  launcher.after(explore)
   // On foot the walk patch and the 25 cm site mosaics fill the view: drop the layers beneath.
   let offFootShown = offFoot.show
   const exploreHooks: Array<(on: boolean) => void> = [
@@ -507,14 +500,18 @@ async function main() {
   const thermalReady = loadThermalGrids(sites)
   void thermalReady.then((t) => (thermalGrids = t)).catch(() => undefined)
   const crismReady = loadCrismGrids(sites)
+  let colonyGrid: ColonyScoreGrid | null = null // set once the score grid loads, further down
   const openReport = async (lon: number, lat: number) => {
     const places: Place[] = await placesReady.catch(() => [])
-    renderSiteReport(side, lon, lat, {
+    renderSiteReport(lon, lat, {
       sites,
       mola,
       places,
       swim: await getSwim(),
       thermal: (await thermalReady).map((t) => t.grid),
+      score: colonyGrid ? colonyScoreAt(colonyGrid, lon, lat) : null,
+      snapshot: viewSnapshot(viewer),
+      utcMs: sceneTimeMs(),
     })
   }
   const loadZoneRows = async (): Promise<ZoneRow[]> => {
@@ -542,17 +539,53 @@ async function main() {
     },
     ScreenSpaceEventType.RIGHT_CLICK,
   )
-  document
-    .querySelector('.readout')
-    ?.insertAdjacentHTML(
-      'beforeend',
-      '<button type="button" class="report-button">Site report for the view centre</button>',
-    )
-  document.querySelector('.report-button')?.addEventListener('click', () => {
+  const readout = document.querySelector('.readout')
+  readout?.insertAdjacentHTML(
+    'beforeend',
+    `<div class="report-actions">
+      <button type="button" class="report-button">Site report for the view centre</button>
+      <button type="button" class="centre-toggle" aria-pressed="true" title="Show or hide the view-centre marker">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg>
+        <span class="visually-hidden">View-centre marker</span>
+      </button>
+    </div>`,
+  )
+  readout?.querySelector('.report-button')?.addEventListener('click', () => {
     const c = viewCentre(viewer)
     if (c) void openReport(c.lon, c.lat)
   })
+  installCentreMarker(globe, readout?.querySelector<HTMLButtonElement>('.centre-toggle') ?? null)
   Object.assign(clockRef, renderClock(ui, viewer))
+  // The workbench strips read the view centre: after each camera move and as the clock runs.
+  let swimGrid: SwimGrid | null = null
+  const refreshHero = () => {
+    const c = viewCentre(viewer)
+    if (!c) return
+    const firm = thermalGrids
+      .map((t) => {
+        const v = thermalAt(t.grid, c.lon, c.lat)
+        return v === null ? null : firmerThanPct(t.grid, v)
+      })
+      .find((v) => v !== null)
+    const r = heroReadings({
+      lon: c.lon,
+      lat: c.lat,
+      elevationM: elevationAt(sites, mola, c.lon, c.lat).m ?? null,
+      utcMs: sceneTimeMs(),
+      station: siteAt(sites, c.lon, c.lat)?.id === 'gale' ? 'gale' : 'jezero',
+      ice: swimGrid ? iceAt(swimGrid, c.lon, c.lat) : null,
+      firmerThanPct: firm ?? null,
+    })
+    pushExploreKPIs(r.explore)
+    pushScienceKPIs(r.science)
+  }
+  viewer.camera.moveEnd.addEventListener(refreshHero)
+  window.setInterval(refreshHero, HERO_REFRESH_MS)
+  refreshHero()
+  void getSwim().then((g) => {
+    swimGrid = g
+    refreshHero()
+  })
   renderConnectionBadge(ui)
   installScaleBar(viewer, ui)
   // Production only: a service worker in dev would serve stale files under hot reload.
@@ -641,7 +674,6 @@ async function main() {
 
   // Colony: score grid and placement layer (modules live in explore mode, not the map)
   const colonyPanel = renderColonyPanel(side)
-  let colonyGrid: ColonyScoreGrid | null = null
   onReadPlace = () => {
     if (colonyGrid && readPlace)
       colonyPanel.update(colonyScoreAt(colonyGrid, readPlace.lon, readPlace.lat), readPlace.where)
@@ -733,6 +765,7 @@ const EXPLORE_DAY_START_H = 6.5 // local mean solar time: the sun is up between 
 const EXPLORE_DAY_END_H = 17.5
 const EXPLORE_ARRIVAL_H = 10
 const URL_SYNC_DELAY_MS = 400
+const HERO_REFRESH_MS = 5000 // the map clock can run fast; air and time follow it
 
 /** Keep the address bar pointing at the current view so any view can be shared. */
 function keepUrlInSync(viewer: Parameters<typeof currentView>[0], paused: () => boolean): void {

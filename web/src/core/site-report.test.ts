@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { solarLongitudeDeg } from './mars-time'
 import type { Place } from './search'
-import { daylightHours, distanceKm, iceAt, nearest } from './site-report'
+import {
+  daylightHours,
+  daylightYearSeries,
+  distanceKm,
+  dustYearSeries,
+  iceAt,
+  nearest,
+  solTemperatureSeries,
+} from './site-report'
 
 /** First UTC (scanning daily from 2026) where solar longitude crosses `ls`. */
 function utcAtLs(ls: number): number {
@@ -65,5 +73,30 @@ describe('iceAt (SWIM consistency grid)', () => {
     expect(iceAt(swim, -135, 30)).toBeCloseTo(0.55)
     expect(iceAt(swim, 45, 30)).toBeNull()
     expect(iceAt(swim, 0, 75)).toBeNull()
+  })
+})
+
+describe('report chart series', () => {
+  const t = Date.parse('2024-03-01T00:00:00Z')
+  it('runs a sol of air temperature cold at dawn, warm after noon', () => {
+    const { hours, tempC } = solTemperatureSeries(t, 'jezero')
+    expect(hours).toHaveLength(25)
+    expect(tempC[5]).toBeCloseTo(-80) // the coldest hour sits on the climatology minimum
+    expect(tempC[14]).toBeCloseTo(-20) // the warmest on its maximum
+  })
+
+  it('peaks the dust in the perihelion season', () => {
+    const { ls, tau } = dustYearSeries()
+    expect(ls[0]).toBe(0)
+    expect(ls.at(-1)).toBe(360)
+    expect(tau[25]).toBeCloseTo(0.9) // Ls 250
+    expect(Math.min(...tau)).toBeGreaterThanOrEqual(0.4)
+  })
+
+  it('gives polar day lengths that swing across the year, equatorial ones that barely move', () => {
+    const polar = daylightYearSeries(t, 0, 70).hours
+    const equator = daylightYearSeries(t, 0, 0).hours
+    expect(Math.max(...polar) - Math.min(...polar)).toBeGreaterThan(12)
+    expect(Math.max(...equator) - Math.min(...equator)).toBeLessThan(1)
   })
 })

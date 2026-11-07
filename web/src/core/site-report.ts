@@ -1,5 +1,7 @@
 /** Settlement guide: facts about any point on Mars, each traced to a dataset. */
-import { sunPosition } from './mars-time'
+import { MARS_YEAR_SOLS } from './chart'
+import { solarLongitudeDeg, sunPosition } from './mars-time'
+import { type SiteId, seasonalTau, surfaceConditions } from './surface-conditions'
 import type { Place } from './search'
 
 const R_KM = 3396.19
@@ -67,4 +69,36 @@ export function iceVerdict(consistency: number | null): string {
   if (consistency >= 0.5) return 'Strongly consistent with shallow ice'
   if (consistency > 0) return 'Weakly consistent with shallow ice'
   return 'Not consistent with shallow ice'
+}
+
+/** Air temperature through one sol at the nearer rover's climatology, hourly 0–24 LMST. */
+export function solTemperatureSeries(
+  utcMs: number,
+  site: SiteId,
+): { hours: number[]; tempC: number[] } {
+  const ls = solarLongitudeDeg(utcMs)
+  const hours = Array.from({ length: 25 }, (_, h) => h)
+  const tempC = hours.map(
+    (h) => surfaceConditions({ utcMs, ls, lmstHours: h, site, sols: [] }).airTempC,
+  )
+  return { hours, tempC }
+}
+
+/** Typical dust opacity across a Mars year, every 10° of solar longitude (no named storms). */
+export function dustYearSeries(): { ls: number[]; tau: number[] } {
+  const ls = Array.from({ length: 37 }, (_, i) => i * 10)
+  return { ls, tau: ls.map(seasonalTau) }
+}
+
+const DAYLIGHT_STEP_SOLS = 24
+
+/** Hours of daylight here for the next Mars year, every 24 sols from `utcMs`. */
+export function daylightYearSeries(
+  utcMs: number,
+  lon: number,
+  lat: number,
+): { sol: number[]; hours: number[] } {
+  const sol: number[] = []
+  for (let s = 0; s <= MARS_YEAR_SOLS; s += DAYLIGHT_STEP_SOLS) sol.push(s)
+  return { sol, hours: sol.map((s) => daylightHours(utcMs + s * SOL_MS, lon, lat)) }
 }

@@ -18,10 +18,10 @@ describe('heroKPIs', () => {
     expect(k.explore.sol).toBe('—')
   })
 
-  it('initialises science with static constants', () => {
+  it('initialises science with placeholders, not made-up readings', () => {
     const k = heroKPIs()
-    expect(k.science.radiation).toBe('0.64 mSv/d')
-    expect(k.science.unit).toBe('ETi · Jezero')
+    expect(k.science.radiation).toBe('—')
+    expect(k.science.unit).toBe('—')
   })
 
   it('pushPlanKPIs merges fields and notifies', () => {
@@ -49,7 +49,7 @@ describe('heroKPIs', () => {
     onHeroChange(fn)
     pushScienceKPIs({ ice: 'abundant' })
     expect(heroKPIs().science.ice).toBe('abundant')
-    expect(heroKPIs().science.radiation).toBe('0.64 mSv/d') // untouched
+    expect(heroKPIs().science.radiation).toBe('—') // untouched
     expect(fn).toHaveBeenCalledOnce()
   })
 })
