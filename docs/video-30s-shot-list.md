@@ -6,7 +6,7 @@ Status as of 2 Nov 2026. Say "greenhouse fails", never "1.6". English subtitles 
 
 | Time | Shot | On-screen words | Spoken | Status |
 |---|---|---|---|---|
-| 0-3 s | Episode title card, team name | "Four people are going to Mars." | Team Protikriti. Four people are going to Mars. Keep them alive. | Must be built: title card |
+| 0-3 s | Episode title card, team name | "Humans are going to Mars." | Team Protikriti. Humans are going to Mars. Keep them alive. | Must be built: title card |
 | 3-9 s | The player sets reactors too low. Keep this choice on screen | Real value from code | What you pack is all they have. | Partly works: decision exists, new screen must be built |
 | 9-15 s | Greenhouse lights fail. Kept beside it: the earlier choice | kW needed, kW available, both from code | The lights fail, and this choice is why. | Partly works: failure and figures exist; consequence moment must be built. Needs the saved failed run |
 | 15-18 s | Tombstone on real terrain | Player's epitaph | | Must be built |

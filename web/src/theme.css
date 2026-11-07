@@ -67,9 +67,7 @@
    The 3D scenes sit over a dark sky outside the dock, so they take the same ink tokens. */
 .episodes,
 .journey-scene,
-.cargo-bay,
-.eva-console,
-body[data-mode='plan'] .side {
+.cargo-bay {
   --surface: #0e0e0e;
   --surface-raised: #1d1b17;
   --text: #f1e6cf;
@@ -411,4 +409,18 @@ body[data-mode='plan'] .side {
   .mode-button {
     transition: none;
   }
+}
+
+/* The first screen's call: the line the whole app answers, set big on an ink band. */
+#first-screen .card-line {
+  justify-self: start;
+  width: fit-content;
+  padding: 6px 18px 4px;
+  font: 400 clamp(34px, 5.2vw, 64px) / 1 var(--font-title);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mustard);
+  background: var(--ink);
+  box-shadow: 8px 8px 0 var(--brick);
+  transform: rotate(-1.5deg);
 }
