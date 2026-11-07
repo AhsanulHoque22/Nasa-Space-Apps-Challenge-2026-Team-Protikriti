@@ -17,9 +17,12 @@ import { loadJourneys } from './journey-client'
 import { renderMissionList } from './mission-list'
 import { loadReports } from '../core/mission-reports'
 import { showReport } from './mission-over'
+import { openMissionArchive } from './mission-archive'
 import { backdropCss } from '../core/mission-backdrops'
 
 const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>'
+const ARCHIVE =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v5H3zM5 9v11h14V9M10 13h4"/></svg>'
 const GLOBE =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
 
@@ -91,32 +94,13 @@ export function showStory(ctx: StoryContext): void {
     throw new Error(`Mission ${id} has no screen yet`)
   }
 
-  /** Mission report v1, v2, …: one per failed run of this crew, each opens in full. */
-  function reportList(): HTMLElement | string {
-    const reports = loadReports(ctx.store, ctx.profile.createdAt)
-    if (!reports.length) return ''
-    return el(
-      'section',
-      { className: 'report-list' },
-      el('h3', { className: 'feature-heading', textContent: 'Mission reports' }),
-      el(
-        'ul',
-        { className: 'report-lessons' },
-        ...reports.map((r) => {
-          const open = el('button', {
-            type: 'button',
-            className: 'gate-link',
-            textContent: `Report ${r.version}`,
-          })
-          const playable = missionStatus(MISSIONS, progress.completed, r.missionId).kind
-          const canRetry = playable === 'open' || playable === 'done'
-          open.addEventListener('click', () =>
-            showReport(r, canRetry ? () => showMission(r.missionId) : undefined),
-          )
-          return el('li', {}, open, ` · mission ${r.missionId}: ${r.cause}, sol ${r.endedSol}`)
-        }),
-      ),
-    )
+  /** Every report this crew has filed, in one window, each one click from its full text. */
+  function openArchive() {
+    openMissionArchive(loadReports(ctx.store, ctx.profile.createdAt), MISSIONS, (r) => {
+      const playable = missionStatus(MISSIONS, progress.completed, r.missionId).kind
+      const canRetry = playable === 'open' || playable === 'done'
+      showReport(r, canRetry ? () => showMission(r.missionId) : undefined)
+    })
   }
 
   function showList() {
@@ -128,6 +112,9 @@ export function showStory(ctx: StoryContext): void {
     const map = el('button', { type: 'button', className: 'trail-key trail-map' })
     map.innerHTML = `${GLOBE}<span>Explore Mars</span>`
     map.addEventListener('click', ctx.onMap)
+    const archive = el('button', { type: 'button', className: 'trail-key trail-archive' })
+    archive.innerHTML = `${ARCHIVE}<span>Mission archive</span>`
+    archive.addEventListener('click', openArchive)
     // The trail wears the art of the next mission to play, when the team has supplied one.
     const next = MISSIONS.find(
       (m) => missionStatus(MISSIONS, progress.completed, m.id).kind === 'open',
@@ -137,11 +124,10 @@ export function showStory(ctx: StoryContext): void {
     if (art) gate?.style.setProperty('--mission-backdrop', art)
     else gate?.style.removeProperty('--mission-backdrop')
     ctx.body.replaceChildren(
-      el('nav', { className: 'trail-nav', ariaLabel: 'Leave the story' }, back, map),
+      el('nav', { className: 'trail-nav', ariaLabel: 'Leave the story' }, back, map, archive),
       el('h2', { className: 'trail-heading', textContent: 'The story so far', tabIndex: -1 }),
       note ? el('p', { className: 'gate-note', textContent: note }) : '',
       renderMissionList(MISSIONS, progress.completed, showMission),
-      reportList(),
     )
     ctx.body.querySelector<HTMLElement>('h2')?.focus()
   }

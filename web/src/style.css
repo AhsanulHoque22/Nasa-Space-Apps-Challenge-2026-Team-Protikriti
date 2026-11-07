@@ -8578,3 +8578,388 @@ ul.go-verdict-body {
     transform: translateX(-50%);
   }
 }
+
+/* ---- EVA walk console (Map mode): a flight-deck panel rising from the bottom middle ---- */
+.eva-console {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  z-index: 20;
+  width: min(1120px, calc(100vw - 32px));
+  color: var(--text);
+  transform: translate(-50%, calc(100% + 80px));
+  transition: transform 650ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+
+.eva-console.is-up {
+  transform: translate(-50%, 0);
+}
+
+.ec-frame {
+  position: relative;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 210px;
+  gap: 10px;
+  height: 312px;
+  padding: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1a1815, #0b0a09);
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 3px #2b2722,
+    0 0 0 4px rgb(255 255 255 / 0.08),
+    0 24px 70px rgb(0 0 0 / 0.75);
+}
+
+/* Scan lines and a top glare: a screen, not a web card. */
+.ec-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 18%),
+    repeating-linear-gradient(180deg, transparent 0 2px, rgb(255 255 255 / 0.025) 2px 3px);
+}
+
+/* A walk with no safe way home turns the whole console into an alarm. */
+.eva-console[data-verdict='NO-GO'] .ec-frame {
+  animation: ec-alarm 1.4s ease-in-out infinite;
+}
+
+@keyframes ec-alarm {
+  50% {
+    box-shadow:
+      0 0 0 3px #ff3b2a,
+      0 0 30px 6px rgb(255 59 42 / 0.45),
+      0 24px 70px rgb(0 0 0 / 0.75);
+  }
+}
+
+.eva-console .eva-glass {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  transform: none;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: #121110;
+  border: 1px solid rgb(241 230 207 / 0.1);
+  border-radius: 12px;
+}
+
+.eva-console .eva-glass::after {
+  display: none;
+}
+
+.eva-console .eva-glass-main {
+  grid-template-rows: 34px minmax(0, 1fr) 46px;
+}
+
+.eva-console .eva-glass-side {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.eva-console [data-act='hand'] {
+  display: none; /* a desk console does not sway */
+}
+
+.eva-console .eva-exit {
+  position: absolute;
+  top: -56px;
+  right: 0;
+}
+
+/* Suit column: the crew member, the two supplies, EVA time and the loudest alarm. */
+.ec-suit {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: #121110;
+  border: 1px solid rgb(241 230 207 / 0.1);
+  border-radius: 12px;
+}
+
+.ec-suit-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 11px var(--font-tool);
+  letter-spacing: 0.12em;
+  color: #d4c8ae;
+}
+
+.ec-lamp {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #9ee6c9;
+  box-shadow: 0 0 8px 2px rgb(158 230 201 / 0.7);
+}
+
+.ec-lamp[data-level='warn'] {
+  background: #ffc97a;
+  box-shadow: 0 0 8px 2px rgb(255 201 122 / 0.8);
+}
+
+.ec-lamp[data-level='bad'] {
+  background: #ff3b2a;
+  box-shadow: 0 0 10px 3px rgb(255 59 42 / 0.9);
+  animation: ec-blink 0.8s steps(2) infinite;
+}
+
+@keyframes ec-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.ec-suit-body {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  min-height: 0;
+}
+
+.ec-figure {
+  --visor: #ffc97a;
+  height: 100%;
+  max-height: 150px;
+  color: #d4c8ae;
+  filter: drop-shadow(0 0 10px rgb(158 230 201 / 0.35));
+}
+
+.ec-suit-body[data-level='warn'] .ec-figure {
+  filter: drop-shadow(0 0 10px rgb(255 201 122 / 0.5));
+}
+
+.ec-suit-body[data-level='bad'] .ec-figure {
+  color: #ffb4a6;
+  filter: drop-shadow(0 0 12px rgb(255 59 42 / 0.7));
+}
+
+.ec-figure svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ec-rings {
+  display: grid;
+  gap: 4px;
+}
+
+.ec-ring {
+  display: grid;
+  grid-template-columns: 52px auto;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  --ring: #9ee6c9;
+}
+
+.ec-ring[data-tone='warn'] {
+  --ring: #ffc97a;
+}
+
+.ec-ring[data-tone='bad'] {
+  --ring: #ff6a4d;
+}
+
+.ec-ring svg {
+  width: 52px;
+  height: 52px;
+}
+
+.ec-ring-track {
+  fill: none;
+  stroke: rgb(241 230 207 / 0.12);
+  stroke-width: 6;
+}
+
+.ec-ring-fill {
+  fill: none;
+  stroke: var(--ring);
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px var(--ring));
+}
+
+.ec-ring text {
+  font: 700 14px var(--font);
+  fill: #f1e6cf;
+}
+
+.ec-ring figcaption {
+  font: 700 10px var(--font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d4c8ae;
+}
+
+.ec-eva {
+  display: grid;
+  gap: 3px;
+  font: 700 10px var(--font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d4c8ae;
+}
+
+.ec-eva::after {
+  content: '';
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(241 230 207 / 0.12);
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.ec-eva i {
+  grid-row: 2;
+  grid-column: 1;
+  z-index: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #ffc97a;
+}
+
+.ec-alarm {
+  margin: 0;
+  padding: 6px 8px;
+  font: 700 11px/1.3 var(--font);
+  color: #9ee6c9;
+  background: rgb(158 230 201 / 0.08);
+  border: 1px solid rgb(158 230 201 / 0.3);
+  border-radius: 8px;
+}
+
+.ec-alarm[data-level='warn'] {
+  color: #1d1a15;
+  background: repeating-linear-gradient(-45deg, #ffc97a 0 10px, #f0b456 10px 20px);
+  border-color: #ffc97a;
+}
+
+.ec-alarm[data-level='bad'] {
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: repeating-linear-gradient(-45deg, #b8321f 0 10px, #7d1f12 10px 20px);
+  border-color: #ff3b2a;
+  animation: ec-blink 1.2s steps(2) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eva-console {
+    transition: none;
+  }
+
+  .eva-console[data-verdict='NO-GO'] .ec-frame,
+  .ec-lamp[data-level='bad'],
+  .ec-alarm[data-level='bad'] {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .ec-frame {
+    grid-template-columns: minmax(0, 1fr);
+    height: min(60vh, 520px);
+    overflow-y: auto;
+  }
+}
+
+/* ---- Plan tab: the workbench becomes the walk console's dark flight-deck panel ---- */
+body[data-mode='plan'] .side {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 2px, rgb(255 255 255 / 0.02) 2px 3px),
+    linear-gradient(180deg, #1a1815, #0b0a09);
+  border-color: rgb(241 230 207 / 0.15);
+  border-top-color: var(--mustard);
+  color: var(--text); /* body resolved its colour from the light tokens */
+}
+
+body[data-mode='plan'] .side > .panel {
+  background: #121110;
+  border: 1px solid rgb(241 230 207 / 0.12);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+body[data-mode='plan'] .side .hero-stat {
+  border: 1px solid rgb(255 201 122 / 0.25);
+}
+
+body[data-mode='plan'] .side button:not([role='tab']):not(.dock-close) {
+  color: var(--text);
+  background: #1d1b17;
+  border: 1px solid rgb(241 230 207 / 0.25);
+  border-radius: 8px;
+}
+
+body[data-mode='plan'] .side button[aria-pressed='true'],
+body[data-mode='plan'] .side button[aria-checked='true'],
+body[data-mode='plan'] .side .walk-start,
+body[data-mode='plan'] .side [data-act='add'] {
+  color: var(--ink) !important;
+  background: var(--mustard) !important;
+  border-color: var(--mustard) !important;
+  box-shadow: 0 3px 0 #9c7012 !important;
+}
+
+/* A route that fails a check reads as an alarm, not a sentence. */
+body[data-mode='plan'] .side .route-status:not(:empty) {
+  padding: 8px 10px;
+  font-weight: 700;
+  color: #9ee6c9;
+  background: rgb(158 230 201 / 0.08);
+  border-left: 4px solid #9ee6c9;
+}
+
+/* The EVA card in the Plan console: a lit GO lamp, or a striped, pulsing NO-GO. */
+body[data-mode='plan'] .side .eva-card {
+  padding: 10px 12px;
+  border: 2px solid #9ee6c9;
+  background: rgb(158 230 201 / 0.08);
+}
+
+body[data-mode='plan'] .side .eva-card[data-verdict='GO'] .eva-badge {
+  color: #0e0e0e;
+  background: #9ee6c9;
+  box-shadow: 0 0 12px 2px rgb(158 230 201 / 0.6);
+}
+
+body[data-mode='plan'] .side .eva-card[data-verdict='NO-GO'] {
+  border-color: #ff3b2a;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgb(184 50 31 / 0.35) 0 10px,
+    rgb(125 31 18 / 0.35) 10px 20px
+  );
+  animation: ec-alarm-card 1.4s ease-in-out 3;
+}
+
+body[data-mode='plan'] .side .eva-card[data-verdict='NO-GO'] .eva-badge {
+  color: #fff;
+  background: #ff3b2a;
+  box-shadow: 0 0 14px 3px rgb(255 59 42 / 0.7);
+}
+
+@keyframes ec-alarm-card {
+  50% {
+    box-shadow: 0 0 22px 4px rgb(255 59 42 / 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-mode='plan'] .side .eva-card[data-verdict='NO-GO'] {
+    animation: none;
+  }
+}

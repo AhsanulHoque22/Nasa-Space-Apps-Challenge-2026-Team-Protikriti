@@ -656,3 +656,12 @@ Shared with Expedition 1, from the same code: crop yields, LED efficiency and li
 | Air pressure in the workbench strip: 636 Pa at the datum, scale height 11.1 km | `core/hero-readings.ts` | NASA Mars Fact Sheet (nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html). Hydrostatic estimate, no seasonal cycle |
 | Mission 1.1 trail background (Curiosity-style rover above "MARS" written in wheel tracks) | `public/media/backdrops/mission-1-1.webp` | Supplied by the team; upscaled 2× (Lanczos) and lightly sharpened with ffmpeg. [Team: state the image's original source, author and licence.] |
 | Mission backgrounds 1.2-1.11 and 2.2-2.7 (title cards, trail, mission dock) | `public/media/backdrops/mission-*.webp`, `core/mission-backdrops.ts` | Supplied by the team; images under 1,600 px upscaled 2× (Lanczos) with light sharpening, all saved as WebP ≤ 1,920 px with ffmpeg. 1.6 is AI-generated (Clipdrop by Stability AI, watermark kept). 1.11 looks like a still from National Geographic's *MARS* series. 2.1 has none: the supplied image carries an iStock watermark (an unlicensed preview). [Team: state each image's source, author and licence.] |
+
+## EVA walk console and mission archive (2026-11-07)
+
+| What | Source |
+|---|---|
+| Suit oxygen and battery on the walk console | `web/src/core/suit-model.ts`: an 8 h suit (NASA EVA-EXP-0075, 2020) at Apollo's 1200 BTU/hr design rate (Carson 1972); walking 1200 and science stops 1050 BTU/hr (Bellcomm B70-10028, 1970); battery drains evenly (Carson 1972). Shares at each stop come from the planned walk and stop times. |
+| Console alarms | `web/src/core/walk-alerts.ts` thresholds (team choices, not NASA rules). |
+| Mission archive background | Perseverance sky-crane landing, artist's illustration, NASA/JPL-Caltech; supplied by the team, resized to `web/public/assets/mission-archive.webp`. |
+| Archive dates | The browser's clock when a report is filed; reports filed before 2026-11-07 have no date. |
