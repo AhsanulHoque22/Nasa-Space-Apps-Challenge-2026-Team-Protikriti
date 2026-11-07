@@ -571,9 +571,29 @@ async function main() {
   })
   installCentreMarker(globe, readout?.querySelector<HTMLButtonElement>('.centre-toggle') ?? null)
   Object.assign(clockRef, renderClock(ui, viewer))
-  // One box for where and when: the position readout sits inside the Mars clock.
+  // One box for where and when, under the layers: the time, the position and the time keys show;
+  // season, sun, rover sols and the coordinate notes fold under "Show more".
   const clockBox = ui.querySelector('.clock')
-  if (readout && clockBox) clockBox.append(readout)
+  if (readout && clockBox) {
+    const more = document.createElement('details')
+    more.className = 'clock-more'
+    const moreHead = document.createElement('summary')
+    moreHead.textContent = 'Show more'
+    more.addEventListener(
+      'toggle',
+      () => (moreHead.textContent = more.open ? 'Show less' : 'Show more'),
+    )
+    more.append(moreHead)
+    for (const sel of ['.clock-place', '.clock-rows'])
+      for (const n of clockBox.querySelectorAll(sel)) more.append(n)
+    for (const n of readout.querySelectorAll('.readout-frame')) more.append(n)
+    const controls = clockBox.querySelector('.clock-controls')
+    const actions = readout.querySelector('.report-actions')
+    clockBox.querySelector('.clock-time')?.after(readout)
+    if (controls) readout.after(controls)
+    if (actions) controls?.after(actions)
+    clockBox.append(more)
+  }
   // The workbench strips read the view centre: after each camera move and as the clock runs.
   let swimGrid: SwimGrid | null = null
   const refreshHero = () => {

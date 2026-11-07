@@ -8391,3 +8391,131 @@ ul.go-verdict-body {
 .popup-body .dust-calendar th[scope='row'] {
   width: 4em;
 }
+
+/* ---- Readability pass: bigger chips, labels and lead lines in the windows ---- */
+.popup-body .dust-sites button {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+}
+
+.popup-body .delta-samples button {
+  min-height: 38px;
+  padding: 0 var(--space-3);
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.popup-body .zone-weights {
+  font-size: 14px;
+}
+
+.popup-body .zone-weights output {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.popup-body .dust-note,
+.popup-body .zr-legend {
+  font-size: 13px;
+}
+
+.popup-body .route-actions button {
+  min-height: 40px;
+  font-size: 14px;
+}
+
+.popup-body .sync-heading {
+  font-size: 16px;
+}
+
+.popup-body .insight-headline {
+  font-size: 21px;
+}
+
+/* "Tune the weights": a clear key, not a footnote. */
+.zone-tune {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.zone-tune > summary {
+  min-height: 42px;
+  padding: 0 var(--space-4);
+  font-size: 15px;
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  border-radius: 10px;
+  box-shadow: 0 3px 0 rgb(29 26 21 / 0.3);
+  cursor: help;
+}
+
+.zone-tune > summary::after {
+  content: '?';
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: var(--space-2);
+  font-size: 12px;
+  color: var(--accent-fill);
+  background: var(--on-accent);
+  border-radius: 50%;
+}
+
+/* Mars clock under the layers: time, position and time keys; the rest folds away. */
+.clock {
+  grid-area: readout;
+  justify-self: stretch;
+  width: auto;
+  margin-bottom: 18px; /* clear Cesium's credit line */
+}
+
+.clock-more > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--rule);
+  font: 700 13px var(--font);
+  color: var(--accent);
+  cursor: pointer;
+  list-style: none;
+}
+
+.clock-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.clock-more > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 160ms var(--ease-out);
+}
+
+.clock-more[open] > summary::after {
+  transform: rotate(-135deg) translateY(-2px);
+}
+
+.clock > .clock-controls {
+  margin-top: var(--space-2);
+}
+
+.clock > .report-actions {
+  margin-top: var(--space-2);
+}
+
+.popup-body .delta .insight-headline {
+  font-size: 22px;
+}
+
+.popup-body .delta .sync-heading {
+  font-size: 19px;
+}

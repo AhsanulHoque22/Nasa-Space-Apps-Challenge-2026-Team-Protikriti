@@ -291,6 +291,8 @@ export function renderZonePanel(
   tune.className = 'see-more zone-tune'
   const tuneHead = document.createElement('summary')
   tuneHead.textContent = 'Tune the weights'
+  tuneHead.title =
+    'Tuning sets how much each measure counts: slide shallow ice, low elevation or nearness to the equator up to make it matter more in the ranking, or to 0 to ignore it.'
   tune.append(tuneHead, purposeNote, controls)
   const scroller = document.createElement('div')
   scroller.className = 'zone-scroll'
