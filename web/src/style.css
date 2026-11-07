@@ -2847,8 +2847,9 @@ body.exploring .centre-marker {
 }
 
 /* ---- EVA wrist console: the arm rises at the bottom, the dashboard is its screen ---- */
-body.eva-mode #ui {
-  display: none; /* every other panel steps aside; End walk brings them back */
+body.eva-mode #ui,
+body.eva-mode .dock-trigger {
+  display: none; /* every other panel steps aside (the keys would cover Exit walk); End walk brings them back */
 }
 
 .eva-wrist {
@@ -2862,7 +2863,7 @@ body.eva-mode #ui {
 }
 
 .eva-wrist.is-up {
-  transform: translateY(0);
+  transform: none; /* not translateY(0): any transform would pin the fixed Exit key to the arm */
 }
 
 .eva-exit {
@@ -2906,6 +2907,8 @@ body.eva-mode #ui {
   width: 100%;
   height: 100%;
   user-select: none;
+  /* The photo stops mid-sleeve: fade its cut edge into the ground instead of a hard line. */
+  mask-image: linear-gradient(to right, transparent, #000 14%);
 }
 
 .eva-glass {
@@ -2939,6 +2942,7 @@ body.eva-mode #ui {
 
 .eva-glass-main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* the header must not widen the screen past its glass */
   grid-template-rows: 40px minmax(0, 1fr) 58px;
   gap: 8px;
 }
@@ -2995,6 +2999,7 @@ body.eva-mode #ui {
 
 .ws-verdict {
   display: flex;
+  flex: 1 1 0;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
