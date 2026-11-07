@@ -4,6 +4,8 @@
  * the rest is a seasonal climatology from the rovers' own sky and weather records.
  */
 import type { SolWeather } from './weather'
+import { solarLongitudeDeg } from './mars-time'
+import { simulatedStorm } from './seasonal-storms'
 
 export type SiteId = 'jezero' | 'gale'
 
@@ -63,7 +65,31 @@ export function dustOpacity(
     const f = utcMs < peak ? (utcMs - start) / (peak - start) : 1 - (utcMs - peak) / (end - peak)
     return { tau: Math.max(tau, tau + (e.peakTau - tau) * f), event: e.name }
   }
-  return { tau, event: null }
+  // After the documented record: storms from the season's statistics (seasonal-storms.ts).
+  const sim = simulatedStorm(utcMs)
+  return sim ? { tau: tau + sim.extraTau, event: sim.name } : { tau, event: null }
+}
+
+/**
+ * Fraction of light a solar panel still lets through after dust has settled on it from `fromMs`
+ * to `toMs`: 1 is clean. Pathfinder's arrays lost 0.28 % per sol under an opacity of about 0.5
+ * (Landis & Jenkins 2000, JGR 105(E1), 1855). Team assumption: fallout scales with the opacity,
+ * so a storm coats panels faster. ponytail: no cleaning by wind or dust devils (MER saw those).
+ */
+const PANEL_LOSS_PER_SOL = 0.0028
+const PANEL_LOSS_TAU = 0.5
+const SOL_MS = 88_775_244
+const MAX_PANEL_SOLS = 2000
+
+export function panelDustFactor(fromMs: number, toMs: number, site: SiteId = 'jezero'): number {
+  const sols = Math.min(MAX_PANEL_SOLS, Math.floor((toMs - fromMs) / SOL_MS))
+  let clean = 1
+  for (let i = 0; i < sols; i++) {
+    const t = fromMs + (i + 0.5) * SOL_MS
+    const { tau } = dustOpacity(t, solarLongitudeDeg(t), site)
+    clean *= 1 - (PANEL_LOSS_PER_SOL * tau) / PANEL_LOSS_TAU
+  }
+  return Math.max(0, clean)
 }
 
 // Dust is mixed through ~8 km near the ground; Koschmieder's law (2% contrast) turns the
@@ -148,6 +174,9 @@ const CLIMATE: Record<SiteId, { minC: number; maxC: number }> = {
   gale: { minC: -75, maxC: -5 },
 }
 const READING_WINDOW_MS = 3 * 86_400_000
+// Team assumption: devils at full rate up to the dusty-season opacity, none in a thick storm.
+const DEVILS_FULL_TAU = 1
+const DEVILS_STOP_TAU = 2
 
 export function surfaceConditions(at: {
   utcMs: number
@@ -174,7 +203,10 @@ export function surfaceConditions(at: {
     sky: event ?? (tau > 1.5 ? 'Dusty' : tau > 0.7 ? 'Hazy (dusty season)' : 'Clear'),
     visibilityKm: visibilityKm(tau),
     windMs: windMs(at.lmstHours, tau),
-    dustDevilsPerHour: dustDevilsPerHour(at.site, at.ls, at.lmstHours),
+    // A thick storm shuts down the surface heating that drives dust devils.
+    dustDevilsPerHour:
+      dustDevilsPerHour(at.site, at.ls, at.lmstHours) *
+      Math.min(1, Math.max(0, (DEVILS_STOP_TAU - tau) / (DEVILS_STOP_TAU - DEVILS_FULL_TAU))),
     airTempC: tC,
     pressurePa: reading?.pressurePa ?? null,
     source: reading
