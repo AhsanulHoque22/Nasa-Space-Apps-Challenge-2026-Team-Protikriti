@@ -25,6 +25,8 @@ export type MissionReport = {
   outcome?: 'completed' | 'failed'
   /** What the player chose, read from what the mission saved. */
   decisions?: Decision[]
+  /** When the run ended (ISO 8601). Reports written before the archive existed have none. */
+  endedAt?: string
 }
 export type Decision = { label: string; value: string }
 type Stored = { owner: string; reports: MissionReport[] }
@@ -63,6 +65,7 @@ export function appendReport(
     cause: failure.why,
     lessons,
     ...(summary && { summary }),
+    endedAt: new Date().toISOString(),
   }
   const next = [...reports, report]
   if (!writeStored(store, REPORTS_KEY, { owner, reports: next })) memory.set(owner, next)
@@ -84,6 +87,7 @@ export function appendPlayReport(
     lessons: [],
     outcome: 'completed',
     decisions: play.decisions,
+    endedAt: new Date().toISOString(),
   }
   const next = [...reports, report]
   if (!writeStored(store, REPORTS_KEY, { owner, reports: next })) memory.set(owner, next)
@@ -164,4 +168,32 @@ export function activeWarnings(
       if (guardHit(lesson.guard, values)) out.push({ version: r.version, lesson })
     }
   return out
+}
+
+export type ReportFilter = {
+  missionId?: string
+  outcome?: 'completed' | 'failed'
+  /** Calendar days in the player's own time zone, YYYY-MM-DD, both ends included. */
+  fromDate?: string
+  toDate?: string
+}
+
+/** The player's calendar day for an ISO time, YYYY-MM-DD. */
+export function localDay(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** The archive's view: newest first; a report from before outcomes were kept counts as failed. */
+export function filterReports(reports: readonly MissionReport[], f: ReportFilter): MissionReport[] {
+  return reports
+    .filter((r) => !f.missionId || r.missionId === f.missionId)
+    .filter((r) => !f.outcome || (r.outcome ?? 'failed') === f.outcome)
+    .filter((r) => {
+      if (!f.fromDate && !f.toDate) return true
+      if (!r.endedAt) return false // undated: cannot be placed in a date range
+      const day = localDay(r.endedAt)
+      return (!f.fromDate || day >= f.fromDate) && (!f.toDate || day <= f.toDate)
+    })
+    .sort((a, b) => b.version - a.version)
 }

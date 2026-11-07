@@ -6,6 +6,7 @@ import {
   appendPlayReport,
   appendReport,
   decisionsOf,
+  filterReports,
   loadReports,
   saveEpitaph,
 } from './mission-reports'
@@ -154,5 +155,50 @@ describe('decisionsOf', () => {
     const big = Object.fromEntries(Array.from({ length: 50 }, (_, i) => [`f${i}`, i]))
     const lines = decisionsOf('1.5', { version: 1, owner: 'o', completed: [], walk: big } as never)
     expect(lines.length).toBeLessThanOrEqual(12)
+  })
+})
+
+describe('archive', () => {
+  const r = (
+    version: number,
+    missionId: string,
+    endedAt?: string,
+    outcome?: 'completed' | 'failed',
+  ) => ({
+    version,
+    endedSol: 1,
+    missionId,
+    cause: 'x',
+    lessons: [],
+    ...(endedAt && { endedAt }),
+    ...(outcome && { outcome }),
+  })
+  const all = [
+    r(1, '1.1', '2026-11-01T10:00:00.000Z', 'completed'),
+    r(2, '1.2', '2026-11-03T10:00:00.000Z'),
+    r(3, '1.1', '2026-11-05T12:00:00.000Z', 'completed'),
+    r(4, '1.3'),
+  ]
+
+  it('stamps new reports with the time they were written', () => {
+    const s = store()
+    const at = appendReport(s, 'o', failure, [lesson(3)]).endedAt
+    expect(at && !Number.isNaN(Date.parse(at))).toBe(true)
+    expect(
+      appendPlayReport(s, 'o', { missionId: '1.1', sol: 2, decisions: [] }).endedAt,
+    ).toBeTruthy()
+  })
+
+  it('filters by mission, by outcome (old reports without one failed) and by date range', () => {
+    expect(filterReports(all, { missionId: '1.1' }).map((x) => x.version)).toEqual([3, 1])
+    expect(filterReports(all, { outcome: 'failed' }).map((x) => x.version)).toEqual([4, 2])
+    expect(
+      filterReports(all, { fromDate: '2026-11-02', toDate: '2026-11-05' }).map((x) => x.version),
+    ).toEqual([3, 2])
+  })
+
+  it('leaves undated reports out only when a date is asked for, newest first otherwise', () => {
+    expect(filterReports(all, {}).map((x) => x.version)).toEqual([4, 3, 2, 1])
+    expect(filterReports(all, { fromDate: '2026-01-01' }).some((x) => x.version === 4)).toBe(false)
   })
 })
