@@ -22,6 +22,7 @@ import {
   HIRISE_MOSAICS,
 } from '../core/hirise'
 import { MARS_SPHERE } from './mars'
+import { smoothUpsampled } from './smooth-imagery'
 
 const TREK_WMTS = 'https://trek.nasa.gov/tiles/Mars/EQ'
 
@@ -142,7 +143,10 @@ export function createMarsViewer(container: HTMLElement): {
   const strips = viewer.imageryLayers.addImageryProvider(hiriseGlobal())
   const mosaics = HIRISE_MOSAICS.map((m) =>
     viewer.imageryLayers.addImageryProvider(
-      trekLayer(m.id, 'png', m.maxLevel, Rectangle.fromDegrees(m.west, m.south, m.east, m.north)),
+      // Walked on at 1:1: deep levels upsampled smoothly so tile seams don't show (smooth-imagery.ts).
+      smoothUpsampled(
+        trekLayer(m.id, 'png', m.maxLevel, Rectangle.fromDegrees(m.west, m.south, m.east, m.north)),
+      ),
     ),
   )
   const layers = [galeCtx, strips, ...mosaics]

@@ -4,6 +4,7 @@
  * On foot, the walk area switches to 1 m ground for the walk only (loaded whole, before it starts).
  */
 import { GeographicTilingScheme, Rectangle, UrlTemplateImageryProvider, type Viewer } from 'cesium'
+import { smoothUpsampled } from './smooth-imagery'
 import { type Site, sampleGrid } from '../core/elevation'
 import type { Grid } from '../core/grid'
 import { type WalkPatch, feathered, parseWalkPatch } from '../core/walk-patch'
@@ -29,14 +30,17 @@ export function createWalkGround(viewer: Viewer, sites: readonly Site[], mola: G
   const addImagery = (siteId: string, p: WalkPatch) => {
     const [west, south, east, north] = p.tiles.rect
     viewer.imageryLayers.addImageryProvider(
-      new UrlTemplateImageryProvider({
-        url: `data/walk/${siteId}/tiles/{z}/{x}/{y}.jpg`,
-        tilingScheme: new GeographicTilingScheme({ ellipsoid: MARS_SPHERE }),
-        rectangle: Rectangle.fromDegrees(west, south, east, north),
-        minimumLevel: p.tiles.minLevel,
-        maximumLevel: p.tiles.maxLevel,
-        credit: 'NASA/JPL-Caltech/University of Arizona HiRISE; USGS orthomosaic',
-      }),
+      // Deep levels upsampled smoothly so the walk tiles' seams don't show at the feet.
+      smoothUpsampled(
+        new UrlTemplateImageryProvider({
+          url: `data/walk/${siteId}/tiles/{z}/{x}/{y}.jpg`,
+          tilingScheme: new GeographicTilingScheme({ ellipsoid: MARS_SPHERE }),
+          rectangle: Rectangle.fromDegrees(west, south, east, north),
+          minimumLevel: p.tiles.minLevel,
+          maximumLevel: p.tiles.maxLevel,
+          credit: 'NASA/JPL-Caltech/University of Arizona HiRISE; USGS orthomosaic',
+        }),
+      ),
     )
   }
 
