@@ -8519,3 +8519,62 @@ ul.go-verdict-body {
 .popup-body .delta .sync-heading {
   font-size: 19px;
 }
+
+/* Compact clock box: less air between sections, the three coordinates in one row. */
+.clock {
+  padding: 10px 12px;
+}
+
+.clock > .clock-time {
+  margin: 0;
+}
+
+.clock > .readout {
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.clock .readout-source {
+  margin-bottom: 4px;
+}
+
+.clock .readout-values {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.clock .readout-values div {
+  display: grid;
+  gap: 0;
+}
+
+.clock .readout-values dt {
+  font-size: 11px;
+}
+
+.clock .readout-values dd {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.clock > .clock-controls,
+.clock > .report-actions {
+  margin-top: 8px;
+}
+
+.clock-more > summary {
+  min-height: 28px;
+  margin-top: 6px;
+  padding-top: 4px;
+}
+
+/* Mission replay sits in the middle of the screen, not of the space the side columns leave. */
+@media (min-width: 1100px) {
+  .timeline {
+    position: fixed;
+    left: 50%;
+    bottom: var(--space-4);
+    width: min(640px, calc(100vw - 2 * (320px + 2 * var(--space-4))));
+    transform: translateX(-50%);
+  }
+}
