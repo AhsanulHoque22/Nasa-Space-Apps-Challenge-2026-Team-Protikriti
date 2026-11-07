@@ -4723,11 +4723,13 @@ body[data-story='mission'] .line-legend {
 }
 
 .journey-label {
-  padding: 2px 6px;
+  padding: 3px 8px;
+  border: 1px solid rgb(241 230 207 / 0.25);
   border-radius: 4px;
-  background: rgb(2 4 10 / 0.7);
-  font-size: 12px;
+  background: rgb(2 4 10 / 0.88);
+  font-size: 13px;
   font-weight: 600;
+  text-shadow: 0 1px 2px #000;
   color: var(--text);
   position: relative;
   top: -16px;
@@ -4756,6 +4758,10 @@ body[data-story='mission'] .line-legend {
   top: -30px;
 }
 
+.journey-caption:empty {
+  display: none;
+}
+
 .journey-caption {
   position: absolute;
   top: var(--space-4);
@@ -4764,10 +4770,67 @@ body[data-story='mission'] .line-legend {
   margin: 0;
   padding: var(--space-2) var(--space-3);
   border-radius: 6px;
-  background: rgb(18 26 44 / 0.9);
+  border: 1px solid rgb(241 230 207 / 0.2);
+  background: rgb(18 26 44 / 0.92);
+  color: var(--text);
   font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* How to handle a 3D scene: shown until the first drag, then it fades. */
+.scene-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgb(2 4 10 / 0.88);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.6s var(--ease-out);
+}
+
+.scene-hint::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: hint-pulse 1.4s ease-in-out infinite;
+}
+
+.scene-hint[data-done] {
+  opacity: 0;
+}
+
+@keyframes hint-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-hint::before {
+    animation: none;
+  }
+}
+
+.journey-scene .scene-hint {
+  bottom: var(--space-4);
+}
+
+.cargo-bay .scene-hint {
+  top: var(--space-4);
 }
 
 .journey-credit {
@@ -6638,36 +6701,133 @@ button.journey-label:focus-visible {
   color: var(--good);
 }
 
-/* Base stores in the mission header: a word on every reading, never colour alone. */
+/* Base status in the mission header: a dropdown whose closed line names the worst reading; open,
+   a grid of instrument tiles. A word on every reading, never colour alone. */
 .stores-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  font-size: 13px;
+  --lvl: var(--good);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
   font-variant-numeric: tabular-nums;
 }
 
-.stores-item {
-  display: inline-flex;
-  gap: var(--space-1);
-  align-items: baseline;
+.stores-bar[data-level='low'] {
+  --lvl: var(--caution);
 }
 
-.stores-label {
+.stores-bar[data-level='out'] {
+  --lvl: var(--hazard);
+  border-color: var(--hazard);
+}
+
+.stores-summary {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+}
+
+.stores-summary::-webkit-details-marker {
+  display: none;
+}
+
+.stores-summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--text);
+  border-bottom: 2px solid var(--text);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s var(--ease-out);
+}
+
+.stores-bar[open] .stores-summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+.stores-summary:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.stores-summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.stores-lamp {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--lvl);
+  box-shadow: 0 0 8px var(--lvl);
+}
+
+.stores-heading {
+  font: 400 15px/1 var(--font-title);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stores-sol {
   color: var(--text-muted);
 }
 
-.stores-level {
-  font-size: 12px;
+.stores-verdict {
+  font-weight: 700;
+  color: var(--lvl);
+}
+
+.stores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.stores-item {
+  --lvl: var(--good);
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--lvl);
+  background: var(--surface);
+}
+
+.stores-item[data-level='low'] {
+  --lvl: var(--caution);
+}
+
+.stores-item[data-level='out'] {
+  --lvl: var(--hazard);
+}
+
+.stores-label {
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.stores-item[data-level='low'] .stores-level {
-  color: var(--caution);
+.stores-value {
+  font-size: 14px;
+  line-height: 1.3;
 }
 
-.stores-item[data-level='out'] .stores-level {
-  color: var(--hazard);
+.stores-level {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lvl);
 }
 
 /* Mission over and mission reports. */
@@ -6765,10 +6925,6 @@ button.journey-label:focus-visible {
 .dock-status:has(.stores-bar) {
   grid-column: 1 / -1;
   grid-row: 2;
-}
-
-.stores-item {
-  white-space: nowrap;
 }
 
 /* A step's blocking reason, flashed when its main button was pressed too early. */
@@ -7516,5 +7672,100 @@ button.journey-label:focus-visible {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     padding: 0;
     border: 0;
+  }
+}
+
+/* Mission 1.1 launch verdict: a loud banner, worded, so a short lander cannot slip past. */
+.go-verdict {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--verdict, var(--good));
+  background: color-mix(in srgb, var(--verdict, var(--good)) 16%, var(--surface));
+}
+
+.go-verdict[data-level='short'] {
+  --verdict: #ff5a3c;
+}
+
+.go-verdict[data-level='nogo'] {
+  --verdict: #ff3b2a;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgb(255 59 42 / 0.22) 0 12px,
+      rgb(255 59 42 / 0.08) 12px 24px
+    ),
+    var(--surface);
+}
+
+.go-verdict-head {
+  grid-row: span 2;
+  margin: 0;
+  font: 400 34px/1 var(--font-title);
+  text-transform: uppercase;
+  color: var(--verdict, var(--good));
+}
+
+.go-verdict-body {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.go-verdict-ask {
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--text);
+  background: var(--ink);
+  color: var(--text);
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+
+.go-verdict-ask:hover {
+  background: var(--text);
+  color: var(--ink);
+}
+
+.go-verdict-ask:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.go-verdict:not([data-level='go']) {
+  animation: verdict-alarm 1.2s ease-in-out 3;
+}
+
+.go-verdict[data-flash] {
+  animation: verdict-shake 0.4s ease-in-out;
+}
+
+@keyframes verdict-alarm {
+  50% {
+    box-shadow:
+      0 0 0 4px rgb(255 59 42 / 0.45),
+      0 0 28px rgb(255 59 42 / 0.5);
+  }
+}
+
+@keyframes verdict-shake {
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .go-verdict,
+  .go-verdict[data-flash] {
+    animation: none;
   }
 }

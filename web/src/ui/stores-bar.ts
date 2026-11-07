@@ -1,6 +1,8 @@
 /**
- * The base's stores in the mission header: the sol reached, food, water, battery and air, how far
- * the supplies reach against the next ship, and the sols of food the greenhouse will have grown. Each reading says OK, Low or Out in words.
+ * The base's stores in the mission header, folded into a "Base status" dropdown: the sol reached,
+ * food, water, battery and air, how far the supplies reach against the next ship, and the sols of
+ * food the greenhouse will have grown. Each reading says OK, Low or Out in words; the closed summary
+ * names the worst one.
  */
 import type { StoresRun } from '../core/base-stores'
 import type { Progress } from '../core/mission-progress'
@@ -16,32 +18,41 @@ const word: Record<Level, string> = { ok: 'OK', low: 'Low', out: 'Out' }
 
 function reading(label: string, value: string, level: Level): HTMLElement {
   const item = el(
-    'span',
+    'li',
     { className: 'stores-item' },
     el('span', { className: 'stores-label', textContent: label }),
-    el('strong', { textContent: value }),
+    el('strong', { className: 'stores-value', textContent: value }),
     el('span', { className: 'stores-level', textContent: word[level] }),
   )
   item.dataset.level = level
   return item
 }
 
+// The dock rebuilds its header on every step: remember whether the reader left it open.
+let keepOpen = false
+
 export function storesBar(p: Progress): HTMLElement {
-  const bar = el('div', { className: 'stores-bar', role: 'status', ariaLabel: 'Base stores' })
   const target = p.stay?.nextShipSol
   const cargo = p.cargo
-  if (!cargo || !target) return bar
+  const bar = el('details', { className: 'stores-bar', open: keepOpen })
+  bar.addEventListener('toggle', () => (keepOpen = bar.open))
+  if (!cargo || !target) return el('div')
   const now = Math.max(1, solReached(p))
-  bar.append(el('span', { className: 'stores-label', textContent: `Sol ${now}` }))
+  const verdict = el('span', { className: 'stores-verdict', textContent: '…' })
+  const summary = el(
+    'summary',
+    { className: 'stores-summary' },
+    el('span', { className: 'stores-lamp' }),
+    el('span', { className: 'stores-heading', textContent: 'Base status' }),
+    el('span', { className: 'stores-sol', textContent: `Sol ${now}` }),
+    verdict,
+  )
+  const list = el('ul', { className: 'stores-grid' })
+  const live = el('div', { role: 'status', ariaLabel: 'Base stores' }, list)
+  bar.append(summary, live)
   void Promise.all([storesTo(p, now), storesTo(p, target)]).then(([run, ahead]) => {
     if (!run || !ahead) return
-    bar.replaceChildren(
-      el(
-        'span',
-        { className: 'stores-item' },
-        el('span', { className: 'stores-label', textContent: 'Sol' }),
-        el('strong', { textContent: String(now) }),
-      ),
+    const items = [
       ...readings(run, ahead, target),
       // Air is made by the oxygen plants; it fails only when the power does (DRA 5.0).
       reading(
@@ -50,7 +61,17 @@ export function storesBar(p: Progress): HTMLElement {
         cargo.isru > 0 && !run.failure ? 'ok' : 'out',
       ),
       reading('Grown', `+${ahead.solsEarned.toFixed(0)} sols by sol ${target}`, 'ok'),
-    )
+    ]
+    list.replaceChildren(...items)
+    const worst: Level = items.some((i) => i.dataset.level === 'out')
+      ? 'out'
+      : items.some((i) => i.dataset.level === 'low')
+        ? 'low'
+        : 'ok'
+    const flagged = items.filter((i) => i.dataset.level !== 'ok').length
+    bar.dataset.level = worst
+    verdict.textContent =
+      worst === 'ok' ? 'All OK' : `${flagged} ${worst === 'out' ? 'failing' : 'low'}`
   })
   return bar
 }

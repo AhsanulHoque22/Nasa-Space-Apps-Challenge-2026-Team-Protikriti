@@ -18,7 +18,7 @@ import type { MissionReport } from '../../core/mission-reports'
 import { warningsFor } from '../lessons'
 import { CARGO_PHOTOS, photoUrl } from './cargo-photos'
 import { briefingStep } from './briefing-step'
-import { foodView, laterView, oxygenView, powerView } from './cargo-views'
+import { foodView, goVerdict, laterView, oxygenView, powerView } from './cargo-views'
 import { type JourneyChoice, journeyStep } from './journey-step'
 import { chosenStay, stayStep } from './stay-step'
 import { staySols } from '../../core/stay'
@@ -228,6 +228,12 @@ export function cargoSteps(
       nextLabel: 'Load the lander',
       onNext: () => {
         if (!chosenStay(journey) || checkCargo(plan, target()).blocking.length) {
+          const banner = document.querySelector<HTMLElement>('.go-verdict')
+          if (banner) {
+            delete banner.dataset.flash
+            void banner.offsetWidth // restart the shake on every press
+            banner.dataset.flash = ''
+          }
           issues.focus()
           return false
         }
@@ -269,6 +275,7 @@ export function cargoSteps(
         return el(
           'div',
           {},
+          goVerdict(plan, blocking),
           view(laterView),
           repeated(),
           issues,

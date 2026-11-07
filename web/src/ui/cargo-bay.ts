@@ -49,6 +49,10 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
+  const hint = document.createElement('p')
+  hint.className = 'scene-hint'
+  hint.textContent = 'Drag to turn the base · click the habitat to look inside in 3D'
+  host.append(hint)
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50)
@@ -114,7 +118,7 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
     return down.intersectObject(terrain, true)[0]?.point.y ?? 0
   }
   habitat.position.y = groundY(0, 0)
-  habitat.add(label('Habitat · 21.5 t: view in 3D', 1.2, openHabitatViewer))
+  habitat.add(label('Habitat · 21.5 t · look inside in 3D', 1.2, openHabitatViewer))
   turntable.add(habitat)
 
   const cargo = new THREE.Group()
@@ -185,7 +189,10 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
   canvas.addEventListener('pointerup', (e) => {
     const still = downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < CLICK_SLOP_PX
     downAt = null
-    if (still && onHabitat(e)) openHabitatViewer()
+    if (still && onHabitat(e)) {
+      hint.dataset.done = ''
+      openHabitatViewer()
+    }
   })
   canvas.addEventListener('pointermove', (e) => {
     if (e.buttons === 0) canvas.style.cursor = onHabitat(e) ? 'pointer' : ''

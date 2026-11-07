@@ -63,8 +63,11 @@
   accent-color: var(--accent);
 }
 
-/* Story surfaces: light text on ink, with colour fields for titles. Mustard on ink 9.01:1. */
-.episodes {
+/* Story surfaces: light text on ink, with colour fields for titles. Mustard on ink 9.01:1.
+   The 3D scenes sit over a dark sky outside the dock, so they take the same ink tokens. */
+.episodes,
+.journey-scene,
+.cargo-bay {
   --surface: #0e0e0e;
   --surface-raised: #1d1b17;
   --text: #f1e6cf;

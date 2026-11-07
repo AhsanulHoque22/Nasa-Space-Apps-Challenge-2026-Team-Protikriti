@@ -77,6 +77,13 @@ export async function openJourneyScene(
   const labelLayer = new CSS2DRenderer()
   labelLayer.domElement.className = 'journey-labels'
   view.append(labelLayer.domElement)
+  const hint = document.createElement('p')
+  hint.className = 'scene-hint'
+  hint.textContent = 'Drag to turn the solar system · scroll to zoom'
+  view.append(hint)
+  renderer.domElement.addEventListener('pointerdown', () => (hint.dataset.done = ''), {
+    once: true,
+  })
 
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x02040a)
