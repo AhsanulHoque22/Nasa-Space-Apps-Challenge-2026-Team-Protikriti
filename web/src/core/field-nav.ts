@@ -1,5 +1,6 @@
 /** On-foot navigation helpers for the field tablet: what is near, which way, how far, and why not. */
 import type { Grid } from './grid'
+import { passableCells } from './route'
 import type { Place } from './search'
 
 const M_PER_DEG = (3_396_190 * Math.PI) / 180 // Mars 2000 sphere
@@ -98,4 +99,60 @@ export function smoothPath(path: readonly LonLat[], passes = 2): LonLat[] {
     pts = next
   }
   return pts
+}
+
+// Quarter-cell steps: fine enough that a line cannot skip a whole cell between two samples.
+// ponytail: a line may still clip the very corner of a steep cell; supercover traversal if needed.
+const SAMPLES_PER_CELL = 4
+
+/** True when the straight line a→b crosses only cells within the slope limit (no NaN, on grid). */
+export function segmentClear(g: Grid, a: LonLat, b: LonLat): boolean {
+  const passable = passableCells(g)
+  const col = (p: LonLat) => ((p.lon - g.west) / (g.east - g.west)) * g.width
+  const row = (p: LonLat) => ((g.north - p.lat) / (g.north - g.south)) * g.height
+  const [c0, r0, c1, r1] = [col(a), row(a), col(b), row(b)]
+  const steps = Math.max(
+    1,
+    Math.ceil(Math.max(Math.abs(c1 - c0), Math.abs(r1 - r0)) * SAMPLES_PER_CELL),
+  )
+  for (let i = 0; i <= steps; i++) {
+    const c = Math.floor(c0 + ((c1 - c0) * i) / steps)
+    const r = Math.floor(r0 + ((r1 - r0) * i) / steps)
+    if (c < 0 || c >= g.width || r < 0 || r >= g.height) return false
+    if (!passable[r * g.width + c]) return false
+  }
+  return true
+}
+
+/**
+ * String pulling: from each kept point, jump to the farthest later point the straight line still
+ * reaches over safe cells. A* on 8 neighbours walks in 45° steps; this keeps only the turns the
+ * ground forces, so the line follows the real corridor instead of a staircase.
+ */
+export function straightenPath(path: readonly LonLat[], g: Grid): LonLat[] {
+  if (path.length <= 2) return [...path]
+  const kept: LonLat[] = [path[0] as LonLat]
+  let anchor = 0
+  while (anchor < path.length - 1) {
+    let next = anchor + 1
+    while (
+      next + 1 < path.length &&
+      segmentClear(g, path[anchor] as LonLat, path[next + 1] as LonLat)
+    )
+      next++
+    kept.push(path[next] as LonLat)
+    anchor = next
+  }
+  return kept
+}
+
+const GUIDE_SMOOTH_PASSES = 3
+
+/** The line drawn on the ground: straightened, then rounded where the curve stays on safe cells. */
+export function guideLine(path: readonly LonLat[], g: Grid): LonLat[] {
+  const straight = straightenPath(path, g)
+  const curved = smoothPath(straight, GUIDE_SMOOTH_PASSES)
+  for (let i = 0; i < curved.length - 1; i++)
+    if (!segmentClear(g, curved[i] as LonLat, curved[i + 1] as LonLat)) return straight
+  return curved
 }

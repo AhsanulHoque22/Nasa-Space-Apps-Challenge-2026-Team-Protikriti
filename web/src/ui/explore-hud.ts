@@ -19,7 +19,7 @@ import {
   noRouteReason,
   placesNear,
   remainingM,
-  smoothPath,
+  guideLine,
 } from '../core/field-nav'
 import { suitedSpeedMs } from '../core/route'
 import { normalize, type Place } from '../core/search'
@@ -488,7 +488,7 @@ export function openExplore(
       return { lon, lat }
     })
     target = { place: n.place, path, checked: true, minutes: reply.total.durationMin }
-    session.setGuide(smoothPath(path), true) // corners rounded for drawing only
+    session.setGuide(guideLine(path, site.grid), true) // drawn line only; the numbers use the planner's path
     routeText(
       `Safe route: ${formatDistance(reply.total.distanceM)}, steepest ${reply.total.maxSlopeDeg.toFixed(0)}° (limit ${site.grid.maxSafeSlopeDeg}°), climb ${Math.round(reply.total.ascentM)} m. Marswalk planner: Tobler pace, suit factor 0.8.`,
     )
