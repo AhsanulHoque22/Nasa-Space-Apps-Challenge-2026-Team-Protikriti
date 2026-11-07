@@ -141,6 +141,17 @@ float devil(vec3 d, float sceneDist, vec4 dv, float h) {
   return (wall * bands * grit * pow(1.0 - k, 0.7) + skirt) * 0.95;
 }
 
+// Eye-space position of the pixel off pixels away, from the depth buffer (same decoding as main).
+vec3 eyeAt(vec2 off) {
+  vec2 fc = gl_FragCoord.xy + off;
+  float r = texture(depthTexture, v_textureCoordinates + off / czm_viewport.zw).r;
+  vec3 ray = czm_windowToEyeCoordinates(fc, 0.5).xyz;
+  float vz = u_logDepth > 0.5
+    ? pow(2.0, r * czm_log2FarDepthFromNearPlusOne) - 1.0 + czm_currentFrustum.x
+    : -czm_windowToEyeCoordinates(fc, r).z;
+  return ray * (vz / -ray.z);
+}
+
 void main() {
   vec4 c = texture(colorTexture, v_textureCoordinates);
   float raw = texture(depthTexture, v_textureCoordinates).r;
@@ -185,8 +196,15 @@ void main() {
     float direct = exp(-u_tau / max(sinEl, 0.03)) * step(0.0, sinEl); // sunlight through dust
     // Sunlight through the dust, shading the real slope (normal from the depth buffer).
     vec3 upEC = czm_viewRotation * u_upWC;
-    vec3 ddx = dFdx(posEC.xyz);
-    vec3 ddy = dFdy(posEC.xyz);
+    // Ground slope from the neighbour on the smoother side, left or right and below or above: a
+    // tile seam steps the depth by centimetres, and a one-sided difference across it tilted the
+    // normal and drew a dotted dark line along every seam. dFdx could not choose a side.
+    vec3 pL = eyeAt(vec2(-1.0, 0.0));
+    vec3 pR = eyeAt(vec2(1.0, 0.0));
+    vec3 pB = eyeAt(vec2(0.0, -1.0));
+    vec3 pT = eyeAt(vec2(0.0, 1.0));
+    vec3 ddx = abs(pL.z - posEC.z) < abs(pR.z - posEC.z) ? posEC.xyz - pL : pR - posEC.xyz;
+    vec3 ddy = abs(pB.z - posEC.z) < abs(pT.z - posEC.z) ? posEC.xyz - pB : pT - posEC.xyz;
     vec3 n = normalize(cross(ddx, ddy));
     if (dot(n, dirEC) > 0.0) n = -n;
     // Across tile seams and silhouettes the depth jumps and the derivative normal is garbage
