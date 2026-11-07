@@ -2,6 +2,7 @@
  * Mission 1.2's numbered pins on the terrain, one landing site at a time. A pin and its card in
  * the mission dock select each other; selecting a pin flies the camera to it.
  */
+import { ALERT_PLATE, PLATE, platedLabel } from './plated-label'
 import {
   BoundingSphere,
   Cartesian2,
@@ -10,11 +11,9 @@ import {
   ConstantProperty,
   CustomDataSource,
   HeadingPitchRange,
-  LabelStyle,
   Math as CesiumMath,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  VerticalOrigin,
   type Entity,
   type Viewer,
 } from 'cesium'
@@ -34,9 +33,6 @@ const SELECTED_PX = 18
 const PIN_COLOUR = Color.WHITE
 const SELECTED_COLOUR = Color.fromCssColorString('#fc3d21') // NASA red: the pin being read
 const OUTLINE = Color.fromCssColorString('#05070C')
-// Name plates: light text on a solid plate reads on bright and dark ground alike.
-const PLATE = Color.fromCssColorString('#05070C').withAlpha(0.85)
-const SELECTED_PLATE = Color.fromCssColorString('#a8341f').withAlpha(0.95) // brick: 6.3:1 with white
 const MAX_PITCH_DEG = -15
 const VIEW_RANGE_M = 3_000 // when the view centre is off the globe: close enough to see the ground
 const FRAME_PITCH_DEG = -50
@@ -62,7 +58,7 @@ export function createFeaturePins(
         e.point.color = new ConstantProperty(on ? SELECTED_COLOUR : PIN_COLOUR)
       }
       if (e.label) {
-        e.label.backgroundColor = new ConstantProperty(on ? SELECTED_PLATE : PLATE)
+        e.label.backgroundColor = new ConstantProperty(on ? ALERT_PLATE : PLATE)
         // Only the selected pin is named: neighbouring pins' names overlap at site scale.
         e.label.text = new ConstantProperty(
           on ? `${i + 1}  ${current[i]?.name ?? ''}` : String(i + 1),
@@ -99,18 +95,7 @@ export function createFeaturePins(
             outlineWidth: 2,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
-          label: {
-            text: String(i + 1),
-            font: '600 15px Atkinson, system-ui, sans-serif',
-            fillColor: PIN_COLOUR,
-            style: LabelStyle.FILL,
-            showBackground: true,
-            backgroundColor: PLATE,
-            backgroundPadding: new Cartesian2(8, 5),
-            verticalOrigin: VerticalOrigin.BOTTOM,
-            pixelOffset: new Cartesian2(0, -16),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
+          label: platedLabel(String(i + 1), PIN_COLOUR, 15),
         }),
       )
       if (!features.length) return

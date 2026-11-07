@@ -1,7 +1,7 @@
 /** Data layers on the globe. Each layer loads once and is toggled by visibility. */
+import { platedLabel } from './plated-label'
 import {
   ArcType,
-  Cartesian2,
   Cartesian3,
   Color,
   ColorMaterialProperty,
@@ -76,7 +76,6 @@ export const LAYER_STYLE = {
   graticule: 'rgba(255,255,255,0.28)',
 } as const
 
-const LABEL_FONT = '600 13px system-ui, -apple-system, "Segoe UI", sans-serif'
 const LABEL_OUTLINE = Color.fromCssColorString('#05070C')
 // Keep labels readable over terrain but hidden when the planet is between camera and label.
 const LABEL_DEPTH_TEST_OFF_WITHIN_M = 400_000
@@ -95,16 +94,10 @@ async function loadJson(url: string): Promise<FeatureCollection> {
   return (await response.json()) as FeatureCollection
 }
 
-function label(text: string, color = Color.WHITE) {
+/** A plated name: the layer's colour stays on its marker, the name is white on ink. */
+function label(text: string) {
   return {
-    text,
-    font: LABEL_FONT,
-    fillColor: color,
-    outlineColor: LABEL_OUTLINE,
-    outlineWidth: 3,
-    style: LabelStyle.FILL_AND_OUTLINE,
-    verticalOrigin: VerticalOrigin.BOTTOM,
-    pixelOffset: new Cartesian2(0, -10),
+    ...platedLabel(text, Color.WHITE, 13),
     disableDepthTestDistance: LABEL_DEPTH_TEST_OFF_WITHIN_M,
   }
 }
@@ -170,7 +163,7 @@ async function addLandingSites(viewer: Viewer): Promise<CustomDataSource> {
         disableDepthTestDistance: LABEL_DEPTH_TEST_OFF_WITHIN_M,
       },
       label: {
-        ...label(`${mission} · ${year}${crashed ? ' (crash)' : ''}`, color),
+        ...label(`${mission} · ${year}${crashed ? ' (crash)' : ''}`),
         heightReference: HeightReference.CLAMP_TO_GROUND,
         distanceDisplayCondition: new DistanceDisplayCondition(0, LANDING_LABEL_MAX_M),
       },
@@ -211,7 +204,8 @@ function addNames(
       outlineWidth: 4,
       style: LabelStyle.FILL_AND_OUTLINE,
       horizontalOrigin: HorizontalOrigin.CENTER,
-      verticalOrigin: VerticalOrigin.CENTER,
+      // Above its point, not centred on it: on a tilted view a centred name sank half into the ground.
+      verticalOrigin: VerticalOrigin.BOTTOM,
       position,
       disableDepthTestDistance: 0, // always depth-tested: higher ground in front covers the name
       show: false, // the thinning below decides
@@ -297,7 +291,7 @@ async function addZones(viewer: Viewer): Promise<CustomDataSource> {
         clampToGround: true,
       },
       label: {
-        ...label(name, color),
+        ...label(name),
         heightReference: HeightReference.CLAMP_TO_GROUND,
         distanceDisplayCondition: new DistanceDisplayCondition(0, ZONE_LABEL_MAX_M),
       },

@@ -2,20 +2,18 @@
  * Mission 1.4 on the map: click the ground to place a base part, see each part as a labelled
  * marker from afar (red while it breaks a rule), and the 1 km keep-out ring around the habitat.
  */
+import { ALERT_PLATE, PLATE, platedLabel } from './plated-label'
 import {
   BoundingSphere,
-  Cartesian2,
   Cartesian3,
   Color,
   ColorMaterialProperty,
   CustomDataSource,
   DistanceDisplayCondition,
   HeadingPitchRange,
-  LabelStyle,
   Math as CesiumMath,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  VerticalOrigin,
   type Viewer,
 } from 'cesium'
 import {
@@ -110,16 +108,13 @@ export function createBasePlacer(
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: {
+            ...platedLabel(
+              PART_NAME[part],
+              Color.WHITE,
+              14,
+              failing.has(part) ? ALERT_PLATE : PLATE,
+            ),
             distanceDisplayCondition: new DistanceDisplayCondition(PIN_MIN_M),
-            text: PART_NAME[part],
-            font: '600 14px system-ui, sans-serif',
-            fillColor: colour,
-            outlineColor: DARK,
-            outlineWidth: 4,
-            style: LabelStyle.FILL_AND_OUTLINE,
-            verticalOrigin: VerticalOrigin.BOTTOM,
-            pixelOffset: new Cartesian2(0, -14),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         })
       }
@@ -134,16 +129,7 @@ export function createBasePlacer(
         })
         source.entities.add({
           position: at(offset(habitat, 0, REACTOR_STANDOFF_M), RING_LIFT_M),
-          label: {
-            text: '1 km: reactors outside this ring',
-            font: '600 13px system-ui, sans-serif',
-            fillColor: Color.WHITE,
-            outlineColor: DARK,
-            outlineWidth: 4,
-            style: LabelStyle.FILL_AND_OUTLINE,
-            verticalOrigin: VerticalOrigin.BOTTOM,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
+          label: platedLabel('1 km: reactors outside this ring', Color.WHITE, 13),
         })
       }
     },
@@ -153,6 +139,8 @@ export function createBasePlacer(
         new BoundingSphere(at(centre), Math.min(rangeM, REACTOR_STANDOFF_M)),
         {
           offset: new HeadingPitchRange(0, CesiumMath.toRadians(VIEW_PITCH_DEG), rangeM),
+          // Within one site: glide level, not Cesium's climb-and-dive (it arcs only above this).
+          maximumHeight: viewer.camera.positionCartographic.height,
           duration: 2,
         },
       )

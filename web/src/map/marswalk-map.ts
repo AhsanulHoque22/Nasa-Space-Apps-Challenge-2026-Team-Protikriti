@@ -2,20 +2,18 @@
  * Mission 1.5 on the map: the walking route and its router for a site's grid, overlays for the
  * base crew's tools, and the walking crew, with a camera that can follow them.
  */
+import { platedLabel } from './plated-label'
 import { clampFollowRange, zoomedRange } from '../core/follow-camera'
 import {
   BoundingSphere,
-  Cartesian2,
   Cartesian3,
   Color,
   ConstantPositionProperty,
   CustomDataSource,
   HeadingPitchRange,
-  LabelStyle,
   Math as CesiumMath,
   Matrix4,
   PerspectiveFrustum,
-  VerticalOrigin,
   type Viewer,
 } from 'cesium'
 import type { Grid } from '../core/grid'
@@ -78,6 +76,8 @@ export function createWalkMap(
         CesiumMath.toRadians(-50),
         sphere.radius * FRAME_RADII + FRAME_MIN_M,
       ),
+      // Within one site: glide level, not Cesium's climb-and-dive (it arcs only above this).
+      maximumHeight: viewer.camera.positionCartographic.height,
       duration: 1.5,
     })
   }
@@ -132,17 +132,7 @@ export function createWalkMap(
             outlineWidth: 2,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
-          label: {
-            text: 'EV crew (2)',
-            font: '600 13px system-ui, sans-serif',
-            fillColor: CREW,
-            outlineColor: DARK,
-            outlineWidth: 4,
-            style: LabelStyle.FILL_AND_OUTLINE,
-            verticalOrigin: VerticalOrigin.BOTTOM,
-            pixelOffset: new Cartesian2(0, -12),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
+          label: platedLabel('EV crew (2)', CREW, 13),
         })
       if (follow) {
         // Read the range back each frame, so wheel, pinch and the zoom buttons are not undone.

@@ -3,6 +3,7 @@
  * it), the planned route through them and back, and the rover in 3D as the drive plays, with a
  * camera that can follow it.
  */
+import { platedLabel } from './plated-label'
 import { clampFollowRange, smoothHeadingDeg, zoomedRange } from '../core/follow-camera'
 import {
   BoundingSphere,
@@ -16,7 +17,6 @@ import {
   HeadingPitchRange,
   HeadingPitchRoll,
   HeightReference,
-  LabelStyle,
   Math as CesiumMath,
   Matrix4,
   ModelGraphics,
@@ -24,7 +24,6 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Transforms,
-  VerticalOrigin,
   type Viewer,
 } from 'cesium'
 import { MARS_SPHERE } from './mars'
@@ -116,17 +115,7 @@ export function createTraverseMap(
     ScreenSpaceEventType.LEFT_CLICK,
   )
 
-  const label = (text: string, colour: Color, size = 13) => ({
-    text,
-    font: `600 ${size}px system-ui, sans-serif`,
-    fillColor: colour,
-    outlineColor: DARK,
-    outlineWidth: 4,
-    style: LabelStyle.FILL_AND_OUTLINE,
-    verticalOrigin: VerticalOrigin.BOTTOM,
-    pixelOffset: new Cartesian2(0, -14),
-    disableDepthTestDistance: Number.POSITIVE_INFINITY,
-  })
+  const label = (text: string, colour: Color, size = 13) => platedLabel(text, colour, size)
 
   return {
     draw: (base, stops, route, pick) => {
@@ -259,6 +248,8 @@ export function createTraverseMap(
       viewer.camera.cancelFlight()
       viewer.camera.flyToBoundingSphere(sphere, {
         offset: new HeadingPitchRange(0, CesiumMath.toRadians(-70), sphere.radius * 3.2 + 20_000),
+        // Within one site: glide level, not Cesium's climb-and-dive (it arcs only above this).
+        maximumHeight: viewer.camera.positionCartographic.height,
         duration: 2,
       })
     },

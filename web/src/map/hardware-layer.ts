@@ -9,6 +9,7 @@
  * x exaggeration) and keeps its real proportions. When Explore mode switches to 1x, every model is
  * placed again.
  */
+import { platedLabel } from './plated-label'
 import {
   Cartesian2,
   Cartesian3,
@@ -19,14 +20,12 @@ import {
   HeadingPitchRoll,
   HeightReference,
   LabelCollection,
-  LabelStyle,
   Math as CesiumMath,
   Matrix4,
   Model,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Transforms,
-  VerticalOrigin,
   type Primitive,
   type Viewer,
 } from 'cesium'
@@ -63,7 +62,6 @@ const MESH_TRUST_M = 50
 const CLICK_RADIUS_PX = 40
 const LABEL_MAX_M = 3_000 // labels only once the models are big enough to see
 const LABEL = Color.fromCssColorString('#eef2f8')
-const DARK = Color.fromCssColorString('#05070C')
 const CABLE = Color.fromCssColorString('#f2c230') // yellow, as in NASA's Kilopower concept art
 
 type Entry = {
@@ -145,16 +143,9 @@ export function createHardwareLayer(
   const add = (key: string, at: Placement, prim: Primitive | Model, relayout: () => void) => {
     const label = labels.add({
       position: labelAt(at),
-      text: at.label,
-      font: '600 13px system-ui, sans-serif',
-      fillColor: LABEL,
-      outlineColor: DARK,
-      outlineWidth: 4,
-      style: LabelStyle.FILL_AND_OUTLINE,
-      verticalOrigin: VerticalOrigin.BOTTOM,
+      ...platedLabel(at.label, LABEL, 13),
       pixelOffset: new Cartesian2(0, -24),
       distanceDisplayCondition: new DistanceDisplayCondition(0, LABEL_MAX_M),
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
     })
     shown.set(key, {
       prim,

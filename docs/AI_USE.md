@@ -51,7 +51,7 @@ Claude Code (Claude Opus) wrote the field tablet (`web/src/ui/explore-hud.ts`, `
 
   [Team: note how many attempts it took and any edits you made to the image.]
 - **Map UI pass, 2026-11-07 (Claude Code).** Asked to redesign the header (logo, Story call to action, location jump, Explore on foot), the workbench keys and live readings, the site report popup, a view-centre marker, the story trail buttons and the mission 1.1 background. The team chose the report and tablet designs from options Claude offered. Claude upscaled the team's 1.1 image with ffmpeg (no generative AI).
-- **Mission readability pass, 2026-11-07 (Claude Code).** Asked to make the 3D-scene labels readable and add how-to hints, add a loud Go/No-Go verdict with an Ask ATLAS prompt in 1.1, keep the camera level between 1.2's places of interest, plate their name labels, and fold the base stores line into a "Base status" dropdown. Every number shown comes from the existing tested models; no new figures.
+- **Mission readability pass, 2026-11-07 (Claude Code).** Asked to make the 3D-scene labels readable and add how-to hints, add a loud Go/No-Go verdict with an Ask ATLAS prompt in 1.1, keep the camera level between 1.2's places of interest, plate their name labels, and fold the base stores line into a "Base status" dropdown. Then asked to apply the same fixes to every other mission: all 3D scenes got how-to hints, every blocked Next button (including six browser pop-ups) got the same alarm banner, in-site camera flights glide level, and mission map labels sit on plates. Every number shown comes from the existing tested models; no new figures.
 - [Team: add key prompts used for the pitch script and any other generated text, and say how you edited them.]
 
 ## Our own work
