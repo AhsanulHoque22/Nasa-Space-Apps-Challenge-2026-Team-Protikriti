@@ -30,8 +30,8 @@ export function renderHeader(
         <img class="brand-mark" src="assets/atlas-mark.webp" alt="" width="40" height="40" />
         <span class="brand-name">ATLAS</span>
       </h1>
-      <button type="button" class="story-link">${PLAY}<span>Play the story</span></button>
     </div>
+    <button type="button" class="story-link">${PLAY}<span>Play the story</span></button>
     <div class="go-row">
       <label class="view-select">
         <span class="view-label">${PIN}Jump to a place</span>
