@@ -67,7 +67,9 @@
    The 3D scenes sit over a dark sky outside the dock, so they take the same ink tokens. */
 .episodes,
 .journey-scene,
-.cargo-bay {
+.cargo-bay,
+.eva-console,
+body[data-mode='plan'] .side {
   --surface: #0e0e0e;
   --surface-raised: #1d1b17;
   --text: #f1e6cf;

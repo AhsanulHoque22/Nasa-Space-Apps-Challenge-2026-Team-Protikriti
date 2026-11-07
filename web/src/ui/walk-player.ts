@@ -37,11 +37,12 @@ import {
   type Minimap,
   type TabId,
   type Tile,
-  type Wrist,
   mainScreenHtml,
-  mountWrist,
   sideScreenHtml,
 } from './eva-dashboard'
+import { type EvaConsole, mountConsole, suitHtml } from './eva-console'
+import { oxygenLeftShare, powerLeftShare } from '../core/suit-model'
+import { walkAlerts } from '../core/walk-alerts'
 import type { LineLegend } from './line-legend'
 
 export type WalkParams = {
@@ -155,7 +156,7 @@ export function openWalkPlayer(
     },
   })
 
-  const wrist: Wrist = mountWrist()
+  const wrist: EvaConsole = mountConsole()
   let tab: TabId = 'now'
 
   const registerLegend = (positions: Cartesian3[]) =>
@@ -193,6 +194,8 @@ export function openWalkPlayer(
       {
         offset: new HeadingPitchRange(heading, pitch, above / Math.max(0.2, Math.sin(-pitch))),
         duration: FLY_S,
+        // Cesium arcs a flight up and back down unless capped: glide at the user's own height.
+        maximumHeight: Math.max(cam.height, ground + above),
       },
     )
   }
@@ -510,6 +513,30 @@ export function openWalkPlayer(
     const view = buildView()
     wrist.main.innerHTML = mainScreenHtml(view, tab)
     wrist.side.innerHTML = sideScreenHtml(view)
+    // Suit supplies at this stop, from the suit model: walking and science time used so far.
+    const walkMin = legs.slice(0, current).reduce((t, l) => t + l.durationMin, 0)
+    const workMin = Math.max(0, current - 1) * stopMin
+    const o2Share = oxygenLeftShare(walkMin, workMin)
+    const powerShare = powerLeftShare(cumArriveMin[current] ?? 0)
+    const here = stops[current] as Cell
+    wrist.suit.innerHTML = suitHtml({
+      o2Share,
+      powerShare,
+      evaMin: cumArriveMin[current] ?? 0,
+      budgetMin: EVA_LIMITS.maxEvaMin,
+      verdict: card.verdict,
+      alerts: walkAlerts({
+        spareMin: Number.isFinite(card.tightestMarginMin) ? card.tightestMarginMin : -1,
+        o2Share,
+        powerShare,
+        slopeDeg: slopeDegAt(grid, here),
+        limitDeg: params0.limitDeg ?? grid.maxSafeSlopeDeg,
+        behindPlanMin: 0,
+        storm: null,
+        hazardAheadM: null,
+      }),
+    })
+    wrist.root.dataset.verdict = card.verdict
   }
 
   const go = (index: number) => {

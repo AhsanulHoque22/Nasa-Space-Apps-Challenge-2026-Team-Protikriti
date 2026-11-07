@@ -60,7 +60,7 @@ function fakeViewer(heightM = 3500) {
   return { viewer, entities, flyToBoundingSphere, preRender }
 }
 
-const footers = () => document.querySelectorAll('.eva-wrist').length
+const footers = () => document.querySelectorAll('.eva-console').length
 const text = () => document.querySelector('.wp-pos')?.textContent?.replace(/\s+/g, ' ').trim()
 
 afterEach(() => {
@@ -196,7 +196,7 @@ const richPlan = (stops: Cell[]): WalkParams => ({
   words: 'Walk north-east for three kilometres.',
   siteId: 'jezero',
 })
-const text2 = () => document.querySelector('.eva-wrist')?.textContent?.replace(/\s+/g, ' ') ?? ''
+const text2 = () => document.querySelector('.eva-console')?.textContent?.replace(/\s+/g, ' ') ?? ''
 
 describe('EVA dashboard', () => {
   it('takes over the screen while the walk runs, and gives it back when it ends', () => {
@@ -275,10 +275,13 @@ describe('EVA dashboard', () => {
     expect(text2()).toContain('not measured')
   })
 
-  it('shows the dashboard on the wrist console: two screens on the arm, tabs switch pages', () => {
+  it('shows the dashboard on the walk console: suit, two screens, tabs switch pages', () => {
     const { viewer } = fakeViewer()
     openWalkPlayer(viewer, richPlan([cell(10, 10), cell(20, 20)]), () => undefined)
-    expect(document.querySelectorAll('.eva-arm .eva-glass')).toHaveLength(2)
+    expect(document.querySelectorAll('.eva-console .eva-glass')).toHaveLength(2)
+    // a full suit at the start of the walk, from the suit model
+    expect(document.querySelector('.ec-suit')?.textContent).toContain('100%')
+    expect(document.querySelector('.ec-suit')?.textContent).toMatch(/Oxygen/i)
     expect(document.querySelector('.eva-glass-side')?.textContent).toContain('Conditions here')
     const page = (id: string) => document.querySelector<HTMLElement>(`[data-page="${id}"]`)
     expect(page('now')?.hidden).toBe(false)
