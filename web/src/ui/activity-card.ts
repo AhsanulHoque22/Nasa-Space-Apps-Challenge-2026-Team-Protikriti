@@ -1,15 +1,9 @@
-/** Story card for a rover science activity, with a jump into Street View at that moment. */
+/** A rover sample's NASA record, for its window, with a jump into the 360 panorama at that moment. */
 import type { Activity } from '../map/activities-layer'
 
-export function renderActivityCard(
-  parent: HTMLElement,
-  a: Activity,
-  actions: { onStreetView?: () => void; onClose: () => void },
-): HTMLElement {
-  parent.querySelector('.activity')?.remove()
+export function activityDetails(a: Activity, onPanorama?: () => void): HTMLElement {
   const card = document.createElement('section')
-  card.className = 'panel activity'
-  card.setAttribute('aria-labelledby', 'activity-title')
+  card.className = 'activity'
   const rows: Array<[string, string | undefined]> = [
     [
       'Sealed',
@@ -25,15 +19,9 @@ export function renderActivityCard(
     ['Position', a.positionBasis],
   ]
   card.innerHTML = `
-    <div class="wx-header">
-      <h2 id="activity-title"></h2>
-      <button type="button" class="wx-close" data-act="close">Close</button>
-    </div>
-    <p class="wx-source">Perseverance rock sample · official NASA record</p>
     <figure class="activity-figure" hidden><img alt="" loading="lazy" referrerpolicy="no-referrer"/><figcaption>NASA/JPL-Caltech</figcaption></figure>
     <dl class="wx-tiles activity-rows"></dl>
-    <div class="route-actions"><button type="button" data-act="sv">Open Street View here</button></div>`
-  ;(card.querySelector('h2') as HTMLElement).textContent = `Sample ${a.number} · ${a.name}`
+    <div class="route-actions"><button type="button" data-act="sv">Open the 360 panorama here</button></div>`
   const dl = card.querySelector('.activity-rows') as HTMLElement
   for (const [label, value] of rows) {
     if (!value) continue
@@ -53,9 +41,7 @@ export function renderActivityCard(
     figure.hidden = false
   }
   const sv = card.querySelector('[data-act="sv"]') as HTMLButtonElement
-  if (actions.onStreetView && a.sol !== null) sv.addEventListener('click', actions.onStreetView)
+  if (onPanorama && a.sol !== null) sv.addEventListener('click', onPanorama)
   else sv.parentElement?.remove()
-  card.querySelector('[data-act="close"]')?.addEventListener('click', actions.onClose)
-  parent.prepend(card)
   return card
 }

@@ -10,6 +10,8 @@ const PRESSURE_HUE = '#5B8DEF'
 const W = 280
 const H = 96
 const PAD = { left: 34, right: 6, top: 6, bottom: 18 }
+/** Below this many sols each reading is drawn as a dot too, so a short record reads as points. */
+const SPARSE_SOLS = 60
 
 export const STATIONS: Record<WeatherStation, { title: string; instrument: string }> = {
   rems: { title: 'Gale crater', instrument: 'Curiosity · REMS' },
@@ -71,6 +73,17 @@ function chart(sols: SolWeather[], series: Series, hue: string, unit: string): H
     <text x="${W - PAD.right}" y="${H - 4}" class="wx-tick" text-anchor="end">Sol ${last?.sol}</text>
     <path d="${path}" fill="${isBand ? hue : 'none'}" fill-opacity="${isBand ? 0.55 : 0}"
       stroke="${hue}" stroke-width="${isBand ? 1 : 2}" stroke-linejoin="round"/>
+    ${
+      sols.length <= SPARSE_SOLS
+        ? values
+            .flatMap((v, i) =>
+              v.map((n) =>
+                n == null ? '' : `<circle cx="${x(i)}" cy="${y(n)}" r="3" fill="${hue}"/>`,
+              ),
+            )
+            .join('')
+        : ''
+    }
     <line class="wx-cursor" y1="${PAD.top}" y2="${H - PAD.bottom}" visibility="hidden"/>`
   const cursor = svg.querySelector('.wx-cursor') as SVGLineElement
   const tip = el('p', 'wx-tip')
@@ -153,13 +166,12 @@ function table(sols: SolWeather[]): HTMLElement {
 }
 
 export function renderWeatherPanel(
-  parent: HTMLElement,
   station: WeatherStation,
   result: WeatherResult,
   onClose: () => void,
 ): HTMLElement {
   const info = STATIONS[station]
-  const panel = el('section', 'panel weather')
+  const panel = el('section', 'panel weather wx-panel')
   panel.setAttribute('aria-labelledby', 'wx-title')
   const header = el('div', 'wx-header')
   const title = el('h2', undefined, `Weather · ${info.title}`)
@@ -187,17 +199,19 @@ export function renderWeatherPanel(
       sol: latest.sol != null ? `Sol ${latest.sol}` : '—',
     })
     const year = lastMarsYear(result.sols)
-    if (year.length > 20) {
+    // Perseverance's feed publishes only its last few sols: chart those and say so.
+    const span = year.length > SPARSE_SOLS ? 'last Mars year' : `last ${year.length} sols reported`
+    if (year.length > 1) {
       panel.append(
         chart(
           year,
-          { label: 'Air temperature range (°C), last Mars year', values: (s) => [s.minC, s.maxC] },
+          { label: `Air temperature range (°C), ${span}`, values: (s) => [s.minC, s.maxC] },
           TEMP_HUE,
           '°C',
         ),
         chart(
           year,
-          { label: 'Surface pressure (Pa), last Mars year', values: (s) => [s.pressurePa] },
+          { label: `Surface pressure (Pa), ${span}`, values: (s) => [s.pressurePa] },
           PRESSURE_HUE,
           ' Pa',
         ),
@@ -214,6 +228,5 @@ export function renderWeatherPanel(
         ),
       )
   }
-  parent.append(panel)
   return panel
 }

@@ -41,12 +41,13 @@ import {
 import { loadWeather, type WeatherStation } from './map/weather-client'
 import { addStationPins, stationPositions } from './map/weather-stations'
 import { parseBenchmark } from './core/benchmark'
-import { renderActivityCard } from './ui/activity-card'
+import { activityDetails } from './ui/activity-card'
+import { asPopup, closePopup, openPopup } from './ui/popup'
 import { renderBenchmarkCard } from './ui/benchmark-card'
 import { renderClock } from './ui/clock'
 import { renderConnectionBadge } from './ui/connection-badge'
 import { openExplore } from './ui/explore-hud'
-import { renderDock } from './ui/dock'
+import { renderDock, showDockTab } from './ui/dock'
 import { renderInstrumentDrawer } from './ui/instrument-drawer'
 import { renderHeader } from './ui/header'
 import { dismissFirstScreen, openProfileGate } from './ui/profile-gate'
@@ -55,9 +56,9 @@ import { renderReadout } from './ui/readout'
 import { installAskAtlas } from './ui/ask-atlas'
 import { askScreen } from './ui/ask-atlas-screen'
 import { renderSiteReport } from './ui/site-report'
-import { installCentreMarker, viewSnapshot } from './ui/centre-marker'
+import { installCentreMarker, settledSnapshot, viewSnapshot } from './ui/centre-marker'
 import type { SwimGrid } from './core/site-report'
-import { ScreenSpaceEventHandler, ScreenSpaceEventType } from 'cesium'
+import { Cartesian3, ScreenSpaceEventHandler, ScreenSpaceEventType } from 'cesium'
 import { MARS_SPHERE } from './map/mars'
 import { isExploring } from './map/picking'
 import type { Place } from './core/search'
@@ -397,6 +398,7 @@ async function main() {
   renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle)
   renderDosePanel(side)
   renderDustPanel(side, sites, () => solarLongitudeDeg(sceneTimeMs()))
+  asPopup(side.lastElementChild as HTMLDetailsElement, 'dust')
   // The clock is drawn further down; until then a time jump has nothing to move.
   const clockRef: { setTime: (utcMs: number) => void } = { setTime: () => {} }
   renderScenarioPanel(
@@ -407,9 +409,16 @@ async function main() {
       lon: (s.grid.west + s.grid.east) / 2,
       lat: (s.grid.south + s.grid.north) / 2,
     })),
-    { nowMs: sceneTimeMs, setTime: (t) => clockRef.setTime(t) },
+    {
+      nowMs: sceneTimeMs,
+      setTime: (t) => {
+        closePopup() // the season shows on the map, which the window covers
+        clockRef.setTime(t)
+      },
+    },
   )
-  const openWeather = weatherOpener(side)
+  asPopup(side.lastElementChild as HTMLDetailsElement, 'scenario')
+  const openWeather = weatherOpener(() => launcher)
   const launcher = document.createElement('nav')
   launcher.className = 'panel wx-launch wx-panel'
   launcher.setAttribute('aria-label', 'Mars weather stations')
@@ -527,7 +536,11 @@ async function main() {
       }))
   }
   resolveZones(loadZoneRows())
-  renderZonePanel(side, loadZoneRows, (zone) => flyToPlace(viewer, zone.lon, zone.lat, 200))
+  renderZonePanel(side, loadZoneRows, (zone) => {
+    closePopup()
+    flyToPlace(viewer, zone.lon, zone.lat, 200)
+  })
+  asPopup(side.lastElementChild as HTMLDetailsElement, 'zones')
   new ScreenSpaceEventHandler(viewer.scene.canvas).setInputAction(
     (click: ScreenSpaceEventHandler.PositionedEvent) => {
       if (isExploring()) return // explore mode owns input
@@ -640,14 +653,39 @@ async function main() {
     const near = nearestRoverStop(streetView.stops, lon, lat)
     if (near) showStreetView(near.rover, near.index)
   }
-  const openActivity = (activity: Activity) => {
-    const card = renderActivityCard(side, activity, {
-      onClose: () => card.remove(),
-      onStreetView: () => {
-        if (activity.sol === null) return
-        const { index } = positionAtSol(streetView.stops.m20, activity.sol)
-        showStreetView('m20', index)
-      },
+  /** A sample's window: its map view (the camera flies there behind it) and its NASA record. */
+  const openActivity = (activity: Activity, back?: { label: string; onClick: () => void }) => {
+    const map = document.createElement('figure')
+    map.className = 'sample-map'
+    map.innerHTML = '<p class="wx-loading" role="status">Loading the map view…</p>'
+    const panorama = () => {
+      if (activity.sol === null) return
+      closePopup()
+      const { index } = positionAtSol(streetView.stops.m20, activity.sol)
+      showStreetView('m20', index)
+    }
+    openPopup({
+      title: `Sample ${activity.number} · ${activity.name}`,
+      subtitle: 'Perseverance rock sample · official NASA record',
+      body: [map, activityDetails(activity, panorama)],
+      back,
+    })
+    if (activity.lon === undefined || activity.lat === undefined) return map.remove()
+    setLayer.current?.('imagery', true) // the map view is of the HiRISE ground
+    const groundM = elevationAt(sites, mola, activity.lon, activity.lat).m
+    viewer.camera.flyTo({
+      destination: Cartesian3.fromDegrees(
+        activity.lon,
+        activity.lat,
+        (Number.isFinite(groundM) ? groundM : 0) + SAMPLE_VIEW_HEIGHT_M,
+        MARS_SPHERE,
+      ),
+      duration: 1.2,
+    })
+    void settledSnapshot(viewer).then((url) => {
+      if (!url) return map.remove()
+      map.innerHTML = `<div class="sample-map-frame"><img alt="Map view around sample ${activity.number}: HiRISE imagery, the sample at the centre"/></div><figcaption>Map view · the sample is at the centre · HiRISE (MRO)</figcaption>`
+      ;(map.querySelector('img') as HTMLImageElement).src = url
     })
   }
   const samples = await addActivities(viewer, surfaceM, openActivity)
@@ -658,17 +696,17 @@ async function main() {
   }
   const sampleByNumber = (n: number) => samples.activities.find((a) => a.number === n)
   renderComparePanel(side)
+  asPopup(side.lastElementChild as HTMLDetailsElement, 'compare')
   renderGeologyPanel(side, (lon, lat) => flyToPlace(viewer, lon, lat, 2))
   renderDeltaCard(
     side,
     (n) => sampleByNumber(n)?.name.replace(/\s*_\(.*\)_/, '') ?? null,
     (n) => {
       const a = sampleByNumber(n)
-      if (!a) return
-      if (a.lon !== undefined && a.lat !== undefined) flyToPlace(viewer, a.lon, a.lat, 1)
-      openActivity(a)
+      if (a) openActivity(a, { label: "Jezero's delta", onClick: openDelta })
     },
   )
+  const openDelta = asPopup(side.lastElementChild as HTMLDetailsElement, 'delta')
   renderDock(side)
   renderInstrumentDrawer()
 
@@ -734,24 +772,26 @@ async function main() {
   if (import.meta.env.DEV) Object.assign(window, { streetView, openStreetView }) // console debugging
 }
 
-/** One weather panel at a time; reopening a station replaces it. */
-function weatherOpener(side: HTMLElement): (station: WeatherStation) => void {
+/** One weather panel at a time, right under its station buttons; reopening replaces it. */
+function weatherOpener(launcher: () => HTMLElement): (station: WeatherStation) => void {
   let panel: HTMLElement | undefined
   let request = 0
   return (station) => {
     const id = ++request
     panel?.remove()
+    showDockTab('explore') // a station pin on the map may be clicked from any tab
     const loading = document.createElement('p')
-    loading.className = 'panel weather wx-loading'
+    loading.className = 'panel weather wx-panel wx-loading'
     loading.setAttribute('role', 'status')
     loading.textContent = 'Loading Mars weather…'
-    side.append(loading)
+    launcher().after(loading)
     panel = loading
     void loadWeather(station)
       .then((result) => {
         if (id !== request) return
-        loading.remove()
-        panel = renderWeatherPanel(side, station, result, () => panel?.remove())
+        panel = renderWeatherPanel(station, result, () => panel?.remove())
+        loading.replaceWith(panel)
+        panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
       })
       .catch((error: unknown) => {
         if (id !== request) return
@@ -759,6 +799,9 @@ function weatherOpener(side: HTMLElement): (station: WeatherStation) => void {
       })
   }
 }
+
+// A sample's map view: about a kilometre of ground around it, enough to see where it was taken.
+const SAMPLE_VIEW_HEIGHT_M = 1200
 
 // Exploring on foot at night shows a black screen, so arrival is moved to the morning.
 const EXPLORE_DAY_START_H = 6.5 // local mean solar time: the sun is up between these hours

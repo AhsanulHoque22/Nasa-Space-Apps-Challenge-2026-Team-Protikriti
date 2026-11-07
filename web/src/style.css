@@ -573,13 +573,15 @@ body {
 /* Right-hand stack: route planner and weather */
 .side {
   position: fixed;
-  top: 68px; /* below the workbench keys */
+  top: calc(var(--space-4) + var(--dock-keys-h)); /* hangs from the workbench keys */
   right: var(--space-4);
-  width: 300px;
-  max-height: calc(100svh - 144px); /* stops above the Ask ATLAS button */
+  width: var(--side-w);
+  box-sizing: border-box;
+  max-height: calc(100svh - var(--dock-keys-h) - 96px); /* stops above the Ask ATLAS button */
   display: grid;
   gap: var(--space-3);
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--rule) transparent;
   z-index: 50;
@@ -588,13 +590,13 @@ body {
   background: var(--surface-raised);
   border: 1px solid var(--rule);
   border-top: 3px solid var(--mode-accent, var(--accent-fill));
-  border-radius: var(--radius);
+  border-radius: 0 0 var(--radius) var(--radius);
   box-shadow:
     0 20px 60px rgb(0 0 0 / 0.7),
     0 4px 16px rgb(0 0 0 / 0.4);
   padding-bottom: var(--space-3);
-  /* hidden by default — slides in from the right */
-  transform: translateX(calc(100% + 24px));
+  /* hidden by default: folds up under the keys */
+  transform: translateY(-12px);
   opacity: 0;
   transition:
     transform 280ms var(--ease-out),
@@ -603,7 +605,7 @@ body {
 }
 
 body[data-panel-open] .side {
-  transform: translateX(0);
+  transform: none;
   opacity: 1;
   pointer-events: auto;
 }
@@ -2596,6 +2598,7 @@ body.exploring .centre-marker {
 }
 
 .side > .panel {
+  margin-inline: var(--space-2);
   min-width: 0; /* a wide child must not stretch the column past the side bar */
 }
 
@@ -3383,6 +3386,9 @@ body.eva-mode .dock-trigger {
   top: var(--space-4);
   right: var(--space-4);
   z-index: 60;
+  box-sizing: border-box;
+  width: var(--side-w);
+  height: var(--dock-keys-h);
   padding: 4px;
   background: var(--ink);
   border-radius: 16px;
@@ -3394,7 +3400,7 @@ body.eva-mode .dock-trigger {
 
 .dock-tabs {
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -3402,9 +3408,11 @@ body.eva-mode .dock-trigger {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
   min-height: 36px;
-  padding: 0 18px 0 10px;
+  padding: 0 14px 0 6px;
   font: 400 10px var(--font-tool);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3424,6 +3432,7 @@ body.eva-mode .dock-trigger {
 }
 
 .dock-tabs svg {
+  flex-shrink: 0;
   width: 16px;
   height: 16px;
   fill: none;
@@ -3454,6 +3463,7 @@ body.eva-mode .dock-trigger {
 }
 
 .dock-tabs [role='tab'][aria-selected='true'] {
+  font-weight: 400; /* the sunk key and lit lamp carry the choice; bold would not fit */
   color: #fff !important;
   background: var(
     --mode-accent,
@@ -3468,9 +3478,15 @@ body.eva-mode .dock-trigger {
   box-shadow: 0 0 8px 2px rgb(255 226 122 / 0.8);
 }
 
+/* The keys are the panel's top edge while it is open. */
+body[data-panel-open]:not(.exploring):not([data-story]) .dock-trigger {
+  border-radius: 16px 16px 0 0;
+}
+
 /* ── Card header inside the floating panel ────────────────────────────── */
 .dock-card-head {
   display: flex;
+  gap: var(--space-2);
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-3) var(--space-2);
@@ -3480,15 +3496,6 @@ body.eva-mode .dock-trigger {
   z-index: 1;
   border-bottom: 1px solid var(--rule);
   margin-bottom: 0;
-}
-
-.dock-card-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--mode-accent-lift, var(--accent));
-  transition: color 250ms var(--ease-out);
 }
 
 .dock-close {
@@ -3515,11 +3522,9 @@ body.eva-mode .dock-trigger {
 
 .dock-hint {
   margin: 0;
-  padding: var(--space-2) var(--space-3) var(--space-1);
   font-size: 12px;
   line-height: 1.4;
   color: var(--text-muted);
-  border-bottom: 1px solid var(--rule);
 }
 
 /* ---- Selected state: one rule for every toggle, so on never looks like off ----
@@ -7600,82 +7605,16 @@ button.journey-label:focus-visible {
   border-radius: var(--radius);
 }
 
-/* ---- Split view: on wide screens the workbench docks as a full-height console on the right and
-   the globe and map chrome shrink into the space beside it, so the route is never covered. ---- */
+/* ---- Thin workbench: the keys and the panel are one column, as wide as the keys, over a
+   full-width map; on wide screens the map chrome steps left of it so the clock is not covered. ---- */
 :root {
-  --console-w: clamp(440px, 38vw, 640px);
+  --side-w: min(340px, calc(100vw - 32px));
+  --dock-keys-h: 44px;
 }
 
 @media (min-width: 900px) {
-  body[data-panel-open]:not(.exploring):not([data-story]) {
-    --split: var(--console-w);
-  }
-
-  body[data-panel-open]:not(.exploring):not([data-story]) #globe,
   body[data-panel-open]:not(.exploring):not([data-story]) #ui {
-    right: var(--split);
-  }
-
-  /* The map beside the console is narrower: give the replay bar the middle, the clock less. */
-  body[data-panel-open]:not(.exploring):not([data-story]) #ui {
-    grid-template-columns: minmax(0, 300px) 1fr minmax(0, 260px);
-  }
-
-  body[data-panel-open]:not(.exploring):not([data-story]) .ask-atlas-trigger {
-    right: calc(var(--split) + var(--space-4));
-  }
-
-  body[data-panel-open]:not(.exploring):not([data-story]) .side {
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: var(--split);
-    max-height: none;
-    box-sizing: border-box;
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
-    gap: var(--space-3);
-    /* clear the workbench keys that float over the console's top edge */
-    padding: 84px var(--space-4) var(--space-4);
-    border: 0;
-    border-left: 1px solid var(--rule);
-    border-radius: 0;
-    background: var(--surface-raised);
-    box-shadow: -12px 0 40px rgb(0 0 0 / 0.35);
-  }
-
-  /* Each tool is a card on the console. */
-  body[data-panel-open]:not(.exploring):not([data-story]) .side > .panel {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 14px;
-    box-shadow: 0 2px 6px rgb(29 26 21 / 0.12);
-  }
-
-  body[data-panel-open]:not(.exploring):not([data-story]) .dock-card-head {
-    order: -3; /* title first, then the hint and the live readings */
-    position: static;
-    padding: 0;
-    border: 0;
-    background: none;
-  }
-
-  body[data-panel-open]:not(.exploring):not([data-story]) .dock-card-title {
-    font: 400 20px var(--font-tool);
-    letter-spacing: 0.08em;
-  }
-
-  body[data-panel-open]:not(.exploring):not([data-story]) .dock-hint {
-    order: -2;
-    padding: 0;
-    font-size: 14px;
-  }
-
-  body[data-panel-open]:not(.exploring):not([data-story]) .hero-card {
-    order: -1;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    padding: 0;
-    border: 0;
+    padding-right: calc(var(--side-w) + 2 * var(--space-4));
   }
 }
 
@@ -7780,4 +7719,157 @@ ul.go-verdict-body {
   .go-verdict[data-flash] {
     animation: none;
   }
+}
+
+/* ---- Reading windows: panels that need no map open over it, like the site report ---- */
+.info-popup {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.popup-body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) 24px 24px;
+}
+
+/* The panel's own fold-out heading is the window title now. */
+.popup-body > details > summary {
+  display: none;
+}
+
+.popup-body > details.panel {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.popup-back {
+  display: block;
+  margin: 0 0 6px;
+  padding: 4px 0;
+  font: 600 13px var(--font);
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.popup-back:hover {
+  text-decoration: underline;
+}
+
+/* In the side panel, a reading window is one row: its title and a "opens a window" mark. */
+.popup-launch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  font: 700 13px var(--font);
+  text-align: left;
+  color: var(--text);
+  border: 0;
+  cursor: pointer;
+}
+
+.popup-launch svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--text-muted);
+}
+
+.popup-launch:hover svg {
+  color: var(--accent);
+}
+
+/* A sample's map view: a square of the map, the sample marked at its centre. */
+.sample-map {
+  position: relative;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.sample-map-frame {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 360px);
+}
+
+.sample-map img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--ink);
+}
+
+.sample-map-frame::after {
+  content: '';
+  position: absolute;
+  top: calc(50% - 12px);
+  left: calc(50% - 12px);
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.6);
+  pointer-events: none;
+}
+
+.sample-map figcaption {
+  justify-self: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Position readout: one box, two tabs. */
+.readout-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 0 var(--space-2);
+  padding: 3px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 8px;
+}
+
+#ui .readout-tabs button {
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  font: 700 11px var(--font);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+/* A sample's window: the map view beside the NASA photo and record. */
+@media (min-width: 700px) {
+  .popup-body:has(> .sample-map) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.info-popup .activity-figure img {
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.info-popup .activity-figure {
+  margin: 0;
 }

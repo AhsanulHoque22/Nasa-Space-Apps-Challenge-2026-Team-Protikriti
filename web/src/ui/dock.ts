@@ -31,6 +31,13 @@ const GROUPS: [Tab, string[]][] = [
   ['science', ['geology', 'compare', 'scenario', 'dust', 'dose', 'benchmark']],
 ]
 
+let selectTab: ((tab: Tab) => void) | null = null
+
+/** Opens the workbench on a tab, unless it is already open there. */
+export function showDockTab(tab: Tab): void {
+  selectTab?.(tab)
+}
+
 function groupOf(el: Element): Tab | null {
   for (const [tab, classes] of GROUPS) if (classes.some((c) => el.classList.contains(c))) return tab
   return null
@@ -53,7 +60,6 @@ export function renderDock(side: HTMLElement): void {
   const cardHead = document.createElement('div')
   cardHead.className = 'dock-card-head'
   cardHead.innerHTML = `
-    <span class="dock-card-title"></span>
     <button type="button" class="dock-close" aria-label="Close panel">
       <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none"
            stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -66,7 +72,9 @@ export function renderDock(side: HTMLElement): void {
   const hint = document.createElement('p')
   hint.className = 'dock-hint'
   hint.id = 'dock-panel'
-  side.prepend(hint, heroCard, cardHead)
+  // The keys above name the tab, so the head carries what the tab is for and the close key.
+  cardHead.prepend(hint)
+  side.prepend(cardHead, heroCard)
 
   cardHead.querySelector<HTMLButtonElement>('.dock-close')?.addEventListener('click', close)
 
@@ -93,8 +101,6 @@ export function renderDock(side: HTMLElement): void {
       b.tabIndex = b.dataset.tab === active ? 0 : -1
     }
     hint.textContent = TABS.find((t) => t.id === active)?.hint ?? ''
-    const titleEl = cardHead.querySelector<HTMLElement>('.dock-card-title')
-    if (titleEl) titleEl.textContent = TABS.find((t) => t.id === active)?.label ?? ''
   }
 
   // ── Hero KPIs ─────────────────────────────────────────────────────────
@@ -204,6 +210,9 @@ export function renderDock(side: HTMLElement): void {
     if (focus) tabButtons.find((b) => b.dataset.tab === tab)?.focus()
   }
 
+  selectTab = (tab) => {
+    if (!(document.body.dataset.panelOpen && active === tab)) select(tab)
+  }
   for (const b of tabButtons) {
     b.addEventListener('click', () => select(b.dataset.tab as Tab))
     b.addEventListener('keydown', (e) => {

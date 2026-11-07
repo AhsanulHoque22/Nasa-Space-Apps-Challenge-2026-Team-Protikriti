@@ -40,3 +40,54 @@ export function viewSnapshot(viewer: Viewer): string | null {
     return null // a tainted or lost canvas: the report shows without the picture
   }
 }
+
+const SETTLE_TIMEOUT_MS = 6000 // a slow tile server must not leave the window waiting forever
+
+/**
+ * A square picture of the map once the camera has stopped and the ground tiles are in: the map
+ * view of one place, for a window that covers the map.
+ */
+export function settledSnapshot(viewer: Viewer): Promise<string | null> {
+  return new Promise((resolve) => {
+    let started = 0
+    let watching = false
+    const tick = () => {
+      started ||= performance.now()
+      if (performance.now() - started < SETTLE_TIMEOUT_MS && !viewer.scene.globe.tilesLoaded) {
+        requestAnimationFrame(tick)
+        return
+      }
+      const full = viewSnapshot(viewer)
+      if (!full) return resolve(null)
+      const img = new Image()
+      img.onload = () => {
+        const side = Math.min(img.width, img.height)
+        const c = document.createElement('canvas')
+        c.width = c.height = side
+        c.getContext('2d')?.drawImage(
+          img,
+          (img.width - side) / 2,
+          (img.height - side) / 2,
+          side,
+          side,
+          0,
+          0,
+          side,
+          side,
+        )
+        resolve(c.toDataURL('image/jpeg', SNAPSHOT_QUALITY))
+      }
+      img.onerror = () => resolve(full)
+      img.src = full
+    }
+    // flyTo starts on the next frame: wait for the move to end before watching the tiles.
+    const watch = () => {
+      if (watching) return
+      watching = true
+      off()
+      requestAnimationFrame(tick)
+    }
+    const off = viewer.camera.moveEnd.addEventListener(watch)
+    window.setTimeout(watch, SETTLE_TIMEOUT_MS)
+  })
+}
