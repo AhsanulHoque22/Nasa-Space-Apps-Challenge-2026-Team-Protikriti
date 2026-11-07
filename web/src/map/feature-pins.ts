@@ -34,8 +34,11 @@ const SELECTED_PX = 18
 const PIN_COLOUR = Color.WHITE
 const SELECTED_COLOUR = Color.fromCssColorString('#fc3d21') // NASA red: the pin being read
 const OUTLINE = Color.fromCssColorString('#05070C')
-const VIEW_RANGE_M = 3_000 // close enough to see the ground around the pin
-const VIEW_PITCH_DEG = -40
+// Name plates: light text on a solid plate reads on bright and dark ground alike.
+const PLATE = Color.fromCssColorString('#05070C').withAlpha(0.85)
+const SELECTED_PLATE = Color.fromCssColorString('#a8341f').withAlpha(0.95) // brick: 6.3:1 with white
+const MAX_PITCH_DEG = -15
+const VIEW_RANGE_M = 3_000 // when the view centre is off the globe: close enough to see the ground
 const FRAME_PITCH_DEG = -50
 const FRAME_MIN_RANGE_M = 5_000
 const FRAME_RANGE_PER_RADIUS = 3.2 // keeps every pin of a site in the view beside the dock
@@ -59,7 +62,7 @@ export function createFeaturePins(
         e.point.color = new ConstantProperty(on ? SELECTED_COLOUR : PIN_COLOUR)
       }
       if (e.label) {
-        e.label.fillColor = new ConstantProperty(on ? SELECTED_COLOUR : PIN_COLOUR)
+        e.label.backgroundColor = new ConstantProperty(on ? SELECTED_PLATE : PLATE)
         // Only the selected pin is named: neighbouring pins' names overlap at site scale.
         e.label.text = new ConstantProperty(
           on ? `${i + 1}  ${current[i]?.name ?? ''}` : String(i + 1),
@@ -98,13 +101,14 @@ export function createFeaturePins(
           },
           label: {
             text: String(i + 1),
-            font: '600 14px system-ui, sans-serif',
+            font: '600 15px Atkinson, system-ui, sans-serif',
             fillColor: PIN_COLOUR,
-            outlineColor: OUTLINE,
-            outlineWidth: 4,
-            style: LabelStyle.FILL_AND_OUTLINE,
+            style: LabelStyle.FILL,
+            showBackground: true,
+            backgroundColor: PLATE,
+            backgroundPadding: new Cartesian2(8, 5),
             verticalOrigin: VerticalOrigin.BOTTOM,
-            pixelOffset: new Cartesian2(0, -14),
+            pixelOffset: new Cartesian2(0, -16),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         }),
@@ -129,11 +133,25 @@ export function createFeaturePins(
       const f = current[index]
       if (!f) return
       style(index)
+      // Glide across at the reader's own zoom, heading and tilt: no climb out and dive back in.
+      const camera = viewer.camera
+      const canvas = viewer.scene.canvas
+      const ray = camera.getPickRay(new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2))
+      const centre = ray && viewer.scene.globe.pick(ray, viewer.scene)
+      const range = centre ? Cartesian3.distance(camera.positionWC, centre) : VIEW_RANGE_M
+      const height = camera.positionCartographic.height
       const ground = surfaceM(f.lon, f.lat)
-      viewer.camera.flyToBoundingSphere(
-        new BoundingSphere(Cartesian3.fromDegrees(f.lon, f.lat, ground, MARS_SPHERE), 200),
+      camera.flyToBoundingSphere(
+        new BoundingSphere(Cartesian3.fromDegrees(f.lon, f.lat, ground, MARS_SPHERE), 0),
         {
-          offset: new HeadingPitchRange(0, CesiumMath.toRadians(VIEW_PITCH_DEG), VIEW_RANGE_M),
+          // A view near the horizon keeps some tilt so the pin is not hidden behind the ground.
+          offset: new HeadingPitchRange(
+            camera.heading,
+            Math.min(camera.pitch, CesiumMath.toRadians(MAX_PITCH_DEG)),
+            range,
+          ),
+          // Cesium arcs only when this cap is above both ends: at today's height it glides level.
+          maximumHeight: height,
           duration: 1.4,
         },
       )
