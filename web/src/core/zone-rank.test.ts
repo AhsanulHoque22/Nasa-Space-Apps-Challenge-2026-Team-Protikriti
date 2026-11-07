@@ -94,3 +94,21 @@ describe('iceVersusLatitude', () => {
     expect(iceVersusLatitude([zone('A', 0, 0, null)])).toBeNull()
   })
 })
+
+describe('rankZones parts', () => {
+  it('splits each score into what ice, low ground and the equator gave it', () => {
+    const r = rankZones(rows, { ice: 1, lowElevation: 1, nearEquator: 2 })
+    for (const z of r)
+      expect(z.parts.ice + z.parts.lowElevation + z.parts.nearEquator).toBeCloseTo(z.score)
+    const low = r.find((z) => z.name === 'Low Equator')
+    // lowest and nearest the equator: full marks on both, weights 1 and 2 of 4
+    expect(low?.parts.lowElevation).toBeCloseTo(0.25)
+    expect(low?.parts.nearEquator).toBeCloseTo(0.5)
+    expect(low?.parts.ice).toBeCloseTo(0)
+  })
+
+  it('gives every part 0 when no criterion is weighted', () => {
+    const [first] = rankZones(rows, only({}))
+    expect(first?.parts).toEqual({ ice: 0, lowElevation: 0, nearEquator: 0 })
+  })
+})

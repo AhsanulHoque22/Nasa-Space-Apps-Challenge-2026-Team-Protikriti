@@ -25,6 +25,8 @@ export type Ranked = ZoneRow & {
   beyondLatitudeLimit: boolean
   /** Criteria this zone has no data for (they score 0). */
   missing: Array<'ice' | 'elevation'>
+  /** What each criterion added to the score; the three sum to it. */
+  parts: Weights
 }
 
 /** Scale to 0 (worst) .. 1 (best) over the zones that have a value; 0 for all if none differ. */
@@ -53,18 +55,21 @@ export function rankZones(rows: readonly ZoneRow[], weights: Weights): Ranked[] 
   )
   const total = weights.ice + weights.lowElevation + weights.nearEquator
   const ranked = rows.map((row, i): Ranked => {
-    const sum =
-      weights.ice * (ice[i] as number) +
-      weights.lowElevation * (elevation[i] as number) +
-      weights.nearEquator * (equator[i] as number)
+    const share = (w: number, v: number) => (total === 0 ? 0 : (w * v) / total)
+    const parts: Weights = {
+      ice: share(weights.ice, ice[i] as number),
+      lowElevation: share(weights.lowElevation, elevation[i] as number),
+      nearEquator: share(weights.nearEquator, equator[i] as number),
+    }
     const missing: Ranked['missing'] = []
     if (row.ice === null) missing.push('ice')
     if (row.elevationM === null) missing.push('elevation')
     return {
       ...row,
-      score: total === 0 ? 0 : sum / total,
+      score: parts.ice + parts.lowElevation + parts.nearEquator,
       beyondLatitudeLimit: Math.abs(row.lat) > LATITUDE_LIMIT_DEG,
       missing,
+      parts,
     }
   })
   return ranked.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
