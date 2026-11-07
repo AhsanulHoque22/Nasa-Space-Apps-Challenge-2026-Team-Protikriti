@@ -48,6 +48,7 @@ import { renderClock } from './ui/clock'
 import { renderConnectionBadge } from './ui/connection-badge'
 import { openExplore } from './ui/explore-hud'
 import { renderDock, showDockTab } from './ui/dock'
+import { installHoverHelp } from './ui/hover-help'
 import { renderInstrumentDrawer } from './ui/instrument-drawer'
 import { renderHeader } from './ui/header'
 import { dismissFirstScreen, openProfileGate } from './ui/profile-gate'
@@ -761,6 +762,7 @@ async function main() {
   })
   const openDelta = asPopup(side.lastElementChild as HTMLDetailsElement, 'delta')
   renderDock(side)
+  installHoverHelp() // a note on every control: what it does or what it means
   renderInstrumentDrawer()
 
   // Colony: score grid and placement layer (modules live in explore mode, not the map)
