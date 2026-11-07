@@ -7439,3 +7439,82 @@ button.journey-label:focus-visible {
   color: var(--text);
   border-radius: var(--radius);
 }
+
+/* ---- Split view: on wide screens the workbench docks as a full-height console on the right and
+   the globe and map chrome shrink into the space beside it, so the route is never covered. ---- */
+:root {
+  --console-w: clamp(440px, 38vw, 640px);
+}
+
+@media (min-width: 900px) {
+  body[data-panel-open]:not(.exploring):not([data-story]) {
+    --split: var(--console-w);
+  }
+
+  body[data-panel-open]:not(.exploring):not([data-story]) #globe,
+  body[data-panel-open]:not(.exploring):not([data-story]) #ui {
+    right: var(--split);
+  }
+
+  /* The map beside the console is narrower: give the replay bar the middle, the clock less. */
+  body[data-panel-open]:not(.exploring):not([data-story]) #ui {
+    grid-template-columns: minmax(0, 300px) 1fr minmax(0, 260px);
+  }
+
+  body[data-panel-open]:not(.exploring):not([data-story]) .ask-atlas-trigger {
+    right: calc(var(--split) + var(--space-4));
+  }
+
+  body[data-panel-open]:not(.exploring):not([data-story]) .side {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--split);
+    max-height: none;
+    box-sizing: border-box;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: var(--space-3);
+    /* clear the workbench keys that float over the console's top edge */
+    padding: 84px var(--space-4) var(--space-4);
+    border: 0;
+    border-left: 1px solid var(--rule);
+    border-radius: 0;
+    background: var(--surface-raised);
+    box-shadow: -12px 0 40px rgb(0 0 0 / 0.35);
+  }
+
+  /* Each tool is a card on the console. */
+  body[data-panel-open]:not(.exploring):not([data-story]) .side > .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    box-shadow: 0 2px 6px rgb(29 26 21 / 0.12);
+  }
+
+  body[data-panel-open]:not(.exploring):not([data-story]) .dock-card-head {
+    order: -3; /* title first, then the hint and the live readings */
+    position: static;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  body[data-panel-open]:not(.exploring):not([data-story]) .dock-card-title {
+    font: 400 20px var(--font-tool);
+    letter-spacing: 0.08em;
+  }
+
+  body[data-panel-open]:not(.exploring):not([data-story]) .dock-hint {
+    order: -2;
+    padding: 0;
+    font-size: 14px;
+  }
+
+  body[data-panel-open]:not(.exploring):not([data-story]) .hero-card {
+    order: -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 0;
+    border: 0;
+  }
+}
