@@ -4,6 +4,7 @@
  * each bed, and a person for scale. The plant shapes are drawn, not models: an illustration of the
  * numbers. three.js loads only when the stage first opens, as in the other mission stages.
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import {
   AISLE_M,
@@ -54,6 +55,9 @@ export async function openGreenhouseStage(): Promise<GreenhouseStage> {
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
+  host.append(
+    sceneHint('Drag to walk round the growth chamber · scroll to zoom', renderer.domElement),
+  )
   const credit = document.createElement('p')
   credit.className = 'cargo-bay-credit'
   credit.textContent =

@@ -4,6 +4,7 @@
  * Both are stand-ins, drawn at their own size in metres and credited on screen. three.js loads
  * only when the stage first opens (the same approach as the mission 1.1 cargo bay).
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import { applyRegion, freeRegion } from './stage-region'
 
@@ -41,6 +42,7 @@ export async function openLandingStage(): Promise<LandingStage> {
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
+  host.append(sceneHint('Drag to turn the landers · scroll to zoom', renderer.domElement))
 
   const scene = new THREE.Scene()
   scene.add(new THREE.HemisphereLight(0xffffff, 0xb8aea4, 1.6))

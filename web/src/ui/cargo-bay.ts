@@ -5,6 +5,7 @@
  * cargo-lander model exists in our library, so the credit says the layout is a stand-in. Clicking
  * the habitat opens a full-screen, interactive habitat view. three.js loads only when the bay opens.
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import { CARGO_ITEMS, type CargoPlan } from '../core/cargo'
 import { openHabitatViewer } from './habitat-viewer'
@@ -49,9 +50,7 @@ export async function openCargoBay(plan: CargoPlan): Promise<CargoBay> {
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
-  const hint = document.createElement('p')
-  hint.className = 'scene-hint'
-  hint.textContent = 'Drag to turn the base · click the habitat to look inside in 3D'
+  const hint = sceneHint('Drag to turn the base · click the habitat to look inside in 3D')
   host.append(hint)
 
   const scene = new THREE.Scene()

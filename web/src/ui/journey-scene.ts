@@ -4,6 +4,7 @@
  * planets move to their positions on each date. Sizes of bodies are exaggerated to be visible.
  * three.js loads only when this scene opens, so the map's start-up is not slowed.
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import { type Vec3, planetPosition } from '../core/ephemeris'
 import type { Journey } from '../core/journey'
@@ -77,13 +78,7 @@ export async function openJourneyScene(
   const labelLayer = new CSS2DRenderer()
   labelLayer.domElement.className = 'journey-labels'
   view.append(labelLayer.domElement)
-  const hint = document.createElement('p')
-  hint.className = 'scene-hint'
-  hint.textContent = 'Drag to turn the solar system · scroll to zoom'
-  view.append(hint)
-  renderer.domElement.addEventListener('pointerdown', () => (hint.dataset.done = ''), {
-    once: true,
-  })
+  view.append(sceneHint('Drag to turn the solar system · scroll to zoom', renderer.domElement))
 
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x02040a)

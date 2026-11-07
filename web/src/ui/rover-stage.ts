@@ -4,6 +4,7 @@
  * rear suitports, a person for scale and, with the power-cart plan, a Kilopower unit on a trailer.
  * Shapes are drawn from those dimensions, not a model of the real vehicle.
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import {
   KILOPOWER_COLUMN_DIAMETER_M,
@@ -40,6 +41,7 @@ export async function openRoverStage(): Promise<RoverStage> {
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
+  host.append(sceneHint('Drag to turn the rover · scroll to zoom', renderer.domElement))
   const credit = document.createElement('p')
   credit.className = 'cargo-bay-credit'
   credit.textContent =

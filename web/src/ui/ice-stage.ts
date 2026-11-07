@@ -4,6 +4,7 @@
  * excavator and a person for scale. The pit follows M-WIP (2016): 16 t of water from 90% ice takes
  * an 8.5 m × 1 m × 2 m slot (17.4 m³). Shapes are drawn, not models: an illustration of the numbers.
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import { type FeedstockId, MWIP_WATER_KG } from '../core/ice-water'
 import { applyRegion, freeRegion } from './stage-region'
@@ -44,6 +45,7 @@ export async function openIceStage(): Promise<IceStage> {
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
+  host.append(sceneHint('Drag to turn the dig site · scroll to zoom', renderer.domElement))
   const credit = document.createElement('p')
   credit.className = 'cargo-bay-credit'
   credit.textContent =

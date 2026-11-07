@@ -4,6 +4,7 @@
  * the optical depth rises. The direct sunlight falls as e^(−τ / cos z) (Beer–Lambert); the haze and
  * blowing dust are drawn, not measured. Parts stand closer together than on the map.
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import {
   HARDWARE,
@@ -44,6 +45,7 @@ export async function openStormStage(o: {
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
+  host.append(sceneHint('Drag to turn the base · scroll to zoom', renderer.domElement))
   const credit = document.createElement('p')
   credit.className = 'cargo-bay-credit'
   credit.textContent =

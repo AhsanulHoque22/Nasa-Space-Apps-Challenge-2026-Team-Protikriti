@@ -3,6 +3,7 @@
  * row 25 m apart (3.4 m tall, umbrella radiators about 9 m across, as on the map), the failed one
  * dark with a warning, the others glowing as they run, and a person for scale. Drawn shapes.
  */
+import { sceneHint } from './scene-hint'
 import { holdStage } from './stage-loop'
 import {
   KILOPOWER_COLUMN_DIAMETER_M,
@@ -34,6 +35,7 @@ export async function openReactorStage(units: number, failed: number): Promise<R
   const labels = new CSS2DRenderer()
   labels.domElement.className = 'journey-labels'
   host.append(labels.domElement)
+  host.append(sceneHint('Drag to turn the reactor field · scroll to zoom', renderer.domElement))
   const credit = document.createElement('p')
   credit.className = 'cargo-bay-credit'
   credit.textContent =
