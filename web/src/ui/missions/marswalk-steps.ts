@@ -2,6 +2,7 @@
  * Mission 1.5 as guided steps: learn the Marswalk rules, choose science stops near the base (known
  * places or any points on the map), read the GO / NO-GO card, then watch the crew walk it.
  */
+import { raiseAlarm } from '../no-go'
 import { CAREER_LIMIT_MSV } from '../../core/dose'
 import { EVA_LIMITS, type EvaCard, evaCard } from '../../core/eva-card'
 import { formatDistance, formatDuration } from '../../core/format'
@@ -325,9 +326,13 @@ export function marswalkSteps(
     onHide: () => map.base.pick(null),
     onNext: () => {
       if (planned) return true
-      status.textContent = chosen.length
-        ? 'Wait for the route, or change the stops so a route exists.'
-        : 'Add a stop first.'
+      raiseAlarm(
+        'Not yet',
+        chosen.length
+          ? 'Wait for the route, or change the stops so a route exists.'
+          : 'Add a stop first.',
+        { level: 'wait', near: status },
+      )
       return false
     },
   }
@@ -413,7 +418,16 @@ export function marswalkSteps(
       if (planned) map.walk.view(planned.path.map((c) => cellToLonLat(grid, c)))
     },
     onNext: () => {
-      if (planned?.card.verdict !== 'GO') return false
+      if (planned?.card.verdict !== 'GO') {
+        raiseAlarm(
+          'No-go',
+          planned
+            ? 'The route card says NO-GO. Change the stops until it reads GO.'
+            : 'Plan a route first.',
+          { near: gate },
+        )
+        return false
+      }
       const open = tasks.before.filter((t) => !t.done).length
       gate.textContent = open
         ? `Tick the ${open} remaining item${open > 1 ? 's' : ''} under “Before the airlock opens” first.`
@@ -520,8 +534,14 @@ export function marswalkSteps(
       const p = planned
       if (!p || !live) return false
       if (!live.done()) {
-        finishNote.textContent =
-          'The crew are still outside. Finish when they are back in the airlock.'
+        raiseAlarm(
+          'Not yet',
+          'The crew are still outside. Finish when they are back in the airlock.',
+          {
+            level: 'wait',
+            near: finishNote,
+          },
+        )
         return false
       }
       live.stop()

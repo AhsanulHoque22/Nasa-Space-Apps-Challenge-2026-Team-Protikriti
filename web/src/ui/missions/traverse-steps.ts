@@ -3,6 +3,7 @@
  * within 100 km to visit (IAU nomenclature), plan how the rover is powered (NASA's three ways,
  * Chappell et al. 2022), then drive the route on the map while two crew keep the base running.
  */
+import { raiseAlarm } from '../no-go'
 import { knob } from '../knob'
 import { zoomButtons } from '../zoom-buttons'
 import type { LonLat } from '../../core/base-layout'
@@ -483,8 +484,11 @@ export function traverseSteps(
       if (onlyBase && anyway) return true
       if (onlyBase) {
         anyway = true
-        note.textContent =
-          'NO-GO: with one reactor on the cart, the base cannot carry its loads and the run ends. Press again to go anyway, or choose a long stay.'
+        raiseAlarm(
+          'No-go',
+          'With one reactor on the cart, the base cannot carry its loads and the run ends. Press again to go anyway, or choose a long stay.',
+          { near: note },
+        )
       }
       return false
     },

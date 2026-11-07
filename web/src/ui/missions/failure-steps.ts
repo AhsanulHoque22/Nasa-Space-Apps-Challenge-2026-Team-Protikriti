@@ -3,6 +3,7 @@
  * test), what power the base still has, what the crew switch off until the replacement from the
  * next ship is running, then the outage played sol by sol through the stores ledger.
  */
+import { raiseAlarm } from '../no-go'
 import { type ImpactLoads, impactRows } from '../../core/impact-board'
 import { impactBoard } from '../impact-board'
 import { runStores, type StoresRun } from '../../core/base-stores'
@@ -410,8 +411,11 @@ export function failureSteps(
     onNext: () => {
       if (!run(choice)?.failure || anyway) return true
       anyway = true
-      note.textContent =
-        'NO-GO: the base browns out before the replacement runs, and the run ends. Press again to go anyway, or switch more off.'
+      raiseAlarm(
+        'No-go',
+        'The base browns out before the replacement runs, and the run ends. Press again to go anyway, or switch more off.',
+        { near: note },
+      )
       return false
     },
   }

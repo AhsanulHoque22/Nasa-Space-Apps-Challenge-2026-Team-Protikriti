@@ -6,6 +6,7 @@
  * 4. Hibernation anomaly triage
  * 5. Habitat ingress certification
  */
+import { raiseAlarm } from '../no-go'
 import type { Cargo2Plan } from '../../core/cargo-2'
 import { checkHabitatCertification, type WakeBaseState } from '../../core/wake-base'
 import { el } from '../dom'
@@ -212,7 +213,8 @@ export function wakeBaseSteps(
       onNext: () => {
         const cert = checkHabitatCertification(state, cargo2, units)
         if (!cert.readyForIngress) {
-          alert(
+          raiseAlarm(
+            'No-go',
             'Flight safety rule violation: all seven subsystem parameters must meet nominal thresholds before crew ingress.',
           )
           return false

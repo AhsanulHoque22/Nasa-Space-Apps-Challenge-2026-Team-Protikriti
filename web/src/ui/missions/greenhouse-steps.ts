@@ -3,6 +3,7 @@
  * crops and their growing area, watch them grow in a true-size 3D chamber with the power, food,
  * water and oxygen they mean, then place the greenhouse on the real terrain beside the base.
  */
+import { raiseAlarm } from '../no-go'
 import type { LonLat } from '../../core/base-layout'
 import {
   type Areas,
@@ -477,8 +478,11 @@ export function greenhouseSteps(
       if (budget().fits || buildAnyway) return true
       // A NO-GO greenhouse may still be built (the crew's call); it browns out the base.
       buildAnyway = true
-      buildNote.textContent =
-        'NO-GO: these lights need more power than the reactors have spare. Built like this, the base browns out and the run ends. Press again to build it anyway, or go back and plant less.'
+      raiseAlarm(
+        'No-go',
+        'These lights need more power than the reactors have spare. Built like this, the base browns out and the run ends. Press again to build it anyway, or go back and plant less.',
+        { near: buildNote },
+      )
       return false
     },
   }
@@ -557,10 +561,11 @@ export function greenhouseSteps(
     onHide: () => map.base.pick(null),
     onNext: () => {
       if (!check() || !at) {
-        // Say why nothing happened: the reason sits above the fold of a long step.
-        problemsEl.dataset.flash = 'true'
-        problemsEl.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        setTimeout(() => delete problemsEl.dataset.flash, 1600)
+        // Say why nothing happened, next to the list of reasons.
+        raiseAlarm('Not yet', 'Fix the items listed below, then press Finish.', {
+          level: 'wait',
+          near: problemsEl,
+        })
         return false
       }
       map.base.pick(null)

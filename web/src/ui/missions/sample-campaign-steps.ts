@@ -6,6 +6,7 @@
  * 4. Planetary Protection Category V containment
  * 5. Sample return commission & Expedition 2 finale
  */
+import { raiseAlarm } from '../no-go'
 import type { Cargo2Plan } from '../../core/cargo-2'
 import {
   computeSampleCampaignYield,
@@ -163,7 +164,10 @@ export function sampleCampaignSteps(
           !protectionFlags.purgeVerified ||
           !protectionFlags.mavLockVerified
         ) {
-          alert(`Cannot commission sample return campaign:\n• ${y.reasons.join('\n• ')}`)
+          raiseAlarm(
+            'No-go',
+            y.reasons.length ? y.reasons : ['Cannot commission sample return campaign.'],
+          )
           return false
         }
         onCommission()

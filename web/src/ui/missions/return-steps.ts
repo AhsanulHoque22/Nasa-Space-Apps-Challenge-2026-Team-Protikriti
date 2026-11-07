@@ -3,6 +3,7 @@
  * food), check the ascent vehicle is ready, fly home on a real Mars-to-Earth transfer in 3D, and
  * read the expedition debrief: radiation dose against NASA's limit, and what nearly failed.
  */
+import { raiseAlarm } from '../no-go'
 import type { StoresDay } from '../../core/base-stores'
 import { runStores, type StoresRun } from '../../core/base-stores'
 import {
@@ -203,8 +204,11 @@ export function returnSteps(
     onNext: () => {
       if (ok || anyway) return true
       anyway = true
-      note.textContent =
-        'NO-GO: the stores run out before the window, and the run ends. Press again to go on anyway.'
+      raiseAlarm(
+        'No-go',
+        'The stores run out before the window, and the run ends. Press again to go on anyway.',
+        { near: note },
+      )
       return false
     },
   }

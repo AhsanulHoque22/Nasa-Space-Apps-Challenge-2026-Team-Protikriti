@@ -3,6 +3,7 @@
  * what to dig (NASA's four M-WIP sources), run the water plant in a true-size 3D dig site, then
  * place the dig site on the real terrain within the excavator's reach of the plant.
  */
+import { raiseAlarm } from '../no-go'
 import type { LonLat } from '../../core/base-layout'
 import { WATER_RECOVERY } from '../../core/base-stores'
 import { greenhouseBudget, spareReactorKw, type Areas } from '../../core/greenhouse'
@@ -581,9 +582,10 @@ export function waterSteps(
     onNext: () => {
       const w = record()
       if (!check() || !w) {
-        problemsEl.dataset.flash = 'true'
-        problemsEl.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        setTimeout(() => delete problemsEl.dataset.flash, 1600)
+        raiseAlarm('Not yet', 'Fix the items listed below, then press Finish.', {
+          level: 'wait',
+          near: problemsEl,
+        })
         return false
       }
       map.base.pick(null)

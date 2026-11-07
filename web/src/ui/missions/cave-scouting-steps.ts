@@ -6,6 +6,7 @@
  * 4. Subsurface radiation dosimetry & thermal buffering
  * 5. Sanctuary certification for Expedition 3
  */
+import { raiseAlarm } from '../no-go'
 import type { Cargo2Plan } from '../../core/cargo-2'
 import {
   computeCaveScoutYield,
@@ -153,7 +154,7 @@ export function caveScoutingSteps(
       onNext: () => {
         const y = yieldRes()
         if (!y.isCertifiedShelter) {
-          alert(`Cannot certify sanctuary:\n• ${y.reasons.join('\n• ')}`)
+          raiseAlarm('No-go', y.reasons.length ? y.reasons : ['Cannot certify sanctuary.'])
           return false
         }
         onCertify()

@@ -6,6 +6,7 @@
  * 4. Transpiration & water closed-loop recovery
  * 5. Commissioning & Tier 1 food autonomy milestone
  */
+import { raiseAlarm } from '../no-go'
 import type { Cargo2Plan } from '../../core/cargo-2'
 import { CROPS, type Crop } from '../../core/greenhouse'
 import {
@@ -218,7 +219,7 @@ export function greenhouse2Steps(
       onNext: () => {
         const y = yieldRes()
         if (!y.readyToCommission) {
-          alert(`Cannot commission greenhouse:\n• ${y.reasons.join('\n• ')}`)
+          raiseAlarm('No-go', y.reasons.length ? y.reasons : ['Cannot commission greenhouse.'])
           return false
         }
         onCommission()

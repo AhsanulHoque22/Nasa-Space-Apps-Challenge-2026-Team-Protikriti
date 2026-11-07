@@ -6,6 +6,7 @@
  * 4. Multi-Mission Radiation Dosimetry & Cave Sanctuary Tally
  * 5. Expedition 2 Grand Finale & Handover to Expedition 3
  */
+import { raiseAlarm } from '../no-go'
 import {
   computeReturn2Debrief,
   type BaseHibernationConfig,
@@ -193,7 +194,7 @@ export function return2Steps(
       onNext: () => {
         const d = debrief()
         if (!d.success) {
-          alert(`Cannot conclude Expedition 2:\n• ${d.reasons.join('\n• ')}`)
+          raiseAlarm('No-go', d.reasons.length ? d.reasons : ['Cannot conclude Expedition 2.'])
           return false
         }
         onDone(d)

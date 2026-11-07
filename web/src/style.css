@@ -7686,6 +7686,14 @@ button.journey-label:focus-visible {
   background: color-mix(in srgb, var(--verdict, var(--good)) 16%, var(--surface));
 }
 
+.go-verdict[data-level='wait'] {
+  --verdict: var(--caution);
+}
+
+ul.go-verdict-body {
+  padding-left: 1.1em;
+}
+
 .go-verdict[data-level='short'] {
   --verdict: #ff5a3c;
 }
@@ -7737,7 +7745,7 @@ button.journey-label:focus-visible {
   outline-offset: 2px;
 }
 
-.go-verdict:not([data-level='go']) {
+.go-verdict:not([data-level='go'], [data-level='wait']) {
   animation: verdict-alarm 1.2s ease-in-out 3;
 }
 

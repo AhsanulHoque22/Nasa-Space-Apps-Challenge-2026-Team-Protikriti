@@ -6,6 +6,7 @@
  * 4. Catalytic perchlorate decontamination
  * 5. Commissioning the steady water pipeline
  */
+import { raiseAlarm } from '../no-go'
 import type { Cargo2Plan } from '../../core/cargo-2'
 import { computeIceMiningYield, type IceMiningConfig } from '../../core/ice-mining'
 import { el } from '../dom'
@@ -161,7 +162,7 @@ export function iceMiningSteps(
       onNext: () => {
         const y = yieldRes()
         if (!y.readyToCommission) {
-          alert(`Cannot commission pipeline:\n• ${y.reasons.join('\n• ')}`)
+          raiseAlarm('No-go', y.reasons.length ? y.reasons : ['Cannot commission pipeline.'])
           return false
         }
         onCommission()

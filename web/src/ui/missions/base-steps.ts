@@ -2,6 +2,7 @@
  * Mission 1.4 as guided steps: place the base's parts on the real terrain under three rules
  * (slope, reactor distance, array shadow), then start the survival clock at sol 1.
  */
+import { raiseAlarm } from '../no-go'
 import {
   ARRAY_SHADE_LIMIT,
   BASE_SLOPE_LIMIT_DEG,
@@ -222,8 +223,14 @@ export function baseSteps(
     onNext: () => {
       const r = checkLayout(grid, layout, needs, sun)
       if (r.go) return true
-      status.textContent =
-        'Not yet: every part must be placed and pass its rules (the red ones say why).'
+      raiseAlarm(
+        'Not yet',
+        'Every part must be placed and pass its rules (the red ones say why).',
+        {
+          level: 'wait',
+          near: status,
+        },
+      )
       return false
     },
   }

@@ -18,6 +18,7 @@ import { ARRAY_DUST_FACTOR, ARRAY_EFFICIENCY } from '../../core/surface-solar'
 import { oxygenChart, powerChart } from '../charts'
 import { powerOptions } from '../../core/flight-director'
 import { el } from '../dom'
+import { alarmBanner } from '../no-go'
 import { flightDirectorHelp } from '../flight-director'
 import { previewSun } from './preview-sun'
 
@@ -169,46 +170,32 @@ export function laterView(plan: CargoPlan): HTMLElement {
   )
 }
 
-/** Opens the Ask ATLAS panel (its trigger toggles, so only press it while closed). */
-function openAskAtlas(): void {
-  const trigger = document.querySelector<HTMLButtonElement>('.ask-atlas-trigger')
-  if (trigger?.getAttribute('aria-expanded') === 'false') trigger.click()
-}
-
 /**
  * The launch verdict in one loud banner: NO-GO while something must be fixed, a red alarm when
  * later missions would land short, GO when everything is ready. Words carry it, not colour alone.
  */
 export function goVerdict(plan: CargoPlan, blocking: readonly string[]): HTMLElement {
   const short = laterNeeds(plan).filter((r) => !r.ok)
-  const [level, head, body] = blocking.length
-    ? [
-        'nogo',
-        'No-go',
-        `${blocking.length} ${blocking.length === 1 ? 'problem stops' : 'problems stop'} the launch. Fix ${blocking.length === 1 ? 'it' : 'them'} below.`,
-      ]
-    : short.length
-      ? [
-          'short',
-          'Launching short',
-          `${short.map((r) => r.mission.split(' ')[0]).join(', ')} will not have what ${short.length === 1 ? 'it needs' : 'they need'}.`,
-        ]
-      : ['go', 'Go', 'Every later mission has what it needs.']
-  const banner = el(
+  if (blocking.length)
+    return alarmBanner(
+      'No-go',
+      `${blocking.length} ${blocking.length === 1 ? 'problem stops' : 'problems stop'} the launch. Fix ${blocking.length === 1 ? 'it' : 'them'} below.`,
+    )
+  if (short.length)
+    return alarmBanner(
+      'Launching short',
+      `${short.map((r) => r.mission.split(' ')[0]).join(', ')} will not have what ${short.length === 1 ? 'it needs' : 'they need'}.`,
+      'short',
+    )
+  const go = el(
     'div',
-    { className: 'go-verdict', role: level === 'go' ? 'status' : 'alert' },
-    el('p', { className: 'go-verdict-head', textContent: head }),
-    el('p', { className: 'go-verdict-body', textContent: body }),
+    { className: 'go-verdict', role: 'status' },
+    el('p', { className: 'go-verdict-head', textContent: 'Go' }),
+    el('p', {
+      className: 'go-verdict-body',
+      textContent: 'Every later mission has what it needs.',
+    }),
   )
-  banner.dataset.level = level
-  if (level !== 'go') {
-    const ask = el('button', {
-      type: 'button',
-      className: 'go-verdict-ask',
-      textContent: 'Stuck? Ask ATLAS what to change',
-    })
-    ask.addEventListener('click', openAskAtlas)
-    banner.append(ask)
-  }
-  return banner
+  go.dataset.level = 'go'
+  return go
 }
