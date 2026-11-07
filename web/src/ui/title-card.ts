@@ -3,8 +3,10 @@ import type { Mission } from '../core/missions'
 import { actOf, episodeField } from '../core/story-acts'
 import { crewSilhouette } from './crew-silhouette'
 import { el } from './dom'
+import { backdropCss } from '../core/mission-backdrops'
 
 export function showTitleCard(mission: Mission, onBegin: () => void): void {
+  const art = backdropCss(mission.id, document.baseURI)
   const act = actOf(mission.id)
   const begin = el('button', { type: 'button', className: 'card-go', textContent: 'Begin' })
   const words = mission.title.split(' ')
@@ -37,6 +39,7 @@ export function showTitleCard(mission: Mission, onBegin: () => void): void {
     card.remove()
     onBegin()
   })
+  if (art) card.style.setProperty('--mission-backdrop', art)
   document.body.append(card)
   begin.focus()
 }

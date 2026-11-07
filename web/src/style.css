@@ -4267,7 +4267,20 @@ body[data-story='mission'] .line-legend {
   display: none;
 }
 
+/* The mission's own art, faint behind the dock (set per mission in mission-play.ts). */
+.mission-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--mission-backdrop, none) center / cover no-repeat;
+  opacity: 0.22;
+  pointer-events: none;
+}
+
 .mission-dock {
+  isolation: isolate;
   position: fixed;
   left: 50%;
   bottom: var(--space-4);

@@ -3,6 +3,7 @@
  * mission's site, runs the dock, saves the result and hands back to the mission list.
  */
 import { loadJourneys } from './journey-client'
+import { backdropCss } from '../core/mission-backdrops'
 import { type CargoPlan, landerMassKg } from '../core/cargo'
 import {
   type Progress,
@@ -143,6 +144,10 @@ type Play = PlayContext & { reports: MissionReport[]; fail: (d: Direct) => void 
 export function playMission(id: string, ctx: PlayContext): void {
   const mission = MISSIONS.find((m) => m.id === id)
   if (!mission) throw new Error(`No mission with id "${id}"`)
+  // The mission's art behind its dock (style.css .mission-dock::before), faint under the text.
+  const art = backdropCss(id, document.baseURI)
+  if (art) document.body.style.setProperty('--mission-backdrop', art)
+  else document.body.style.removeProperty('--mission-backdrop')
   const title = `${mission.id} ${mission.title}`
   let direct: Direct | null = null
   const play: Play = {

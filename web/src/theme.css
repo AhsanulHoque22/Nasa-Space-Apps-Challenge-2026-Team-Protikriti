@@ -117,6 +117,7 @@
 }
 
 .title-card {
+  isolation: isolate;
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -130,6 +131,18 @@
   background: var(--field);
   color: var(--on-field);
   font-family: var(--font);
+}
+
+/* The episode's art, printed into the colour field (multiply keeps the title readable). */
+.title-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--mission-backdrop, none) center / cover no-repeat;
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .card-bar {

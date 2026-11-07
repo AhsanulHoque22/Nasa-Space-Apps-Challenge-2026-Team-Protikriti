@@ -17,7 +17,7 @@ import { loadJourneys } from './journey-client'
 import { renderMissionList } from './mission-list'
 import { loadReports } from '../core/mission-reports'
 import { showReport } from './mission-over'
-import { MISSION_BACKDROPS } from '../core/mission-backdrops'
+import { backdropCss } from '../core/mission-backdrops'
 
 const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>'
 const GLOBE =
@@ -132,9 +132,9 @@ export function showStory(ctx: StoryContext): void {
     const next = MISSIONS.find(
       (m) => missionStatus(MISSIONS, progress.completed, m.id).kind === 'open',
     )
-    const art = next ? MISSION_BACKDROPS[next.id] : undefined
+    const art = next ? backdropCss(next.id, document.baseURI) : null
     const gate = ctx.body.closest<HTMLElement>('.gate')
-    if (art) gate?.style.setProperty('--mission-backdrop', `url("${art}")`)
+    if (art) gate?.style.setProperty('--mission-backdrop', art)
     else gate?.style.removeProperty('--mission-backdrop')
     ctx.body.replaceChildren(
       el('nav', { className: 'trail-nav', ariaLabel: 'Leave the story' }, back, map),
