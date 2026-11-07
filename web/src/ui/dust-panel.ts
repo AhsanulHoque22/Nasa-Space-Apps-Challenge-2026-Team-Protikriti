@@ -2,6 +2,8 @@
 import { type DustDoc, dustNow, dustiestYear, parseDust } from '../core/dust'
 import { ORANGE_RAMP, rampColor } from '../core/ramp'
 
+import { headline, seeMore, stats } from './insight'
+
 /** Colour scale top: most seasons sit below it; storm values beyond it show at full colour. */
 const SCALE_MAX = 0.6
 
@@ -19,10 +21,11 @@ export function renderDustPanel(
   lsNow: () => number,
 ): void {
   const panel = document.createElement('details')
-  panel.className = 'panel dust'
+  panel.className = 'panel dust dust-season'
   const summary = document.createElement('summary')
   summary.textContent = 'Dust season (13 Mars years)'
   const body = document.createElement('div')
+  body.className = 'insight'
   panel.append(summary, body)
   parent.append(panel)
 
@@ -55,13 +58,23 @@ export function renderDustPanel(
 
     const ls = lsNow()
     const now = dustNow(site, ls, doc.binDeg)
-    const nowText = document.createElement('p')
-    nowText.className = 'dust-now'
-    nowText.textContent =
-      `Now (Ls ${Math.round(ls)}°): typical dust ${now.median.toFixed(2)} ` +
-      `(about ${(now.median * doc.visibleFactor).toFixed(1)} in visible light), ${LEVEL_TEXT[now.level]}. ` +
-      `The dustiest of ${now.years} years reached ${now.max.toFixed(2)} at this season.`
-    body.append(nowText)
+    const peak = dustiestYear(site, doc.binDeg)
+    body.append(
+      headline(`Now (Ls ${Math.round(ls)}°) the dust here is ${LEVEL_TEXT[now.level]}.`),
+      stats([
+        {
+          value: now.median.toFixed(2),
+          label: 'typical dust now',
+          title: `About ${(now.median * doc.visibleFactor).toFixed(1)} in visible light`,
+        },
+        { value: now.max.toFixed(2), label: `dustiest of ${now.years} years, now`, tone: 'warn' },
+        {
+          value: peak.value.toFixed(2),
+          label: `record: MY ${peak.year}, Ls ${peak.lsStart}°`,
+          tone: 'bad',
+        },
+      ]),
+    )
 
     const table = document.createElement('table')
     table.className = 'dust-calendar'
@@ -119,7 +132,6 @@ export function renderDustPanel(
     legend.append(lo, bar, hi)
     body.append(legend)
 
-    const peak = dustiestYear(site, doc.binDeg)
     const notes = document.createElement('p')
     notes.className = 'dust-note'
     notes.textContent =
@@ -134,7 +146,7 @@ export function renderDustPanel(
     const source = document.createElement('p')
     source.className = 'dust-note'
     source.textContent = `${doc.quantity}, for the 3° cell around the site. Data: ${doc.source}. Licence: ${doc.license}.`
-    body.append(notes, source)
+    body.append(seeMore(notes, source))
   }
 
   panel.addEventListener('toggle', () => {

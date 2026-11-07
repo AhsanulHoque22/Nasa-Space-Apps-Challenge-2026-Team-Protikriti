@@ -41,7 +41,7 @@ import {
 import { loadWeather, type WeatherStation } from './map/weather-client'
 import { addStationPins, stationPositions } from './map/weather-stations'
 import { parseBenchmark } from './core/benchmark'
-import { activityDetails } from './ui/activity-card'
+import { activityDetails, sampleExtra, sampleStats } from './ui/activity-card'
 import { asPopup, closePopup, openPopup } from './ui/popup'
 import { renderBenchmarkCard } from './ui/benchmark-card'
 import { renderClock } from './ui/clock'
@@ -86,7 +86,9 @@ import { renderGeologyPanel } from './ui/geology-panel'
 import { renderComparePanel } from './ui/compare-panel'
 import type { SiteId } from './core/surface-conditions'
 import { renderDosePanel } from './ui/dose-panel'
-import { renderDeltaCard } from './ui/delta-card'
+import { renderDeltaCard, sampleTitle } from './ui/delta-card'
+import { SITE_BRIEFS } from './core/site-features'
+import { distanceKm } from './core/site-report'
 import { localMeanSolarTimeHours, nextLocalHourMs, solarLongitudeDeg } from './core/mars-time'
 import { firmerThanPct, thermalAt } from './core/thermal'
 import { type SiteThermal, addThermalLayer, loadThermalGrids } from './map/thermal-layer'
@@ -569,6 +571,9 @@ async function main() {
   })
   installCentreMarker(globe, readout?.querySelector<HTMLButtonElement>('.centre-toggle') ?? null)
   Object.assign(clockRef, renderClock(ui, viewer))
+  // One box for where and when: the position readout sits inside the Mars clock.
+  const clockBox = ui.querySelector('.clock')
+  if (readout && clockBox) clockBox.append(readout)
   // The workbench strips read the view centre: after each camera move and as the clock runs.
   let swimGrid: SwimGrid | null = null
   const refreshHero = () => {
@@ -664,10 +669,42 @@ async function main() {
       const { index } = positionAtSol(streetView.stops.m20, activity.sol)
       showStreetView('m20', index)
     }
+    const all = samples.activities
+    const pos = (a: Activity) =>
+      a.lon === undefined || a.lat === undefined ? null : { lon: a.lon, lat: a.lat }
+    const here = pos(activity)
+    const landing = SITE_BRIEFS.find((b) => b.siteId === 'jezero')?.touchdown
+    const ground = here ? elevationAt(sites, mola, here.lon, here.lat) : null
+    const nearby = here
+      ? all
+          .flatMap((o) => {
+            const p = o === activity ? null : pos(o)
+            const m = p ? distanceKm(here.lon, here.lat, p.lon, p.lat) * 1000 : Infinity
+            return m <= NEARBY_SAMPLE_M ? [{ sample: o, m }] : []
+          })
+          .sort((a, b) => a.m - b.m)
+          .slice(0, NEARBY_SAMPLE_MAX)
+      : []
+    const more = {
+      index: all.indexOf(activity) + 1,
+      total: all.length,
+      elevation:
+        ground && Number.isFinite(ground.m) ? { m: ground.m, source: ground.source } : null,
+      fromLandingKm:
+        here && landing ? distanceKm(landing.lon, landing.lat, here.lon, here.lat) : null,
+      nearby,
+      openSample: (o: Activity) => openActivity(o, back),
+      sourceUrl: SAMPLES_SOURCE_URL,
+    }
     openPopup({
-      title: `Sample ${activity.number} · ${activity.name}`,
+      title: `Sample ${activity.number} · ${sampleTitle(activity)}`,
       subtitle: 'Perseverance rock sample · official NASA record',
-      body: [map, activityDetails(activity, panorama)],
+      body: [
+        sampleStats(more),
+        map,
+        activityDetails(activity, panorama),
+        sampleExtra(activity, more),
+      ],
       back,
     })
     if (activity.lon === undefined || activity.lat === undefined) return map.remove()
@@ -698,14 +735,10 @@ async function main() {
   renderComparePanel(side)
   asPopup(side.lastElementChild as HTMLDetailsElement, 'compare')
   renderGeologyPanel(side, (lon, lat) => flyToPlace(viewer, lon, lat, 2))
-  renderDeltaCard(
-    side,
-    (n) => sampleByNumber(n)?.name.replace(/\s*_\(.*\)_/, '') ?? null,
-    (n) => {
-      const a = sampleByNumber(n)
-      if (a) openActivity(a, { label: "Jezero's delta", onClick: openDelta })
-    },
-  )
+  renderDeltaCard(side, sampleByNumber, (n) => {
+    const a = sampleByNumber(n)
+    if (a) openActivity(a, { label: "Jezero's delta", onClick: openDelta })
+  })
   const openDelta = asPopup(side.lastElementChild as HTMLDetailsElement, 'delta')
   renderDock(side)
   renderInstrumentDrawer()
@@ -802,6 +835,10 @@ function weatherOpener(launcher: () => HTMLElement): (station: WeatherStation) =
 
 // A sample's map view: about a kilometre of ground around it, enough to see where it was taken.
 const SAMPLE_VIEW_HEIGHT_M = 1200
+const NEARBY_SAMPLE_M = 1000 // "samples nearby": within a short walk of the rover's own drive
+const NEARBY_SAMPLE_MAX = 6
+const SAMPLES_SOURCE_URL =
+  'https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/'
 
 // Exploring on foot at night shows a black screen, so arrival is moved to the morning.
 const EXPLORE_DAY_START_H = 6.5 // local mean solar time: the sun is up between these hours

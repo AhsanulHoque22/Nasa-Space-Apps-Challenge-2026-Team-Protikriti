@@ -2,6 +2,7 @@
 import { MARS_G } from '../core/explore'
 import { GEOLOGY_UNITS, SIM_3464 } from '../core/geology-units'
 import { EARTH_G, factorOfSafety } from '../core/gravity'
+import { bars, headline, seeMore, stats } from './insight'
 
 // Illustrative soil for the worked example (team choice, not a measurement of any Mars site).
 const EXAMPLE = { cohesionPa: 500, frictionDeg: 30, densityKgM3: 1500, depthM: 1 }
@@ -24,11 +25,13 @@ export function renderGeologyPanel(
   list.className = 'geology-units'
   for (const u of GEOLOGY_UNITS) {
     const li = document.createElement('li')
+    li.className = 'geo-unit'
     const head = document.createElement('p')
-    head.className = 'dust-now'
-    const code = document.createElement('strong')
+    head.className = 'geo-head'
+    const code = document.createElement('span')
+    code.className = 'geo-code'
     code.textContent = u.code
-    head.append(code, ` · ${u.name}`)
+    head.append(code, u.name)
     const map = document.createElement('p')
     map.className = 'dust-note'
     map.textContent = `USGS map: ${u.mapText}`
@@ -40,7 +43,7 @@ export function renderGeologyPanel(
     go.className = 'quiet'
     go.textContent = `Show ${u.code} on the map`
     go.addEventListener('click', () => showOnMap(u.lon, u.lat))
-    li.append(head, map, reading, go)
+    li.append(head, go, seeMore(reading, map))
     list.append(li)
   }
   const cite = document.createElement('p')
@@ -73,6 +76,7 @@ export function renderGeologyPanel(
   control.append(label, input, out)
   const table = document.createElement('table')
   table.className = 'zone-table'
+  const fsBars = document.createElement('div')
   const explain = document.createElement('p')
   explain.className = 'dust-note'
   explain.textContent =
@@ -96,11 +100,25 @@ export function renderGeologyPanel(
       head.append(th)
     }
     const body = table.createTBody()
-    for (const [name, g] of [
-      ['Mars', MARS_G],
-      ['Earth', EARTH_G],
-    ] as const) {
-      const fs = factorOfSafety({ ...EXAMPLE, slopeDeg, g })
+    const both = (
+      [
+        ['Mars', MARS_G],
+        ['Earth', EARTH_G],
+      ] as const
+    ).map(([name, g]) => ({ name, fs: factorOfSafety({ ...EXAMPLE, slopeDeg, g }) }))
+    const top = Math.max(2, ...both.map((b) => b.fs.total))
+    fsBars.replaceChildren(
+      bars(
+        both.map((b) => ({
+          label: b.name,
+          share: b.fs.total / top,
+          text: `FS ${b.fs.total.toFixed(2)} · ${b.fs.total >= 1 ? 'holds' : 'slides'}`,
+          tone: b.fs.total >= 1 ? 'good' : 'bad',
+        })),
+        `Factor of safety at ${slopeDeg} degrees; 1 or more holds`,
+      ),
+    )
+    for (const { name, fs } of both) {
       const row = body.insertRow()
       const th = document.createElement('th')
       th.scope = 'row'
@@ -117,5 +135,24 @@ export function renderGeologyPanel(
   }
   input.addEventListener('input', draw)
   draw()
-  panel.append(lensTitle, list, cite, gTitle, formula, control, table, explain)
+  const view = document.createElement('div')
+  view.className = 'insight'
+  view.append(
+    headline(
+      `Gravity on Mars is ${(EARTH_G / MARS_G).toFixed(1)}× weaker, so slightly sticky soil stands steeper there.`,
+    ),
+    stats([
+      { value: `${MARS_G} m/s²`, label: 'Mars gravity' },
+      { value: `${(EARTH_G / MARS_G).toFixed(2)}×`, label: 'more held by cohesion' },
+      { value: `${GEOLOGY_UNITS.length}`, label: 'Jezero rock units' },
+    ]),
+    gTitle,
+    control,
+    fsBars,
+    seeMore(formula, table, explain),
+    lensTitle,
+    list,
+    cite,
+  )
+  panel.append(view)
 }

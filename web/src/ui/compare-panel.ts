@@ -1,5 +1,6 @@
 /** Jezero's delta beside the Jamuna at the same scale: a swipe, and the Jamuna through the years. */
 import { type CompareDoc, parseCompare } from '../core/compare'
+import { headline, seeMore } from './insight'
 
 const DATA = 'data/compare/'
 const SCALE_KM = 5
@@ -117,7 +118,15 @@ export function renderComparePanel(parent: HTMLElement): void {
     stage.addEventListener('pointercancel', () => (dragging = false))
     setSwipe(50)
     setYear()
-    body.append(caveat, stage, controls, source)
+    body.className = 'insight'
+    body.append(
+      headline(
+        `Same scale, ${doc.boxKm} km across: a living braided river beside an ancient delta. Shapes only, not a Mars analog.`,
+      ),
+      stage,
+      controls,
+      seeMore(caveat, source),
+    )
   }
 
   let loaded = false

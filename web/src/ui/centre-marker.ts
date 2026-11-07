@@ -41,7 +41,8 @@ export function viewSnapshot(viewer: Viewer): string | null {
   }
 }
 
-const SETTLE_TIMEOUT_MS = 6000 // a slow tile server must not leave the window waiting forever
+const SETTLE_TIMEOUT_MS = 6000
+const STEADY_MS = 600 // a slow tile server must not leave the window waiting forever
 
 /**
  * A square picture of the map once the camera has stopped and the ground tiles are in: the map
@@ -51,9 +52,13 @@ export function settledSnapshot(viewer: Viewer): Promise<string | null> {
   return new Promise((resolve) => {
     let started = 0
     let watching = false
+    let loadedSince = 0
     const tick = () => {
-      started ||= performance.now()
-      if (performance.now() - started < SETTLE_TIMEOUT_MS && !viewer.scene.globe.tilesLoaded) {
+      const now = performance.now()
+      started ||= now
+      // Finer imagery keeps arriving after the first "loaded": wait until it stays loaded.
+      loadedSince = viewer.scene.globe.tilesLoaded ? loadedSince || now : 0
+      if (now - started < SETTLE_TIMEOUT_MS && (!loadedSince || now - loadedSince < STEADY_MS)) {
         requestAnimationFrame(tick)
         return
       }

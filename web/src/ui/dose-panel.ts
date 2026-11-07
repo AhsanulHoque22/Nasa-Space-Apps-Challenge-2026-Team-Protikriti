@@ -1,5 +1,6 @@
 /** "Radiation, compared": published dose rates side by side, and days to NASA's career limit. */
 import { CAREER_LIMIT_MSV, DOSE_RATES, daysToLimit } from '../core/dose'
+import { bars, headline, seeMore, stats } from './insight'
 
 const rate = (msv: number | null, pm: number | null) =>
   msv === null
@@ -54,6 +55,55 @@ export function renderDosePanel(parent: HTMLElement): void {
   const scroll = document.createElement('div')
   scroll.className = 'zone-scroll'
   scroll.append(table)
-  panel.append(summary, scroll, note)
+  const known = DOSE_RATES.filter((r) => r.msvPerDay !== null)
+  const top = Math.max(...known.map((r) => r.msvPerDay ?? 0))
+  const surface = DOSE_RATES.find((r) => r.where.startsWith('Mars surface'))
+  const transit = DOSE_RATES.find((r) => r.where.startsWith('In transit'))
+  const surfaceDays = daysToLimit(surface?.msvPerDay ?? null)
+  const transitDays = daysToLimit(transit?.msvPerDay ?? null)
+  const view = document.createElement('div')
+  view.className = 'insight'
+  view.append(
+    headline(
+      surfaceDays
+        ? `On the surface, a crew uses up a whole career's radiation in about ${(surfaceDays / 365.25).toFixed(1)} years.`
+        : 'Radiation on Mars, against a whole career limit.',
+    ),
+    stats([
+      {
+        value: surfaceDays ? Math.round(surfaceDays).toLocaleString('en-US') : '—',
+        label: 'days on the surface',
+        tone: 'warn',
+      },
+      {
+        value: transitDays ? Math.round(transitDays).toLocaleString('en-US') : '—',
+        label: 'days in transit',
+        tone: 'bad',
+      },
+      { value: `${CAREER_LIMIT_MSV} mSv`, label: 'NASA career limit' },
+    ]),
+    bars(
+      DOSE_RATES.map((r) => ({
+        label: r.where.split(',')[0] ?? r.where,
+        detail: r.where.split(',').slice(1).join(',').trim() || undefined,
+        share: r.msvPerDay === null ? 0 : r.msvPerDay / top,
+        text:
+          r.msvPerDay === null
+            ? 'not measured'
+            : `${r.msvPerDay < 0.1 ? r.msvPerDay.toFixed(3) : r.msvPerDay.toFixed(2)} mSv/day`,
+        tone:
+          r.msvPerDay === null
+            ? undefined
+            : r.msvPerDay / top > 0.5
+              ? 'bad'
+              : r.msvPerDay / top > 0.1
+                ? 'warn'
+                : 'good',
+      })),
+      'Dose per day, by place',
+    ),
+    seeMore(scroll, note),
+  )
+  panel.append(summary, view)
   parent.append(panel)
 }

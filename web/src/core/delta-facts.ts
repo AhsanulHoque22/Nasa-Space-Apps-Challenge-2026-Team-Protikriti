@@ -5,12 +5,15 @@ export type DeltaFact = {
   text: string
   /** Official Mars 2020 sample numbers this fact is about, if any. */
   samples: number[]
+  /** The finding in a few words, taken from `text`, shown big. */
+  key: { value: string; label: string }
   source: { label: string; url: string }
 }
 
 export const DELTA_FACTS: readonly DeltaFact[] = [
   {
     title: 'A delta built into a lake',
+    key: { value: '25 m', label: 'rock layers at Kodiak' },
     text:
       'From the crater floor, the rover imaged Kodiak, a butte west of its landing site with rock ' +
       'layers up to 25 m high. The layers slope like the front of an underwater delta, so Jezero once ' +
@@ -23,6 +26,7 @@ export const DELTA_FACTS: readonly DeltaFact[] = [
   },
   {
     title: 'Up the delta front, from sol 441',
+    key: { value: '9 tubes', label: '7 rock cores, 2 regolith' },
     text:
       'On 17 May 2022 (sol 441) Perseverance entered the Hawksbill Gap channel and began climbing the ' +
       'delta front, where it filled nine sample tubes: seven rock cores and two of loose regolith.',
@@ -34,6 +38,7 @@ export const DELTA_FACTS: readonly DeltaFact[] = [
   },
   {
     title: 'Wildcat Ridge: a salty lake bed',
+    key: { value: 'Organics', label: 'found with sulfates by SHERLOC' },
     text:
       'Wildcat Ridge, a rock about 1 m wide, likely formed as mud and fine sand settled in an ' +
       'evaporating saltwater lake. The SHERLOC instrument found organic molecules there alongside ' +
@@ -47,6 +52,7 @@ export const DELTA_FACTS: readonly DeltaFact[] = [
   },
   {
     title: 'Hogwallow Flats: the finest grains',
+    key: { value: 'Finest grain', label: 'best rock to keep traces of life' },
     text:
       'Higher on the delta, light striped rocks the team nicknamed "the Bacon Strip" are very fine ' +
       'grained, the kind of rock with the best chance of keeping traces of ancient life, if there ever was any.',
