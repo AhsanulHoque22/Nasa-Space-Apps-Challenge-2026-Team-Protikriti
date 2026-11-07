@@ -101,7 +101,7 @@ export function openStreetView(
   try {
     renderer = createPanoRenderer(canvas)
   } catch (error) {
-    status.textContent = `Street View needs WebGL2, which this browser could not start (${String(error)}).`
+    status.textContent = `The 360 panorama needs WebGL2, which this browser could not start (${String(error)}).`
     root.querySelector('[data-act="close"]')?.addEventListener('click', () => {
       root.remove()
       returnFocus?.focus()

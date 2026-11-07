@@ -220,7 +220,7 @@ function pages(v: DashView): Record<TabId, string> {
         <h3>How this is checked</h3><ul>${list(v.checks)}</ul>
       </div>`,
     tools: `<div class="ws-tools">
-        <button type="button" data-act="sv">Street View</button>
+        <button type="button" data-act="sv">360 panorama</button>
         <button type="button" data-act="rc" title="Tilt the map toward where the walk goes next, at your current zoom">⊙ Recenter</button>
         <button type="button" data-act="zi" aria-label="Zoom in">Zoom in +</button>
         <button type="button" data-act="zo" aria-label="Zoom out">Zoom out −</button>
@@ -243,7 +243,7 @@ export function mainScreenHtml(v: DashView, tab: TabId): string {
         <span class="wp-pos">${esc(nav.name)} <span class="wp-of">of ${nav.count}</span></span>
         <button type="button" data-act="next"${nav.canNext ? '' : ' disabled'} aria-label="Next stop">›</button>
       </div>
-      <div class="ws-verdict wp-verdict ${v.verdict === 'GO' ? 'wp-go' : 'wp-nogo'}" title="EVA verdict"><b>${esc(v.verdict)}</b><span>${esc(v.verdictLine)}</span></div>
+      <div class="ws-verdict wp-verdict ${v.verdict === 'GO' ? 'wp-go' : 'wp-nogo'}" title="EVA verdict: ${esc(v.verdictLine)}"><b>${esc(v.verdict)}</b><span>${esc(v.verdictLine)}</span></div>
       <p class="ws-clock">${v.clock.map((c) => `<span>${esc(c)}</span>`).join('')}</p>
       <button type="button" data-act="close" class="wp-close">End walk</button>
     </header>
