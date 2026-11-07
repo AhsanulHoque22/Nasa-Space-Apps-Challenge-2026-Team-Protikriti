@@ -5,11 +5,17 @@ import {
   Cartesian2,
   Cartesian3,
   Cartographic,
+  Color,
   Math as CesiumMath,
   LabelCollection,
+  Material,
   Model,
+  PolylineCollection,
   type Viewer,
 } from 'cesium'
+import type { Hardware } from '../core/hardware'
+import { fitScale, liftToGround } from '../core/hardware'
+import { stormAhead } from '../core/seasonal-storms'
 import { earthMarsDelayMin } from '../core/mars-time'
 import { GCR_SURFACE_MSV_HR } from '../core/surface-conditions'
 import type { ColonyLayer } from './colony-modules'
@@ -21,6 +27,7 @@ import { localMeanSolarTimeHours, solarLongitudeDeg, sunPosition } from '../core
 import {
   type Conditions,
   type SiteId,
+  panelDustFactor,
   surfaceConditions,
   underStorm,
   withHaze,
@@ -34,7 +41,7 @@ import {
   stepVehicle,
   vehicleMatrix,
   distM as vehicleDistM,
-  WHEEL_RADIUS_M,
+  DEFAULT_TOP_SPEED_MS,
 } from './explore-vehicle'
 import { MARS_SPHERE } from './mars'
 import { sceneTimeMs } from './sun'
@@ -57,6 +64,34 @@ const M_PER_DEG = (MARS_SPHERE.maximumRadius * Math.PI) / 180
 const DESCENT_FROM_M = 400
 const DESCENT_S = 3.5
 const DESCENT_PITCH_DEG = -40
+// Chase camera behind and above the rover: about two rover lengths back.
+const CHASE_BACK_M = 14
+const CHASE_UP_M = 5
+// The guide line floats this far above the ground so the terrain never swallows it.
+const GUIDE_LIFT_M = 0.4
+const GUIDE_STEP_M = 4
+// How far ahead the tablet looks for a simulated storm (sols).
+const STORM_LOOKAHEAD_SOLS = 5
+
+/**
+ * The pressurised rover. Model: "mars_rover (1).glb" from the team's 3D models folder, compressed
+ * with glTF-Transform (meshopt, WebP). Extent and floor measured from its bounding box in glTF
+ * units. Real size: the NASA Multi-Mission Space Exploration Vehicle stands about 3 m tall
+ * (NASA JSC fact sheet FS-2011-07-016-JSC), so the model is scaled to 3 m high.
+ */
+const PRESSURISED_ROVER: Hardware = {
+  id: 'pressurised-rover',
+  label: 'Pressurised rover',
+  url: 'models/pressurised-rover.glb',
+  extent: { x: 6.55, y: 5.0, z: 11.062 },
+  floorY: -2.75,
+  real: { dimension: 'height', metres: 3 },
+  realSource: 'About 3 m tall like NASA’s Space Exploration Vehicle (NASA JSC FS-2011-07-016-JSC)',
+  credit: 'Pressurised Mars rover model from the team’s 3D models folder (Sketchfab)',
+}
+// glTF faces +Z; Cesium turns that into the model's +X, which heading 0 points east.
+const ROVER_HEADING_OFFSET_DEG = -90
+const ROVER_LIFT_M = liftToGround(PRESSURISED_ROVER)
 
 export type ExploreFrame = {
   body: Body
@@ -77,6 +112,26 @@ export type ExploreFrame = {
   resourceScore: ColonyScore | null
   // Communications
   commsDelayMin: number
+  /** The rover: where it is relative to the walker and how it is driving; null if none. */
+  vehicle: {
+    inside: boolean
+    distanceM: number
+    speedMs: number
+    pitchDeg: number
+    rollDeg: number
+    blocked: string | null
+    topSpeedMs: number
+  } | null
+  /** The nearest dust devil in sight, if any. */
+  devil: { distanceM: number; bearingDeg: number; driftToDeg: number; heightM: number } | null
+  /** Share of light the solar arrays still pass after the dust settled since arrival (1 = clean). */
+  panelClean: number
+  /** Sunlight reaching the ground straight through the dust column, 0-1 (Beer-Lambert). */
+  directSun: number
+  /** A simulated storm due within a few sols, for the warning. */
+  stormAhead: { name: string; inSols: number } | null
+  /** Sols of dust settling since arrival on the map clock. */
+  solsHere: number
 }
 
 export type ExploreSession = {
@@ -87,6 +142,14 @@ export type ExploreSession = {
   setHaze(tau: number | null): void
   /** Enter build mode for the given module type, or pass null to exit build mode. */
   setBuildMode(type: ModuleType | null): void
+  /** Game-speed boost for walking (1 = a suited astronaut's real pace). */
+  setWalkBoost(factor: number): void
+  /** The rover's top speed, m/s. */
+  setTopSpeed(ms: number): void
+  /** Draw a line on the ground to follow, or null to clear it. `checked` = safe planned route. */
+  setGuide(points: Array<{ lon: number; lat: number }> | null, checked: boolean): void
+  /** Fine visual grain on the near ground (see mars-atmosphere.ts). */
+  setGrain(on: boolean): void
 }
 
 export type ExploreColonyOpts = {
@@ -176,9 +239,9 @@ export function startExplore(
   if (isFinite(roverAlt)) {
     vehicle = createVehicle(roverSpawn.lon, roverSpawn.lat, roverAlt)
     void Model.fromGltfAsync({
-      url: 'models/mars_rover.glb',
-      modelMatrix: vehicleMatrix(vehicle),
-      scale: 0.2,
+      url: PRESSURISED_ROVER.url,
+      modelMatrix: vehicleMatrix(vehicle, ROVER_LIFT_M, ROVER_HEADING_OFFSET_DEG),
+      scale: fitScale(PRESSURISED_ROVER.extent, PRESSURISED_ROVER.real),
     })
       .then((m) => {
         scene.primitives.add(m)
@@ -232,7 +295,13 @@ export function startExplore(
 
   let stormReplay = false
   let hazeTau: number | null = null
-  const measure = (): { conditions: Conditions; sunElDeg: number; lmstHours: number } => {
+  let walkBoost = 1
+  let topSpeedMs = DEFAULT_TOP_SPEED_MS
+  let grain = true
+  // Dust settles on the arrays from arrival onwards, as the map clock runs (it can be sped up).
+  const arrivedAtMs = sceneTimeMs()
+  const SOL_MS = 88_775_244
+  const measure = () => {
     const utcMs = sceneTimeMs()
     const lmstHours = localMeanSolarTimeHours(utcMs, body.lon)
     const actual = surfaceConditions({
@@ -242,14 +311,23 @@ export function startExplore(
       site: siteId,
       sols,
     })
+    const sunElDeg = sunPosition(utcMs, body.lon, body.lat).elevationDeg
+    const shown = stormReplay
+      ? underStorm(actual, lmstHours)
+      : hazeTau === null
+        ? actual
+        : withHaze(actual, hazeTau)
+    const sinEl = Math.sin((sunElDeg * Math.PI) / 180)
     return {
       lmstHours,
-      sunElDeg: sunPosition(utcMs, body.lon, body.lat).elevationDeg,
-      conditions: stormReplay
-        ? underStorm(actual, lmstHours)
-        : hazeTau === null
-          ? actual
-          : withHaze(actual, hazeTau),
+      sunElDeg,
+      // The replay and the haze slider change the sky only; panels follow the actual dust.
+      panelClean: panelDustFactor(arrivedAtMs, utcMs, siteId),
+      // Beer-Lambert along the slant path (airmass ~ 1/sin elevation).
+      directSun: sinEl > 0 ? Math.exp(-shown.tau / Math.max(sinEl, 0.03)) : 0,
+      stormAhead: stormReplay ? null : stormAhead(utcMs, STORM_LOOKAHEAD_SOLS),
+      solsHere: Math.max(0, (utcMs - arrivedAtMs) / SOL_MS),
+      conditions: shown,
     }
   }
   let now = measure()
@@ -266,7 +344,68 @@ export function startExplore(
       windToDeg: WIND_TO_DEG,
       origin: from,
       devils,
+      grain,
     }
+  }
+
+  /** The nearest live dust devil, as the walker sees it. */
+  const nearestDevil = (): ExploreFrame['devil'] => {
+    const here = {
+      east: (body.lon - from.lon) * M_PER_DEG * Math.cos((from.lat * Math.PI) / 180),
+      north: (body.lat - from.lat) * M_PER_DEG,
+    }
+    let best: ExploreFrame['devil'] = null
+    for (const d of devils) {
+      const de = d.east - here.east
+      const dn = d.north - here.north
+      const distanceM = Math.hypot(de, dn)
+      if (best && best.distanceM <= distanceM) continue
+      best = {
+        distanceM,
+        bearingDeg: ((Math.atan2(de, dn) * 180) / Math.PI + 360) % 360,
+        driftToDeg: WIND_TO_DEG,
+        heightM: d.heightM,
+      }
+    }
+    return best
+  }
+
+  // The guide line to a chosen place, hugging the ground.
+  const guideLines = scene.primitives.add(new PolylineCollection()) as PolylineCollection
+  const setGuide = (points: Array<{ lon: number; lat: number }> | null, checked: boolean) => {
+    guideLines.removeAll()
+    if (!points || points.length < 2) return
+    const dense: Cartesian3[] = []
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i] as { lon: number; lat: number }
+      const b = points[i + 1] as { lon: number; lat: number }
+      const lenM = vehicleDistM(a.lon, a.lat, b.lon, b.lat, M_PER_DEG)
+      const n = Math.max(1, Math.ceil(lenM / GUIDE_STEP_M))
+      for (let k = 0; k < n; k++) {
+        const lon = a.lon + ((b.lon - a.lon) * k) / n
+        const lat = a.lat + ((b.lat - a.lat) * k) / n
+        const h = groundAt(lon, lat)
+        if (Number.isFinite(h))
+          dense.push(Cartesian3.fromDegrees(lon, lat, h + GUIDE_LIFT_M, MARS_SPHERE))
+      }
+    }
+    const last = points.at(-1) as { lon: number; lat: number }
+    const hEnd = groundAt(last.lon, last.lat)
+    if (Number.isFinite(hEnd))
+      dense.push(Cartesian3.fromDegrees(last.lon, last.lat, hEnd + GUIDE_LIFT_M, MARS_SPHERE))
+    guideLines.add({
+      positions: dense,
+      width: checked ? 10 : 6,
+      material: checked
+        ? Material.fromType(Material.PolylineGlowType, {
+            color: Color.fromCssColorString('#3fe0c5'),
+            glowPower: 0.25,
+          })
+        : Material.fromType(Material.PolylineDashType, {
+            color: Color.fromCssColorString('#ffb347'),
+            dashLength: 24,
+          }),
+    })
   }
 
   /** Dust devils come and go at the site's rate, drift with the wind, last minutes. */
@@ -310,13 +449,13 @@ export function startExplore(
       // Third-person camera: 12 m behind, 4 m above the rover
       const hRad = CesiumMath.toRadians(vehicle.headingDeg)
       const cosLat = Math.cos((vehicle.lat * Math.PI) / 180)
-      const camLon = vehicle.lon - (12 * Math.sin(hRad)) / (M_PER_DEG * cosLat)
-      const camLat = vehicle.lat - (12 * Math.cos(hRad)) / M_PER_DEG
+      const camLon = vehicle.lon - (CHASE_BACK_M * Math.sin(hRad)) / (M_PER_DEG * cosLat)
+      const camLat = vehicle.lat - (CHASE_BACK_M * Math.cos(hRad)) / M_PER_DEG
       viewer.camera.setView({
         destination: Cartesian3.fromDegrees(
           camLon,
           camLat,
-          vehicle.altM + WHEEL_RADIUS_M + 4,
+          Math.max(vehicle.altM, groundAt(camLon, camLat) || vehicle.altM) + CHASE_UP_M,
           MARS_SPHERE,
         ),
         orientation: { heading: hRad, pitch: CesiumMath.toRadians(-12), roll: 0 },
@@ -364,11 +503,21 @@ export function startExplore(
     last = t
 
     if (inVehicle && vehicle) {
-      vehicle = stepVehicle(vehicle, keys, dtS, groundAt, M_PER_DEG)
-      if (vehicleModel) vehicleModel.modelMatrix = vehicleMatrix(vehicle)
+      vehicle = stepVehicle(vehicle, keys, dtS, groundAt, M_PER_DEG, topSpeedMs)
+      if (vehicleModel)
+        vehicleModel.modelMatrix = vehicleMatrix(vehicle, ROVER_LIFT_M, ROVER_HEADING_OFFSET_DEG)
+      // The walker rides along, so the tablet's position and guide follow the rover.
+      body = {
+        ...body,
+        lon: vehicle.lon,
+        lat: vehicle.lat,
+        feetM: vehicle.altM,
+        speedMs: Math.abs(vehicle.speedMs),
+        headingDeg: vehicle.headingDeg,
+      }
     } else {
       const before = body
-      body = stepBody(body, input(dtS), dtS, site.grid)
+      body = stepBody(body, input(dtS), dtS, site.grid, walkBoost)
       jumpQueued = false
       if (!before.grounded && body.grounded) landingDipM = Math.min(0.25, -before.vzMs * 0.05)
     }
@@ -380,8 +529,9 @@ export function startExplore(
     atmosphere.setState(atmosphereState())
     place(dtS)
 
-    // Suit consumables
-    suit = suitAfter(suit, body.grounded ? body.speedMs : 0, dtS)
+    // Suit consumables: the boost is game speed, so the suit is charged for the real pace; inside
+    // the pressurised rover the suit is not in use.
+    if (!inVehicle) suit = suitAfter(suit, body.grounded ? body.speedMs / walkBoost : 0, dtS)
 
     // Radiation dose accumulation
     const activeDoseRate = spe ? SPE_DOSE_MSV_HR : GCR_SURFACE_MSV_HR
@@ -425,7 +575,20 @@ export function startExplore(
       marsquake,
       resourceScore,
       commsDelayMin: earthMarsDelayMin(Date.now()),
+      vehicle: vehicle
+        ? {
+            inside: inVehicle,
+            distanceM: vehicleDistM(body.lon, body.lat, vehicle.lon, vehicle.lat, M_PER_DEG),
+            speedMs: vehicle.speedMs,
+            pitchDeg: vehicle.pitchDeg,
+            rollDeg: vehicle.rollDeg,
+            blocked: vehicle.blocked,
+            topSpeedMs,
+          }
+        : null,
+      devil: nearestDevil(),
     })
+    colony?.colonyLayer?.setSolarDust(1 - now.panelClean)
     // Update ghost aim position every 3rd frame (terrain pick is ~1 ms; throttle anyway)
     if (buildMode && colony?.colonyLayer && frame % 3 === 0) {
       const canvas = scene.canvas
@@ -457,7 +620,14 @@ export function startExplore(
     stability: null,
     wind: null,
   }
+  // Typing in the tablet (place search) must not walk the astronaut; Esc just leaves the field.
+  const typing = (e: KeyboardEvent) =>
+    e.target instanceof HTMLInputElement && e.target.type !== 'range' && e.target.type !== 'button'
   const onKeyDown = (e: KeyboardEvent) => {
+    if (typing(e)) {
+      if (e.key === 'Escape') (e.target as HTMLElement).blur()
+      return
+    }
     const k = e.key.toLowerCase()
     if (k === 'escape') return session.stop()
     if (k === 'f') {
@@ -530,6 +700,16 @@ export function startExplore(
       hazeTau = tau
       now = measure()
     },
+    setWalkBoost(factor) {
+      walkBoost = factor
+    },
+    setTopSpeed(ms) {
+      topSpeedMs = ms
+    },
+    setGuide,
+    setGrain(on) {
+      grain = on
+    },
     setBuildMode(type) {
       buildMode = type !== null
       buildType = type ?? 'habitat'
@@ -546,6 +726,7 @@ export function startExplore(
       atmosphere.destroy()
       removeSiteModels()
       if (vehicleModel) scene.primitives.remove(vehicleModel)
+      scene.primitives.remove(guideLines)
       if (colony?.colonyLayer) colony.colonyLayer.show = false
       markers.forEach((m, i) => (m.show = markersShown[i] ?? m.show))
       controller.enableInputs = true

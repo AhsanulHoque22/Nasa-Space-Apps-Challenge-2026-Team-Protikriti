@@ -30,6 +30,9 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 ## Terrain label accuracy (held-out stops)
 Measured by training on 4 of every 5 stops and scoring the fifth (`classify-panoramas --evaluate`). Share of each class's true pixels the forest finds, Perseverance: soil 51%, bedrock 50%, sand 48%, big rock 33% (rocks are 0.4% of labelled pixels). That is modest: about half of each class. Curiosity figures are in `data/pano/msl_labels.log` after a run. Rocks shown in the app also come from a contrast rule (`docs/data-sources.md`) that has not been scored against people's labels.
 
+## Explore on foot overhaul (2026-11-07)
+Claude Code (Claude Opus) wrote the field tablet (`web/src/ui/explore-hud.ts`, `field-tab.css`), the seasonal dust storm model (`core/seasonal-storms.ts`), the panel dust model, the rover's speed and slope limits, the NAV route-to-a-place tool and the fine ground grain, with tests, from the team's requests. It chose the pressurised rover model from the team's folder and compressed it with glTF-Transform. Every number is sourced or marked as a team assumption in `docs/data-sources.md`. The ground grain is drawn, not measured, and the tablet says so.
+
 ## What the AI did not do
 - Choose the challenge, the Jezero and Gale sites, the 15° slope limit, or the product direction. The team decided these.
 - Supply any data. Every dataset comes from NASA, USGS or the IAU and is cited in `docs/data-sources.md`.

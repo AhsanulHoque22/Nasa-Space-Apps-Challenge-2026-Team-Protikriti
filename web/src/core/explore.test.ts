@@ -49,6 +49,17 @@ describe('explore step', () => {
 })
 
 describe('stepBody (Mars physics)', () => {
+  it('walks faster with the tablet speed boost, in proportion', () => {
+    const go = { forward: 1, strafe: 0, turnDeg: 0, run: false, jump: false }
+    let slow = restingBody(start, 0)
+    let fast = restingBody(start, 0)
+    for (let t = 0; t < 10; t += 0.05) {
+      slow = stepBody(slow, go, 0.05, flat)
+      fast = stepBody(fast, go, 0.05, flat, 4)
+    }
+    expect(fast.speedMs / slow.speedMs).toBeCloseTo(4, 1)
+  })
+
   const still: Body = restingBody(start, 0)
   const idle = { forward: 0, strafe: 0, turnDeg: 0, run: false, jump: false }
   const simulate = (b: Body, input: typeof idle, seconds: number, dt = 0.01) => {

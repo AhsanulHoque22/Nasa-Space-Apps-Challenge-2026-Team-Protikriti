@@ -8,6 +8,7 @@ import {
   BoxGeometry,
   Cartesian3,
   Color,
+  ColorBlendMode,
   ColorGeometryInstanceAttribute,
   GeometryInstance,
   HeadingPitchRoll,
@@ -72,7 +73,12 @@ export type ColonyLayer = {
   setGhost(type: ModuleType, lon: number, lat: number, altM: number): void
   /** Hide the ghost (exit build mode or no terrain hit). */
   hideGhost(): void
+  /** Coat the solar arrays with settled dust: 0 clean, 1 fully covered. */
+  setSolarDust(fraction: number): void
 }
+
+// Settled Mars dust: a dull tan-brown (the colour of the bright dust units, e.g. MER Pancam).
+const DUST_COLOR = Color.fromCssColorString('#a9784d')
 
 export function createColonyLayer(viewer: Viewer): ColonyLayer {
   const scene = viewer.scene
@@ -116,6 +122,7 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
         scene.primitives.remove(prim)
         primMap.delete(id)
         m.show = layerShow
+        if (type === 'solar') paintDust(m)
         scene.primitives.add(m)
         modelMap.set(id, m)
       })
@@ -166,12 +173,26 @@ export function createColonyLayer(viewer: Viewer): ColonyLayer {
     }
   }
 
+  let solarDust = 0
+  function paintDust(m: Model): void {
+    m.color = DUST_COLOR
+    m.colorBlendMode = ColorBlendMode.MIX
+    m.colorBlendAmount = Math.min(1, solarDust)
+  }
+
   return {
     place,
     remove,
     clear,
     setGhost,
     hideGhost,
+    setSolarDust(fraction: number) {
+      solarDust = fraction
+      for (const mod of modules) {
+        const m = modelMap.get(mod.id)
+        if (mod.type === 'solar' && m) paintDust(m)
+      }
+    },
     get modules(): readonly PlacedModule[] {
       return modules
     },

@@ -7,6 +7,8 @@ export type RouteClient = {
   range(start: Cell, hazards?: Cell[]): Promise<RangeReply>
   sight(observer: Cell): Promise<SightReply>
   solar(utcMs: number): Promise<SolarReply>
+  /** Stop the worker (a walk ends; its grid would otherwise stay in memory). */
+  close(): void
 }
 
 export function createRouteClient(grid: Grid): RouteClient {
@@ -50,5 +52,9 @@ export function createRouteClient(grid: Grid): RouteClient {
     range: (start, hazards) => call<RangeReply>({ type: 'range', start, hazards }),
     sight: (observer) => call<SightReply>({ type: 'sight', observer }),
     solar: (utcMs) => call<SolarReply>({ type: 'solar', utcMs }),
+    close: () => {
+      failAll('Route planner closed.')
+      worker.terminate()
+    },
   }
 }

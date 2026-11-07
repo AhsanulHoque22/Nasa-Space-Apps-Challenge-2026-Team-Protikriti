@@ -86,7 +86,8 @@ export function restingBody(w: Walker, groundM: number): Body {
 }
 
 /** One physics step on Mars: traction-limited walking and running, jumps and falls. */
-export function stepBody(b: Body, input: MoveInput, dtS: number, g: Grid): Body {
+/** `speedMult` is the walker's game-speed boost from the tablet (1 = real suited pace). */
+export function stepBody(b: Body, input: MoveInput, dtS: number, g: Grid, speedMult = 1): Body {
   const headingDeg = mod(b.headingDeg + input.turnDeg, 360)
   const magnitude = Math.min(1, Math.hypot(input.forward, input.strafe))
   let { bearingDeg, speedMs } = b
@@ -94,7 +95,7 @@ export function stepBody(b: Body, input: MoveInput, dtS: number, g: Grid): Body 
     // Only feet on the ground can change the horizontal motion.
     const wanted =
       headingDeg + (magnitude ? (Math.atan2(input.strafe, input.forward) * 180) / Math.PI : 0)
-    const target = magnitude * paceMs(b, wanted, g, input.run ? RUN_FACTOR : 1, dtS)
+    const target = magnitude * paceMs(b, wanted, g, (input.run ? RUN_FACTOR : 1) * speedMult, dtS)
     if (magnitude) bearingDeg = wanted
     const dv = target - speedMs
     speedMs += Math.sign(dv) * Math.min(Math.abs(dv), TRACTION_MS2 * dtS)

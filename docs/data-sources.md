@@ -636,3 +636,22 @@ Shared with Expedition 1, from the same code: crop yields, LED efficiency and li
 | Specimen masses and science scores, 15.0 kg return limit | Mission 2.6 | **Team assumption**; the limit is to be cited |
 | Standby power, handover rules | Mission 2.7 | **Team assumption** |
 
+
+## Explore on foot: field tablet, storms, rover (2026-11-07)
+
+| Value | Used for | Status |
+|---|---|---|
+| Regional storm windows Ls 210-240 ("A") and 305-330 ("C") every Mars year | `core/seasonal-storms.ts` | Kass et al. 2016, GRL 43, 6111 |
+| Global storm in about one Mars year in three; onsets Ls 185 (2001), 262 (2007), 186 (2018) | `core/seasonal-storms.ts` | Zurek & Martin 1993, JGR 98, 3247 |
+| Global storm curve and 8.5 peak | `core/seasonal-storms.ts` (reuses `core/dust-storm.ts`) | Guzewich et al. 2019, GRL |
+| Regional storm peak extra opacity 0.8-1.6 (A), 0.5-1.2 (C); rise 3 sols, decay 12 sols; storms only after 12 Nov 2024 (Mars Year 38) | `core/seasonal-storms.ts` | **Team assumption**, bracketed by the ~2 opacity of the Jan 2022 Jezero storm. Labelled "simulated, not a forecast" |
+| Mars Year 34 began 5 May 2017 | `core/seasonal-storms.ts` | Piqueux et al. 2015, Icarus 251, Mars calendar |
+| Dust on solar panels: 0.28 % light lost per sol at opacity ~0.5 | `panelDustFactor` in `core/surface-conditions.ts` | Landis & Jenkins 2000, JGR 105(E1), 1855 (Pathfinder). Scaling with opacity and no wind cleaning: **team assumption** |
+| Dust devils stop between opacity 1 and 2 | `core/surface-conditions.ts` | **Team assumption** (storms suppress the convection that makes devils) |
+| Rover climb limit 25°; real top speed 3.6 m/s | `map/explore-vehicle.ts` | Apollo LRV Operations Handbook, LS006-002-2H (1971). Tablet top speed above 3.6 m/s is labelled game speed |
+| Pressurised rover drawn 3 m tall | `map/explore-camera.ts` | NASA Space Exploration Vehicle fact sheet FS-2011-07-016-JSC. Model: `mars_rover (1).glb` from the team's 3D models folder (Sketchfab), compressed with glTF-Transform. [Team: state its author and licence.] |
+| Ingenuity 1.2 m rotor span | `map/site-models.ts` | NASA JPL Ingenuity press kit (2021) |
+| Tablet thresholds (O₂ 20 %/10 %, dust 1/3, wind 15/25 m/s, devil 1 km/300 m, solar 50 %/20 %, panel dust 80 %/50 %) | `ui/explore-hud.ts` | **Team operating choices**, not mission rules |
+| Fine ground grain within ~25 m of the walker | `map/mars-atmosphere.ts` | **Visual stand-in, not data**: HiRISE's sharpest pixel is 25 cm (Trek serves 0.33 m at level 17). Switchable on the tablet's Terrain page |
+| Air pressure in the workbench strip: 636 Pa at the datum, scale height 11.1 km | `core/hero-readings.ts` | NASA Mars Fact Sheet (nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html). Hydrostatic estimate, no seasonal cycle |
+| Mission 1.1 trail background (Curiosity-style rover above "MARS" written in wheel tracks) | `public/media/backdrops/mission-1-1.webp` | Supplied by the team; upscaled 2× (Lanczos) and lightly sharpened with ffmpeg. [Team: state the image's original source, author and licence.] |

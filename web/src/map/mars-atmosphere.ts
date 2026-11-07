@@ -2,8 +2,10 @@
  * Ground-level Mars atmosphere for walk mode, as one post-process pass over Cesium's colour and
  * depth: a dusty butterscotch sky with a blue sunset aureole and stars at night, sunlight dimmed
  * by the dust column and shading the real terrain slope, natural surface colour for greyscale
- * HiRISE, distance haze, blowing dust and dust devils. No invented ground detail: every rock and
- * ripple on screen is in the HiRISE image.
+ * HiRISE, distance haze, blowing dust and dust devils. Every rock and ripple beyond ~20 m is in the
+ * HiRISE image. Closer in, HiRISE's 25 cm pixel (Trek serves 0.33 m at its deepest level 17) spans
+ * hundreds of screen pixels, so an optional fine grain is drawn there: a visual stand-in for sand
+ * and pebbles, never data, and the tablet says so.
  *
  * Colours: Pathfinder, MER and Mastcam-Z sky imaging (e.g. Lemmon et al. 2004, Science 306):
  * a pinkish-butterscotch daytime sky, blue forward-scattered light around a low Sun.
@@ -35,6 +37,8 @@ export type AtmosphereState = {
   /** Walk start: the origin of the world-locked ground detail and dust devil positions. */
   origin: { lon: number; lat: number }
   devils: DustDevil[] // positions relative to the origin; baseM above the datum
+  /** Draw the fine visual grain on the ground right around the walker. */
+  grain: boolean
 }
 
 const MAX_DEVILS = 3
@@ -55,6 +59,8 @@ uniform vec4 u_devil1;
 uniform vec4 u_devil2;
 uniform vec3 u_devilH;
 uniform float u_logDepth;
+uniform vec3 u_cam;
+uniform float u_grain;
 in vec2 v_textureCoordinates;
 
 float hash(vec2 p) {
@@ -113,6 +119,8 @@ vec3 sky(vec3 d, vec3 sun) {
 }
 
 // Dust devil: a vertical funnel at (x, y) whose base is z metres from the eye; density on a ray.
+// A narrow column with a crisp wall that flares upward, a helical banding that climbs as it spins,
+// and a low skirt of lifted dust at its foot.
 float devil(vec3 d, float sceneDist, vec4 dv, float h) {
   if (dv.w <= 0.0) return 0.0;
   float dxy = dot(d.xy, d.xy);
@@ -120,11 +128,17 @@ float devil(vec3 d, float sceneDist, vec4 dv, float h) {
   float t = dot(dv.xy, d.xy) / dxy;
   if (t <= 0.0 || t > sceneDist) return 0.0;
   float z = t * d.z - dv.z;
-  if (z < 0.0 || z > h) return 0.0;
-  float k = z / h;
-  float r = length(t * d.xy - dv.xy) / (dv.w * (1.0 + 2.5 * k));
-  float swirl = 0.6 + 0.8 * noise(vec2(atan(d.y, d.x) * 60.0 + u_time * 3.0, z * 0.05 - u_time));
-  return exp(-r * r * 2.0) * (1.0 - k) * swirl * 0.8;
+  if (z < -2.0 || z > h) return 0.0;
+  float k = clamp(z / h, 0.0, 1.0);
+  vec2 off = t * d.xy - dv.xy;
+  float r = length(off) / (dv.w * (1.0 + 1.8 * k * k));
+  float wall = exp(-pow(r, 4.0) * 1.5);
+  float ang = atan(off.y, off.x);
+  float bands = 0.55 + 0.45 * sin(ang * 3.0 + z * 0.09 - u_time * 5.0);
+  float grit = 0.7 + 0.6 * noise(vec2(ang * 8.0 + u_time * 3.0, z * 0.12 - u_time * 1.5));
+  float skirtR = length(off) / (dv.w * 3.5);
+  float skirt = exp(-skirtR * skirtR * 2.0) * (1.0 - smoothstep(0.0, 18.0, z)) * 0.6;
+  return (wall * bands * grit * pow(1.0 - k, 0.7) + skirt) * 0.95;
 }
 
 void main() {
@@ -153,6 +167,21 @@ void main() {
     float lum = dot(col, vec3(0.299, 0.587, 0.114));
     float sat = max(col.r, max(col.g, col.b)) - min(col.r, min(col.g, col.b));
     col = mix(col, lum * vec3(1.32, 0.97, 0.70), 1.0 - smoothstep(0.02, 0.08, sat));
+    // Fine grain under the feet (visual stand-in, see the header): world-locked sand and pebbles.
+    if (u_grain > 0.5 && dist < 30.0) {
+      vec2 g = u_cam.xy + d.xy * dist;
+      float sand = noise(g * 4.0) * 0.25 + noise(g * 16.0) * 0.45 + noise(g * 48.0) * 0.30;
+      // Scattered pebbles: few per square metre, jittered, of varied size, so no grid shows.
+      vec2 cell = floor(g * 3.0);
+      vec2 f = fract(g * 3.0);
+      float h0 = hash(cell);
+      vec2 centre = vec2(hash(cell + 1.7), hash(cell + 3.1)) * 0.6 + 0.2;
+      float size = 0.05 + 0.18 * hash(cell + 5.3);
+      float pebble = step(0.93, h0) * (1.0 - smoothstep(size * 0.6, size, length((f - centre) * vec2(1.0, 1.3))));
+      float near = 1.0 - smoothstep(5.0, 28.0, dist);
+      col *= mix(1.0, 0.80 + 0.40 * sand, 0.55 * near);
+      col *= mix(1.0, 0.72, pebble * near * (1.0 - smoothstep(4.0, 12.0, dist)));
+    }
     float direct = exp(-u_tau / max(sinEl, 0.03)) * step(0.0, sinEl); // sunlight through dust
     // Sunlight through the dust, shading the real slope (normal from the depth buffer).
     vec3 upEC = czm_viewRotation * u_upWC;
@@ -231,6 +260,8 @@ export function createMarsAtmosphere(viewer: Viewer, initial: AtmosphereState) {
       u_northWC: () => north,
       u_upWC: () => up,
       u_logDepth: () => (viewer.scene.logarithmicDepthBuffer ? 1 : 0),
+      u_cam: () => cameraLocal(),
+      u_grain: () => (state.grain ? 1 : 0),
       u_tau: () => state.tau,
       u_visM: () => state.visibilityKm * 1000,
       u_time: () => (performance.now() - t0) / 1000,
