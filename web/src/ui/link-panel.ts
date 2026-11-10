@@ -1,6 +1,7 @@
 /** Simulated Crew-to-Ground link: what a time delay does to a shared plan. */
 import type { PlanBundle } from '../core/bundle'
 import { formatDuration } from '../core/format'
+import { CONJUNCTION_BLACKOUT_DEG, earthMarsLink } from '../core/light-time'
 import {
   type Delay,
   type Link,
@@ -14,7 +15,8 @@ import {
 /** Simulated minutes per real second, so a 15 minute delay can be felt in a demo. */
 const SIM_MIN_PER_S = 1
 const TICK_MS = 500
-const OPTIONS: Array<{ label: string; delay: Delay }> = [
+const OPTIONS: Array<{ label: string; delay: Delay | 'real' }> = [
+  { label: 'Real delay', delay: 'real' },
   { label: 'No delay', delay: 0 },
   { label: '5 min', delay: 5 },
   { label: '15 min', delay: 15 },
@@ -31,10 +33,24 @@ type Sent = { id: number; label: string; createdMin: number }
 
 const at = (min: number | null) => (min === null ? '—' : `T+${formatDuration(min)}`)
 
+/** The real one-way delay on the map clock's date; null (link down) near solar conjunction. */
+function realDelay(utcMs: number): { delay: Delay; label: string } {
+  const l = earthMarsLink(utcMs)
+  const date = new Date(utcMs).toISOString().slice(0, 10)
+  return l.sunAngleDeg < CONJUNCTION_BLACKOUT_DEG
+    ? { delay: null, label: `Real on ${date}: blackout, Mars is behind the Sun` }
+    : {
+        delay: Math.round(l.delayMin * 10) / 10,
+        label: `Real on ${date}: ${l.delayMin.toFixed(1)} min`,
+      }
+}
+
 export function renderLinkPanel(
   parent: HTMLElement,
   currentPlan: () => string | null,
   currentBundle: () => PlanBundle | null,
+  /** The map clock (scene time), for the real Earth–Mars delay. */
+  nowUtcMs: () => number,
 ): void {
   const panel = document.createElement('details')
   panel.className = 'panel link'
@@ -46,7 +62,8 @@ export function renderLinkPanel(
   intro.className = 'link-note'
   intro.textContent =
     'Mars is 3 to 22 light-minutes from Earth, so Ground sees your plan late and you hear back later still. ' +
-    `The delays here are illustrative and the clock runs ${SIM_MIN_PER_S} simulated minute per second.`
+    "Real delay is the light time on the map clock's date, from the JPL planet positions; the others are for trying out. " +
+    `The clock runs ${SIM_MIN_PER_S} simulated minute per second.`
 
   const group = document.createElement('fieldset')
   group.className = 'link-delays'
@@ -75,23 +92,35 @@ export function renderLinkPanel(
 
   const started = performance.now()
   const nowMin = () => ((performance.now() - started) / 1000) * SIM_MIN_PER_S
-  let link: Link = newLink(5)
+  let link: Link = newLink(realDelay(nowUtcMs()).delay)
   const sent: Sent[] = []
+  let realText: Text | null = null
+  let realInput: HTMLInputElement | null = null
+  /** Re-reads the real delay (the map clock may have moved) and applies it if chosen. */
+  const refreshReal = () => {
+    const real = realDelay(nowUtcMs())
+    if (realText) realText.data = ` ${real.label}`
+    if (realInput?.checked) link = setDelay(link, nowMin(), real.delay)
+  }
 
   for (const [i, { label, delay }] of OPTIONS.entries()) {
     const wrap = document.createElement('label')
     const input = document.createElement('input')
     input.type = 'radio'
     input.name = 'link-delay'
-    input.checked = delay === 5
+    input.checked = delay === 'real'
+    const text = document.createTextNode(` ${label}`)
+    if (delay === 'real') [realText, realInput] = [text, input]
     input.addEventListener('change', () => {
-      link = setDelay(link, nowMin(), delay)
+      if (delay === 'real') refreshReal()
+      else link = setDelay(link, nowMin(), delay)
       draw()
     })
-    wrap.append(input, document.createTextNode(` ${label}`))
+    wrap.append(input, text)
     wrap.dataset.i = String(i)
     group.append(wrap)
   }
+  refreshReal()
 
   send.addEventListener('click', () => {
     const label = currentPlan()
@@ -148,6 +177,7 @@ export function renderLinkPanel(
   panel.addEventListener('toggle', () => {
     window.clearInterval(timer)
     if (!panel.open) return
+    refreshReal()
     draw()
     timer = window.setInterval(draw, TICK_MS)
   })

@@ -16,7 +16,7 @@ import {
 import type { Hardware } from '../core/hardware'
 import { fitScale, liftToGround } from '../core/hardware'
 import { stormAhead } from '../core/seasonal-storms'
-import { earthMarsDelayMin } from '../core/mars-time'
+import { earthMarsLink } from '../core/light-time'
 import { GCR_SURFACE_MSV_HR } from '../core/surface-conditions'
 import type { ColonyLayer } from './colony-modules'
 import type { ModuleType } from '../core/colony-budget'
@@ -574,7 +574,7 @@ export function startExplore(
       spe,
       marsquake,
       resourceScore,
-      commsDelayMin: earthMarsDelayMin(Date.now()),
+      commsDelayMin: earthMarsLink(Date.now()).delayMin,
       vehicle: vehicle
         ? {
             inside: inVehicle,

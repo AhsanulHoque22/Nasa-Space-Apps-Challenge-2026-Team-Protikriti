@@ -398,7 +398,7 @@ async function main() {
     .then((r) => r.json())
     .then((doc) => renderBenchmarkCard(side, parseBenchmark(doc)))
     .catch((error: unknown) => console.warn('Benchmark card not shown:', error))
-  renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle)
+  renderLinkPanel(side, routePanel.currentPlan, routePanel.currentBundle, sceneTimeMs)
   renderDosePanel(side)
   renderDustPanel(side, sites, () => solarLongitudeDeg(sceneTimeMs()))
   asPopup(side.lastElementChild as HTMLDetailsElement, 'dust')
