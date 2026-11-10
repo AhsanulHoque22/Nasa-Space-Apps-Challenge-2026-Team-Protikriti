@@ -31,6 +31,7 @@ Mars has no GPS. All positions use the IAU/IAG **Mars 2000** frame: planetocentr
 | Mars Sol Date, Coordinated Mars Time, LMST/LTST, Ls, sun position | NASA GISS **Mars24** algorithm (Allison & McEwen 2000), https://www.giss.nasa.gov/tools/mars24/help/algorithm.html. Verified against both published worked examples. |
 | Mission sols | Landing epochs: MSL 2012-08-06 05:17:57 UTC at 137.4417°E; Mars 2020 2021-02-18 20:55 UTC at 77.4509°E. Verified against NASA raw-image records (Curiosity sol 5028 and Perseverance sol 1993 on 2026-09-28). |
 | Leap seconds | IERS table (TAI−UTC = 37 s since 2017-01-01). |
+| Earth–Mars distance and signal delay | JPL "Approximate Positions of the Planets" (E. M. Standish), Table 1 Keplerian elements for the Earth–Moon barycentre and Mars, valid 1800–2050, https://ssd.jpl.nasa.gov/planets/approx_pos.html; solved by Kepler's equation in `web/src/core/light-time.ts`. One-way delay = distance / c (AU 149,597,870,700 m, IAU 2012 B2; c 299,792,458 m/s). Checked: 2003-08-27 0.373 AU (3.1 min), 2025-01-12 0.642 AU (5.3 min), 2021-10-08 conjunction 2.63 AU (21.9 min). The Crew and Ground link panel uses it for the map clock's date and shows the link down when Mars is within 2° of the Sun (NASA's solar-conjunction command pause). Replaces an earlier cosine fit that put every opposition at 55 million km. |
 
 ## Weather
 
