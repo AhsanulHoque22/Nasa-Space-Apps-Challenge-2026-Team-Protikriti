@@ -59,3 +59,8 @@ export function isInteractiveClick(viewer: Viewer, position: Cartesian2): boolea
 export function isExploring(): boolean {
   return document.body.classList.contains('exploring') || document.body.dataset.story === 'mission'
 }
+
+/** Every registered clickable, so their positions can follow the ground (reseat.ts). */
+export function allClickables(): readonly Clickable[] {
+  return clickables
+}

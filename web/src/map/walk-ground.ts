@@ -19,7 +19,13 @@ const PATCH_FEATHER_M = 60
 
 const gridHeight = (g: Grid) => (lon: number, lat: number) => sampleGrid(g, lon, lat)
 
-export function createWalkGround(viewer: Viewer, sites: readonly Site[], mola: Grid) {
+export function createWalkGround(
+  viewer: Viewer,
+  sites: readonly Site[],
+  mola: Grid,
+  /** Runs a ground change so markers inside the bounds can follow it (reseat.ts). */
+  reseat: (bounds: Grid, change: () => void) => void = (_b, change) => change(),
+) {
   const base = sites.reduce<HeightFn>(
     (coarse, s) => feathered(gridHeight(s.grid), s.grid, coarse, SITE_FEATHER_M),
     gridHeight(mola),
@@ -52,7 +58,9 @@ export function createWalkGround(viewer: Viewer, sites: readonly Site[], mola: G
     ])
     if (!meta || !bin) return null // no patch for this site: walk on the site model
     const p = parseWalkPatch(meta, bin)
-    height = feathered(gridHeight(p.grid), p.grid, height, PATCH_FEATHER_M)
+    reseat(p.grid, () => {
+      height = feathered(gridHeight(p.grid), p.grid, height, PATCH_FEATHER_M)
+    })
     addImagery(siteId, p)
     // Tiles already made from the coarser model must be rebuilt: a new provider reloads them.
     viewer.terrainProvider = createTerrain((lon, lat) => height(lon, lat))

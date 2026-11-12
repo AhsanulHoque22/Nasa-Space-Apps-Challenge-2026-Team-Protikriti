@@ -98,6 +98,7 @@ import { type SiteThermal, addThermalLayer, loadThermalGrids } from './map/therm
 import { addCrismLayer, loadCrismGrids } from './map/crism-layer'
 import { createCaveLayer } from './map/caves-layer'
 import { createWalkGround } from './map/walk-ground'
+import { reseatOnSurface } from './map/reseat'
 import { renderCaveCard } from './ui/cave-card'
 import { iceAt } from './core/site-report'
 import { type ColonyScoreGrid, loadColonyScore, colonyScoreAt } from './core/colony-score'
@@ -135,7 +136,7 @@ async function loadSites(): Promise<Site[]> {
 
 const heightLoads = new Map<string, Promise<Grid>>()
 /** Set once the map exists: redraw the terrain with the heights that just arrived. */
-let onSiteHeights = () => {}
+let onSiteHeights = (_bounds: Bounds, change: () => void) => change()
 
 /** Download a site's heights once and fill its grid in place; a failed download can be retried. */
 function siteHeights(site: Site): Promise<Grid> {
@@ -144,9 +145,10 @@ function siteHeights(site: Site): Promise<Grid> {
     load = fetchOk(`data/sites/${site.id}/grid.bin`)
       .then((r) => r.arrayBuffer())
       .then((bin) => {
-        fillHeights(site.grid, gridMeta.get(site.id), bin)
-        forgetPassable(site.grid)
-        onSiteHeights()
+        onSiteHeights(site.grid, () => {
+          fillHeights(site.grid, gridMeta.get(site.id), bin)
+          forgetPassable(site.grid)
+        })
         return site.grid
       })
     load.catch(() => heightLoads.delete(site.id))
@@ -355,8 +357,13 @@ async function main() {
     onExploreOnFoot: (id, button) => void exploreRef.current?.(id, button),
     initialView: shared ? undefined : 'mars',
   })
-  const ground = createWalkGround(viewer, sites, mola)
-  onSiteHeights = () => ground.refresh()
+  // Markers placed before the ground changed under them follow it (sol dots, samples, names).
+  const reseat = (b: Bounds, change: () => void) => reseatOnSurface(viewer, b, surfaceM, change)
+  const ground = createWalkGround(viewer, sites, mola, reseat)
+  onSiteHeights = (b, change) => {
+    reseat(b, change)
+    ground.refresh()
+  }
   /** True when the camera is low over b, or just beside it: b is probably on screen. */
   const cameraNear = (b: Bounds) => {
     const at = viewer.camera.positionCartographic

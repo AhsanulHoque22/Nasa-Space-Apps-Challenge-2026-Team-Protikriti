@@ -179,7 +179,7 @@ const NAME_CHAR_W = 0.6 * NAME_FONT_PX // a safe over-estimate of an average gly
 const NAME_LIFT_M = 2 // sits on the ground; a hair above so the terrain does not slice the text
 const NAME_UPDATE_MS = 120
 
-type NameEntry = { label: Label; position: Cartesian3; maxRangeM: number; priority: number }
+type NameEntry = { label: Label; maxRangeM: number; priority: number }
 
 /**
  * Named features: drawn on the ground (the terrain hides names behind a ridge), sized to read,
@@ -212,7 +212,6 @@ function addNames(
     })
     entries.push({
       label: entry,
-      position,
       maxRangeM: labelMaxDistanceM(diameterKm),
       priority: diameterKm,
     })
@@ -235,12 +234,13 @@ function addNames(
     const candidates: LabelCandidate[] = []
     const ids: number[] = []
     entries.forEach((e, id) => {
+      const at = e.label.position // reseat.ts moves it when the ground under it changes
       if (
-        Cartesian3.distance(camera, e.position) > e.maxRangeM ||
-        !isOnNearSide(camera, e.position, MARS_SPHERE.maximumRadius, HORIZON_MARGIN_M)
+        Cartesian3.distance(camera, at) > e.maxRangeM ||
+        !isOnNearSide(camera, at, MARS_SPHERE.maximumRadius, HORIZON_MARGIN_M)
       )
         return
-      const xy = viewer.scene.cartesianToCanvasCoordinates(e.position)
+      const xy = viewer.scene.cartesianToCanvasCoordinates(at)
       if (!xy) return
       candidates.push({
         id,
