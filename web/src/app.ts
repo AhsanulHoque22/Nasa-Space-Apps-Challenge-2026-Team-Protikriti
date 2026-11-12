@@ -866,12 +866,33 @@ async function main() {
     }
   })
   exploreHooks.push((on) => caveLayer.setVisible(!on && cavesShown)) // a paint-on overlay too
+  // Ground firmness and chemistry cover a few small patches; switched on from anywhere else they
+  // seemed to do nothing. Fly to the patch nearest the view (not on the panel's first paint).
+  let panelPainted = false
+  const showCoverage = (patches: readonly Bounds[]) => {
+    if (!panelPainted || patches.some(cameraNear)) return
+    const at = viewer.camera.positionCartographic
+    const lon = (at.longitude * 180) / Math.PI
+    const lat = (at.latitude * 180) / Math.PI
+    const away = (b: Bounds) =>
+      Math.hypot((b.west + b.east) / 2 - lon, (b.south + b.north) / 2 - lat)
+    const nearest = [...patches].sort((a, b) => away(a) - away(b))[0]
+    if (nearest) viewAoi(viewer, nearest)
+  }
+  const thermalPatches = (await thermalReady).map((t) => t.grid)
+  const crismPatches = (await crismReady).map((c) => c.grid)
   // The opening Mars view starts with plain terrain; imagery comes on when a site is chosen.
   setLayer.current = renderLayerPanel(
     ui,
     {
-      thermal: (visible) => void (thermalLayer.show = visible),
-      crism: (visible) => void (crismLayer.show = visible),
+      thermal: (visible) => {
+        thermalLayer.show = visible
+        if (visible) showCoverage(thermalPatches)
+      },
+      crism: (visible) => {
+        crismLayer.show = visible
+        if (visible) showCoverage(crismPatches)
+      },
       caves: (visible) => {
         cavesShown = visible
         caveLayer.setVisible(visible)
@@ -885,6 +906,7 @@ async function main() {
     },
     shared ? {} : { imagery: false },
   )
+  panelPainted = true
   // A mission asked for imagery before the layer controls existed: switch it on now.
   if (siteView.imageryWanted) setLayer.current?.('imagery', true)
   const timeline = renderTimelineBar(ui, streetView.stops, createReplay(viewer, streetView.stops))
