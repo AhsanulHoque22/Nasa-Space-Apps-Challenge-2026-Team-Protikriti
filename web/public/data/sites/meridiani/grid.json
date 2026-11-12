@@ -7,5 +7,8 @@
   "east": -5.484943724517424,
   "south": -2.065167908531148,
   "crs": "+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=354.5 +x_0=0 +y_0=0 +R=3396190 +units=m +no_defs=True",
-  "max_safe_slope_deg": 15.0
+  "max_safe_slope_deg": 15.0,
+  "height_offset_m": -1412.99,
+  "height_step_m": 0.02,
+  "nodata": -32768
 }

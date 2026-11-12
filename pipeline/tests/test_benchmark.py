@@ -109,10 +109,13 @@ class TestRunBenchmark:
         height, width = elevation.shape
         grid = tmp_path / "grid"
         grid.mkdir()
-        elevation.astype("<f4").tofile(grid / "grid.bin")
+        elevation.astype("<i2").tofile(grid / "grid.bin")
         (grid / "grid.json").write_text(
             json.dumps(
                 {
+                    "height_offset_m": 0.0,
+                    "height_step_m": 1.0,
+                    "nodata": -32768,
                     "width": width,
                     "height": height,
                     "pixel_size_m": 20.0,

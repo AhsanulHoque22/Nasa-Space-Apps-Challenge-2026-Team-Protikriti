@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
+from marsmap.export import read_grid
 from marsmap.slope import slope_deg
 
 LonLat = tuple[float, float]
@@ -100,14 +101,8 @@ def replay(
 
 def run_benchmark(traverse: Path, waypoints: Path, grid_dir: Path) -> dict[str, Any]:
     """Replay the real Perseverance path over a site grid written by the `sites` command."""
-    meta = json.loads((grid_dir / "grid.json").read_text())
-    width, height = int(meta["width"]), int(meta["height"])
-    elevation = np.fromfile(grid_dir / "grid.bin", dtype="<f4")
-    if elevation.size != width * height:
-        raise ValueError(
-            f"{grid_dir}/grid.bin has {elevation.size} cells, expected {width * height}"
-        )
-    slope = slope_deg(elevation.reshape(height, width), float(meta["pixel_size_m"]))
+    meta, elevation = read_grid(grid_dir)
+    slope = slope_deg(elevation, float(meta["pixel_size_m"]))
     geo = GridGeo(meta["west"], meta["north"], meta["east"], meta["south"])
 
     # Coordinates are Mars lon/lat although the file is tagged CRS84; only the numbers are used.

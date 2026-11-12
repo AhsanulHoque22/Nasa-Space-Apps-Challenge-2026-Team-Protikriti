@@ -11,19 +11,33 @@ const meta = {
   south: 18.47,
   crs: '+proj=eqc',
   max_safe_slope_deg: 15,
+  height_offset_m: -2600,
+  height_step_m: 0.5,
+  nodata: -32768,
 }
 
+/** grid.bin as the pipeline writes it: int16 steps above the offset, nodata for NaN. */
 function bin(values: number[]): ArrayBuffer {
-  return new Float32Array(values).buffer
+  return Int16Array.from(values, (v) =>
+    Number.isNaN(v) ? meta.nodata : (v - meta.height_offset_m) / meta.height_step_m,
+  ).buffer
 }
 
-const elevations = [0, 1, 2, 3, 4, 5, NaN, 7, 8, 9, 10, 11]
+const elevations = [0, 1, 2, 3, 4, 5, NaN, 7, 8, 9, 10, 11].map((v) => -2600 + v / 2)
 
 describe('parseGrid', () => {
   it('maps metadata to camelCase fields and keeps elevations', () => {
     const g = parseGrid(meta, bin(elevations))
     expect(g).toMatchObject({ width: 4, height: 3, pixelSizeM: 20, maxSafeSlopeDeg: 15 })
-    expect(g.elevationM[5]).toBe(5)
+    expect(g.elevationM[5]).toBe(-2597.5)
+    expect(g.elevationM[0]).toBe(-2600)
+    expect(g.elevationM[6]).toBeNaN()
+  })
+
+  it('rejects metadata without the height encoding', () => {
+    expect(() => parseGrid({ ...meta, height_step_m: undefined }, bin(elevations))).toThrow(
+      /height_step_m/,
+    )
   })
 
   it('rejects a binary whose size does not match width*height', () => {
