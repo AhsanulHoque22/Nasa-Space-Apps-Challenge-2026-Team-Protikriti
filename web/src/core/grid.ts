@@ -25,23 +25,24 @@ function numberField(meta: Record<string, unknown>, key: string): number {
 
 /** Validate pipeline output at the trust boundary. Throws with an actionable message. */
 export function parseGrid(meta: unknown, bin: ArrayBuffer): Grid {
+  const grid = emptyGrid(meta)
+  fillHeights(grid, meta, bin)
+  return grid
+}
+
+function metaObject(meta: unknown): Record<string, unknown> {
   if (typeof meta !== 'object' || meta === null) throw new Error('grid.json: expected an object')
-  const m = meta as Record<string, unknown>
+  return meta as Record<string, unknown>
+}
+
+/**
+ * The grid from grid.json alone, every height NaN (nodata) until fillHeights. grid.json is under
+ * 1 kB, so the app knows every site's bounds at start and downloads heights only for sites it shows.
+ */
+export function emptyGrid(meta: unknown): Grid {
+  const m = metaObject(meta)
   const width = numberField(m, 'width')
   const height = numberField(m, 'height')
-  // int16 steps above an offset (pipeline export_grid): half the bytes of float32 to download.
-  const offsetM = numberField(m, 'height_offset_m')
-  const stepM = numberField(m, 'height_step_m')
-  const nodata = numberField(m, 'nodata')
-  if (bin.byteLength !== width * height * Int16Array.BYTES_PER_ELEMENT) {
-    throw new Error(`grid.bin size ${bin.byteLength} B does not match ${width}x${height} int16`)
-  }
-  const steps = new Int16Array(bin)
-  const elevationM = new Float32Array(steps.length)
-  for (let i = 0; i < steps.length; i++) {
-    const s = steps[i] as number
-    elevationM[i] = s === nodata ? NaN : offsetM + s * stepM
-  }
   return {
     width,
     height,
@@ -51,7 +52,26 @@ export function parseGrid(meta: unknown, bin: ArrayBuffer): Grid {
     east: numberField(m, 'east'),
     south: numberField(m, 'south'),
     maxSafeSlopeDeg: numberField(m, 'max_safe_slope_deg'),
-    elevationM,
+    elevationM: new Float32Array(width * height).fill(NaN),
+  }
+}
+
+/** Decode grid.bin into grid.elevationM in place, so code holding the grid sees the heights. */
+export function fillHeights(grid: Grid, meta: unknown, bin: ArrayBuffer): void {
+  const m = metaObject(meta)
+  // int16 steps above an offset (pipeline export_grid): half the bytes of float32 to download.
+  const offsetM = numberField(m, 'height_offset_m')
+  const stepM = numberField(m, 'height_step_m')
+  const nodata = numberField(m, 'nodata')
+  if (bin.byteLength !== grid.width * grid.height * Int16Array.BYTES_PER_ELEMENT) {
+    throw new Error(
+      `grid.bin size ${bin.byteLength} B does not match ${grid.width}x${grid.height} int16`,
+    )
+  }
+  const steps = new Int16Array(bin)
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i] as number
+    grid.elevationM[i] = s === nodata ? NaN : offsetM + s * stepM
   }
 }
 

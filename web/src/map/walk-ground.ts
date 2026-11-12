@@ -25,6 +25,7 @@ export function createWalkGround(viewer: Viewer, sites: readonly Site[], mola: G
     gridHeight(mola),
   )
   let height = base
+  let onFineWalk = false // the 1 m walk terrain is drawn; refresh() must not replace it
   const patches = new Map<string, Promise<WalkPatch | null>>()
 
   const addImagery = (siteId: string, p: WalkPatch) => {
@@ -70,11 +71,17 @@ export function createWalkGround(viewer: Viewer, sites: readonly Site[], mola: G
       if (!grid) return null
       const walk = feathered(gridHeight(grid), grid, height, PATCH_FEATHER_M)
       viewer.terrainProvider = createTerrain((lon, lat) => walk(lon, lat))
+      onFineWalk = true
       return grid
     },
     /** Back to the map's ground after a walk. */
     endFineWalk(): void {
+      onFineWalk = false
       viewer.terrainProvider = createTerrain((lon, lat) => height(lon, lat))
+    },
+    /** Rebuild the drawn terrain after a site grid's heights arrive (tiles made before lack them). */
+    refresh(): void {
+      if (!onFineWalk) viewer.terrainProvider = createTerrain((lon, lat) => height(lon, lat))
     },
     /** The site's walk patch, loaded once; null when the site has none or it failed to load. */
     patch(siteId: string): Promise<WalkPatch | null> {

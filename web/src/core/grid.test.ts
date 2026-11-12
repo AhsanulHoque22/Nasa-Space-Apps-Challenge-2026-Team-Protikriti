@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cellToLonLat, lonLatToCell, parseGrid } from './grid'
+import { cellToLonLat, emptyGrid, fillHeights, lonLatToCell, parseGrid } from './grid'
 
 const meta = {
   width: 4,
@@ -46,6 +46,23 @@ describe('parseGrid', () => {
 
   it('rejects malformed metadata', () => {
     expect(() => parseGrid({ ...meta, width: 'four' }, bin(elevations))).toThrow(/width/)
+  })
+})
+
+describe('emptyGrid + fillHeights', () => {
+  it('starts as all nodata and fills the same array in place', () => {
+    const g = emptyGrid(meta)
+    const array = g.elevationM
+    expect(g).toMatchObject({ width: 4, height: 3, west: 77.4 })
+    expect([...g.elevationM].every(Number.isNaN)).toBe(true)
+    fillHeights(g, meta, bin(elevations))
+    expect(g.elevationM).toBe(array)
+    expect(g.elevationM[5]).toBe(-2597.5)
+    expect(g.elevationM[6]).toBeNaN()
+  })
+
+  it('rejects a binary of the wrong size', () => {
+    expect(() => fillHeights(emptyGrid(meta), meta, bin([1, 2, 3]))).toThrow(/size/)
   })
 })
 

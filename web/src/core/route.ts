@@ -66,6 +66,11 @@ function stepTimeByIndex(
 
 const passableCache = new WeakMap<Grid, Uint8Array>()
 
+/** Drop the cached passability of a grid whose heights just changed (a site grid filled in). */
+export function forgetPassable(g: Grid): void {
+  passableCache.delete(g)
+}
+
 /**
  * 1 where a cell's terrain slope is within the limit, 0 where it is steeper or nodata.
  * Same rule as the pipeline's hazard overlay (numpy.gradient: central differences inside,

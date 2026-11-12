@@ -13,7 +13,8 @@ import './episodes.css'
 import { type Site, elevationAt, parseMola, siteAt } from './core/elevation'
 import { heroReadings } from './core/hero-readings'
 import { pushExploreKPIs, pushScienceKPIs } from './ui/hero-state'
-import { type Grid, lonLatToCell, parseGrid } from './core/grid'
+import { type Grid, emptyGrid, fillHeights, lonLatToCell } from './core/grid'
+import { forgetPassable } from './core/route'
 import { type LayerId, addLayers } from './map/layers'
 import { createRouteClient } from './map/route-client'
 import { type WalkMap, createWalkMap } from './map/marswalk-map'
@@ -30,6 +31,7 @@ import { sceneTimeMs } from './map/sun'
 import { installWheelZoom } from './map/wheel-zoom'
 import { decodeView, encodeView } from './core/deeplink'
 import {
+  type Bounds,
   applyView,
   createMarsViewer,
   currentView,
@@ -114,18 +116,49 @@ async function fetchOk(url: string): Promise<Response> {
 
 type SiteInfo = { id: string; name: string; rover: string; source: string }
 
+const gridMeta = new Map<string, unknown>()
+
+/**
+ * Every site's bounds from its grid.json (under 1 kB each); heights stay NaN until siteHeights.
+ * Downloading all eight grid.bin files (16 MB) up front kept slow connections waiting a minute.
+ */
 async function loadSites(): Promise<Site[]> {
   const index = (await fetchOk('data/sites.json').then((r) => r.json())) as { sites: SiteInfo[] }
   return Promise.all(
     index.sites.map(async (info) => {
-      const [meta, bin] = await Promise.all([
-        fetchOk(`data/sites/${info.id}/grid.json`).then((r) => r.json()),
-        fetchOk(`data/sites/${info.id}/grid.bin`).then((r) => r.arrayBuffer()),
-      ])
-      return { ...info, grid: parseGrid(meta, bin) }
+      const meta: unknown = await fetchOk(`data/sites/${info.id}/grid.json`).then((r) => r.json())
+      gridMeta.set(info.id, meta)
+      return { ...info, grid: emptyGrid(meta) }
     }),
   )
 }
+
+const heightLoads = new Map<string, Promise<Grid>>()
+/** Set once the map exists: redraw the terrain with the heights that just arrived. */
+let onSiteHeights = () => {}
+
+/** Download a site's heights once and fill its grid in place; a failed download can be retried. */
+function siteHeights(site: Site): Promise<Grid> {
+  let load = heightLoads.get(site.id)
+  if (!load) {
+    load = fetchOk(`data/sites/${site.id}/grid.bin`)
+      .then((r) => r.arrayBuffer())
+      .then((bin) => {
+        fillHeights(site.grid, gridMeta.get(site.id), bin)
+        forgetPassable(site.grid)
+        onSiteHeights()
+        return site.grid
+      })
+    load.catch(() => heightLoads.delete(site.id))
+    heightLoads.set(site.id, load)
+  }
+  return load
+}
+
+// Below this camera height a site may be on screen: fetch its heights before anyone clicks it.
+const SITE_PRELOAD_HEIGHT_M = 300_000
+// About 60 km: the site views (viewAoi) put the camera just south of the site.
+const SITE_PRELOAD_MARGIN_DEG = 1
 
 async function loadSwim(): Promise<SwimGrid> {
   const [meta, bin] = await Promise.all([
@@ -248,7 +281,11 @@ async function main() {
           view: (points) => siteView.walk?.view(points),
           clear: () => siteView.walk?.clear(),
         },
-        siteGrid: (id) => sitesReady.then((list) => list.find((x) => x.id === id)?.grid),
+        siteGrid: (id) =>
+          sitesReady.then((list) => {
+            const site = list.find((x) => x.id === id)
+            return site ? siteHeights(site) : undefined
+          }),
         swim: getSwim,
         mola: () => molaReady,
         places: () => placesOnce,
@@ -282,6 +319,7 @@ async function main() {
   siteView.show = (id) => {
     const site = sites.find((x) => x.id === id)
     if (!site) return
+    void siteHeights(site).catch((error: unknown) => console.error(error))
     viewAoi(viewer, site.grid)
     // As the header's site buttons do: a site view needs its imagery.
     if (setLayer.current) setLayer.current('imagery', true)
@@ -303,6 +341,7 @@ async function main() {
     onView: (view) => {
       const site = sites.find((s) => s.id === view)
       if (site) {
+        void siteHeights(site).catch((error: unknown) => console.error(error))
         viewAoi(viewer, site.grid)
         setLayer.current?.('imagery', true) // a site view is about its imagery
       } else
@@ -317,6 +356,20 @@ async function main() {
     initialView: shared ? undefined : 'mars',
   })
   const ground = createWalkGround(viewer, sites, mola)
+  onSiteHeights = () => ground.refresh()
+  /** True when the camera is low over b, or just beside it: b is probably on screen. */
+  const cameraNear = (b: Bounds) => {
+    const at = viewer.camera.positionCartographic
+    if (at.height > SITE_PRELOAD_HEIGHT_M) return false
+    const lon = (at.longitude * 180) / Math.PI
+    const lat = (at.latitude * 180) / Math.PI
+    const m = SITE_PRELOAD_MARGIN_DEG
+    return lon >= b.west - m && lon <= b.east + m && lat >= b.south - m && lat <= b.north + m
+  }
+  viewer.camera.moveEnd.addEventListener(() => {
+    for (const s of sites)
+      if (cameraNear(s.grid)) void siteHeights(s).catch((error: unknown) => console.error(error))
+  })
   const groundM = ground.height
   // Height of the ground as drawn (terrain x vertical exaggeration). Markers sit on it directly:
   // CLAMP_TO_GROUND left most of them km above the terrain, off the draped lines and clicks.
@@ -372,7 +425,11 @@ async function main() {
   // eslint-disable-next-line prefer-const
   let walkStreetView: ((lon: number, lat: number) => void) | undefined
   const routePanel = renderRoutePanel(side, viewer, sites, {
-    makeClient: createRouteClient,
+    // The worker gets the site's heights once they arrive; tools can be made before that.
+    makeClient: (g) => {
+      const site = sites.find((s) => s.grid === g)
+      return createRouteClient(site ? siteHeights(site) : g)
+    },
     makeLayer: (g) => createRouteLayer(viewer, g, { surfaceM, legend: lineLegend }),
     makeRange: (g) => createRangeLayer(viewer, g),
     onEvent: quest.notify,
@@ -439,7 +496,14 @@ async function main() {
     const site = sites.find((s) => s.id === siteId)
     if (!site || b.disabled) return
     const g = site.grid
-    b.disabled = true // the walk patch may take a moment to arrive
+    b.disabled = true // the heights and walk patch may take a moment to arrive
+    try {
+      await siteHeights(site)
+    } catch (error) {
+      b.disabled = false
+      console.error(error)
+      return
+    }
     const patch = await ground.patch(site.id)
     b.disabled = false
     // Walk the high-resolution patch from its centre (a landing site) when there is one;
@@ -515,6 +579,8 @@ async function main() {
   const crismReady = loadCrismGrids(sites)
   let colonyGrid: ColonyScoreGrid | null = null // set once the score grid loads, further down
   const openReport = async (lon: number, lat: number) => {
+    const at = siteAt(sites, lon, lat)
+    if (at) await siteHeights(at).catch(() => undefined) // else the report reads MOLA heights
     const places: Place[] = await placesReady.catch(() => [])
     renderSiteReport(lon, lat, {
       sites,

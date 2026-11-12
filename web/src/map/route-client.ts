@@ -11,11 +11,12 @@ export type RouteClient = {
   close(): void
 }
 
-export function createRouteClient(grid: Grid): RouteClient {
+/** A site grid may still be downloading: messages wait until the worker has its heights. */
+export function createRouteClient(grid: Grid | Promise<Grid>): RouteClient {
   const worker = new Worker(new URL('../core/route.worker.ts', import.meta.url), {
     type: 'module',
   })
-  worker.postMessage({ type: 'grid', grid })
+  const ready = Promise.resolve(grid).then((g) => worker.postMessage({ type: 'grid', grid: g }))
   const pending = new Map<
     number,
     (reply: RouteReply | RangeReply | SightReply | SolarReply) => void
@@ -43,7 +44,17 @@ export function createRouteClient(grid: Grid): RouteClient {
     const id = ++nextId
     return new Promise((resolve) => {
       pending.set(id, (reply) => resolve(reply as T))
-      worker.postMessage({ ...message, id })
+      ready.then(
+        () => worker.postMessage({ ...message, id }),
+        (error: unknown) => {
+          pending.delete(id)
+          resolve({
+            type: 'error',
+            id,
+            message: `Site terrain did not load: ${String(error)}`,
+          } as T)
+        },
+      )
     })
   }
   return {
