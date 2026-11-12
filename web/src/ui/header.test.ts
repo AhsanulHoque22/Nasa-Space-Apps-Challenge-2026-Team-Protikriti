@@ -13,7 +13,13 @@ function header(initialView?: string) {
   const onExploreOnFoot = vi.fn()
   renderHeader(parent, SITES, { onView, onStory: vi.fn(), onExploreOnFoot, initialView })
   const foot = parent.querySelector('.foot-link') as HTMLButtonElement
-  return { parent, onView, onExploreOnFoot, foot, select: parent.querySelector('select') as HTMLSelectElement }
+  return {
+    parent,
+    onView,
+    onExploreOnFoot,
+    foot,
+    select: parent.querySelector('select') as HTMLSelectElement,
+  }
 }
 
 describe('location picker', () => {
