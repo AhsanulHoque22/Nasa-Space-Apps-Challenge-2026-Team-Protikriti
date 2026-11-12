@@ -106,7 +106,8 @@ import { renderColonyPanel } from './ui/colony-panel'
 import { renderColonySummary } from './ui/colony-summary-panel'
 
 async function fetchOk(url: string): Promise<Response> {
-  const response = await fetch(url)
+  // Always revalidate: a stale cached grid.json next to a new bundle broke the map after the int16 grid change.
+  const response = await fetch(url, { cache: 'no-cache' })
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status} (did you run make data?)`)
   return response
 }

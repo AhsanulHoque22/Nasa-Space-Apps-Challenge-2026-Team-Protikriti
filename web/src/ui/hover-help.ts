@@ -35,7 +35,7 @@ const WALK_TABS: Record<string, string> = {
 /** First match wins. Selectors are scoped to Map mode's panels, windows and console. */
 const RULES: Array<[string, Note]> = [
   // Header, search, workbench keys
-  ['.story-link', 'Leave the map and play the story: the crew’s missions, one decision at a time.'],
+  ['.story-link', 'Leave the map and start the mission: the crew’s missions, one decision at a time.'],
   ['.view-select select', 'Fly to one of the mapped sites, or back to the whole planet.'],
   ['.foot-link', 'Walk the chosen site on the ground in first person, with a field tablet.'],
   ['#search-input', 'Search craters, landing sites, rock samples and exploration zones by name.'],

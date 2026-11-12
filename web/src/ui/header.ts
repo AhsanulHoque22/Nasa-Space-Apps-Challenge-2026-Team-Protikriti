@@ -31,7 +31,7 @@ export function renderHeader(
         <span class="brand-name">ATLAS</span>
       </h1>
     </div>
-    <button type="button" class="story-link">${PLAY}<span>Play the story</span></button>
+    <button type="button" class="story-link">${PLAY}<span>Start the mission</span></button>
     <div class="go-row">
       <label class="view-select">
         <span class="view-label">${PIN}Jump to a place</span>
