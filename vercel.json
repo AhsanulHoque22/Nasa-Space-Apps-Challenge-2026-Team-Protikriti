@@ -10,6 +10,17 @@
       "destination": "https://mars.nasa.gov/:path*"
     }
   ],
+  "headers": [
+    {
+      "source": "/assets/(.*)\\.(js|css)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
   "functions": {
     "api/explain.ts": {
       "includeFiles": "docs/data-sources.md",
