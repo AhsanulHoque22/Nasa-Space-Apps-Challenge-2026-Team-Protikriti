@@ -9,6 +9,7 @@ import {
   HeadingPitchRange,
   HeightReference,
   Math as CesiumMath,
+  type PerspectiveFrustum,
   type Viewer,
 } from 'cesium'
 import { EVA_LIMITS, type EvaCard } from '../core/eva-card'
@@ -158,6 +159,8 @@ export function openWalkPlayer(
 
   const wrist: EvaConsole = mountConsole()
   let tab: TabId = 'now'
+  const CONSOLE_BOTTOM_PX = 12 // .eva-console bottom in style.css
+  const MIN_DEPRESSION_RAD = CesiumMath.toRadians(5) // the stop stays below the horizon
 
   const registerLegend = (positions: Cartesian3[]) =>
     legend?.set(
@@ -189,15 +192,41 @@ export function openWalkPlayer(
           ? bearingRad(behind, [lon, lat])
           : viewer.camera.heading
     const pitch = turn ? VIEW_PITCH_RAD : viewer.camera.pitch
+    const range = above / Math.max(0.2, Math.sin(-pitch))
+    // Aim short of the stop, toward the camera, so the stop shows mid-way in the map above the
+    // console: from the same height and tilt, the stop then sits `tilt` above the view centre.
+    const tilt = Math.min(consoleTiltRad(), -pitch - MIN_DEPRESSION_RAD)
+    const h = range * Math.sin(-pitch)
+    const shortM = tilt > 0 ? h / Math.tan(-pitch - tilt) - range * Math.cos(pitch) : 0
+    const r = MARS_SPHERE.maximumRadius
+    const aimLat = lat - CesiumMath.toDegrees((shortM * Math.cos(heading)) / r)
+    const aimLon =
+      lon -
+      CesiumMath.toDegrees((shortM * Math.sin(heading)) / (r * Math.cos(CesiumMath.toRadians(lat))))
     viewer.camera.flyToBoundingSphere(
-      new BoundingSphere(Cartesian3.fromDegrees(lon, lat, ground, MARS_SPHERE), 0),
+      new BoundingSphere(Cartesian3.fromDegrees(aimLon, aimLat, ground, MARS_SPHERE), 0),
       {
-        offset: new HeadingPitchRange(heading, pitch, above / Math.max(0.2, Math.sin(-pitch))),
+        offset: new HeadingPitchRange(heading, pitch, range),
         duration: FLY_S,
         // Cesium arcs a flight up and back down unless capped: glide at the user's own height.
         maximumHeight: Math.max(cam.height, ground + above),
       },
     )
+  }
+
+  /**
+   * The angle a stop must sit above the view centre to be in the middle of the map left above the
+   * console, not behind it. From the console's layout box: its slide-in transform is ignored.
+   */
+  const consoleTiltRad = () => {
+    if (!viewer.scene.canvas) return 0
+    const canvas = viewer.scene.canvas.getBoundingClientRect()
+    const consoleTop = window.innerHeight - CONSOLE_BOTTOM_PX - wrist.root.offsetHeight
+    const visibleBottom = Math.max(canvas.top, Math.min(canvas.bottom, consoleTop))
+    const liftPx = (canvas.bottom - visibleBottom) / 2
+    if (liftPx <= 0 || canvas.height <= 0) return 0
+    const fovy = (viewer.camera.frustum as PerspectiveFrustum).fovy ?? CesiumMath.PI_OVER_THREE
+    return Math.atan((liftPx / (canvas.height / 2)) * Math.tan(fovy / 2))
   }
 
   // Zoom by moving along the line of sight: keeps the tilt and heading (a plain flyTo resets them
