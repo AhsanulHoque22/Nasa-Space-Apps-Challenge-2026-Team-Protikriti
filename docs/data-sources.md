@@ -112,7 +112,7 @@ Site DEMs take precedence inside their bounds; MOLA covers the rest of the plane
 | Zones (30) | NASA HLS2 workshop 2015, as above. |
 | Elevation | MGS MOLA global topography (4 px/deg), sampled at each zone centre. |
 | Shallow ice | SWIM 2.0 combined consistency (Morgan et al. 2021), sampled at each zone centre (about 15 km cells; zones are about 200 km across). |
-| Latitude limit (±50°) | Summarised from the workshop criteria in our research notes; **still to be checked against LPI Contribution 1879**. |
+| Latitude limit (±50°) | The workshop's engineering constraint, checked in LPI Contribution 1879 (2015): abstracts place zones "within the ±50° latitudinal constraints set for the mission" and list the baseline as "latitude (<50°), elevation (≤+2 km)". |
 | Score | User-weighted share of the best value on each measure, min-max scaled over the 30 zones. A zone with no data for a measure scores 0 on it. Not an official ranking. |
 
 ## Sunlight on the terrain (Planning tools, "Sunlight")
