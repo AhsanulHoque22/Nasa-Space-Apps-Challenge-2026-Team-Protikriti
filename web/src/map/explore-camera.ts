@@ -691,13 +691,14 @@ export function startExplore(
   const onDown = (e: PointerEvent) => (drag = { x: e.clientX, y: e.clientY })
   const onMove = (e: PointerEvent) => {
     if (!drag) return
+    // Grab the view: the ground follows the pointer, as when dragging the map.
     body = {
       ...body,
-      headingDeg: (body.headingDeg + (e.clientX - drag.x) * LOOK_DEG_PER_PX + 360) % 360,
+      headingDeg: (body.headingDeg - (e.clientX - drag.x) * LOOK_DEG_PER_PX + 360) % 360,
     }
     pitchDeg = Math.max(
       -PITCH_LIMIT_DEG,
-      Math.min(PITCH_LIMIT_DEG, pitchDeg - (e.clientY - drag.y) * LOOK_DEG_PER_PX),
+      Math.min(PITCH_LIMIT_DEG, pitchDeg + (e.clientY - drag.y) * LOOK_DEG_PER_PX),
     )
     drag = { x: e.clientX, y: e.clientY }
   }
