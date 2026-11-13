@@ -6839,11 +6839,11 @@ button.journey-label:focus-visible {
   color: var(--lvl);
 }
 
-/* Mission over and mission reports. */
+/* Mission over and mission reports. Above the story screen (.gate, 100), which opens them. */
 .mission-over {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 101;
   display: grid;
   place-items: center;
   padding: var(--space-4);
