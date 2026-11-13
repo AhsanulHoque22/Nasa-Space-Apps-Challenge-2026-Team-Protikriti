@@ -89,10 +89,10 @@ export function placeBase(layer: HardwareLayer, progress: Progress | null): void
   if (base.habitat) put(layer, 'base:habitat', 'habitat', base.habitat, 'Habitat')
   if (base.oxygen) put(layer, 'base:oxygen', 'oxygen-plant', base.oxygen, 'Oxygen plant (stand-in)')
   const units = progress.cargo?.kilopower ?? 0
-  if (base.reactor && units > 0) {
-    // As in NASA's Kilopower concept art: units in a row, each cabled to a power box, which is
-    // cabled on to the habitat.
-    const hub = offsetM(base.reactor, 0, -20)
+  // As in NASA's Kilopower concept art: units in a row, each cabled to a power box, which is
+  // cabled on to the habitat. The solar arrays feed the same box.
+  const hub = base.reactor && units > 0 ? offsetM(base.reactor, 0, -20) : null
+  if (base.reactor && hub) {
     layer.shape('base:power-box', powerBoxShape('base:power-box#shape'), {
       ...hub,
       scale: 1,
@@ -147,5 +147,6 @@ export function placeBase(layer: HardwareLayer, progress: Progress | null): void
       })
     }
     if (base.habitat) layer.cable('base:cable-arrays', [base.arrays, base.habitat])
+    if (hub) layer.cable('base:cable-arrays-box', [base.arrays, hub])
   }
 }
