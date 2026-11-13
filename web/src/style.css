@@ -6980,6 +6980,14 @@ button.journey-label:focus-visible {
   }
 }
 
+/* With the dock on the right half, its Leave button sits where the trigger would: keep the
+   trigger at the top right of the scene, clear of the dock's left edge (50% + half a gap). */
+@media (min-width: 900px) {
+  body[data-story='mission'][data-story-layout='scene'] .ask-atlas-trigger {
+    right: calc(50% + 1.5 * var(--space-4));
+  }
+}
+
 .ask-atlas-trigger:hover,
 .ask-atlas-trigger[aria-expanded='true'] {
   background: var(--accent-fill);
