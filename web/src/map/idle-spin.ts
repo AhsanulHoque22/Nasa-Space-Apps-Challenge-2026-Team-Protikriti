@@ -2,6 +2,7 @@
 import { Cartesian3, Math as CesiumMath, type Viewer } from 'cesium'
 import { IDLE_SPIN_ALTITUDE_M, IDLE_SPIN_THRESHOLD_M, idleSpinStepRad } from '../core/idle-spin'
 import { MARS_SPHERE } from './mars'
+import { isExploring } from './picking'
 
 const OPENING_PITCH_DEG = -90 // straight down at the planet, so the poles sit at top and bottom
 
@@ -27,7 +28,8 @@ export function startIdleSpin(viewer: Viewer, lon: number, lat: number): IdleSpi
   const tick = () => {
     const now = performance.now()
     const alt = viewer.camera.positionCartographic?.height ?? 0
-    if (alt > IDLE_SPIN_THRESHOLD_M) {
+    // Only the free map turns: a mission or a walk owns the camera, even zoomed out this far.
+    if (alt > IDLE_SPIN_THRESHOLD_M && !isExploring()) {
       viewer.camera.rotate(Cartesian3.UNIT_Z, idleSpinStepRad((now - last) / 1000))
       viewer.scene.requestRender()
     }
@@ -37,7 +39,9 @@ export function startIdleSpin(viewer: Viewer, lon: number, lat: number): IdleSpi
 
   return {
     get spinning() {
-      return (viewer.camera.positionCartographic?.height ?? 0) > IDLE_SPIN_THRESHOLD_M
+      return (
+        (viewer.camera.positionCartographic?.height ?? 0) > IDLE_SPIN_THRESHOLD_M && !isExploring()
+      )
     },
   }
 }

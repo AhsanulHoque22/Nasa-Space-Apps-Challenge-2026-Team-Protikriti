@@ -247,7 +247,8 @@ export function createTraverseMap(
       const sphere = BoundingSphere.fromPoints(points.map((p) => at(p, 0)))
       viewer.camera.cancelFlight()
       viewer.camera.flyToBoundingSphere(sphere, {
-        offset: new HeadingPitchRange(0, CesiumMath.toRadians(-70), sphere.radius * 3.2 + 20_000),
+        // Twice the radius fits the places in the frame (60° field of view) with a margin.
+        offset: new HeadingPitchRange(0, CesiumMath.toRadians(-70), sphere.radius * 2 + 5_000),
         // Within one site: glide level, not Cesium's climb-and-dive (it arcs only above this).
         maximumHeight: viewer.camera.positionCartographic.height,
         duration: 2,
