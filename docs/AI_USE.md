@@ -5,7 +5,7 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 ## Tools
 - **Claude** (Anthropic) through **Claude Code**, in the terminal. Used for writing and refactoring code, tests, documentation and this repository's configuration.
 - **Claude Haiku 5.5** (Anthropic API, `claude-haiku-5-5`) inside the app, as the Ask ATLAS explainer only (below).
-- **ChatGPT** (OpenAI) image generation, used to create the ATLAS logo.
+- **ChatGPT** (OpenAI) image generation, used to create the ATLAS logo and the astronaut-arm picture behind the EVA wrist console.
 - **Gemini** (Google), Flash model, used to animate that logo into the film that opens the site, including the film's sound, on 4 November 2026.
 - **ChatGPT** (OpenAI) image generation, used once for the artwork on pitch-video Slide 2 (the Mars puzzle image). [Team: add the model name and version shown in ChatGPT, and the date.]
 - **ChatGPT** (OpenAI), text: drafted the prompts and visual ideas the team gave Google Vids for the animated segments of the video.
@@ -46,7 +46,7 @@ Claude Code (Claude Opus 5.5) made the screen-recorded demo clips of the video, 
 - Supply any data. Every dataset comes from NASA, USGS or the IAU and is cited in `docs/data-sources.md`.
 - Produce any image, video or audio shown in the app, apart from the opening logo film (below). The only generated image in the pitch video is the Slide 2 puzzle artwork from ChatGPT (see Tools and Prompts). It is illustration, not NASA data, and shows no real terrain, people or logos. [Team: confirm there is no other generated image, video or audio.]
 - The logo film that opens the site (`web/public/media/intro/atlas-intro.mp4`) was generated with Gemini (see Tools) from the ATLAS logo, which was made with ChatGPT. It is a logo animation, not NASA data: its Mars and rocket are illustration, not real terrain or hardware. Claude Code only upscaled, sharpened and re-encoded it with ffmpeg (no AI enhancement) and placed it in the page. The small logo on the Ask ATLAS button (`web/public/assets/atlas-mark.webp`) is cropped from that film.
-- The astronaut-arm picture behind the EVA dashboard (`web/public/assets/wrist-console.webp`) was supplied by the team as `Sci-Fi Astronaut Wrist HUD Console.png`; the code only converts it to WebP and places the screens on it. [Team: state its source and licence.] Nothing on the screens is invented: no suit vitals, only the walk's own numbers.
+- The astronaut-arm picture behind the EVA dashboard (`web/public/assets/wrist-console.webp`) was generated with ChatGPT image generation (see Tools), supplied by the team as `Sci-Fi Astronaut Wrist HUD Console.png`; the code only converts it to WebP and places the screens on it. Nothing on the screens is invented: no suit vitals, only the walk's own numbers.
 
 ## Prompts
 - The standing instructions given to the AI are in `CLAUDE.md` and `PRODUCT.md`.
