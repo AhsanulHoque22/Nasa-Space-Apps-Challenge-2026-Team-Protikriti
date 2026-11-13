@@ -25,6 +25,10 @@ export function fitScale(extent: Extent, real: RealSize): number {
   return real.metres / along
 }
 
+/** Half the model's longest ground dimension at real size: its footprint as a circle, metres. */
+export const footprintRadiusM = (h: { extent: Extent; real: RealSize }): number =>
+  (Math.max(h.extent.x, h.extent.z) * fitScale(h.extent, h.real)) / 2
+
 export type Hardware = {
   id: string
   label: string

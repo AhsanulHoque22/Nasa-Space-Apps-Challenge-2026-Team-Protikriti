@@ -14,7 +14,8 @@ import {
   type Viewer,
 } from 'cesium'
 import type { Hardware } from '../core/hardware'
-import { fitScale, liftToGround } from '../core/hardware'
+import { fitScale, footprintRadiusM, liftToGround } from '../core/hardware'
+import { type Obstacle, pushOut } from '../core/obstacles'
 import { stormAhead } from '../core/seasonal-storms'
 import { earthMarsLink } from '../core/light-time'
 import { GCR_SURFACE_MSV_HR } from '../core/surface-conditions'
@@ -34,7 +35,7 @@ import {
 } from '../core/surface-conditions'
 import type { SolWeather } from '../core/weather'
 import { type DustDevil, createMarsAtmosphere } from './mars-atmosphere'
-import { loadSiteModels } from './site-models'
+import { loadSiteModels, siteModelObstacles } from './site-models'
 import {
   type VehicleState,
   createVehicle,
@@ -59,6 +60,7 @@ const WALK_SCREEN_SPACE_ERROR = 1
 // 2022), i.e. towards ~290°. ponytail: one direction for both sites.
 const WIND_TO_DEG = 290
 const M_PER_DEG = (MARS_SPHERE.maximumRadius * Math.PI) / 180
+const WALKER_RADIUS_M = 0.4 // a suited astronaut's half-width, with the backpack
 // Arrive by descending from this height: the fine terrain and HiRISE tiles load on the way down
 // instead of popping in around a walker already standing on coarse, blurry ground.
 const DESCENT_FROM_M = 400
@@ -89,6 +91,8 @@ const PRESSURISED_ROVER: Hardware = {
   realSource: 'About 3 m tall like NASA’s Space Exploration Vehicle (NASA JSC FS-2011-07-016-JSC)',
   credit: 'Pressurised Mars rover model from the team’s 3D models folder (Sketchfab)',
 }
+// Its footprint as a circle: walkers stop at it, and a driven rover stops at the base.
+const ROVER_RADIUS_M = footprintRadiusM(PRESSURISED_ROVER)
 // glTF faces +Z; Cesium turns that into the model's +X, which heading 0 points east.
 const ROVER_HEADING_OFFSET_DEG = -90
 const ROVER_LIFT_M = liftToGround(PRESSURISED_ROVER)
@@ -153,6 +157,8 @@ export type ExploreSession = {
 }
 
 export type ExploreColonyOpts = {
+  /** Other solid things on the ground (the Story base), read each frame. */
+  obstacles?: () => readonly Obstacle[]
   colonyLayer?: ColonyLayer
   scoreAt?: (lon: number, lat: number) => ColonyScore
   onPlace?: () => void
@@ -250,6 +256,7 @@ export function startExplore(
       .catch(() => undefined)
   }
 
+  const siteSolids = siteModelObstacles(site.id)
   let body = restingBody(
     { lon: from.lon, lat: from.lat, headingDeg: 0, distanceM: 0, warning: null },
     groundAt(from.lon, from.lat),
@@ -502,8 +509,12 @@ export function startExplore(
     const dtS = Math.min(0.1, (t - last) / 1000) // clamp after tab switches
     last = t
 
+    const solid = [...siteSolids, ...(colony?.obstacles?.() ?? [])]
     if (inVehicle && vehicle) {
       vehicle = stepVehicle(vehicle, keys, dtS, groundAt, M_PER_DEG, topSpeedMs)
+      // A rover that drives into hardware stops against it, sliding along if it hit at an angle.
+      const out = pushOut(vehicle.lon, vehicle.lat, solid, ROVER_RADIUS_M)
+      if (out.hit) vehicle = { ...vehicle, lon: out.lon, lat: out.lat, speedMs: 0 }
       if (vehicleModel)
         vehicleModel.modelMatrix = vehicleMatrix(vehicle, ROVER_LIFT_M, ROVER_HEADING_OFFSET_DEG)
       // The walker rides along, so the tablet's position and guide follow the rover.
@@ -518,6 +529,13 @@ export function startExplore(
     } else {
       const before = body
       body = stepBody(body, input(dtS), dtS, site.grid, walkBoost)
+      // Nobody walks through a rover or the base: back to its edge, keeping the sideways step.
+      const parked = vehicle
+        ? [{ lon: vehicle.lon, lat: vehicle.lat, radiusM: ROVER_RADIUS_M }]
+        : []
+      const out = pushOut(body.lon, body.lat, [...solid, ...parked], WALKER_RADIUS_M)
+      // Pressing against it is not distance walked.
+      if (out.hit) body = { ...body, lon: out.lon, lat: out.lat, distanceM: before.distanceM }
       jumpQueued = false
       if (!before.grounded && body.grounded) landingDipM = Math.min(0.25, -before.vzMs * 0.05)
     }
