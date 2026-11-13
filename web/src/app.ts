@@ -109,6 +109,7 @@ import { computeBudget } from './core/colony-budget'
 import { createColonyLayer } from './map/colony-modules'
 import { renderColonyPanel } from './ui/colony-panel'
 import { renderColonySummary } from './ui/colony-summary-panel'
+import { reloadIfNewDeploy } from './stale-deploy'
 
 async function fetchOk(url: string): Promise<Response> {
   // Always revalidate: a stale cached grid.json next to a new bundle broke the map after the int16 grid change.
@@ -153,7 +154,10 @@ function siteHeights(site: Site): Promise<Grid> {
         })
         return site.grid
       })
-    load.catch(() => heightLoads.delete(site.id))
+    load.catch(() => {
+      heightLoads.delete(site.id)
+      void reloadIfNewDeploy() // an open tab from before a deploy meets the new file format
+    })
     heightLoads.set(site.id, load)
   }
   return load
@@ -999,8 +1003,9 @@ function keepUrlInSync(viewer: Parameters<typeof currentView>[0], paused: () => 
   })
 }
 
-main().catch((error: unknown) => {
+main().catch(async (error: unknown) => {
   console.error(error)
+  if (await reloadIfNewDeploy()) return
   const alert = document.createElement('p')
   alert.setAttribute('role', 'alert')
   alert.className = 'fatal'
