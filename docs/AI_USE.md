@@ -7,6 +7,9 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 - **Claude Haiku 5.5** (Anthropic API, `claude-haiku-5-5`) inside the app, as the Ask ATLAS explainer only (below).
 - **Gemini** (Google), Flash model, used to create the ATLAS logo and the logo film that opens the site, including the film's sound, on 4 November 2026.
 - **ChatGPT** (OpenAI) image generation, used once for the artwork on pitch-video Slide 2 (the Mars puzzle image). [Team: add the model name and version shown in ChatGPT, and the date.]
+- **ChatGPT** (OpenAI), text: drafted the prompts and visual ideas the team gave Google Vids for the animated segments of the video.
+- **Google Vids** (Google): generated the animated video segments in parts of the submission video, from the team's prompts.
+- **Claude Code with Claude Opus 5.5** (Anthropic, `claude-opus-5-5`): produced the app demo clips in the submission video (below).
 
 ## What the AI did
 - Wrote first drafts of most TypeScript and Python code, and its unit tests, under the standards in `CLAUDE.md` (tests first, strict type checks).
@@ -33,6 +36,9 @@ Measured by training on 4 of every 5 stops and scoring the fifth (`classify-pano
 
 ## Explore on foot overhaul (2026-11-07)
 Claude Code (Claude Opus) wrote the field tablet (`web/src/ui/explore-hud.ts`, `field-tab.css`), the seasonal dust storm model (`core/seasonal-storms.ts`), the panel dust model, the rover's speed and slope limits, the NAV route-to-a-place tool and the fine ground grain, with tests, from the team's requests. It chose the pressurised rover model from the team's folder and compressed it with glTF-Transform. Every number is sourced or marked as a team assumption in `docs/data-sources.md`. The ground grain is drawn, not measured, and the tablet says so.
+
+## Demo video clips (2026-11-13)
+Claude Code (Claude Opus 5.5) made the screen-recorded demo clips of the video, at the team's direction, scene by scene. It drove the real live app (https://atlas-mars.vercel.app, with the team's own saved progress) in Chrome with Playwright scripts and recorded the screen; the cursor, click ripples and highlight boxes were added over the recording. It then cut each clip to the team's recorded voice-over (word timings from a local Whisper transcription), with zooms, speed-ups (shown on screen when large), captions and the two data-source slides, using Python (Pillow) and ffmpeg. Everything on screen is the real app; every caption number was read off the recorded app or the docs. The team chose every scene, sol, route and camera angle and reviewed each cut. Scripts are outside the repo (`~/demo_video/work`).
 
 ## What the AI did not do
 - Choose the challenge, the Jezero and Gale sites, the 15° slope limit, or the product direction. The team decided these.
