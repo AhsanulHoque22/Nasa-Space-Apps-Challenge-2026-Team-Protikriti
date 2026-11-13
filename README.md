@@ -195,19 +195,30 @@ You are planning the first human walk on Mars. Everything you see is real data f
 
 Every dataset is open and cited in full, with product IDs and URLs, in **[docs/data-sources.md](docs/data-sources.md)**.
 
+Two NASA archives serve most of it:
+
+- **[NASA Mars Trek](https://trek.nasa.gov)** (NASA/JPL-Caltech): the map imagery and global layers, through its WMTS: Viking MDIM 2.1 colour mosaic, the HiRISE global mosaic and 17 HiRISE site mosaics, the CTX Gale mosaic, the MOLA colour hillshade, the TES dust cover index and MOLA roughness.
+- **[NASA Planetary Data System (PDS)](https://pds.nasa.gov)**, Geosciences Node: MGS MOLA MEGDR global topography (`megt90n000cb`). Also from PDS: the USGS Mars Global Cave Candidate Catalog, the HiRISE stereo DTMs and the Spirit traverse.
+
 | Dataset | Mission / instrument |
 |---|---|
-| Global topography | Mars Global Surveyor · MOLA MEGDR |
-| Jezero and Gale terrain | MRO CTX DEM, 20 m · HiRISE-derived MSL DEM mosaic (USGS) |
-| Imagery | MRO HiRISE (25 cm) · CTX · Viking MDIM, via NASA Trek |
-| Rover tracks and stops | JPL MMGIS traverses and waypoints |
-| Street View photos | Perseverance and Curiosity Navcam raw images |
-| Weather | Curiosity REMS · Perseverance MEDA |
-| Buried ice | SWIM 2.0 |
+| Global topography | Mars Global Surveyor · MOLA MEGDR (NASA PDS Geosciences Node) |
+| Jezero and Gale terrain | MRO CTX DEM, 20 m · USGS MSL Gale Merged DEM 1 m · Mars 2020 TRN HiRISE DTM · HiRISE DTEEC (PDS) |
+| Imagery | MRO HiRISE (25 cm) · CTX · Viking MDIM, via NASA Mars Trek |
+| Rover tracks and stops | NASA/JPL MMGIS traverses and waypoints |
+| 360° panoramas | Perseverance and Curiosity Navcam raw images (NASA Raw Images API) |
+| Terrain labels | AI4Mars (NASA/JPL, Swan et al. 2021) |
+| Weather | Curiosity REMS · Perseverance MEDA (NASA Mars Weather API) |
+| Buried ice | SWIM 2.0 (Morgan et al. 2021) |
+| Minerals | MRO CRISM mineral map of Jezero (Salvatore et al. 2021) |
+| Ground firmness | Mars Odyssey THEMIS thermal inertia (USGS) |
 | Radiation | Curiosity RAD (Hassler et al. 2014) |
-| Dust | MGS TES dust index |
+| Dust | MGS TES dust index (Mars Trek) · Montabone et al. dust scenarios (LMD) |
+| Time and sun | NASA GISS Mars24 · JPL planet positions |
 | Place names | IAU / USGS Gazetteer of Planetary Nomenclature |
-| Exploration Zones | NASA 2015 First Landing Sites workshop |
+| Cave candidates | USGS Mars Global Cave Candidate Catalog (PDS) |
+| Exploration Zones | NASA 2015 First Landing Sites workshop (LPI Contribution 1879) |
+| Mission science | NASA DRA 5.0 · NASA BVAD 2022 · Rucker et al. 2016 · NASA-STD-3001 |
 | Samples and rover model | NASA Mars Rock Samples · NASA 3D Resources |
 
 ## Project structure
