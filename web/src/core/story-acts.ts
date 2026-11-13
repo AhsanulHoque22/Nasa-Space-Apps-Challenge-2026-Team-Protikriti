@@ -21,7 +21,8 @@ export const ACTS: readonly Act[] = [
   { title: 'Leave something behind', line: 'The window home opens once.', missions: ['1.11'] },
   {
     title: 'The second crew',
-    line: 'They inherit what you built.',
+    // Expedition 2 leans on team assumptions where NASA has published no figure (docs/data-sources.md).
+    line: 'They inherit what you built. Some numbers here are team assumptions, not NASA figures.',
     missions: ['2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7'],
   },
 ]
