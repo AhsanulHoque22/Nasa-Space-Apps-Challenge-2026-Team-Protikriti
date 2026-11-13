@@ -253,14 +253,14 @@ Engineering standards: [CLAUDE.md](CLAUDE.md) · Product and design brief: [PROD
 
 ## Team Protikriti
 
-| Name | Role |
-|---|---|
-| Shaeakh Ahmed Chowdhury | _role_ |
-| Ahsanul Hoque | _role_ |
-| Muntaha Monir | _role_ |
-| Anika Tahsin Orthi | _role_ |
-| Most. Zannatun Nesa Prima | _role_ |
-| Mohaiminul Islam Musa | _role_ |
+| Name | Role | Contribution |
+|---|---|---|
+| Ahsanul Hoque | System Designer & AI Engineer | Brainstorming; full development of the app |
+| Md. Shaeakh Ahmed Chowdhury | System Architect | Brainstorming; development of Expedition 2; video editing |
+| Muntaha Monir | Resource Intelligence Analyst | Brainstorming; research |
+| Most. Zannatun Nesa Prima | UX, Visualization & Presentation Lead | Idea generation; research |
+| Anika Tahsin Orthi | Planetary Science Researcher | Idea generation; research |
+| Mohammad Omar Faruk | Data Pipeline & Geospatial Engineer | Research |
 
 ## Contributing (team workflow)
 

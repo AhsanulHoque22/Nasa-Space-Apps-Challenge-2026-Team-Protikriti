@@ -67,4 +67,11 @@ Claude Code (Claude Opus 5.5) made the screen-recorded demo clips of the video, 
 - [Team: add key prompts used for the pitch script and any other generated text, and say how you edited them.]
 
 ## Our own work
-[Team: list what each member designed, decided, wrote or edited by hand.]
+The team chose the challenge, the product direction (a story mode people learn through, beside accurate astronaut tools), the sites, the limits and assumptions, every mission's scenario, and what the videos show. Each member's part:
+
+- **Ahsanul Hoque** (System Designer & AI Engineer): brainstorming; full development of the app, directing Claude Code and reviewing, testing and correcting what it wrote; directed every scene of the demo video.
+- **Md. Shaeakh Ahmed Chowdhury** (System Architect): brainstorming; development of Expedition 2 (missions 2.1 to 2.7); video editing.
+- **Muntaha Monir** (Resource Intelligence Analyst): brainstorming; research.
+- **Most. Zannatun Nesa Prima** (UX, Visualization & Presentation Lead): idea generation; research.
+- **Anika Tahsin Orthi** (Planetary Science Researcher): idea generation; research.
+- **Mohammad Omar Faruk** (Data Pipeline & Geospatial Engineer): research.
