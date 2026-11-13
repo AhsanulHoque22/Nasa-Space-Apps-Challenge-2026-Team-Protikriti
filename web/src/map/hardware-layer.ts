@@ -30,6 +30,7 @@ import {
   type Viewer,
 } from 'cesium'
 import { MARS_SPHERE } from './mars'
+import type { Obstacle } from '../core/obstacles'
 
 export type Placement = {
   lon: number
@@ -55,11 +56,17 @@ export type HardwareLayer = {
   cable: (key: string, points: readonly { lon: number; lat: number }[]) => void
   /** Hear clicks on any model or shape, by its key. */
   onPick: (handler: (key: string) => void) => void
+  /** What is shown and where, by its label's name (the part before " · "). */
+  places: () => Array<{ name: string; lon: number; lat: number }>
+  /** Every shown piece as a solid footprint, so a walker cannot step through it. */
+  footprints: () => Obstacle[]
 }
 
 /** A drawn-mesh height further than this from the sampled ground comes from a coarse tile. */
 const MESH_TRUST_M = 50
 const CLICK_RADIUS_PX = 40
+// ponytail: one size for every base part (the habitat is 5 m across); per-part sizes if it shows.
+const PART_RADIUS_M = 2.5
 const LABEL_MAX_M = 3_000 // labels only once the models are big enough to see
 const LABEL = Color.fromCssColorString('#eef2f8')
 const CABLE = Color.fromCssColorString('#f2c230') // yellow, as in NASA's Kilopower concept art
@@ -236,5 +243,11 @@ export function createHardwareLayer(
     onPick: (handler) => {
       pickHandler = handler
     },
+    places: () =>
+      [...shown.values()]
+        .filter((e) => e.at.label)
+        .map((e) => ({ name: e.at.label.split(' · ')[0] ?? '', lon: e.at.lon, lat: e.at.lat })),
+    footprints: () =>
+      [...shown.values()].map((e) => ({ lon: e.at.lon, lat: e.at.lat, radiusM: PART_RADIUS_M })),
   }
 }

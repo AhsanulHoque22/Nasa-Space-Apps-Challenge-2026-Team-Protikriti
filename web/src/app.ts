@@ -10,7 +10,9 @@ import { type LandingScene, createLandingScene } from './map/landing-scene'
 import { type FeaturePins, createFeaturePins } from './map/feature-pins'
 import './style.css'
 import './episodes.css'
-import { type Site, elevationAt, parseMola, siteAt } from './core/elevation'
+import { type Site, elevationAt, parseMola, sampleGrid, siteAt } from './core/elevation'
+import { addExplorePins, loadNamedPlaces } from './map/explore-pins'
+import { siteModelPlaces } from './map/site-models'
 import { heroReadings } from './core/hero-readings'
 import { pushExploreKPIs, pushScienceKPIs } from './ui/hero-state'
 import { type Grid, emptyGrid, fillHeights, lonLatToCell } from './core/grid'
@@ -545,22 +547,42 @@ async function main() {
       wind: null,
     }
     for (const hide of exploreHooks) hide(true)
+    // Pins added after openExplore: it hides every marker collection already on the map.
+    let onFoot = true
+    let removePins = () => {}
     openExplore(
       viewer,
       walkSite,
       from,
       () => {
+        onFoot = false
+        removePins()
         ground.endFineWalk()
         for (const hide of exploreHooks) hide(false)
         viewAoi(viewer, g)
         b.focus()
       },
       {
+        obstacles: () => hardware.footprints(),
         colonyLayer,
         scoreAt: (lon, lat) => (colonyGrid ? colonyScoreAt(colonyGrid, lon, lat) : emptyScore),
         onPlace: () => colonySummaryCtrl.update(computeBudget([...colonyLayer.modules])),
       },
     )
+    const walkGrid = walkSite.grid
+    const trueGroundM = (lon: number, lat: number) => {
+      const h = sampleGrid(walkGrid, lon, lat)
+      return Number.isFinite(h) ? h : groundM(lon, lat)
+    }
+    const near = [...hardware.places(), ...siteModelPlaces(site.id)]
+    void loadNamedPlaces()
+      .catch((error: unknown) => {
+        console.warn('Named places not pinned:', error)
+        return []
+      })
+      .then((names) => {
+        if (onFoot) removePins = addExplorePins(viewer, from, [...near, ...names], trueGroundM)
+      })
   }
   // On foot the walk patch and the 25 cm site mosaics fill the view: drop the layers beneath.
   let offFootShown = offFoot.show

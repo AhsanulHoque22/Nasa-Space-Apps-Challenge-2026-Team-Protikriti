@@ -48,7 +48,7 @@ const POINTER_LABEL_M = 1_500_000
 const PIN_DEPTH_TEST_OFF_WITHIN_M = 20_000 // closer than this the ground never slices a pin; farther, the planet hides it
 
 /** A map pin, drawn once: a filled teardrop with a white ring, in the rover's colour. */
-function pin(fill: string): HTMLCanvasElement {
+export function pin(fill: string): HTMLCanvasElement {
   const c = document.createElement('canvas')
   c.width = POINTER_W
   c.height = POINTER_H

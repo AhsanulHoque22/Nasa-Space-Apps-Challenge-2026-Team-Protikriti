@@ -5,7 +5,8 @@
  */
 import { Cartesian3, HeadingPitchRoll, Model, Transforms, type Scene } from 'cesium'
 import { MARS_SPHERE } from './mars'
-import { type Hardware, HARDWARE, fitScale, liftToGround } from '../core/hardware'
+import { type Hardware, HARDWARE, fitScale, footprintRadiusM, liftToGround } from '../core/hardware'
+import type { Obstacle } from '../core/obstacles'
 
 type Spec = { model: Hardware; lon: number; lat: number; headingDeg?: number }
 
@@ -93,3 +94,11 @@ export function loadSiteModels(
     loaded.length = 0
   }
 }
+
+/** The site's own models (Perseverance, Ingenuity, ...) by name and place. */
+export const siteModelPlaces = (siteId: string) =>
+  (SPECS[siteId] ?? []).map((s) => ({ name: s.model.label, lon: s.lon, lat: s.lat }))
+
+/** The site's models as solid footprints, so a walker cannot step through them. */
+export const siteModelObstacles = (siteId: string): Obstacle[] =>
+  (SPECS[siteId] ?? []).map((s) => ({ lon: s.lon, lat: s.lat, radiusM: footprintRadiusM(s.model) }))
