@@ -285,4 +285,6 @@ Known and deliberate:
 
 ## Credits
 
+Background music in the submission videos: **The_Mountain** on Pixabay (https://pixabay.com/users/the_mountain-3616498/), used under the Pixabay Content License.
+
 Imagery and data © NASA/JPL-Caltech, USGS Astrogeology, MSSS, University of Arizona (HiRISE) and the IAU. Built with [CesiumJS](https://cesium.com/platform/cesiumjs/), [Vite](https://vite.dev/), [rasterio](https://rasterio.readthedocs.io/) and [uv](https://docs.astral.sh/uv/).
