@@ -15,7 +15,7 @@ NASA Space Apps Challenge 2026 · **Team Protikriti** · Challenge: [*Interplane
 
 🌐 **Live app: [atlas-mars.vercel.app](https://atlas-mars.vercel.app)**
 
-🎬 **Videos:** 240-second demo (coming soon) · 30 Seconds of Glory (coming soon)
+🎬 **Videos:** 240-second demo (coming soon) · [30 Seconds of Glory](https://youtu.be/RkVXGQ8JbPg)
 
 ![ATLAS planning a Marswalk beside Belva crater in Jezero: HiRISE imagery on real terrain, slopes over 15° hatched red, Perseverance's traverse, and the route's GO verdict](docs/clips/hero.jpg)
 
