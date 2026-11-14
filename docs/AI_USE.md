@@ -7,6 +7,7 @@ Team Protikriti, NASA Space Apps Challenge 2026, *Interplanetary Survival Guide:
 - **Claude Haiku 5.5** (Anthropic API, `claude-haiku-5-5`) inside the app, as the Ask ATLAS explainer only (below).
 - **ChatGPT** (OpenAI) image generation, used to create the ATLAS logo and the astronaut-arm picture behind the EVA wrist console.
 - **Gemini** (Google), Flash model, used to animate that logo into the film that opens the site, including the film's sound, on 4 November 2026.
+- **Gemini Argon** (Google), used to generate the astronaut dust-storm clip that opens the 30-second video (marked "[AI Generated]" on screen).
 - **ChatGPT** (OpenAI) image generation, used once for the artwork on pitch-video Slide 2 (the Mars puzzle image). Made with ChatGPT's default model in the chat app (the model was not changed).
 - **ChatGPT** (OpenAI), text: drafted the prompts and visual ideas the team gave Google Vids for the animated segments of the video.
 - **Google Vids** (Google): generated the animated video segments in parts of the submission video, from the team's prompts.
@@ -44,7 +45,7 @@ Claude Code (Claude Opus 5.5) made the screen-recorded demo clips of the video, 
 ## What the AI did not do
 - Choose the challenge, the Jezero and Gale sites, the 15° slope limit, or the product direction. The team decided these.
 - Supply any data. Every dataset comes from NASA, USGS or the IAU and is cited in `docs/data-sources.md`.
-- Produce any image, video or audio shown in the app, apart from the opening logo film (below). The generated images and video are: the ATLAS logo and the astronaut-arm picture behind the EVA wrist console (ChatGPT), the opening logo film (Gemini), the Slide 2 puzzle artwork (ChatGPT) and the animated segments of the submission video (Google Vids, from prompts drafted with ChatGPT). All are illustration, not NASA data, and show no real terrain readings or people's likenesses.
+- Produce any image, video or audio shown in the app, apart from the opening logo film (below). The generated images and video are: the ATLAS logo and the astronaut-arm picture behind the EVA wrist console (ChatGPT), the opening logo film (Gemini), the Slide 2 puzzle artwork (ChatGPT) the animated segments of the submission video (Google Vids, from prompts drafted with ChatGPT) and the astronaut dust-storm clip at the start of the 30-second video (Gemini Argon). All are illustration, not NASA data, and show no real terrain readings or people's likenesses.
 - The logo film that opens the site (`web/public/media/intro/atlas-intro.mp4`) was generated with Gemini (see Tools) from the ATLAS logo, which was made with ChatGPT. It is a logo animation, not NASA data: its Mars and rocket are illustration, not real terrain or hardware. Claude Code only upscaled, sharpened and re-encoded it with ffmpeg (no AI enhancement) and placed it in the page. The small logo on the Ask ATLAS button (`web/public/assets/atlas-mark.webp`) is cropped from that film.
 - The astronaut-arm picture behind the EVA dashboard (`web/public/assets/wrist-console.webp`) was generated with ChatGPT image generation (see Tools), supplied by the team as `Sci-Fi Astronaut Wrist HUD Console.png`; the code only converts it to WebP and places the screens on it. Nothing on the screens is invented: no suit vitals, only the walk's own numbers.
 
